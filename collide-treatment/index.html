@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Collide — campaign treatment for Moises Studio 2.0. When different worlds collide, new music is born.">
+<title>Collide — Campaign Treatment</title>
+<style>
+  :root{
+    --ink:#0a0c0c;
+    --ink-2:#111413;
+    --ink-3:#181c1b;
+    --paper:#ece7dc;
+    --paper-dim:#a5a298;
+    --paper-faint:#6d6c64;
+    --teal:#22cdb8;
+    --teal-glow:rgba(34,205,184,.35);
+    --line:rgba(236,231,220,.12);
+    --serif:"Bodoni 72","Didot","Playfair Display",Georgia,"Times New Roman",serif;
+    --sans:"Avenir Next","Avenir","Helvetica Neue",Helvetica,Arial,sans-serif;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+  }
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--ink);color:var(--paper);font-family:var(--sans);
+    line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--teal);color:var(--ink)}
+  a{color:var(--teal);text-decoration:none;border-bottom:1px solid rgba(34,205,184,.3);transition:border-color .2s}
+  a:hover{border-color:var(--teal)}
+
+  #grain{
+    position:fixed;inset:-100px;z-index:60;pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    opacity:.11;mix-blend-mode:overlay;animation:grain .9s steps(4) infinite;
+  }
+  @keyframes grain{0%{transform:translate(0,0)}25%{transform:translate(-40px,30px)}50%{transform:translate(30px,-45px)}75%{transform:translate(-25px,-20px)}100%{transform:translate(0,0)}}
+
+  .wrap{max-width:920px;margin:0 auto;padding:0 24px;position:relative}
+
+  /* HUD */
+  #hud{
+    position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;gap:20px;
+    padding:12px 20px;
+    background:linear-gradient(to bottom,rgba(10,12,12,.92),rgba(10,12,12,.75) 70%,transparent);
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--paper-faint);
+  }
+  #hud .brand{color:var(--paper);white-space:nowrap}
+  #hud .brand i{font-style:normal;color:var(--teal)}
+  #hud .bar{flex:1;height:14px;position:relative}
+  #hud .bar svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+  #hud .track{stroke:rgba(236,231,220,.16);stroke-width:1.5;fill:none}
+  #hud .fill{stroke:var(--teal);stroke-width:2;fill:none;filter:drop-shadow(0 0 4px var(--teal-glow))}
+  #chap{white-space:nowrap;color:var(--paper);min-width:150px;text-align:right;overflow:hidden;text-overflow:ellipsis}
+  @media(max-width:680px){#hud .brand span{display:none}#chap{min-width:0;max-width:150px}}
+
+  .reveal{opacity:0;transform:translateY(28px);transition:opacity .9s cubic-bezier(.2,.6,.2,1),transform .9s cubic-bezier(.2,.6,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    *,*::before,*::after{animation:none!important;transition:none!important}
+    .reveal{opacity:1!important;transform:none!important}
+  }
+
+  /* HERO */
+  #hero{position:relative;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;justify-content:center;border-bottom:1px solid var(--line);overflow:hidden}
+  #collide-cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .hero-inner{position:relative;z-index:2;padding:110px 0 80px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--paper-faint);margin:0 0 30px}
+  .eyebrow b{color:var(--teal);font-weight:500}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(72px,14vw,164px);line-height:.92;margin:0;text-shadow:0 0 60px rgba(10,12,12,.9)}
+  .hero-line{display:block;margin:14px 0 36px;max-width:560px;overflow:visible}
+  .hero-line path{
+    stroke:var(--teal);stroke-width:2.5;fill:none;stroke-linecap:round;
+    stroke-dasharray:580;stroke-dashoffset:580;
+    animation:draw 2s cubic-bezier(.5,0,.2,1) .4s forwards;
+    filter:url(#rough) drop-shadow(0 0 6px var(--teal-glow));
+  }
+  @keyframes draw{to{stroke-dashoffset:0}}
+  .hero-sub{font-family:var(--serif);font-style:italic;font-size:clamp(18px,2.6vw,23px);color:var(--paper-dim);margin:0;max-width:30em;text-shadow:0 0 30px rgba(10,12,12,.9)}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:12px 36px;margin-top:48px;font-family:var(--mono);font-size:12px;color:var(--paper-faint)}
+  .hero-meta strong{color:var(--paper);font-weight:500}
+  .scroll-cue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);z-index:2;font-family:var(--mono);font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--paper-faint);animation:cue 2.4s ease-in-out infinite}
+  @keyframes cue{0%,100%{transform:translate(-50%,0);opacity:.5}50%{transform:translate(-50%,8px);opacity:1}}
+
+  /* SECTIONS */
+  section{padding:120px 0 30px;position:relative}
+  .sec-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--teal);display:block;margin-bottom:12px}
+  h2{font-family:var(--serif);font-weight:400;font-size:clamp(34px,5.4vw,54px);margin:0 0 6px;line-height:1.08;text-wrap:balance}
+  .h2-line{display:block;height:16px;max-width:340px;margin:8px 0 30px;overflow:visible}
+  .h2-line path{
+    stroke:rgba(236,231,220,.4);stroke-width:1.8;fill:none;stroke-linecap:round;
+    stroke-dasharray:360;stroke-dashoffset:360;
+    transition:stroke-dashoffset 1.6s cubic-bezier(.5,0,.2,1) .2s;filter:url(#rough);
+  }
+  section.in .h2-line path{stroke-dashoffset:0}
+  .ghost{
+    position:absolute;right:-14px;top:56px;z-index:0;
+    font-family:var(--serif);font-size:clamp(120px,18vw,210px);line-height:1;
+    color:transparent;-webkit-text-stroke:1px rgba(236,231,220,.06);
+    pointer-events:none;user-select:none;will-change:transform;
+  }
+  .prose{font-size:17px;color:var(--paper-dim);max-width:41em;position:relative;z-index:1}
+  .prose p{margin:0 0 18px}
+  .prose b{color:var(--paper);font-weight:600}
+  .prose em{color:var(--paper)}
+  .drop::first-letter{
+    font-family:var(--serif);font-size:3.4em;float:left;line-height:.82;
+    padding:4px 10px 0 0;color:var(--paper);
+  }
+  .pull{
+    font-family:var(--serif);font-style:italic;font-weight:400;
+    font-size:clamp(24px,3.6vw,34px);line-height:1.3;color:var(--paper);
+    border-left:2px solid var(--teal);padding:8px 0 8px 28px;margin:44px 0;
+    max-width:26em;text-wrap:balance;position:relative;z-index:1;
+  }
+  .pull i{color:var(--teal);font-style:italic}
+  .sig-off{font-family:var(--serif);font-style:italic;font-size:20px;color:var(--paper);margin-top:26px}
+
+  /* cards & grids */
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:40px;position:relative;z-index:1}
+  .grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:40px;position:relative;z-index:1}
+  @media(max-width:720px){.grid3,.grid2{grid-template-columns:1fr}}
+  .card{
+    background:var(--ink-2);border:1px solid var(--line);padding:24px 22px 26px;
+    position:relative;overflow:hidden;transition:border-color .4s,transform .4s;
+  }
+  .card::after{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--teal);transform:scaleY(0);transform-origin:top;transition:transform .5s cubic-bezier(.5,0,.2,1)}
+  .card:hover{border-color:rgba(236,231,220,.25);transform:translateY(-3px)}
+  .card:hover::after{transform:scaleY(1)}
+  .card h3{font-family:var(--serif);font-style:italic;font-weight:400;font-size:22px;margin:0 0 10px}
+  .card h4{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--teal);margin:0 0 12px}
+  .card p{margin:0;font-size:14px;color:var(--paper-dim)}
+  .card p+p{margin-top:10px}
+  .card .big{position:absolute;right:14px;top:8px;font-family:var(--serif);font-size:60px;color:rgba(236,231,220,.05);line-height:1}
+
+  /* genre collisions */
+  .genres{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:40px;position:relative;z-index:1}
+  @media(max-width:860px){.genres{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.genres{grid-template-columns:1fr}}
+  .genre{background:var(--ink-2);border:1px solid var(--line);padding:22px 20px;transition:border-color .4s,box-shadow .4s;position:relative;overflow:hidden}
+  .genre:hover{border-color:rgba(34,205,184,.4);box-shadow:0 0 30px rgba(34,205,184,.05)}
+  .genre .formula{font-family:var(--mono);font-size:11px;line-height:2;color:var(--paper-dim);letter-spacing:.03em}
+  .genre .formula i{font-style:normal;color:var(--teal);padding:0 4px}
+  .genre h3{font-family:var(--serif);font-weight:400;font-size:26px;margin:0 0 4px}
+  .genre .where{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--paper-faint);display:block;margin-bottom:14px}
+  .genre svg{position:absolute;right:-8px;bottom:-8px;opacity:.12}
+
+  /* look & feel two-column tension */
+  .tension{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:40px;border:1px solid var(--line);position:relative;z-index:1}
+  @media(max-width:640px){.tension{grid-template-columns:1fr}}
+  .tension>div{padding:30px 26px}
+  .tension>div:first-child{border-right:1px dashed rgba(236,231,220,.15)}
+  @media(max-width:640px){.tension>div:first-child{border-right:none;border-bottom:1px dashed rgba(236,231,220,.15)}}
+  .tension h4{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;margin:0 0 16px}
+  .tension .past h4{color:var(--paper-dim)}
+  .tension .future h4{color:var(--teal)}
+  .tension ul{list-style:none;margin:0;padding:0;font-size:14.5px;color:var(--paper-dim)}
+  .tension li{padding:7px 0;border-bottom:1px solid rgba(236,231,220,.06)}
+  .tension li:last-child{border-bottom:none}
+  .tension-vs{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    font-family:var(--serif);font-style:italic;font-size:20px;color:var(--teal);
+    background:var(--ink);border:1px solid var(--line);border-radius:50%;
+    width:52px;height:52px;display:flex;align-items:center;justify-content:center;z-index:2;
+  }
+  @media(max-width:640px){.tension-vs{display:none}}
+
+  /* rules dl */
+  .rules{display:grid;grid-template-columns:170px 1fr;gap:14px 28px;margin-top:34px;font-size:15px;position:relative;z-index:1}
+  @media(max-width:600px){.rules{grid-template-columns:1fr;gap:2px 0}.rules dd{margin-bottom:16px}}
+  .rules dt{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--paper-faint);padding-top:3px}
+  .rules dd{margin:0;color:var(--paper-dim)}
+  .rules dd b{color:var(--paper);font-weight:600}
+
+  /* film scenes compact */
+  .scenes{margin-top:44px;border-top:1px solid var(--line);position:relative;z-index:1}
+  .mov-row{
+    display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+    padding:22px 0 6px;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  }
+  .mov-row .tc{color:var(--teal);font-variant-numeric:tabular-nums}
+  .mov-row .nm{font-family:var(--serif);font-size:20px;letter-spacing:0;text-transform:none;color:var(--paper)}
+  .mov-row .mood{color:var(--paper-faint);font-style:italic;text-transform:none;letter-spacing:.02em;margin-left:auto}
+  .sc{
+    display:grid;grid-template-columns:88px 1fr;gap:0 24px;
+    padding:16px 0 18px;border-bottom:1px dashed rgba(236,231,220,.08);
+  }
+  @media(max-width:600px){.sc{grid-template-columns:1fr;gap:4px 0}}
+  .sc .t{font-family:var(--mono);font-size:11px;color:var(--paper-faint);font-variant-numeric:tabular-nums;padding-top:5px}
+  .sc .vo{font-family:var(--serif);font-style:italic;font-size:18.5px;line-height:1.45;margin:0 0 6px;color:var(--paper)}
+  .sc .vo i{color:var(--teal);font-style:italic}
+  .sc .vis{font-size:13.5px;color:var(--paper-dim);margin:0;max-width:52em}
+
+  /* phases */
+  .phase{margin-top:46px;border:1px solid var(--line);background:var(--ink-2);position:relative;z-index:1;overflow:hidden}
+  .phase-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;padding:26px 26px 0}
+  .phase-head .no{font-family:var(--serif);font-size:44px;color:var(--teal);line-height:1}
+  .phase-head h3{font-family:var(--serif);font-weight:400;font-size:27px;margin:0}
+  .phase-head .when{margin-left:auto;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--paper-faint)}
+  .phase-body{padding:18px 26px 26px}
+  .phase-body p{font-size:15px;color:var(--paper-dim);max-width:46em;margin:0 0 14px}
+  .phase-body b{color:var(--paper);font-weight:600}
+  .dels{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
+  @media(max-width:640px){.dels{grid-template-columns:1fr}}
+  .del{border:1px solid var(--line);padding:14px 16px}
+  .del .v{font-family:var(--serif);font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+  .del .v em{font-style:normal;color:var(--teal)}
+  .del .l{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--paper-faint);display:block;margin-top:7px;line-height:1.6}
+
+  /* references */
+  .refs{margin-top:40px;position:relative;z-index:1}
+  .ref{
+    display:grid;grid-template-columns:34px 1fr auto;gap:0 20px;align-items:baseline;
+    padding:20px 0;border-bottom:1px solid rgba(236,231,220,.08);
+  }
+  @media(max-width:600px){.ref{grid-template-columns:34px 1fr}.ref .watch{grid-column:2}}
+  .ref .idx{font-family:var(--mono);font-size:11px;color:var(--paper-faint)}
+  .ref h3{font-family:var(--serif);font-style:italic;font-weight:400;font-size:21px;margin:0 0 4px}
+  .ref p{margin:0;font-size:14px;color:var(--paper-dim);max-width:44em}
+  .ref .watch{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+
+  /* assets */
+  .assets{margin-top:36px;display:grid;grid-template-columns:1fr 1fr;gap:14px;position:relative;z-index:1}
+  @media(max-width:640px){.assets{grid-template-columns:1fr}}
+
+  footer{padding:120px 0 130px;text-align:center;position:relative}
+  footer .sig{font-family:var(--serif);font-style:italic;font-size:clamp(27px,4.4vw,40px);margin:0 0 16px}
+  footer .sig em{color:var(--teal)}
+  footer p{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--paper-faint);margin:0}
+  #footer-hands{display:block;margin:0 auto 30px;overflow:visible}
+  #footer-hands path{
+    stroke:var(--paper);stroke-width:2;fill:none;stroke-linecap:round;filter:url(#rough);
+    stroke-dasharray:420;stroke-dashoffset:420;transition:stroke-dashoffset 2.4s cubic-bezier(.4,0,.2,1);
+  }
+  #footer-hands circle{fill:var(--teal);opacity:0;transition:opacity .8s ease 2s;filter:drop-shadow(0 0 8px var(--teal-glow))}
+  footer.in #footer-hands path{stroke-dashoffset:0}
+  footer.in #footer-hands circle{opacity:1}
+</style>
+
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="rough" x="-10%" y="-400%" width="120%" height="900%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="4" seed="7" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="5"/>
+    </filter>
+  </defs>
+</svg>
+
+<div id="grain" aria-hidden="true"></div>
+
+<div id="hud" aria-hidden="true">
+  <span class="brand"><i>●</i> Collide <span>· Campaign Treatment</span></span>
+  <div class="bar">
+    <svg viewBox="0 0 600 14" preserveAspectRatio="none">
+      <path class="track" d="M2 8 C 120 5, 240 11, 360 7 S 540 6, 598 8"/>
+      <path class="fill" id="hud-fill" d="M2 8 C 120 5, 240 11, 360 7 S 540 6, 598 8"/>
+    </svg>
+  </div>
+  <span id="chap">Cover</span>
+</div>
+
+<!-- ================= HERO ================= -->
+<div id="hero" data-chap="Cover">
+  <canvas id="collide-cv" aria-hidden="true"></canvas>
+  <div class="wrap hero-inner">
+    <p class="eyebrow">Campaign Treatment · Moises <b>Studio 2.0</b></p>
+    <h1>Collide</h1>
+    <svg class="hero-line" viewBox="0 0 560 24" height="24" aria-hidden="true">
+      <path d="M4 16 C 100 8, 160 20, 260 13 S 460 6, 556 14"/>
+    </svg>
+    <p class="hero-sub">When different worlds collide, new music is born. A campaign about real musicians, real process — and the collaboration that never ends.</p>
+    <div class="hero-meta">
+      <span>Phases <strong>3</strong></span>
+      <span>Films <strong>21+</strong></span>
+      <span>Markets <strong>N. America · Europe · Brazil · China</strong></span>
+      <span>Launch <strong>September</strong></span>
+    </div>
+  </div>
+  <span class="scroll-cue">Scroll</span>
+</div>
+
+<div class="wrap">
+
+<!-- ================= 01 PREFACE ================= -->
+<section id="preface" data-chap="01 — Preface">
+  <span class="ghost" aria-hidden="true">01</span>
+  <span class="sec-kicker reveal">01 — Preface</span>
+  <h2 class="reveal">Before anything else</h2>
+  <svg class="h2-line" viewBox="0 0 340 16" aria-hidden="true"><path d="M2 9 C 80 5, 150 13, 230 8 S 320 6, 338 9"/></svg>
+  <div class="prose reveal">
+    <p class="drop">I think everyone who works with music waits for a brief like this one. A chance to combine what we need to say with what we want to say. We need to show the world what Studio 2.0 can do. But what we want to say is much bigger: that the process of making music — the years, the failures, the accidents, the people — is worth protecting.</p>
+    <p>The conversation around AI and music right now is loud, anxious, and often reductive. This campaign is our answer to it. Not defensive, not nostalgic — <b>a declaration of love for the way music is actually made</b>, told by the people who make it.</p>
+    <p>The treatment below was written with that feeling inside me. Thank you for the opportunity. Let's make it happen.</p>
+    <p class="sig-off">Let's go.</p>
+  </div>
+</section>
+
+<!-- ================= 02 THE PREMISE ================= -->
+<section id="premise" data-chap="02 — The Premise">
+  <span class="ghost" aria-hidden="true">02</span>
+  <span class="sec-kicker reveal">02 — The Premise</span>
+  <h2 class="reveal">Every Moises film is a film about the process</h2>
+  <svg class="h2-line" viewBox="0 0 340 16" aria-hidden="true"><path d="M2 8 C 90 12, 170 5, 250 10 S 320 7, 338 9"/></svg>
+  <div class="prose reveal">
+    <p>In the end, that is the heart of everything we produce. Every editorial campaign Moises makes is built on the same foundation — and these are not guidelines. <b>They are convictions.</b></p>
+    <p>Every piece of content starts from the same premise: <b>real musicians, creating, playing, and recording real music</b> — collaborating with each other, in real environments, with real stakes. Moises is a facilitator. It removes technical barriers. It does not eliminate the creative or technical process.</p>
+  </div>
+  <div class="grid3">
+    <div class="card reveal"><span class="big">♩</span>
+      <h3>Real performance</h3>
+      <p>Photoshoots are made with real musicians performing and recording. The sound is genuinely captured. Artists prepare, rehearse, and show up — like a real gig.</p>
+    </div>
+    <div class="card reveal" style="transition-delay:.12s"><span class="big">♪</span>
+      <h3>Real soundtracks</h3>
+      <p>Every video involves the composition of an original soundtrack. The full arc of making music is present: research → inspiration → conception → recording → finalization → mixing.</p>
+    </div>
+    <div class="card reveal" style="transition-delay:.24s"><span class="big">♫</span>
+      <h3>Real people</h3>
+      <p>Characters are real humans, openly sharing their creative process, their inspirations, and the life stories behind their careers. Those stories determine the sound of each piece.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 03 WHY IT MATTERS ================= -->
+<section id="why" data-chap="03 — Why It Matters">
+  <span class="ghost" aria-hidden="true">03</span>
+  <span class="sec-kicker reveal">03 — Why It Matters</span>
+  <h2 class="reveal">The emotional case</h2>
+  <svg class="h2-line" viewBox="0 0 340 16" aria-hidden="true"><path d="M2 9 C 70 6, 160 12, 240 7 S 322 10, 338 8"/></svg>
+  <div class="prose reveal">
+    <p>Why do these premises matter — and why will they matter to people? Six reasons, each one a pillar of the campaign.</p>
+  </div>
+  <div class="grid2">
+    <div class="card reveal"><h4>A — Catalyst, not eliminator</h4>
+      <p>Technology should expand creative possibility, not replace creative humanity. We are here to strengthen the music ecosystem — not erase it.</p>
+    </div>
+    <div class="card reveal" style="transition-delay:.08s"><h4>B — The ecosystem lives</h4>
+      <p>Technicians, engineers, producers, session musicians, studios, equipment makers, live crews — the full human ecosystem of music is alive and present in everything we make.</p>
+    </div>
+    <div class="card reveal"><h4>C — The process is irreplaceable</h4>
+      <p>The moment an artist discovers a sound they didn't expect. The frustration before the breakthrough. The joy of finishing something that didn't exist before. Machines cannot replicate this — and it is exactly what we document and celebrate.</p>
+    </div>
+    <div class="card reveal" style="transition-delay:.08s"><h4>D — Flow: challenge becomes fulfillment</h4>
+      <p>When a musician pushes through complexity and arrives at a moment of clarity and expression — that is flow. That state of deep, effortful engagement is where music becomes meaningful. The process is not a burden to be automated away. It is the source of everything that makes music worth feeling.</p>
+    </div>
+    <div class="card reveal"><h4>E — Music as identity</h4>
+      <p>For artists who dedicate their lives to music, creating is not just professional — it is existential. The years of practice, the teachers, the failures, the breakthroughs: that path gives their music weight and truth. Protecting it is not nostalgic. It is necessary.</p>
+    </div>
+    <div class="card reveal" style="transition-delay:.08s"><h4>F — Global, plural, rooted</h4>
+      <p>By working with real characters from diverse origins, Moises belongs to the whole world — not one scene, one genre, or one market. Every artist we feature carries a cultural story worth telling. Different worlds — one music.</p>
+    </div>
+  </div>
+  <blockquote class="pull reveal">If creating a song is one click of a generic button, you are not making music. You are listening to a <i>personalized stream</i> of a song tailored to you. It will never bring the joy of actually playing.</blockquote>
+</section>
+
+<!-- ================= 04 THE CONCEPT ================= -->
+<section id="concept" data-chap="04 — The Concept">
+  <span class="ghost" aria-hidden="true">04</span>
+  <span class="sec-kicker reveal">04 — The Concept</span>
+  <h2 class="reveal">Music has always been born from collision</h2>
+  <svg class="h2-line" viewBox="0 0 340 16" aria-hidden="true"><path d="M2 8 C 60 12, 140 4, 230 10 S 320 8, 338 9"/></svg>
+  <div class="prose reveal">
+    <p>Music does not evolve in isolation. Every great genre, every defining sound, every cultural movement in music history was born from the meeting — <b>the collision</b> — of different influences, backgrounds, and human experiences.</p>
+    <p>This is not a theory. It is the history of music itself:</p>
+  </div>
+  <div class="genres">
+    <div class="genre reveal">
+      <h3>Jazz</h3><span class="where">New Orleans</span>
+      <p class="formula">West African rhythm <i>×</i> blues <i>×</i> European harmony <i>×</i> the lived experience of Black Americans navigating a fractured society. The most influential music America ever produced.</p>
+    </div>
+    <div class="genre reveal" style="transition-delay:.07s">
+      <h3>Rock &amp; Roll</h3><span class="where">United States</span>
+      <p class="formula">Blues <i>×</i> gospel <i>×</i> country <i>×</i> rhythm &amp; blues — cultural currents meeting at one historical moment, creating something that changed the world.</p>
+    </div>
+    <div class="genre reveal" style="transition-delay:.14s">
+      <h3>Bossa Nova</h3><span class="where">Rio de Janeiro, late 1950s</span>
+      <p class="formula">Brazilian samba, with deep African roots <i>×</i> American cool jazz — filtered through the sensibility of Rio. One of the most sophisticated musical forms ever created.</p>
+    </div>
+    <div class="genre reveal">
+      <h3>Hip-Hop</h3><span class="where">South Bronx</span>
+      <p class="formula">Funk <i>×</i> soul <i>×</i> Caribbean sound-system culture <i>×</i> a generation with limited resources and unlimited creative will. DJ-ing, sampling and MC-ing became a new musical language.</p>
+    </div>
+    <div class="genre reveal" style="transition-delay:.07s">
+      <h3>Reggaeton</h3><span class="where">Panama &amp; Puerto Rico</span>
+      <p class="formula">Jamaican dancehall <i>×</i> American hip-hop <i>×</i> Latin Caribbean rhythms — born local, grown into a global phenomenon.</p>
+    </div>
+    <div class="genre reveal" style="transition-delay:.14s">
+      <h3>Afrobeats</h3><span class="where">West Africa</span>
+      <p class="formula">Traditional West African rhythms <i>×</i> highlife <i>×</i> funk <i>×</i> R&amp;B <i>×</i> electronic production — simultaneously ancient and completely of this moment.</p>
+    </div>
+  </div>
+  <div class="prose reveal" style="margin-top:44px">
+    <p>The creative decision behind every note is never just a sound. It is the manifestation of everything an artist has lived, learned, and inherited — their culture, their community, their masters, their language. When an artist creates something inspired by music they love, <b>that is already a collaboration</b>: our musical vocabulary was built by relating to the creations of those who came before us.</p>
+    <p>We are always reinterpreting the past with the vision of our present. Music is a continuous conversation — across generations, across continents, across time, into the future.</p>
+  </div>
+  <blockquote class="pull reveal">When different worlds collide, new music is born.<br><i>Collaboration never ends.</i></blockquote>
+</section>
+
+<!-- ================= 05 OUR POSITION ================= -->
+<section id="position" data-chap="05 — Our Position">
+  <span class="ghost" aria-hidden="true">05</span>
+  <span class="sec-kicker reveal">05 — Our Position</span>
+  <h2 class="reveal">The artist at the center. Always.</h2>
+  <svg class="h2-line" viewBox="0 0 340 16" aria-hidden="true"><path d="M2 9 C 80 5, 150 13, 230 8 S 320 6, 338 9"/></svg>
+  <div class="prose reveal">
+    <p>AI is changing music. But the creative process won't be cut. Our position, stated plainly:</p>
+  </div>
+  <dl class="rules reveal">
+    <dt>No one-click songs</dt>
+    <dd>We don't want to generate an entire song with one click — <b>this is boring</b>. The process is not an obstacle. The process is the point.</dd>
+    <dt>Facilitate, don't kill</dt>
+    <dd>We remove technical barriers, but we don't kill the process. A certain amount of steps — a bit of complexity — is still good: it opens space for creative accidents, more time to explore, to experiment, to go deeper, to relate to each other. <b>Not to skip the journey, but to go further into it.</b></dd>
+    <dt>Meaning through the path</dt>
+    <dd>The path the artist travels through the process creates meaning for the song and fulfillment for the artist.</dd>
+    <dt>Honor the ecosystem</dt>
+    <dd>Technicians, engineers, producers, session musicians, studio crews, live crews, equipment makers — every human role that makes music a living, breathing industry.</dd>
+    <dt>Celebrate every era</dt>
+    <dd>Every instrument, every piece of gear, every era of music-making. <b>Nothing is destroyed. Everything is honored.</b></dd>
+    <dt>Cultural originality</dt>
+    <dd>Traditional rhythms, regional scenes, classic genres, and the movements that shaped the world's musical identity are not relics — they are living creative forces. The collision between these backgrounds is what brings originality to musical expression.</dd>
+  </dl>
+</section>
+
+<!-- ================= 06 LOOK & FEEL ================= -->
+<section id="look" data-chap="06 — Look &amp; Feel">
+  <span class="ghost" aria-hidden="true">06</span>
+  <span class="sec-kicker reveal">06 — Look &amp; Feel</span>
+  <h2 class="reveal">Classic meets contemporary. Everything is honored.</h2>
+  <svg class="h2-line" viewBox="0 0 340 16" aria-hidden="true"><path d="M2 8 C 90 12, 170 5, 250 10 S 320 7, 338 9"/></svg>
+  <div class="prose reveal">
+    <p>Our visual language is built on a narrative tension: <b>old, classic objects and equipment</b> versus <b>modern, contemporary, tech-futuristic imagery</b>. Unlike approaches that destroy the past to celebrate the new — we celebrate both. Two timelines coexisting, colliding, and creating something new together.</p>
+  </div>
+  <div class="tension reveal">
+    <div class="past">
+      <h4>The Analog World</h4>
+      <ul>
+        <li>Super 8 film cameras</li>
+        <li>Handycams &amp; VHS</li>
+        <li>Film pellicle, grain, texture</li>
+        <li>Vinyl records &amp; reel-to-reel</li>
+        <li>Classic instruments &amp; vintage gear</li>
+      </ul>
+    </div>
+    <span class="tension-vs">×</span>
+    <div class="future">
+      <h4>The Digital World</h4>
+      <ul>
+        <li>Modern high-resolution cameras</li>
+        <li>Futuristic digital projections</li>
+        <li>Granular digital samples</li>
+        <li>Digital effects &amp; processing</li>
+        <li>Studio 2.0 interfaces, alive on screen</li>
+      </ul>
+    </div>
+  </div>
+  <div class="prose reveal" style="margin-top:34px">
+    <p><em>Vinyl + granular digital samples. Super 8 cameras + modern hi-res projections.</em> The collision is not only the theme of the campaign — it is the grammar of every frame.</p>
+  </div>
+</section>
+
+<!-- ================= 07 THE MANIFESTO FILM ================= -->
+<section id="film" data-chap="07 — The Manifesto Film">
+  <span class="ghost" aria-hidden="true">07</span>
+  <span class="sec-kicker reveal">07 — The Manifesto Film</span>
+  <h2 class="reveal">Ninety seconds, drawn by hand</h2>
+  <svg class="h2-line" viewBox="0 0 340 16" aria-hidden="true"><path d="M2 9 C 70 6, 160 12, 240 7 S 322 10, 338 8"/></svg>
+  <div class="prose reveal">
+    <p>The campaign opens with a <b>90-second manifesto film</b> — the voiceover narration told through hand-drawn illustration: charcoal textures, gesso strokes, ink outlines. Raw, expressive, imperfect — human marks on a surface, emerging from darkness.</p>
+    <p>Near-monochromatic: deep blacks and off-whites, with a single teal accent appearing only at key emotional moments. Illustrations animate subtly, like a drawing completed in real time. One drawing dissolves or morphs into the next — <b>lines transforming, never cutting</b>.</p>
+    <p>Tone of narration: deeply human, warm, cinematic. Pace: slow — let silence do its work. A manifesto told like a story.</p>
+  </div>
+
+  <div class="scenes">
+    <div class="mov-row reveal"><span class="tc">0:00–0:13</span><span class="nm">I · The Spark</span><span class="mood">almost whispered — intimate</span></div>
+    <div class="sc reveal"><span class="t">0:00–0:07</span><div>
+      <p class="vo">"Think about the first time music made you feel something. <i>Really</i> feel something."</p>
+      <p class="vis">Extreme close-up of skin with goosebumps — tiny hairs standing, drawn with obsessive detail in the dark.</p></div></div>
+    <div class="sc reveal"><span class="t">0:07–0:13</span><div>
+      <p class="vo">"It wasn't a coincidence. Someone lived something, lost something — and turned it into sound. And that sound found you."</p>
+      <p class="vis">A worn human hand resting on a guitar neck — not playing, just holding. Its lines drift loose into an organic soundwave that becomes a human ear. The wave enters; the ear receives.</p></div></div>
+
+    <div class="mov-row reveal"><span class="tc">0:13–0:27</span><span class="nm">II · The Collision</span><span class="mood">the pace lifts — history in motion</span></div>
+    <div class="sc reveal"><span class="t">0:13–0:20</span><div>
+      <p class="vo">"Music was never born from nothing. Every sound that ever moved the world was born from a <i>collision</i>."</p>
+      <p class="vis">Two loosely sketched continents drift toward each other until they touch at a single point. At the contact: a tiny burst of light — the first appearance of teal.</p></div></div>
+    <div class="sc reveal"><span class="t">0:20–0:27</span><div>
+      <p class="vo">"Jazz. Bossa Nova. Hip-Hop. Different worlds meeting — and becoming something new."</p>
+      <p class="vis">A continuous metamorphosis: a trumpet wrapped in staff lines like smoke → the soundhole of a nylon guitar with ocean waves living inside → a needle on a vinyl groove drawn as a city street from above.</p></div></div>
+
+    <div class="mov-row reveal"><span class="tc">0:27–0:40</span><span class="nm">III · The Inheritance</span><span class="mood">reverent — every word weighs</span></div>
+    <div class="sc reveal"><span class="t">0:27–0:34</span><div>
+      <p class="vo">"Every artist alive carries that history with them. Every note is the sum of an entire human life."</p>
+      <p class="vis">A musician's silhouette filled with layers: sheet music, waveforms, handwritten notes, fragments of maps, faces of old masters. A person made of history.</p></div></div>
+    <div class="sc reveal"><span class="t">0:34–0:40</span><div>
+      <p class="vo">"And when that life meets another — <i>something unprecedented begins</i>."</p>
+      <p class="vis">Two hands reaching from opposite sides of the frame — Michelangelo's gesture, raw and charcoal-drawn. Between the fingertips: a musical note in teal, suspended. They do not touch. Yet.</p></div></div>
+
+    <div class="mov-row reveal"><span class="tc">0:40–0:55</span><span class="nm">IV · The Process</span><span class="mood">honest — the beauty of effort</span></div>
+    <div class="sc reveal"><span class="t">0:40–0:47</span><div>
+      <p class="vo">"But great music doesn't come from shortcuts. It comes from the process. From the frustration before the breakthrough."</p>
+      <p class="vis">Crumpled staff paper on a studio floor — notation half-written, abandoned, surrounded by other crumpled pages. The mess of creation, beautiful in its honesty.</p></div></div>
+    <div class="sc reveal"><span class="t">0:47–0:55</span><div>
+      <p class="vo">"From the session that goes nowhere — until it goes somewhere extraordinary. That is <i>flow</i>. And we refuse to take it away."</p>
+      <p class="vis">A musician mid-performance — eyes closed, head tilted back, completely absorbed. The instrument almost disappears into the body: player and instrument, one form. Window light in simple diagonal lines.</p></div></div>
+
+    <div class="mov-row reveal"><span class="tc">0:55–1:10</span><span class="nm">V · The Position</span><span class="mood">firm — the brand speaks</span></div>
+    <div class="sc reveal"><span class="t">0:55–1:02</span><div>
+      <p class="vo">"That's why Moises will <i>never</i> generate a song with a click. We give artists more time inside the process — not less."</p>
+      <p class="vis">A single cursor hovers over a blank screen, hesitates — and instead of clicking, it fades away. A human hand enters the frame in its place.</p></div></div>
+    <div class="sc reveal"><span class="t">1:02–1:10</span><div>
+      <p class="vo">"We are a facilitator. The creativity, the decisions, the humanity — that belongs entirely to the artist."</p>
+      <p class="vis">Two hands side by side, not touching: one human — detailed, warm, imperfect — and one digital, built from clean lines and nodes. They coexist. Neither replaces the other.</p></div></div>
+
+    <div class="mov-row reveal"><span class="tc">1:10–1:20</span><span class="nm">VI · The Gathering</span><span class="mood">warm — the reason for everything</span></div>
+    <div class="sc reveal"><span class="t">1:10–1:15</span><div>
+      <p class="vo">"And when the track is finished, we bring people into a room. <i>Together</i>."</p>
+      <p class="vis">A small, intimate venue from the back of the room: the stage light a single warm circle, the crowd shoulder to shoulder. Human warmth made visible.</p></div></div>
+    <div class="sc reveal"><span class="t">1:15–1:20</span><div>
+      <p class="vo">"Because music exists to remind us that we are not alone."</p>
+      <p class="vis">Hands raised in a crowd, seen from stage level — quietly, not dramatically. A forest of raised hands, each one different, all reaching toward the same sound.</p></div></div>
+
+    <div class="mov-row reveal"><span class="tc">1:20–1:30</span><span class="nm">VII · The Signature</span><span class="mood">slow, deliberate, final</span></div>
+    <div class="sc reveal"><span class="t">1:20–1:25</span><div>
+      <p class="vo">"This is <i>Collide</i>. Studio 2.0, by Moises."</p>
+      <p class="vis">Complete darkness. Then, slowly, the word "Collide" is written on screen by a single visible line, as if a hand is drawing it in real time. Charcoal on black. Imperfect. Alive.</p></div></div>
+    <div class="sc reveal"><span class="t">1:25–1:30</span><div>
+      <p class="vo">"Different worlds. One music. <i>Collaboration never ends.</i>"</p>
+      <p class="vis">The two hands from the Inheritance return — and now the fingers touch. Between them: not a note, not a spark — just contact. The most human thing possible. The Moises logo resolves from sketch to final form. Hold on black.</p></div></div>
+  </div>
+</section>
+
+<!-- ================= 08 THE CAMPAIGN ================= -->
+<section id="campaign" data-chap="08 — The Campaign">
+  <span class="ghost" aria-hidden="true">08</span>
+  <span class="sec-kicker reveal">08 — The Campaign</span>
+  <h2 class="reveal">Three phases, one crescendo</h2>
+  <svg class="h2-line" viewBox="0 0 340 16" aria-hidden="true"><path d="M2 8 C 60 12, 140 4, 230 10 S 320 8, 338 9"/></svg>
+  <div class="prose reveal">
+    <p>The campaign builds like a song: first the individual voice, then the collaboration, then the room where everyone meets. Every phase keeps the same premise — involve and explore the creative process of musicians in action.</p>
+  </div>
+
+  <div class="phase reveal">
+    <div class="phase-head"><span class="no">01</span><h3>Show the Creative Process</h3><span class="when">Up to 9 films</span></div>
+    <div class="phase-body">
+      <p>We invite <b>3–4 real musicians</b> to create a track using Moises Studio 2.0, each exploring the features in their own genre and creative language. We film the full creative process — each artist explains what they do and how the tool fits naturally into how they already work.</p>
+      <p>Each film begins with a musical idea — <b>a riff</b> — and follows its development, showing how the new product features are used throughout songwriting and production. The initial input can come from another artist's file: collaboration embodied from the very first note, because learning from another's work is itself creative dialogue.</p>
+      <p><b>Central message:</b> the product facilitates — it does not kill the process. The human creative decisions, the exploration, the moments of doubt and discovery remain entirely the artist's.</p>
+      <div class="dels">
+        <div class="del"><span class="v">3</span><span class="l">Main films<br>60–120s · one per artist</span></div>
+        <div class="del"><span class="v">3</span><span class="l">Short redux versions<br>30–45s</span></div>
+        <div class="del"><span class="v">3</span><span class="l">Testimonial films<br>30–60s</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase reveal">
+    <div class="phase-head"><span class="no">02</span><h3>Artist Collaboration</h3><span class="when">12 films · launches September</span></div>
+    <div class="phase-body">
+      <p>We bring together <b>3 artists per track — from different cities, countries, and musical worlds</b>: a lead artist, a producer, and session musicians, each from a different cultural background. By colliding characters from different origins and genres, we honor cultural differences and celebrate what makes each story unique — traditional rhythms, local scenes, genre-defining movements.</p>
+      <p>Three tracks, each highlighting musical elements and genres from different continents. The campaign is global — <b>North America, Europe, Brazil, China</b> — because music belongs to no single place.</p>
+      <div class="dels">
+        <div class="del"><span class="v">3</span><span class="l">Main films<br>one per completed track</span></div>
+        <div class="del"><span class="v">4<em>×</em>3</span><span class="l">POV films per track<br>lead · producer · 2 session musicians</span></div>
+        <div class="del"><span class="v">3</span><span class="l">Music videos, 90s<br>the song, performed</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase reveal">
+    <div class="phase-head"><span class="no">03</span><h3>The Showcase</h3><span class="when">Live event · TBD</span></div>
+    <div class="phase-body">
+      <p>A <b>live pocket show</b> where the artists perform the track they created together — for a curated audience of producers, labels, and industry partners. Professionally filmed and released online, then repurposed as editorial content.</p>
+      <p>This is the final and most essential statement of the campaign: <b>music exists to create emotion, to communicate, and to bring people together</b> — and live music is where that truth is most powerfully felt. We honor the full ecosystem of live music: sound engineers, light crew, stage technicians, venue staff. Every human role celebrated, none invisible.</p>
+      <div class="dels">
+        <div class="del"><span class="v">1</span><span class="l">Live pocket show<br>curated industry audience</span></div>
+        <div class="del"><span class="v">∞</span><span class="l">Editorial footage<br>filmed &amp; repurposed</span></div>
+        <div class="del"><span class="v">3</span><span class="l">Worlds on one stage<br>the collision, live</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 09 PROOF ================= -->
+<section id="proof" data-chap="09 — Proof It Works">
+  <span class="ghost" aria-hidden="true">09</span>
+  <span class="sec-kicker reveal">09 — Proof It Works</span>
+  <h2 class="reveal">We have done this before</h2>
+  <svg class="h2-line" viewBox="0 0 340 16" aria-hidden="true"><path d="M2 9 C 80 5, 150 13, 230 8 S 320 6, 338 9"/></svg>
+  <div class="prose reveal">
+    <p>This language is not an experiment. Every past Moises campaign was built on the same convictions — real musicians, real music, real process. The references below are the foundation Collide stands on.</p>
+  </div>
+  <div class="refs">
+    <div class="ref reveal">
+      <span class="idx">R1</span>
+      <div><h3>Off the Record</h3>
+      <p>The editorial series where artists open the doors of their process — the format that set the tone for everything that followed.</p></div>
+      <a class="watch" href="https://www.youtube.com/watch?v=IN8hIv0bBNc" target="_blank" rel="noopener">Watch ↗</a>
+    </div>
+    <div class="ref reveal">
+      <span class="idx">R2</span>
+      <div><h3>In the Studio — Rico Manzano</h3>
+      <p>A producer collaborates with a guitarist and vocalist in the studio. Using the app's features, they build a track together during a live session.</p></div>
+      <a class="watch" href="https://www.youtube.com/watch?v=cyXPgU5UiB8" target="_blank" rel="noopener">Watch ↗</a>
+    </div>
+    <div class="ref reveal">
+      <span class="idx">R3</span>
+      <div><h3>AI Studio 1.0</h3>
+      <p>An artist starts from an initial riff and develops the creation using the product features. We focused on the final result then — the 2.0 campaign now turns the camera onto the process itself.</p></div>
+      <a class="watch" href="https://www.youtube.com/watch?v=MCLVhRjIvys" target="_blank" rel="noopener">Watch ↗</a>
+    </div>
+    <div class="ref reveal">
+      <span class="idx">R4</span>
+      <div><h3>Eloy — Practice Sessions</h3>
+      <p>An artist in a state of flow — creating and exploring the characteristic sounds of his work live on camera. A real solo composed by the artist; studio crew, recording technicians, and a music producer all involved. Real music. The process remains.</p></div>
+      <a class="watch" href="https://www.youtube.com/watch?v=Q9Nk5BdNUGo" target="_blank" rel="noopener">Watch ↗</a>
+    </div>
+    <div class="ref reveal">
+      <span class="idx">R5</span>
+      <div><h3>In the Lab</h3>
+      <p>The output is an original track or musical idea — the artist explores their techniques and inspirations to creatively reinvent themselves, incorporating the product into their musical process.</p></div>
+      <a class="watch" href="https://www.youtube.com/watch?v=anXOlzNcT9A" target="_blank" rel="noopener">Watch ↗</a>
+    </div>
+  </div>
+
+  <div class="assets">
+    <div class="card reveal">
+      <h4>Asset — Narration VO</h4>
+      <p>Full-length narration voiceover audio file (long cut), available on the shared drive.</p>
+      <p><a href="https://drive.google.com/file/d/1d_bG0MUlv0SPzPzYe5qhPTP9xQaDX3VD/view" target="_blank" rel="noopener">Open audio file ↗</a></p>
+    </div>
+    <div class="card reveal" style="transition-delay:.1s">
+      <h4>Asset — Initial Soundtracks</h4>
+      <p>Reference folder with the initial soundtrack directions for the campaign films.</p>
+      <p><a href="https://drive.google.com/drive/folders/1ei8NfwSgSmnvFZe6fjuhLS6x7E0wkFQi" target="_blank" rel="noopener">Open folder ↗</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 10 CLOSING ================= -->
+<section id="closing" data-chap="10 — Closing">
+  <span class="ghost" aria-hidden="true">10</span>
+  <span class="sec-kicker reveal">10 — Closing</span>
+  <h2 class="reveal">One last thing</h2>
+  <svg class="h2-line" viewBox="0 0 340 16" aria-hidden="true"><path d="M2 8 C 90 12, 170 5, 250 10 S 320 7, 338 9"/></svg>
+  <div class="prose reveal">
+    <p class="drop">I love this brief. It is the kind of campaign that only comes along when a brand knows exactly who it is. Collide is not an ad about a product update — it is a position in the most important conversation happening in music right now, told with warmth instead of fear.</p>
+    <p>Everything is already here: the conviction, the concept, the craft, and the artists who will carry it. What we build together will be familiar and new at the same time — like every great collision in music history.</p>
+    <p>Real musicians. Real process. Real collaboration.</p>
+    <p class="sig-off">Thank you. Let's make something that outlives the media plan.</p>
+  </div>
+</section>
+
+<footer id="fim" data-chap="Collide">
+  <svg id="footer-hands" viewBox="0 0 320 90" width="320" height="90" aria-hidden="true">
+    <path d="M6 62 C 40 58, 70 48, 100 46 C 120 44, 138 46, 152 45"/>
+    <path d="M314 30 C 280 34, 250 42, 220 44 C 200 46, 182 44, 168 45"/>
+    <circle cx="160" cy="45" r="4"/>
+  </svg>
+  <p class="sig">Different worlds. One music. <em>Collaboration never ends.</em></p>
+  <p>Collide · Moises Studio 2.0 · Campaign Treatment</p>
+</footer>
+
+</div><!-- /wrap -->
+
+<script>
+(function(){
+"use strict";
+var reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* reveals */
+var io=new IntersectionObserver(function(es){
+  es.forEach(function(e){if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target)}});
+},{threshold:.12,rootMargin:"0px 0px -8% 0px"});
+document.querySelectorAll(".reveal,section,footer").forEach(function(el){
+  if(reduce){el.classList.add("in")}else{io.observe(el)}
+});
+
+/* HUD progress + chapter label */
+var hudFill=document.getElementById("hud-fill"),
+    chapEl=document.getElementById("chap"),
+    hudLen=hudFill.getTotalLength();
+hudFill.style.strokeDasharray=hudLen;
+hudFill.style.strokeDashoffset=hudLen;
+
+var chapters=Array.prototype.slice.call(document.querySelectorAll("[data-chap]"));
+var ghosts=Array.prototype.slice.call(document.querySelectorAll(".ghost"));
+
+var ticking=false;
+function onScroll(){
+  if(ticking)return;ticking=true;
+  requestAnimationFrame(function(){
+    ticking=false;
+    var h=document.documentElement,
+        p=Math.min(1,Math.max(0,h.scrollTop/(h.scrollHeight-h.clientHeight)));
+    hudFill.style.strokeDashoffset=hudLen*(1-p);
+    var current="Cover";
+    chapters.forEach(function(c){
+      if(c.getBoundingClientRect().top<innerHeight*.4)current=c.dataset.chap;
+    });
+    chapEl.textContent=current.replace(/&amp;/g,"&");
+    if(!reduce){
+      ghosts.forEach(function(g){
+        var r=g.parentElement.getBoundingClientRect();
+        var gp=(r.top+r.height*.5-innerHeight*.5)/innerHeight;
+        g.style.transform="translateY("+(gp*70).toFixed(1)+"px)";
+      });
+    }
+  });
+}
+addEventListener("scroll",onScroll,{passive:true});
+
+/* copy: none needed here */
+
+/* HERO CANVAS: two worlds colliding */
+var cv=document.getElementById("collide-cv"),ctx=cv.getContext("2d"),
+    W=0,H=0,DPR=Math.min(devicePixelRatio||1,2),heroVisible=true;
+function size(){W=cv.clientWidth;H=cv.clientHeight;cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0)}
+size();addEventListener("resize",size);
+
+var AN=110,analog=[];
+for(var a=0;a<AN;a++){analog.push({ang:Math.random()*6.283,r:30+Math.random()*150,sp:.0016+Math.random()*.003,sz:.5+Math.random()*2.2,o:.12+Math.random()*.5,ph:Math.random()*6.283})}
+var DN=34,digital=[];
+for(var d=0;d<DN;d++){digital.push({ang:Math.random()*6.283,r:26+Math.random()*130,sp:.002+Math.random()*.0035,sz:1.2+Math.random()*1.6,ph:Math.random()*6.283})}
+var sparks=[],mouseX=0;
+addEventListener("pointermove",function(e){mouseX=(e.clientX/innerWidth-.5)*2},{passive:true});
+
+function frame(t){
+  ctx.clearRect(0,0,W,H);
+  var cy=H*.5,base=Math.min(W*.26,300),
+      osc=.5+.5*Math.sin(t*.00028),
+      gap=base*(0.25+0.75*osc),
+      cxL=W*.5-gap+mouseX*14,cxR=W*.5+gap+mouseX*22;
+  for(var i=0;i<AN;i++){
+    var p=analog[i],ang=p.ang+t*p.sp,
+        x=cxL+Math.cos(ang)*p.r+Math.sin(t*.001+p.ph)*3,
+        y=cy+Math.sin(ang)*p.r*.72+Math.cos(t*.0008+p.ph)*3;
+    ctx.beginPath();ctx.arc(x,y,p.sz,0,6.283);
+    ctx.fillStyle="rgba(236,231,220,"+(p.o*.55)+")";ctx.fill();
+  }
+  var dp=[];
+  for(var j=0;j<DN;j++){
+    var q=digital[j],ang2=q.ang-t*q.sp;
+    dp.push([cxR+Math.cos(ang2)*q.r,cy+Math.sin(ang2)*q.r*.68,q.sz]);
+  }
+  ctx.lineWidth=.7;
+  for(var m=0;m<DN;m++)for(var n=m+1;n<DN;n++){
+    var dx=dp[m][0]-dp[n][0],dy=dp[m][1]-dp[n][1],dist=dx*dx+dy*dy;
+    if(dist<4200){
+      ctx.strokeStyle="rgba(34,205,184,"+(0.16*(1-dist/4200))+")";
+      ctx.beginPath();ctx.moveTo(dp[m][0],dp[m][1]);ctx.lineTo(dp[n][0],dp[n][1]);ctx.stroke();
+    }
+  }
+  for(var k=0;k<DN;k++){
+    ctx.fillStyle="rgba(34,205,184,.7)";
+    ctx.fillRect(dp[k][0]-dp[k][2]/2,dp[k][1]-dp[k][2]/2,dp[k][2],dp[k][2]);
+  }
+  if(gap<base*.42&&sparks.length<50&&Math.random()<.5){
+    sparks.push({x:W*.5+(Math.random()*30-15),y:cy+(Math.random()*40-20),vx:(Math.random()-.5)*1.6,vy:(Math.random()-.9)*1.4,life:1});
+  }
+  for(var s=sparks.length-1;s>=0;s--){
+    var sp=sparks[s];sp.x+=sp.vx;sp.y+=sp.vy;sp.vy+=.012;sp.life-=.014;
+    if(sp.life<=0){sparks.splice(s,1);continue}
+    ctx.beginPath();ctx.arc(sp.x,sp.y,1.6*sp.life,0,6.283);
+    ctx.fillStyle="rgba(34,205,184,"+(.8*sp.life)+")";ctx.fill();
+    ctx.beginPath();ctx.arc(sp.x,sp.y,4*sp.life,0,6.283);
+    ctx.fillStyle="rgba(34,205,184,"+(.12*sp.life)+")";ctx.fill();
+  }
+  ctx.strokeStyle="rgba(236,231,220,.05)";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(W*.5,cy-140);ctx.lineTo(W*.5,cy+140);ctx.stroke();
+  if(heroVisible&&!reduce)requestAnimationFrame(frame);
+}
+if(reduce){frame(9000)}
+else{
+  requestAnimationFrame(frame);
+  new IntersectionObserver(function(es){
+    es.forEach(function(e){var was=heroVisible;heroVisible=e.isIntersecting;if(heroVisible&&!was)requestAnimationFrame(frame)});
+  },{threshold:.02}).observe(document.getElementById("hero"));
+}
+onScroll();
+})();
+</script>
+
+</body>
+</html>
