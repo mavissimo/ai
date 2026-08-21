@@ -1,0 +1,108 @@
+// Alertas do projeto + notificação do navegador (funciona com o app instalado
+// na tela inicial). Sem servidor, o aviso dispara quando o app está aberto;
+// no modo Supabase dá para plugar e-mail/push por Edge Function (ver README).
+import { store } from './store.js';
+import { can } from './perms.js';
+import { diasAte, prazoTxt, fmtMoney } from './utils.js';
+
+const VISTOS = 'claquete:alertas-vistos';
+
+export function alertas() {
+  const u = store.user;
+  const out = [];
+  const add = (o) => out.push(o);
+
+  // Confirmações que a pessoa precisa dar (presença, passagem, hospedagem…)
+  store.doProjeto('confirmacoes')
+    .filter((c) => c.status === 'pendente' && (c.membro_id === u?.id || can(u, 'equipe.edit')))
+    .forEach((c) => add({
+      id: 'conf_' + c.id,
+      urg: c.membro_id === u?.id ? 2 : 1,
+      texto: c.membro_id === u?.id
+        ? `Confirme: ${c.titulo}`
+        : `${nome(c.membro_id)} ainda não confirmou: ${c.titulo}`,
+      rota: c.membro_id === u?.id ? '#/meu' : '#/equipe'
+    }));
+
+  // Contas vencendo
+  if (can(u, 'contas.ver')) {
+    store.doProjeto('contas').filter((c) => c.status === 'aberto').forEach((c) => {
+      const d = diasAte(c.venc);
+      if (d === null || d > 5) return;
+      add({
+        id: 'conta_' + c.id, urg: d < 0 ? 3 : 2,
+        texto: `${c.tipo === 'pagar' ? 'Pagar' : 'Receber'} ${fmtMoney(c.valor_cents)} — ${c.descricao} (${prazoTxt(c.venc)})`,
+        rota: '#/contas'
+      });
+    });
+  }
+
+  // Gastos aguardando aprovação
+  if (can(u, 'lanc.aprovar')) {
+    const pend = store.doProjeto('lancamentos').filter((l) => l.status === 'pendente');
+    if (pend.length) add({
+      id: 'aprov_' + pend.length, urg: 2,
+      texto: `${pend.length} lançamento(s) aguardando sua aprovação`,
+      rota: '#/financeiro'
+    });
+  }
+
+  // Entregas próximas
+  store.doProjeto('entregas').filter((e) => e.status !== 'entregue').forEach((e) => {
+    const d = diasAte(e.prazo);
+    if (d === null || d > 5) return;
+    add({ id: 'entr_' + e.id, urg: d < 0 ? 3 : 2, texto: `Entrega ${e.titulo} — ${prazoTxt(e.prazo)}`, rota: '#/agenda' });
+  });
+
+  // Etapas travadas
+  store.doProjeto('etapas').filter((e) => e.status === 'travado').forEach((e) => {
+    add({ id: 'trav_' + e.id, urg: 2, texto: `Travado: ${e.nome}`, rota: '#/etapas' });
+  });
+
+  // Compromissos de hoje/amanhã
+  store.doProjeto('eventos').forEach((ev) => {
+    const d = diasAte(ev.data);
+    if (d !== 0 && d !== 1) return;
+    const meu = (ev.participantes || []).includes(u?.id);
+    if (!meu && !can(u, 'agenda.ver')) return;
+    add({
+      id: 'ev_' + ev.id, urg: d === 0 ? 3 : 1,
+      texto: `${d === 0 ? 'Hoje' : 'Amanhã'}: ${ev.titulo}${ev.hora_inicio ? ' às ' + ev.hora_inicio : ''}`,
+      rota: '#/agenda'
+    });
+  });
+
+  return out.sort((a, b) => b.urg - a.urg);
+}
+
+const nome = (id) => store.get('membros', id)?.nome || 'Alguém';
+
+export async function pedirPermissao() {
+  if (!('Notification' in window)) return 'indisponivel';
+  if (Notification.permission === 'granted') return 'granted';
+  return Notification.requestPermission();
+}
+
+export function dispararNovos() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  let vistos = [];
+  try { vistos = JSON.parse(localStorage.getItem(VISTOS) || '[]'); } catch { vistos = []; }
+  const atuais = alertas().filter((a) => a.urg >= 2);
+  const novos = atuais.filter((a) => !vistos.includes(a.id));
+  novos.slice(0, 3).forEach((a) => {
+    try {
+      new Notification('Claquete — ' + (store.projeto?.nome || 'Produção'), {
+        body: a.texto, icon: 'icon.svg', tag: a.id
+      });
+    } catch (e) { console.warn(e); }
+  });
+  localStorage.setItem(VISTOS, JSON.stringify(atuais.map((a) => a.id).slice(0, 200)));
+}
+
+export function iniciarMonitor() {
+  dispararNovos();
+  setInterval(dispararNovos, 15 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') dispararNovos();
+  });
+}
