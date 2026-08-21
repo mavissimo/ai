@@ -80,11 +80,21 @@ export function render() {
     const id = await escolher('Trocar de projeto', projetos.map((x) => ({ v: x.id, t: x.nome, sub: x.cliente })));
     if (id) { store.setProjeto(id); toast('Projeto trocado.'); }
   });
-  node.querySelector('[data-export]')?.addEventListener('click', () => {
-    const blob = new Blob([store.adapter.exportar()], { type: 'application/json' });
+  node.querySelector('[data-export]')?.addEventListener('click', async () => {
+    const nome = `claquete-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    const json = store.adapter.exportar();
+    // Quando a página roda dentro do visualizador de artifact, o download só
+    // acontece pela capability; em hospedagem normal, o link basta.
+    const downloads = window.claude?.use ? await window.claude.use('downloads') : null;
+    if (downloads) {
+      try { await downloads.save({ filename: nome, data: json }); toast('Backup salvo.'); }
+      catch (e) { if (e?.code !== 'declined') toast('Não consegui salvar o backup.'); }
+      return;
+    }
+    const blob = new Blob([json], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `claquete-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = nome;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   });
