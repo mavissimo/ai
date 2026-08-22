@@ -141,17 +141,41 @@ function campoHTML(c) {
   return `<div class="f${c.meia ? ' meia' : ''}" data-f="${c.k}">${label}${inner}${hint}</div>`;
 }
 
-export function abrirForm({ titulo, subtitulo, campos, onSave, onDelete, salvar = 'Salvar' }) {
+export function abrirForm({ titulo, subtitulo, campos, onSave, onDelete, onArquivo, salvar = 'Salvar' }) {
   const visiveis = campos.filter(Boolean);
   const corpo = el(`<form>${subtitulo ? `<p class="small muted" style="margin:0 0 12px">${esc(subtitulo)}</p>` : ''}
     ${visiveis.map(campoHTML).join('')}</form>`);
 
+  // API que o chamador usa para preencher campos sozinho (ex.: leitura da nota).
+  const api = {
+    set(k, valor) {
+      const inp = corpo.querySelector(`[data-k="${k}"]`);
+      if (!inp || valor === null || valor === undefined || valor === '') return;
+      const campo = visiveis.find((c) => c.k === k);
+      inp.value = campo?.type === 'dinheiro' && typeof valor === 'number'
+        ? moneyInput(valor) : String(valor);
+      inp.dispatchEvent(new Event('change', { bubbles: true }));
+    },
+    valor(k) { return corpo.querySelector(`[data-k="${k}"]`)?.value || ''; },
+    aviso(texto, tom = 'ok') {
+      corpo.querySelector('[data-aviso]')?.remove();
+      if (!texto) return;
+      const n = el(`<div class="banner ${tom === 'bad' ? 'bad' : tom === 'warn' ? 'warn' : ''}"
+        data-aviso style="margin:0 0 12px">${esc(texto)}</div>`);
+      corpo.prepend(n);
+    }
+  };
+
   corpo.querySelectorAll('input[type=file]').forEach((inp) => {
-    inp.onchange = () => {
+    inp.onchange = async () => {
       const n = inp.closest('.filebox');
+      const arquivo = inp.files[0];
       if (n) {
         n.classList.add('has');
-        n.querySelector('[data-fname]').textContent = inp.files[0]?.name || 'Arquivo selecionado';
+        n.querySelector('[data-fname]').textContent = arquivo?.name || 'Arquivo selecionado';
+      }
+      if (arquivo && onArquivo) {
+        try { await onArquivo(arquivo, api); } catch (e) { console.warn('onArquivo', e); }
       }
     };
   });
@@ -218,5 +242,7 @@ export const ICO = {
   grana: '<svg viewBox="0 0 24 24"><path d="M3 7h18v10H3z"/><circle cx="12" cy="12" r="2.5"/><path d="M7 12h.01M17 12h.01"/></svg>',
   mais: '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>',
   eu: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>',
-  nota: '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 16h7"/></svg>'
+  nota: '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 16h7"/></svg>',
+  olho: '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/></svg>',
+  olhoOff: '<svg viewBox="0 0 24 24"><path d="M4 4l16 16"/><path d="M9.9 5.7A10.6 10.6 0 0 1 12 5.5c6.4 0 10 6.5 10 6.5a17.6 17.6 0 0 1-3.4 4.2"/><path d="M6.5 7.8A17.4 17.4 0 0 0 2 12s3.6 6.5 10 6.5c1.5 0 2.8-.3 4-.8"/><path d="M9.6 9.9a2.8 2.8 0 0 0 3.9 3.9"/></svg>'
 };

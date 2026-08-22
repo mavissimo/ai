@@ -26,6 +26,7 @@ export function financeiro() {
   const entradas = lan.filter((l) => l.tipo === 'entrada' && l.status !== 'rejeitado');
 
   const orcado = soma(orc, (o) => o.previsto_cents);
+  const negociado = soma(orc, (o) => o.negociado_cents);
   const realizado = soma(saidas.filter((l) => l.status === 'pago' || l.status === 'aprovado'), (l) => l.valor_cents);
   const pendente = soma(saidas.filter((l) => l.status === 'pendente'), (l) => l.valor_cents);
   const pago = soma(saidas.filter((l) => l.status === 'pago'), (l) => l.valor_cents);
@@ -50,10 +51,12 @@ export function financeiro() {
   const comprometido = realizado + pendente + aPagar;
 
   return {
-    contratado, orcado, realizado, pendente, pago, recebido,
+    contratado, orcado, negociado, realizado, pendente, pago, recebido,
+    aNegociar: orcado - negociado,
     aPagar, aReceber, impostoPrevisto, impostoRealizado,
     custoPrevistoTotal, lucroPrevisto, lucroRealizado, caixa, comprometido,
-    saldoOrcamento: orcado - realizado,
+    saldoOrcamento: orcado - comprometido,
+    estouro: orcado - contratado,
     margemPrevista: contratado ? Math.round((lucroPrevisto / contratado) * 100) : 0,
     aliquota: Number(p.imposto_aliquota || 0)
   };
@@ -66,11 +69,12 @@ export function porRubrica() {
     .filter((l) => l.tipo === 'saida' && l.status !== 'rejeitado');
   const mapa = new Map();
   orc.forEach((o) => mapa.set(o.rubrica, {
-    rubrica: o.rubrica, id: o.id, previsto: o.previsto_cents || 0, real: 0, pend: 0, obs: o.obs
+    rubrica: o.rubrica, id: o.id, previsto: o.previsto_cents || 0,
+    negociado: o.negociado_cents || 0, real: 0, pend: 0, obs: o.obs
   }));
   lan.forEach((l) => {
     const r = l.rubrica || 'Outros';
-    if (!mapa.has(r)) mapa.set(r, { rubrica: r, id: null, previsto: 0, real: 0, pend: 0 });
+    if (!mapa.has(r)) mapa.set(r, { rubrica: r, id: null, previsto: 0, negociado: 0, real: 0, pend: 0 });
     const m = mapa.get(r);
     if (l.status === 'pendente') m.pend += l.valor_cents || 0;
     else m.real += l.valor_cents || 0;

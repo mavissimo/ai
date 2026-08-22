@@ -5,7 +5,7 @@ import { can } from '../perms.js';
 import { el, abrirForm, toast } from '../ui.js';
 import { esc, fmtMoney, fmtData, prazoTxt, prazoTag, diasAte, ordenar, soma, iniciais } from '../utils.js';
 import { ST_LANC, ST_CONTA, retencoes, saldoCaixa } from '../calc.js';
-import { camposLancamento, salvarLancamento, abrirLancamento } from './financeiro.js';
+import { camposLancamento, salvarLancamento, abrirLancamento, lerNotaNoForm } from './financeiro.js';
 import { tipoConf } from './equipe.js';
 import { salvarArquivo, abrirArquivo } from '../files.js';
 import { PAPEIS } from '../perms.js';
@@ -26,7 +26,7 @@ export function render() {
   const minhasEtapas = store.doProjeto('etapas').filter((e) => e.responsavel_id === u.id && e.status !== 'feito');
   const meusDocs = store.doProjeto('documentos').filter((d) => d.membro_id === u.id);
   const p = PAPEIS[u.papel] || PAPEIS.equipe;
-  const bruto = (u.cache_cents || 0) * (u.diarias || 1);
+  const bruto = (u.cache_cents || 0) * (u.diarias || 0);
   const ret = retencoes(u, bruto);
   const caixa = saldoCaixa(u.id);
 
@@ -35,9 +35,10 @@ export function render() {
       <span class="avatar">${esc(iniciais(u.nome))}</span>
       <div style="flex:1;min-width:0"><div style="font-weight:650">${esc(u.nome)}</div>
         <div class="small muted">${esc([u.funcao, p.curto].filter(Boolean).join(' · '))}</div></div>
-      ${u.cache_cents ? `<div class="right"><div class="small muted">seu cachê líquido</div>
+      ${bruto ? `<div class="right"><div class="small muted">seu cachê líquido</div>
         <div class="mono" style="font-weight:650">${fmtMoney(ret.liquido)}</div>
-        ${ret.total ? `<div class="small muted">bruto ${fmtMoney(bruto)} · ret. ${fmtMoney(ret.total)}</div>` : ''}</div>` : ''}
+        ${ret.total ? `<div class="small muted">bruto ${fmtMoney(bruto)} · ret. ${fmtMoney(ret.total)}</div>` : ''}
+        ${u.perdiem_cents ? `<div class="small muted">+ per diem ${fmtMoney(u.perdiem_cents)}</div>` : ''}</div>` : ''}
     </div>
 
     ${pend.length ? `<div class="sec"><div class="sec-t">Precisa da sua confirmação</div></div>
@@ -131,8 +132,9 @@ export function render() {
   node.querySelector('[data-novo-gasto]')?.addEventListener('click', () => {
     abrirForm({
       titulo: 'Lançar gasto',
-      subtitulo: 'Tire foto da notinha — a produção recebe para aprovar.',
+      subtitulo: 'Tire foto da notinha — o app lê o QR e a produção recebe para aprovar.',
       campos: camposLancamento(u, { tipo: 'saida' }),
+      onArquivo: lerNotaNoForm,
       onSave: async (v) => {
         await salvarLancamento({ ...v, tipo: v.tipo || 'saida' }, u);
         toast(can(u, 'lanc.aprovar') ? 'Lançado.' : 'Enviado para aprovação.');

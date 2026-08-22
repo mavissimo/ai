@@ -56,7 +56,7 @@ export function render() {
   /* financeiro */
   let granaHTML = '';
   if (verGrana) {
-    const usado = pct(f.realizado, f.orcado || 1);
+    const usado = pct(f.comprometido, f.orcado || 1);
     granaHTML = `
       <div class="sec"><div class="sec-t">Dinheiro</div>
         <a href="#/financeiro" class="small">ver tudo</a></div>
@@ -64,9 +64,9 @@ export function render() {
         ${verLucro ? kpi('Contratado', fmtMoneyShort(f.contratado), '', '') : ''}
         <div class="kpi"><div class="l">Orçado</div><div class="v">${fmtMoneyShort(f.orcado)}</div>
           <div class="h">gasto ${fmtMoneyShort(f.realizado)} (${usado}%)</div></div>
-        <div class="kpi ${f.saldoOrcamento < 0 ? 'bad' : ''}"><div class="l">Saldo do orçamento</div>
+        <div class="kpi ${f.saldoOrcamento < 0 ? 'bad' : ''}"><div class="l">Ainda posso gastar</div>
           <div class="v">${fmtMoneyShort(f.saldoOrcamento)}</div>
-          <div class="h">${f.pendente ? fmtMoneyShort(f.pendente) + ' aguardando' : 'nada pendente'}</div></div>
+          <div class="h">${f.negociado ? fmtMoneyShort(f.negociado) + ' já fechado' : 'nada fechado'}</div></div>
         ${verLucro ? `<div class="kpi ${f.lucroPrevisto < 0 ? 'bad' : 'ok'}"><div class="l">Lucro previsto</div>
           <div class="v">${fmtMoneyShort(f.lucroPrevisto)}</div>
           <div class="h">margem ${f.margemPrevista}% · imposto ${fmtMoneyShort(f.impostoPrevisto)}</div></div>` : ''}

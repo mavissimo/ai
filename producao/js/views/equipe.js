@@ -34,13 +34,13 @@ export function render() {
   const lista = membros();
   const confs = store.doProjeto('confirmacoes');
 
-  const custoEquipe = soma(lista, (m) => (m.cache_cents || 0) * (m.diarias || 1));
+  const custoEquipe = soma(lista, (m) => (m.cache_cents || 0) * (m.diarias || 0) + (m.perdiem_cents || 0));
 
   node.innerHTML = `
     ${verGrana ? `<div class="grid">
       <div class="kpi"><div class="l">Pessoas</div><div class="v">${lista.length}</div></div>
       <div class="kpi"><div class="l">Custo de equipe</div><div class="v">${fmtMoney(custoEquipe)}</div>
-        <div class="h">cachê × diárias</div></div>
+        <div class="h">cachês e per diems fechados</div></div>
     </div>` : ''}
     <div class="card">${lista.length ? lista.map((m) => {
       const meus = confs.filter((c) => c.membro_id === m.id);
@@ -52,7 +52,8 @@ export function render() {
           <span class="s">${esc([m.funcao, p.curto, (m.tipo || 'pf').toUpperCase()].filter(Boolean).join(' · '))}</span></span>
         <span class="r">${pend ? `<span class="tag warn">${pend} pend.</span>`
         : meus.length ? '<span class="tag ok">ok</span>' : ''}
-          ${verGrana && m.cache_cents ? `<div class="small muted mono" style="margin-top:3px">${fmtMoney(m.cache_cents)}</div>` : ''}</span>
+          ${verGrana && (m.cache_cents || m.perdiem_cents) ? `<div class="small muted mono" style="margin-top:3px">
+            ${fmtMoney((m.cache_cents || 0) * (m.diarias || 0) + (m.perdiem_cents || 0))}</div>` : ''}</span>
       </div>`;
     }).join('') : '<div class="empty">Ninguém cadastrado ainda.</div>'}</div>
     <div class="banner small">Cada pessoa entra no app e vê só a parte dela: a própria agenda, o
@@ -76,8 +77,11 @@ function campos(m = {}) {
     },
     { k: 'email', label: 'E-mail', type: 'email', valor: m.email },
     { k: 'telefone', label: 'Telefone / WhatsApp', type: 'tel', valor: m.telefone },
-    { k: 'cache_cents', label: 'Cachê (por diária)', type: 'dinheiro', valor: m.cache_cents },
+    { k: 'cache_cents', label: 'Cachê negociado (por diária)', type: 'dinheiro', valor: m.cache_cents,
+      hint: 'O valor realmente fechado com a pessoa.' },
+    { k: 'cache_orcado_cents', label: 'Cachê orçado (por diária)', type: 'dinheiro', valor: m.cache_orcado_cents },
     { k: 'diarias', label: 'Nº de diárias', type: 'numero', valor: m.diarias ?? 1 },
+    { k: 'perdiem_cents', label: 'Per diem (total)', type: 'dinheiro', valor: m.perdiem_cents },
     { k: 'contrato_status', label: 'Contrato', type: 'select', valor: m.contrato_status || 'na', opts: ST_CONTRATO },
     { type: 'titulo', label: 'Como esta pessoa é paga', k: '_t_fisc' },
     {
@@ -113,7 +117,8 @@ function abrirMembro(m, editar, verGrana) {
   const p = PAPEIS[m.papel] || PAPEIS.equipe;
 
   const pintar = () => {
-    const bruto = (m.cache_cents || 0) * (m.diarias || 1);
+    const bruto = (m.cache_cents || 0) * (m.diarias || 0);
+    const orcado = (m.cache_orcado_cents || 0) * (m.diarias || 0);
     const r = retencoes(m, bruto);
     const confs = store.doProjeto('confirmacoes').filter((c) => c.membro_id === m.id);
     const gastos = store.doProjeto('lancamentos').filter((l) => l.membro_id === m.id);
@@ -128,8 +133,16 @@ function abrirMembro(m, editar, verGrana) {
         ${m.email ? `<div class="row"><span class="g"><span class="s">E-mail</span><span class="t">${esc(m.email)}</span></span></div>` : ''}
         ${m.telefone ? `<div class="row"><span class="g"><span class="s">Telefone</span>
           <a class="t" href="tel:${esc(m.telefone)}">${esc(m.telefone)}</a></span></div>` : ''}
-        ${verGrana ? `<div class="row"><span class="g"><span class="s">Cachê</span>
-          <span class="t">${fmtMoney(m.cache_cents)} × ${m.diarias ?? 1} diária(s) = ${fmtMoney(bruto)}</span></span></div>
+        ${verGrana ? `<div class="row"><span class="g"><span class="s">Cachê negociado</span>
+          <span class="t">${bruto ? `${fmtMoney(m.cache_cents)} × ${m.diarias ?? 1} diária(s) = ${fmtMoney(bruto)}`
+            : 'nada fechado — não sai como pagamento'}</span></span></div>
+        ${orcado && orcado !== bruto ? `<div class="row"><span class="g"><span class="s">Cachê orçado</span>
+          <span class="t">${fmtMoney(m.cache_orcado_cents)} × ${m.diarias ?? 1} = ${fmtMoney(orcado)}</span></span>
+          <span class="r"><span class="v">${fmtMoney(orcado - bruto)}</span>
+            <div class="small muted">diferença</div></span></div>` : ''}
+        ${m.perdiem_cents ? `<div class="row"><span class="g"><span class="s">Per diem</span>
+          <span class="t">negociado</span></span>
+          <span class="r"><span class="v">${fmtMoney(m.perdiem_cents)}</span></span></div>` : ''}
         <div class="row"><span class="g"><span class="s">Retenções (${r.tipo.toUpperCase()})</span>
           <span class="t" style="white-space:normal;font-weight:500">${[
             r.inss ? `INSS ${r.percentuais.inss}% · ${fmtMoney(r.inss)}` : '',
@@ -165,7 +178,7 @@ function abrirMembro(m, editar, verGrana) {
           <span class="r"><span class="v">${fmtMoney(soma(contas.filter((c) => c.status === 'aberto'), (c) => c.valor_cents))}</span></span></div>
       </div>` : ''}
       ${editar ? `<div class="btns" style="margin-top:6px">
-        ${verGrana && m.cache_cents ? '<button class="btn" style="flex:1" data-gerar-cache>Lançar cachê a pagar</button>' : ''}
+        ${verGrana && bruto ? '<button class="btn" style="flex:1" data-gerar-cache>Lançar cachê a pagar</button>' : ''}
         <button class="btn gho" style="flex:1" data-edit>Editar</button></div>` : ''}`;
 
     corpo.querySelector('[data-nova-conf]')?.addEventListener('click', () => abrirForm({

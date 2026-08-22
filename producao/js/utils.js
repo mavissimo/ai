@@ -6,6 +6,18 @@ export const uid = (p = 'id') =>
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+/* ---------- modo privacidade: esconder valores na tela ---------- */
+const K_OCULTO = 'unit0:valores-ocultos';
+let oculto = false;
+try { oculto = localStorage.getItem(K_OCULTO) === '1'; } catch { oculto = false; }
+export const valoresOcultos = () => oculto;
+export function alternarValores() {
+  oculto = !oculto;
+  try { localStorage.setItem(K_OCULTO, oculto ? '1' : '0'); } catch { /* modo privado */ }
+  return oculto;
+}
+const MASCARA = 'R$ •••••';
+
 /* ---------- dinheiro (sempre em centavos, inteiro) ---------- */
 export function parseMoney(v) {
   if (v === null || v === undefined || v === '') return 0;
@@ -16,6 +28,7 @@ export function parseMoney(v) {
   return Number.isFinite(n) ? Math.round(n * 100) : 0;
 }
 export const fmtMoney = (cents, opts = {}) => {
+  if (oculto && !opts.sempre) return MASCARA;
   const n = (Number(cents) || 0) / 100;
   return n.toLocaleString('pt-BR', {
     style: 'currency', currency: 'BRL',
@@ -24,6 +37,7 @@ export const fmtMoney = (cents, opts = {}) => {
   });
 };
 export const fmtMoneyShort = (cents) => {
+  if (oculto) return MASCARA;
   const n = Math.abs(Number(cents) || 0) / 100;
   const sig = (Number(cents) || 0) < 0 ? '-' : '';
   if (n >= 1000000) return sig + 'R$ ' + (n / 1000000).toFixed(1).replace('.', ',') + 'M';

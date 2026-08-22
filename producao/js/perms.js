@@ -3,11 +3,23 @@
 // próprios gastos, próprias notas, próprias confirmações) — isso não depende do papel.
 
 export const PAPEIS = {
+  master: {
+    nome: 'Master Admin',
+    curto: 'Master',
+    desc: 'Acesso total, sem restrição: dados, alçadas, contratos, margem e configuração do sistema.',
+    cor: 'bad'
+  },
   admin: {
     nome: 'Produtor / Admin',
     curto: 'Produção executiva',
     desc: 'Vê e edita tudo: contrato, valores, lucro, impostos e todas as etapas.',
     cor: 'ok'
+  },
+  diretor: {
+    nome: 'Direção',
+    curto: 'Direção',
+    desc: 'Etapas, agenda, entregas, aprovações, locações e equipe. Vê o orçamento, mas não mexe em contas nem vê a margem.',
+    cor: 'info'
   },
   coord: {
     nome: 'Coordenação / Produção',
@@ -30,7 +42,19 @@ export const PAPEIS = {
 };
 
 const CAPS = {
+  master: ['*'],
   admin: ['*'],
+  diretor: [
+    'projeto.ver', 'projeto.edit',
+    'etapas.ver', 'etapas.edit',
+    'agenda.ver', 'agenda.edit',
+    'entregas.ver', 'entregas.edit',
+    'equipe.ver',
+    'orcamento.ver',
+    'lanc.ver', 'lanc.edit',
+    'docs.ver', 'docs.edit',
+    'contratos.ver'
+  ],
   coord: [
     'projeto.ver', 'projeto.edit',
     'etapas.ver', 'etapas.edit',

@@ -3,7 +3,7 @@ import { store } from './store.js';
 import { isRemote, APP } from './config.js';
 import { can, ehEquipe, PAPEIS } from './perms.js';
 import { el, toast, abrirForm, ICO } from './ui.js';
-import { esc, iniciais } from './utils.js';
+import { esc, iniciais, valoresOcultos, alternarValores } from './utils.js';
 import { criarProjetoBradesco } from './seed-bradesco.js';
 import { alertas, iniciarMonitor } from './notify.js';
 
@@ -183,11 +183,15 @@ export function render() {
   root.innerHTML = `
     <header class="topbar">
       <h1>${esc(v.titulo)}${v.sub ? `<span class="sub">${esc(v.sub)}</span>` : ''}</h1>
+      <button class="olho" data-olho aria-label="${valoresOcultos() ? 'Mostrar valores' : 'Ocultar valores'}"
+        title="${valoresOcultos() ? 'Mostrar valores' : 'Ocultar valores'}">${valoresOcultos() ? ICO.olhoOff : ICO.olho}</button>
       <a class="avatar" href="#/mais" aria-label="Perfil">${esc(iniciais(store.user.nome))}</a>
     </header>
     <main></main>
     ${tabs()}`;
   root.querySelector('main').append(v.node);
+
+  root.querySelector('[data-olho]').onclick = () => { alternarValores(); render(); };
 
   if (v.fab) {
     const b = el(`<button class="fab" aria-label="Adicionar">${v.fab.label}</button>`);

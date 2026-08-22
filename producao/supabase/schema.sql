@@ -32,7 +32,10 @@ create table if not exists membros (
   nome text not null,
   email text, papel text not null default 'equipe',
   funcao text, telefone text, doc text, chave_pix text,
-  cache_cents bigint default 0, diarias numeric default 1,
+  cache_cents bigint default 0,               -- cachê negociado, por diária
+  cache_orcado_cents bigint default 0,        -- cachê orçado, por diária
+  perdiem_cents bigint default 0,
+  diarias numeric default 1,
   contrato_status text default 'na', ativo boolean default true,
   tipo text default 'pf',                     -- pf (RPA) ou pj (nota fiscal)
   rg text, nascimento text,
@@ -77,7 +80,10 @@ create table if not exists entregas (
 create table if not exists orcamento (
   id text primary key, criado_em timestamptz default now(), criado_por text,
   projeto_id text references projetos(id) on delete cascade,
-  rubrica text not null, descricao text, previsto_cents bigint default 0, obs text
+  rubrica text not null, descricao text,
+  previsto_cents bigint default 0,            -- orçado
+  negociado_cents bigint default 0,           -- já fechado com a pessoa/fornecedor
+  obs text
 );
 
 create table if not exists lancamentos (
@@ -120,6 +126,7 @@ create table if not exists documentos (
   tipo text default 'nf', titulo text, valor_cents bigint default 0,
   data text, emissor text, numero text,
   lancamento_id text, conta_id text, contrato_id text, confirmacao_id text,
+  chave text,                                 -- chave de acesso da NFC-e lida do QR
   membro_id text, path text, nome text, tamanho bigint, mime text,
   link text, obs text
 );

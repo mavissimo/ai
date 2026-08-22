@@ -2,10 +2,11 @@
 import { store, membros, nomeMembro } from '../store.js';
 import { can, podeVerTudo } from '../perms.js';
 import { el, abrirForm, sheet, toast, confirmar } from '../ui.js';
-import { esc, fmtMoney, fmtMoneyShort, pct, fmtData, hoje, ordenar, soma } from '../utils.js';
+import { esc, fmtMoney, fmtMoneyShort, pct, fmtData, hoje, ordenar, soma, parseMoney } from '../utils.js';
 import { financeiro, porRubrica, ST_LANC } from '../calc.js';
 import { RUBRICAS } from '../seed.js';
 import { salvarArquivo, abrirArquivo } from '../files.js';
+import { lerNotaDaImagem, leitorDisponivel, resumo as resumoNota } from '../nota.js';
 
 let aba = 'resumo';
 
@@ -50,17 +51,24 @@ export function render() {
 
 /* ---------------- resumo ---------------- */
 function blocoResumo(f, verLucro, u) {
-  const usado = pct(f.realizado, f.orcado || 1);
-  const rub = porRubrica().filter((r) => r.previsto || r.real || r.pend);
+  const usado = pct(f.comprometido, f.orcado || 1);
+  const rub = porRubrica().filter((r) => r.previsto || r.negociado || r.real || r.pend);
   return `
+    ${verLucro && f.contratado && f.estouro > 0 ? `<div class="banner bad">
+      O orçamento está <b>${fmtMoney(f.estouro)}</b> acima do valor contratado
+      (${fmtMoney(f.orcado)} orçado contra ${fmtMoney(f.contratado)} de contrato), e isso ainda é antes do imposto.
+      Do total, ${fmtMoney(f.negociado)} já foi fechado — a diferença é onde dá para cortar.</div>` : ''}
     <div class="grid">
       ${verLucro ? `<div class="kpi"><div class="l">Contratado</div><div class="v">${fmtMoneyShort(f.contratado)}</div>
         <div class="h">recebido ${fmtMoneyShort(f.recebido)}</div></div>` : ''}
-      <div class="kpi"><div class="l">Orçado</div><div class="v">${fmtMoneyShort(f.orcado)}</div>
-        <div class="h">${usado}% usado</div></div>
-      <div class="kpi ${f.saldoOrcamento < 0 ? 'bad' : 'ok'}"><div class="l">Sobra do orçamento</div>
+      <div class="kpi ${f.estouro > 0 ? 'bad' : ''}"><div class="l">Orçado</div>
+        <div class="v">${fmtMoneyShort(f.orcado)}</div>
+        <div class="h">${usado}% comprometido</div></div>
+      <div class="kpi"><div class="l">Já negociado</div><div class="v">${fmtMoneyShort(f.negociado)}</div>
+        <div class="h">falta fechar ${fmtMoneyShort(f.aNegociar)}</div></div>
+      <div class="kpi ${f.saldoOrcamento < 0 ? 'bad' : 'ok'}"><div class="l">Ainda posso gastar</div>
         <div class="v">${fmtMoneyShort(f.saldoOrcamento)}</div>
-        <div class="h">pendente ${fmtMoneyShort(f.pendente)}</div></div>
+        <div class="h">orçado − comprometido</div></div>
       <div class="kpi"><div class="l">Caixa</div><div class="v">${fmtMoneyShort(f.caixa)}</div>
         <div class="h">recebido − pago</div></div>
       ${can(u, 'contas.ver') ? `<div class="kpi"><div class="l">A pagar</div><div class="v">${fmtMoneyShort(f.aPagar)}</div></div>
@@ -88,11 +96,12 @@ function blocoResumo(f, verLucro, u) {
     </div>` : ''}
     <div class="sec"><div class="sec-t">Orçado × gasto por rubrica</div></div>
     <div class="card">${rub.length ? rub.map((r) => {
-      const p = pct(r.real + r.pend, r.previsto || (r.real + r.pend) || 1);
+      const base = r.negociado || r.previsto || (r.real + r.pend) || 1;
+      const p = pct(r.real + r.pend, base);
       return `<div style="padding:9px 0;border-bottom:1px solid var(--line)">
         <div style="display:flex;gap:8px;align-items:baseline">
           <span style="flex:1;font-weight:600;font-size:14px">${esc(r.rubrica)}</span>
-          <span class="small mono muted">${fmtMoneyShort(r.real + r.pend)} / ${fmtMoneyShort(r.previsto)}</span>
+          <span class="small mono muted">${fmtMoneyShort(r.real + r.pend)} / ${fmtMoneyShort(r.negociado || r.previsto)}</span>
         </div>
         <div class="bar"><i class="${p > 100 ? 'bad' : p > 85 ? 'warn' : 'ok'}" style="width:${Math.min(p, 100)}%"></i></div>
       </div>`;
@@ -103,21 +112,24 @@ function blocoResumo(f, verLucro, u) {
 function blocoOrcamento(u) {
   const rub = porRubrica();
   const total = soma(rub, (r) => r.previsto);
+  const neg = soma(rub, (r) => r.negociado);
   const gasto = soma(rub, (r) => r.real + r.pend);
   return `
-    <div class="grid">
-      <div class="kpi"><div class="l">Total orçado</div><div class="v">${fmtMoneyShort(total)}</div></div>
-      <div class="kpi ${gasto > total ? 'bad' : ''}"><div class="l">Comprometido</div><div class="v">${fmtMoneyShort(gasto)}</div></div>
+    <div class="grid3">
+      <div class="kpi"><div class="l">Orçado</div><div class="v">${fmtMoneyShort(total)}</div></div>
+      <div class="kpi"><div class="l">Negociado</div><div class="v">${fmtMoneyShort(neg)}</div></div>
+      <div class="kpi ${gasto > total ? 'bad' : ''}"><div class="l">Gasto</div><div class="v">${fmtMoneyShort(gasto)}</div></div>
     </div>
+    <div class="banner small">O <b>orçado</b> é o que foi previsto na planilha. O <b>negociado</b> é o que já
+      foi realmente fechado com cada pessoa ou fornecedor. A diferença ainda está em aberto.</div>
     <div class="sec"><div class="sec-t">Rubricas</div>
       ${can(u, 'orcamento.edit') ? '<button class="btn sm gho" data-nova-rubrica>+ rubrica</button>' : ''}</div>
     <div class="card">${rub.map((r) => `
       <div class="row ${r.id ? 'act' : ''}" ${r.id ? `data-rub="${r.id}"` : ''}>
         <span class="g"><span class="t">${esc(r.rubrica)}</span>
-          <span class="s">gasto ${fmtMoney(r.real)}${r.pend ? ' · pendente ' + fmtMoney(r.pend) : ''}</span></span>
+          <span class="s">${r.negociado ? 'negociado ' + fmtMoney(r.negociado) : 'nada fechado ainda'}${r.real ? ' · gasto ' + fmtMoney(r.real) : ''}${r.pend ? ' · pendente ' + fmtMoney(r.pend) : ''}</span></span>
         <span class="r"><span class="v">${fmtMoney(r.previsto)}</span>
-          <div class="small ${r.real + r.pend > r.previsto ? 'muted' : 'muted'}" style="color:${r.real + r.pend > r.previsto && r.previsto ? 'var(--bad)' : ''}">
-            ${r.previsto ? pct(r.real + r.pend, r.previsto) + '%' : '—'}</div></span>
+          <div class="small muted">orçado</div></span>
       </div>`).join('')}</div>`;
 }
 
@@ -126,7 +138,8 @@ function novaRubrica() {
     titulo: 'Nova rubrica',
     campos: [
       { k: 'rubrica', label: 'Nome da rubrica', type: 'texto', req: true },
-      { k: 'previsto_cents', label: 'Valor previsto', type: 'dinheiro' },
+      { k: 'previsto_cents', label: 'Valor orçado', type: 'dinheiro' },
+      { k: 'negociado_cents', label: 'Valor já negociado', type: 'dinheiro' },
       { k: 'obs', label: 'Observações', type: 'area' }
     ],
     onSave: async (v) => { await store.insert('orcamento', v); toast('Rubrica criada.'); }
@@ -140,7 +153,9 @@ function editarRubrica(r, editar) {
     subtitulo: 'Valor previsto para esta rubrica.',
     campos: [
       { k: 'rubrica', label: 'Rubrica', type: 'texto', req: true, valor: r.rubrica },
-      { k: 'previsto_cents', label: 'Previsto', type: 'dinheiro', valor: r.previsto_cents },
+      { k: 'previsto_cents', label: 'Orçado', type: 'dinheiro', valor: r.previsto_cents },
+      { k: 'negociado_cents', label: 'Já negociado', type: 'dinheiro', valor: r.negociado_cents,
+        hint: 'O que foi realmente fechado com a pessoa ou o fornecedor.' },
       { k: 'obs', label: 'Observações', type: 'area', valor: r.obs }
     ],
     onSave: async (v) => { await store.update('orcamento', r.id, v); toast('Orçamento atualizado.'); },
@@ -230,9 +245,36 @@ export function camposLancamento(u, fixo = {}) {
       ],
       hint: 'Caixinha desconta do seu saldo. Reembolso vira uma conta a pagar para você.'
     },
-    { k: 'arquivo', label: 'Nota fiscal / comprovante', type: 'arquivo', hint: 'Foto da notinha ou PDF. Fica anexado ao lançamento.' },
+    {
+      k: 'arquivo', label: 'Foto da notinha', type: 'arquivo',
+      hint: leitorDisponivel()
+        ? 'Tire a foto da nota. Se ela tiver QR code, o app lê valor, data, CNPJ e número sozinho.'
+        : 'Tire a foto da nota. Este navegador não lê o QR automaticamente — preencha os campos na mão.'
+    },
+    { k: 'nf_numero', label: 'Número da nota', type: 'texto' },
+    { k: 'nf_chave', label: 'Chave de acesso', type: 'texto', hint: '44 dígitos, preenchida pela leitura do QR.' },
     { k: 'obs', label: 'Observações', type: 'area' }
   ].filter(Boolean);
+}
+
+/** Lê o QR da notinha e preenche o formulário sozinho. */
+export async function lerNotaNoForm(arquivo, api) {
+  if (!leitorDisponivel()) {
+    api.aviso('Este navegador não lê QR code. A foto foi guardada — preencha os campos na mão.', 'warn');
+    return;
+  }
+  api.aviso('Lendo a notinha…');
+  const d = await lerNotaDaImagem(arquivo);
+  if (!d) {
+    api.aviso('Não achei QR code nesta foto. A nota foi guardada mesmo assim — preencha na mão.', 'warn');
+    return;
+  }
+  if (d.valor) api.set('valor_cents', parseMoney(d.valor));
+  if (d.data) api.set('data', d.data);
+  if (d.numero) api.set('nf_numero', d.numero);
+  if (d.chave) api.set('nf_chave', d.chave);
+  if (d.cnpjFmt && !api.valor('fornecedor')) api.set('fornecedor', d.cnpjFmt);
+  api.aviso('Nota lida: ' + resumoNota(d));
 }
 
 export async function salvarLancamento(v, u) {
@@ -251,8 +293,9 @@ export async function salvarLancamento(v, u) {
     const meta = await salvarArquivo(v.arquivo, { pasta: 'notas' });
     await store.insert('documentos', {
       tipo: 'nf', titulo: v.descricao, valor_cents: v.valor_cents, data: v.data || hoje(),
-      emissor: v.fornecedor || '', numero: '', lancamento_id: lanc.id,
-      membro_id: lanc.membro_id, path: meta.path, nome: meta.nome, tamanho: meta.tamanho, mime: meta.tipo
+      emissor: v.fornecedor || '', numero: v.nf_numero || '', chave: v.nf_chave || '',
+      lancamento_id: lanc.id, membro_id: lanc.membro_id,
+      path: meta.path, nome: meta.nome, tamanho: meta.tamanho, mime: meta.tipo
     });
   }
   if (lanc.fonte === 'proprio' && lanc.membro_id) {
@@ -270,6 +313,7 @@ function novoLancamento(u) {
   abrirForm({
     titulo: 'Novo lançamento',
     campos: camposLancamento(u),
+    onArquivo: lerNotaNoForm,
     onSave: async (v) => {
       await salvarLancamento(v, u);
       toast(can(u, 'lanc.aprovar') ? 'Lançado.' : 'Enviado para aprovação.');
@@ -320,13 +364,20 @@ export function abrirLancamento(l) {
     });
     corpo.querySelector('[data-anexar]')?.addEventListener('click', () => abrirForm({
       titulo: 'Anexar nota',
-      campos: [{ k: 'arquivo', label: 'Arquivo', type: 'arquivo', req: true },
-      { k: 'numero', label: 'Número da NF', type: 'texto' }],
+      campos: [{ k: 'arquivo', label: 'Foto da notinha', type: 'arquivo', req: true },
+      { k: 'numero', label: 'Número da NF', type: 'texto' },
+      { k: 'chave', label: 'Chave de acesso', type: 'texto' }],
+      onArquivo: async (arq, api) => {
+        const d = await lerNotaDaImagem(arq);
+        if (!d) { api.aviso('Sem QR code legível nesta foto.', 'warn'); return; }
+        api.set('numero', d.numero); api.set('chave', d.chave);
+        api.aviso('Nota lida: ' + resumoNota(d));
+      },
       onSave: async (v) => {
         const meta = await salvarArquivo(v.arquivo, { pasta: 'notas' });
         await store.insert('documentos', {
           tipo: 'nf', titulo: l.descricao, valor_cents: l.valor_cents, data: l.data,
-          emissor: l.fornecedor || '', numero: v.numero || '', lancamento_id: l.id,
+          emissor: l.fornecedor || '', numero: v.numero || '', chave: v.chave || '', lancamento_id: l.id,
           membro_id: l.membro_id, path: meta.path, nome: meta.nome, tamanho: meta.tamanho, mime: meta.tipo
         });
         toast('Nota anexada.'); pintar(); store.emit();

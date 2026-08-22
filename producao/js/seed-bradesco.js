@@ -4,39 +4,52 @@
 // vale o contrato — e a divergência fica anotada na observação.
 import { store } from './store.js';
 import { uid, parseMoney } from './utils.js';
+import { retencoes } from './calc.js';
 
 const M = parseMoney;
 
 const PESSOAS = [
   {
-    nome: 'Maví Simões', funcao: 'Direção de cena', papel: 'admin', tipo: 'pj',
+    nome: 'Master', funcao: 'Administração do sistema', papel: 'master', tipo: 'pj',
+    email: 'master@tempora', telefone: '',
+    cache_cents: 0, diarias: 0, perdiem_cents: 0, contrato_status: 'na',
+    obs: 'Perfil de acesso total: enxerga e edita tudo, inclusive alçadas, contrato, margem e imposto.'
+  },
+  {
+    nome: 'Maví Simões', funcao: 'Direção de cena', papel: 'diretor', tipo: 'pj',
     email: 'mavi@tempora', telefone: '(19) 98220-1700',
     doc: '394.458.628-05', rg: '46.364.032-9', nascimento: '1990-01-22',
-    cache_cents: M('3000'), diarias: 26, contrato_status: 'na',
-    chave_pix: 'mavissimo1@gmail.com',
-    obs: 'Sócio da MATHEUS SIMÕES AVILA LTDA (CNPJ 47.661.128/0001-60), parte contratada.'
+    cache_cents: 0, cache_orcado_cents: M('3000'), diarias: 26, perdiem_cents: M('7000'),
+    contrato_status: 'na', chave_pix: 'mavissimo1@gmail.com',
+    obs: 'Sócio da MATHEUS SIMÕES AVILA LTDA (CNPJ 47.661.128/0001-60), parte contratada. '
+      + 'Direção orçada em R$ 3.000 × 26 = R$ 78.000, mas com NEGOCIADO zerado na planilha: '
+      + 'não sai como pagamento a terceiro, fica na produtora. Per diem negociado: R$ 7.000 (35 × R$ 200).'
   },
   {
     nome: 'Tato Pessanha', funcao: 'Produção executiva', papel: 'coord', tipo: 'pf',
     email: 'tato@tempora', telefone: '(11) 96340-1980',
     doc: '083.240.687-24', rg: '633482316', nascimento: '1980-06-04',
-    cache_cents: M('1600'), diarias: 26, contrato_status: 'pendente',
-    obs: 'Total job negociado em R$ 41.600 (executivo + produtor de viagem + som). '
-      + 'Está como Coordenação: vê custos, agenda e equipe, mas não vê valor de contrato nem margem. '
-      + 'Para liberar, troque a alçada para Financeiro ou Produtor/Admin.'
+    cache_cents: M('1600'), cache_orcado_cents: M('1600'), diarias: 26, perdiem_cents: M('7000'),
+    contrato_status: 'pendente',
+    obs: 'Cachê fechado em R$ 41.600 (total job: executivo + produtor de viagem + som), igual ao orçado. '
+      + 'Per diem negociado: R$ 7.000 (35 × R$ 200). Está como Coordenação: vê custos, agenda e equipe, '
+      + 'mas não vê valor de contrato nem margem.'
   },
   {
     nome: 'Julio Becker', funcao: '1º assistente de câmera', papel: 'equipe', tipo: 'pf',
     email: 'becker@tempora', telefone: '(55) 98100-3404',
     doc: '063.821.999-07', rg: '1124393396', nascimento: '1997-04-04',
-    cache_cents: M('1300'), diarias: 26, contrato_status: 'pendente',
-    obs: 'Planilha traz duas leituras: 26 × R$ 1.300 = R$ 33.800 na linha e "26 dias × R$ 1.100" na observação. Confirmar.'
+    cache_cents: M('1100'), cache_orcado_cents: M('1300'), diarias: 26, perdiem_cents: M('7000'),
+    contrato_status: 'pendente',
+    obs: 'Cachê fechado em R$ 1.100 × 26 = R$ 28.600 (coluna NEGOCIADO). Orçado era R$ 1.300 × 26 = R$ 33.800, '
+      + 'sobrando R$ 5.200 de diferença. Per diem negociado: R$ 7.000 (35 × R$ 200).'
   },
   {
     nome: 'Patrick Bombassaro', funcao: 'Assistente criativo', papel: 'equipe', tipo: 'pf',
     email: 'patrick@tempora', telefone: '',
-    cache_cents: M('4000'), diarias: 1, contrato_status: 'pendente',
-    obs: 'Orçado em R$ 8.000, negociado para R$ 4.000.'
+    cache_cents: M('4000'), cache_orcado_cents: M('8000'), diarias: 1, perdiem_cents: 0,
+    contrato_status: 'pendente',
+    obs: 'Orçado em R$ 8.000, fechado em R$ 4.000 (coluna NEGOCIADO).'
   }
 ];
 
@@ -63,26 +76,47 @@ const LOCACOES = [
 ];
 
 const ORCAMENTO = [
-  ['Roteiro', '15000', 'Total job.'],
-  ['Assistente criativo', '4000', 'Orçado 8.000, negociado 4.000. Patrick Bombassaro.'],
-  ['Direção de cena', '78000', 'R$ 3.000 × 26 (pré-produção + diárias + viagem). Maví.'],
-  ['Produção executiva', '41600', 'R$ 1.600 × 26. Total job: executivo + produtor de viagem + som. Tato.'],
-  ['Secretaria de produção / advogada', '7000', ''],
-  ['1º assistente de câmera', '33800', 'R$ 1.300 × 26. Julio Becker.'],
-  ['Seguros (GBI)', '4096,76', 'Apólice equipe + equipamentos, incluída no preço do contrato.'],
-  ['Passagens aéreas', '0', 'Preencher conforme as reservas.'],
-  ['Hospedagem', '0', ''],
-  ['Alimentação', '0', ''],
-  ['Transporte e locação de carro', '0', 'Movida — reserva 740099355700.'],
-  ['Equipamento de câmera', '0', ''],
-  ['Equipamento de som', '0', ''],
-  ['Pós-produção — montagem', '0', ''],
-  ['Cor, motion e finalização', '0', ''],
-  ['Trilha e locução', '0', 'Incluída no orçamento; definir entre original e biblioteca.'],
-  ['Armazenamento, HDs e backup', '0', 'Contrato exige 2 cópias criptografadas em locais separados + 1 HD físico na entrega.'],
-  ['Autorizações e certidões', '0', 'Certidão de antecedentes para quem acessar escolas.'],
-  ['Contingência', '0', ''],
-  ['Impostos', '0', 'Definir alíquota efetiva em Dinheiro → Imposto.']
+  ['Roteiro', '15000', '0', 'Total job. Nada negociado com terceiro.'],
+  ['Assistente criativo', '8000', '4000', 'Patrick Bombassaro. Orçado 8.000, fechado 4.000.'],
+  ['Direção de cena', '78000', '0', 'R$ 3.000 × 26 (pré + diárias + viagem). NEGOCIADO zerado: fica na produtora.'],
+  ['Produção executiva', '41600', '41600', 'Tato Pessanha. Total job, fechado no valor orçado.'],
+  ['Secretaria de produção / advogada', '7000', '0', 'Ainda não contratada.'],
+  ['1º assistente de câmera', '33800', '28600', 'Julio Becker. Orçado 26 × 1.300, fechado 26 × 1.100.'],
+  ['Equipamento de câmera', '11700', '0', 'Câmera, lentes e acessórios — R$ 450 × 26.'],
+  ['Luz e elétrica', '7800', '0', 'R$ 300 × 26.'],
+  ['Material de produção e som', '5720', '0', 'Inclui aluguel de microfone — R$ 220 × 26.'],
+  ['HDs e armazenamento', '6270', '0', '3 HDs de 4 TB (2 de filmagem + 1 de edição).'],
+  ['Verba de produção (caixinha)', '9601', '0', 'R$ 400 × 24 diárias, mais R$ 1 na aba de crew.'],
+  ['Montagem (offline)', '39000', '0', 'Três editores: doc principal, cortes de fotógrafo e minidocs de escola.'],
+  ['Versões', '8000', '0', ''],
+  ['Trilha', '12000', '0', 'Definir entre original e biblioteca.'],
+  ['Color', '10000', '0', ''],
+  ['Passagens aéreas', '92400', '69234,78', 'Orçado a R$ 2.200 por trecho. Já fechado: Palmas 10.722,51, '
+    + 'Recife 6.894,27 e seis linhas de 8.603,00.'],
+  ['Hospedagem', '105750', '1620', 'Só a pousada de Conceição do Araguaia está fechada.'],
+  ['Locação de carro', '19698', '824', 'Só o carro de Recife está fechado.'],
+  ['Combustível e estacionamento', '10150', '4900', ''],
+  ['Excesso de bagagem', '3600', '3600', 'Equipamentos.'],
+  ['Per diem da equipe', '23100', '21000', 'Orçado R$ 220/dia, fechado R$ 200/dia × 35 dias para Maví, Tato e Julio.'],
+  ['Seguro (GBI)', '2300', '4092', 'Apólice equipe + equipamentos. Estourou o orçado em R$ 1.792.']
+];
+
+// Pagamentos já fechados (coluna NEGOCIADO), que viram contas a pagar.
+// [descrição, favorecido, valor, categoria, observação]
+const PAGAVEIS = [
+  ['Passagens SP → Palmas (ida e volta)', 'Decolar', '10722,51', 'passagens',
+    'Reserva 740099355700. Voos de 23/08 e volta em 26/08.'],
+  ['Pousada em Conceição do Araguaia', 'Pousada — Conceição do Araguaia (PA)', '1620', 'hospedagem', ''],
+  ['Passagens SP → Recife (ida e volta)', 'A definir', '6894,27', 'passagens', 'Viagem de 30/08 a 02/09.'],
+  ['Aluguel de carro em Recife', 'Locadora', '824', 'transporte', ''],
+  ['Passagens SP → Porto Alegre (ida e volta)', 'A definir', '8603', 'passagens', 'Viagem de 09/09 a 12/09.'],
+  ['Passagens — 5 trechos a confirmar', 'A definir', '43015', 'passagens',
+    'A planilha tem cinco linhas de R$ 8.603,00 com a mesma observação "SP X RECIFE", '
+    + 'provavelmente copiadas. Confirme a qual trecho cada uma pertence e separe em contas próprias.'],
+  ['Excesso de bagagem (equipamento)', 'Companhia aérea', '3600', 'passagens', ''],
+  ['Combustível e estacionamentos', 'Diversos', '4900', 'transporte', ''],
+  ['Seguro de equipe e equipamento', 'GBI Seguros', '4092', 'seguro',
+    'Kátia Pelaes. O orçamento ajustado no e-mail veio R$ 4.096,76 — confirmar qual vale.']
 ];
 
 // [data, tipo, título, local, observação]
@@ -192,7 +226,6 @@ export async function criarProjetoBradesco() {
     const m = await store.insert('membros', { projeto_id: P, ativo: true, ...p });
     membros[p.nome] = m.id;
   }
-  const todos = Object.values(membros);
   const viajantes = [membros['Maví Simões'], membros['Julio Becker'], membros['Tato Pessanha']];
 
   /* contatos */
@@ -263,8 +296,43 @@ export async function criarProjetoBradesco() {
   });
 
   /* orçamento */
-  for (const [rubrica, valor, obs] of ORCAMENTO) {
-    await store.insert('orcamento', { projeto_id: P, rubrica, descricao: '', previsto_cents: M(valor), obs });
+  for (const [rubrica, orcado, negociado, obs] of ORCAMENTO) {
+    await store.insert('orcamento', {
+      projeto_id: P, rubrica, descricao: '',
+      previsto_cents: M(orcado), negociado_cents: M(negociado), obs
+    });
+  }
+
+  /* pagamentos já fechados viram contas a pagar */
+  for (const [descricao, contraparte, valor, categoria, obs] of PAGAVEIS) {
+    await store.insert('contas', {
+      projeto_id: P, tipo: 'pagar', descricao, contraparte, valor_cents: M(valor),
+      venc: '', status: 'aberto', categoria, nf_status: 'a_receber', obs
+    });
+  }
+
+  /* cachês e per diems fechados, com retenção calculada */
+  for (const p of PESSOAS) {
+    const id = membros[p.nome];
+    const bruto = (p.cache_cents || 0) * (p.diarias || 0);
+    if (bruto) {
+      const r = retencoes(p, bruto);
+      await store.insert('contas', {
+        projeto_id: P, tipo: 'pagar', descricao: `Cachê — ${p.nome} (${p.funcao})`,
+        contraparte: p.nome, valor_cents: bruto, retencao_cents: r.total, liquido_cents: r.liquido,
+        venc: '', status: 'aberto', membro_id: id, categoria: 'cachê',
+        nf_status: p.tipo === 'pj' ? 'a_receber' : 'na',
+        obs: 'Valor da coluna NEGOCIADO da planilha.'
+      });
+    }
+    if (p.perdiem_cents) {
+      await store.insert('contas', {
+        projeto_id: P, tipo: 'pagar', descricao: `Per diem — ${p.nome}`,
+        contraparte: p.nome, valor_cents: p.perdiem_cents, venc: '', status: 'aberto',
+        membro_id: id, categoria: 'per diem', nf_status: 'na',
+        obs: '35 dias × R$ 200 (negociado). Orçado era R$ 220/dia.'
+      });
+    }
   }
 
   /* etapas */
