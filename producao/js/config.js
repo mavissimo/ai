@@ -10,8 +10,8 @@ export const SUPABASE = {
 };
 
 export const APP = {
-  nome: 'Claquete',
-  versao: '1.0.0',
+  nome: 'Unit0',
+  versao: '2.0.0',
   moeda: 'BRL'
 };
 

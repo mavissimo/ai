@@ -8,6 +8,18 @@ import { salvarArquivo, abrirArquivo } from '../files.js';
 
 let aba = 'pagar';
 
+const NF = [
+  { v: 'na', t: 'Não se aplica' },
+  { v: 'a_emitir', t: 'Preciso emitir' },
+  { v: 'emitida', t: 'Emitida' },
+  { v: 'a_receber', t: 'Aguardando NF do fornecedor' },
+  { v: 'recebida', t: 'NF recebida' }
+];
+const nfTxt = (v) => NF.find((n) => n.v === v)?.t || 'Não se aplica';
+const nfTag = (v) => (v === 'emitida' || v === 'recebida') ? 'ok' : (v === 'na' || !v) ? 'mut' : 'warn';
+
+export const liquido = (c) => (c.liquido_cents || ((c.valor_cents || 0) - (c.retencao_cents || 0)));
+
 export function render() {
   const u = store.user;
   const node = el('<div></div>');
@@ -69,6 +81,14 @@ function campos(c = {}, tipo) {
       opts: [{ v: '', t: '— nenhuma —' }, ...membros().map((m) => ({ v: m.id, t: m.nome }))]
     },
     { k: 'categoria', label: 'Categoria', type: 'texto', valor: c.categoria, ph: 'cachê, fornecedor, parcela de contrato…' },
+    { type: 'titulo', label: 'Imposto e nota fiscal', k: '_t_fisc' },
+    { k: 'retencao_cents', label: 'Retenções', type: 'dinheiro', valor: c.retencao_cents, meia: true,
+      hint: 'INSS, IRRF, ISS, PIS/COFINS/CSLL segurados no pagamento.' },
+    { k: 'liquido_cents', label: 'Líquido', type: 'dinheiro', valor: c.liquido_cents, meia: true,
+      hint: 'Em branco, o app usa valor − retenções.' },
+    { k: 'nf_status', label: 'Nota fiscal', type: 'select', valor: c.nf_status || 'na', opts: NF },
+    { k: 'nf_numero', label: 'Número da NF', type: 'texto', valor: c.nf_numero },
+    { k: 'nf_data', label: 'Data da NF', type: 'data', valor: c.nf_data },
     { k: 'obs', label: 'Observações', type: 'area', valor: c.obs }
   ];
 }
@@ -100,6 +120,14 @@ function abrirConta(c, editar) {
           <span class="t">${esc(fmtData(c.venc, { longo: true }))}</span></span></div>
         ${c.categoria ? `<div class="row"><span class="g"><span class="s">Categoria</span><span class="t">${esc(c.categoria)}</span></span></div>` : ''}
         ${c.membro_id ? `<div class="row"><span class="g"><span class="s">Pessoa</span><span class="t">${esc(nomeMembro(c.membro_id))}</span></span></div>` : ''}
+        ${c.retencao_cents ? `<div class="row"><span class="g"><span class="s">Retenções</span>
+          <span class="t">− ${fmtMoney(c.retencao_cents)}</span></span>
+          <span class="r"><span class="v" style="color:var(--ok)">${fmtMoney(liquido(c))}</span>
+            <div class="small muted">líquido</div></span></div>` : ''}
+        <div class="row"><span class="g"><span class="s">Nota fiscal</span>
+          <span class="t">${esc(nfTxt(c.nf_status))}${c.nf_numero ? ' · nº ' + esc(c.nf_numero) : ''}</span></span>
+          <span class="r"><span class="tag ${nfTag(c.nf_status)}">${c.nf_status === 'a_emitir' ? 'emitir' :
+            c.nf_status === 'a_receber' ? 'cobrar' : c.nf_status === 'na' || !c.nf_status ? '—' : 'ok'}</span></span></div>
         ${c.obs ? `<div class="row"><span class="g"><span class="s">Observações</span>
           <span class="t" style="white-space:normal;font-weight:400">${esc(c.obs)}</span></span></div>` : ''}
         <div class="row"><span class="g"><span class="s">Comprovante</span>
@@ -107,7 +135,9 @@ function abrirConta(c, editar) {
           <span class="r">${doc ? '<button class="btn sm" data-ver>abrir</button>'
         : editar ? '<button class="btn sm gho" data-anexar>anexar</button>' : ''}</span></div>
       </div>
-      ${editar && c.status === 'aberto' ? `<button class="btn wide pri" data-quitar>
+      ${editar && (c.nf_status === 'a_emitir' || c.nf_status === 'a_receber') ? `<button class="btn wide" data-nf>
+        ${c.nf_status === 'a_emitir' ? 'Marcar NF como emitida' : 'Marcar NF como recebida'}</button>` : ''}
+      ${editar && c.status === 'aberto' ? `<button class="btn wide pri" style="margin-top:8px" data-quitar>
         Marcar como ${c.tipo === 'pagar' ? 'pago' : 'recebido'}</button>` : ''}
       ${editar ? '<button class="btn wide gho" style="margin-top:8px" data-edit>Editar</button>' : ''}`;
 
@@ -128,13 +158,26 @@ function abrirConta(c, editar) {
         toast('Comprovante anexado.'); pintar(); store.emit();
       }
     }));
+    corpo.querySelector('[data-nf]')?.addEventListener('click', () => abrirForm({
+      titulo: 'Nota fiscal',
+      campos: [
+        { k: 'nf_numero', label: 'Número da NF', type: 'texto', req: true, valor: c.nf_numero },
+        { k: 'nf_data', label: 'Data de emissão', type: 'data', valor: c.nf_data || hoje() }
+      ],
+      onSave: async (v) => {
+        const novo = c.nf_status === 'a_emitir' ? 'emitida' : 'recebida';
+        await store.update('contas', c.id, { ...v, nf_status: novo });
+        Object.assign(c, v, { nf_status: novo });
+        toast('Nota registrada.'); pintar(); store.emit();
+      }
+    }));
     corpo.querySelector('[data-quitar]')?.addEventListener('click', async () => {
       await store.update('contas', c.id, { status: 'quitado', quitado_em: hoje() });
       c.status = 'quitado';
       // espelha no fluxo de caixa
       await store.insert('lancamentos', {
         tipo: c.tipo === 'pagar' ? 'saida' : 'entrada', descricao: c.descricao,
-        valor_cents: c.valor_cents, rubrica: c.categoria || 'Outros', data: hoje(),
+        valor_cents: c.tipo === 'pagar' ? liquido(c) : c.valor_cents, rubrica: c.categoria || 'Outros', data: hoje(),
         fornecedor: c.contraparte || '', membro_id: c.membro_id || null,
         status: c.tipo === 'pagar' ? 'pago' : 'recebido', conta_id: c.id, obs: 'Gerado ao quitar a conta.'
       });

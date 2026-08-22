@@ -4,7 +4,7 @@ import { isRemote, APP } from './config.js';
 import { can, ehEquipe, PAPEIS } from './perms.js';
 import { el, toast, abrirForm, ICO } from './ui.js';
 import { esc, iniciais } from './utils.js';
-import { criarProjetoTeste, criarProdutor } from './seed.js';
+import { criarProjetoBradesco } from './seed-bradesco.js';
 import { alertas, iniciarMonitor } from './notify.js';
 
 import * as vDash from './views/dash.js';
@@ -17,6 +17,9 @@ import * as vEquipe from './views/equipe.js';
 import * as vNotas from './views/notas.js';
 import * as vMeu from './views/meu.js';
 import * as vAjustes from './views/ajustes.js';
+import * as vCaixa from './views/caixa.js';
+import * as vLocacoes from './views/locacoes.js';
+import * as vAprov from './views/aprovacoes.js';
 
 const ROTAS = {
   '': () => (ehEquipe(store.user) ? vMeu.render() : vDash.render()),
@@ -31,6 +34,9 @@ const ROTAS = {
   '/notas': () => vNotas.render(),
   '/meu': () => vMeu.render(),
   '/mais': () => vAjustes.render(),
+  '/caixa': () => vCaixa.render(),
+  '/locacoes': () => vLocacoes.render(),
+  '/aprovacoes': () => vAprov.render(),
   '/historico': () => vAjustes.renderHistorico()
 };
 
@@ -45,27 +51,26 @@ function telaBoasVindas() {
     <p>Gestão de produção audiovisual: negociação, pré, produção, pós, dinheiro
       e equipe — tudo no celular.</p>
     <button class="btn pri wide" data-comecar>Começar</button>
+    <p class="small muted" style="margin-top:12px">Carrega o projeto <b>Doc Fundação Bradesco 70 Anos</b>
+      com contrato, cronograma, orçamento e equipe já cadastrados.</p>
     <p class="small muted" style="margin-top:18px">${isRemote()
       ? 'Modo nuvem: os dados ficam no Supabase do projeto.'
       : 'Modo demo: os dados ficam neste aparelho. Você pode exportar um backup a qualquer momento.'}</p>
   </div>`);
-  node.querySelector('[data-comecar]').onclick = () => abrirForm({
-    titulo: 'Quem está montando',
-    subtitulo: 'Você entra como produção executiva, com acesso a tudo.',
-    campos: [
-      { k: 'nome', label: 'Seu nome', type: 'texto', req: true },
-      { k: 'email', label: 'Seu e-mail', type: 'email' }
-    ],
-    salvar: 'Criar projeto',
-    onSave: async (v) => {
-      const m = await criarProdutor(v.nome, v.email);
-      store.setUser(m);
-      await criarProjetoTeste();
-      toast('Projeto criado. Bem-vindo!');
+  node.querySelector('[data-comecar]').onclick = async () => {
+    const b = node.querySelector('[data-comecar]');
+    b.disabled = true; b.textContent = 'Montando o projeto…';
+    try {
+      await criarProjetoBradesco();
+      toast('Projeto carregado. Escolha quem você é.');
       location.hash = '#/';
       render();
+    } catch (e) {
+      console.error(e);
+      toast('Não consegui montar: ' + e.message);
+      b.disabled = false; b.textContent = 'Começar';
     }
-  });
+  };
   return node;
 }
 
@@ -163,7 +168,7 @@ export function render() {
     return;
   }
   if (!store.projeto && can(store.user, 'projeto.edit') && !store.all('projetos').length) {
-    criarProjetoTeste().then(render);
+    criarProjetoBradesco().then(render);
     return;
   }
 

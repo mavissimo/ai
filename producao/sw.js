@@ -1,5 +1,5 @@
 // Cache leve: rede primeiro (para não travar em versão velha), cache como reserva offline.
-const CACHE = 'claquete-v1';
+const CACHE = 'unit0-v1';
 const ESSENCIAL = ['./', 'index.html', 'css/app.css', 'icon.svg', 'manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {

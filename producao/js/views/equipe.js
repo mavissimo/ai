@@ -5,6 +5,7 @@ import { can } from '../perms.js';
 import { PAPEIS } from '../perms.js';
 import { el, abrirForm, sheet, toast } from '../ui.js';
 import { esc, fmtMoney, hoje, iniciais, soma } from '../utils.js';
+import { retencoes, RET_PADRAO } from '../calc.js';
 
 const TIPOS_CONF = [
   { v: 'presenca', t: 'Presença em diária' },
@@ -48,7 +49,7 @@ export function render() {
       return `<div class="row act" data-membro="${m.id}">
         <span class="avatar">${esc(iniciais(m.nome))}</span>
         <span class="g"><span class="t">${esc(m.nome)}</span>
-          <span class="s">${esc([m.funcao, p.curto].filter(Boolean).join(' · '))}</span></span>
+          <span class="s">${esc([m.funcao, p.curto, (m.tipo || 'pf').toUpperCase()].filter(Boolean).join(' · '))}</span></span>
         <span class="r">${pend ? `<span class="tag warn">${pend} pend.</span>`
         : meus.length ? '<span class="tag ok">ok</span>' : ''}
           ${verGrana && m.cache_cents ? `<div class="small muted mono" style="margin-top:3px">${fmtMoney(m.cache_cents)}</div>` : ''}</span>
@@ -78,8 +79,22 @@ function campos(m = {}) {
     { k: 'cache_cents', label: 'Cachê (por diária)', type: 'dinheiro', valor: m.cache_cents },
     { k: 'diarias', label: 'Nº de diárias', type: 'numero', valor: m.diarias ?? 1 },
     { k: 'contrato_status', label: 'Contrato', type: 'select', valor: m.contrato_status || 'na', opts: ST_CONTRATO },
-    { k: 'doc', label: 'CPF/CNPJ', type: 'texto', valor: m.doc },
+    { type: 'titulo', label: 'Como esta pessoa é paga', k: '_t_fisc' },
+    {
+      k: 'tipo', label: 'Pessoa física ou jurídica', type: 'select', valor: m.tipo || 'pf',
+      opts: [{ v: 'pf', t: 'Pessoa física (RPA)' }, { v: 'pj', t: 'Pessoa jurídica (nota fiscal)' }],
+      hint: 'Muda quais impostos são retidos no pagamento.'
+    },
+    { k: 'doc', label: 'CPF / CNPJ', type: 'texto', valor: m.doc },
     { k: 'chave_pix', label: 'Chave Pix / dados bancários', type: 'texto', valor: m.chave_pix },
+    { k: 'ret_inss', label: 'INSS retido (%)', type: 'numero', step: '0.01', valor: m.ret_inss, meia: true },
+    { k: 'ret_irrf', label: 'IRRF retido (%)', type: 'numero', step: '0.01', valor: m.ret_irrf, meia: true },
+    { k: 'ret_iss', label: 'ISS retido (%)', type: 'numero', step: '0.01', valor: m.ret_iss, meia: true },
+    {
+      k: 'ret_pcc', label: 'PIS/COFINS/CSLL (%)', type: 'numero', step: '0.01', valor: m.ret_pcc, meia: true,
+      hint: 'Em branco, o app usa o padrão do tipo: PF ' + RET_PADRAO.pf.inss + '% de INSS; PJ '
+        + RET_PADRAO.pj.irrf + '% de IRRF e ' + RET_PADRAO.pj.pcc + '% de PIS/COFINS/CSLL. Confira com a sua contabilidade.'
+    },
     { k: 'obs', label: 'Observações', type: 'area', valor: m.obs }
   ];
 }
@@ -98,6 +113,8 @@ function abrirMembro(m, editar, verGrana) {
   const p = PAPEIS[m.papel] || PAPEIS.equipe;
 
   const pintar = () => {
+    const bruto = (m.cache_cents || 0) * (m.diarias || 1);
+    const r = retencoes(m, bruto);
     const confs = store.doProjeto('confirmacoes').filter((c) => c.membro_id === m.id);
     const gastos = store.doProjeto('lancamentos').filter((l) => l.membro_id === m.id);
     const contas = store.doProjeto('contas').filter((c) => c.membro_id === m.id);
@@ -112,7 +129,18 @@ function abrirMembro(m, editar, verGrana) {
         ${m.telefone ? `<div class="row"><span class="g"><span class="s">Telefone</span>
           <a class="t" href="tel:${esc(m.telefone)}">${esc(m.telefone)}</a></span></div>` : ''}
         ${verGrana ? `<div class="row"><span class="g"><span class="s">Cachê</span>
-          <span class="t">${fmtMoney(m.cache_cents)} × ${m.diarias ?? 1} diária(s) = ${fmtMoney((m.cache_cents || 0) * (m.diarias || 1))}</span></span></div>` : ''}
+          <span class="t">${fmtMoney(m.cache_cents)} × ${m.diarias ?? 1} diária(s) = ${fmtMoney(bruto)}</span></span></div>
+        <div class="row"><span class="g"><span class="s">Retenções (${r.tipo.toUpperCase()})</span>
+          <span class="t" style="white-space:normal;font-weight:500">${[
+            r.inss ? `INSS ${r.percentuais.inss}% · ${fmtMoney(r.inss)}` : '',
+            r.irrf ? `IRRF ${r.percentuais.irrf}% · ${fmtMoney(r.irrf)}` : '',
+            r.iss ? `ISS ${r.percentuais.iss}% · ${fmtMoney(r.iss)}` : '',
+            r.pcc ? `PIS/COFINS/CSLL ${r.percentuais.pcc}% · ${fmtMoney(r.pcc)}` : ''
+          ].filter(Boolean).join('<br>') || 'nenhuma'}</span></span>
+          <span class="r"><span class="v">− ${fmtMoney(r.total)}</span></span></div>
+        <div class="row"><span class="g"><span class="s">Líquido a pagar</span>
+          <span class="t">valor que cai na conta</span></span>
+          <span class="r"><span class="v" style="color:var(--ok)">${fmtMoney(r.liquido)}</span></span></div>` : ''}
         <div class="row"><span class="g"><span class="s">Contrato</span>
           <span class="t">${esc(ST_CONTRATO.find((s) => s.v === (m.contrato_status || 'na'))?.t)}</span></span></div>
         ${verGrana && m.chave_pix ? `<div class="row"><span class="g"><span class="s">Pix</span><span class="t">${esc(m.chave_pix)}</span></span></div>` : ''}
@@ -154,11 +182,12 @@ function abrirMembro(m, editar, verGrana) {
       }
     }));
     corpo.querySelector('[data-gerar-cache]')?.addEventListener('click', async () => {
-      const total = (m.cache_cents || 0) * (m.diarias || 1);
       await store.insert('contas', {
         tipo: 'pagar', descricao: `Cachê — ${m.nome}${m.funcao ? ' (' + m.funcao + ')' : ''}`,
-        contraparte: m.nome, valor_cents: total, venc: hoje(), status: 'aberto',
-        membro_id: m.id, categoria: 'cachê'
+        contraparte: m.nome, valor_cents: bruto, retencao_cents: r.total, liquido_cents: r.liquido,
+        venc: hoje(), status: 'aberto', membro_id: m.id, categoria: 'cachê',
+        nf_status: m.tipo === 'pj' ? 'a_receber' : 'na',
+        obs: r.total ? `Retenções: ${fmtMoney(r.total)}. Líquido ${fmtMoney(r.liquido)}.` : ''
       });
       toast('Conta a pagar criada.'); store.emit();
     });

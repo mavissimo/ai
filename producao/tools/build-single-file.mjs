@@ -6,7 +6,7 @@ import { join, dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const saida = process.argv[2] || join(RAIZ, 'claquete-arquivo-unico.html');
+const saida = process.argv[2] || join(RAIZ, 'unit0-arquivo-unico.html');
 
 function arquivosJS(dir) {
   return readdirSync(dir).flatMap((n) => {
@@ -56,7 +56,7 @@ const icone = 'data:image/svg+xml;base64,' +
   Buffer.from(readFileSync(join(RAIZ, 'icon.svg'), 'utf8')).toString('base64');
 
 const html = `<meta charset="utf-8">
-<title>Claquete</title>
+<title>Unit0</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>
 ${css}</style>

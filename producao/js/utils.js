@@ -86,3 +86,22 @@ export const ordenar = (arr, f, dir = 1) => [...arr].sort((a, b) => {
 });
 export const bytes = (n) => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB'
   : n > 1024 ? Math.round(n / 1024) + ' KB' : n + ' B';
+
+/* ---------- dias úteis (prazo de aceite do contrato) ---------- */
+export function somarDiasUteis(iso, n) {
+  if (!iso) return '';
+  const d = new Date(String(iso).slice(0, 10) + 'T12:00:00');
+  let restantes = n;
+  while (restantes > 0) {
+    d.setDate(d.getDate() + 1);
+    const s = d.getDay();
+    if (s !== 0 && s !== 6) restantes--;
+  }
+  return d.toISOString().slice(0, 10);
+}
+export function somarDias(iso, n) {
+  if (!iso) return '';
+  const d = new Date(String(iso).slice(0, 10) + 'T12:00:00');
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}

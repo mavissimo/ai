@@ -31,6 +31,9 @@ export function render() {
       ${can(u, 'equipe.ver') ? atalho('#/equipe', 'Equipe', 'Pessoas, cachês, confirmações') : ''}
       ${can(u, 'contratos.ver') ? atalho('#/contratos', 'Contratos', 'Resumo, parcelas e prazos') : ''}
       ${can(u, 'contas.ver') ? atalho('#/contas', 'Contas a pagar e receber', 'Vencimentos e quitação') : ''}
+      ${atalho('#/caixa', 'Caixinha', 'Adiantamentos e prestação de contas')}
+      ${atalho('#/locacoes', 'Locações e contatos', 'Escolas, endereços, cliente e fornecedores')}
+      ${atalho('#/aprovacoes', 'Aprovações do cliente', 'Rodadas, prazo de aceite e feedback')}
       ${atalho('#/notas', 'Notas e documentos', 'NFs, recibos, comprovantes')}
       ${atalho('#/meu', 'Meu painel', 'O que é seu')}
       ${atalho('#/historico', 'Histórico', 'O que aconteceu no projeto')}
@@ -81,7 +84,7 @@ export function render() {
     if (id) { store.setProjeto(id); toast('Projeto trocado.'); }
   });
   node.querySelector('[data-export]')?.addEventListener('click', async () => {
-    const nome = `claquete-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    const nome = `unit0-backup-${new Date().toISOString().slice(0, 10)}.json`;
     const json = store.adapter.exportar();
     // Quando a página roda dentro do visualizador de artifact, o download só
     // acontece pela capability; em hospedagem normal, o link basta.
@@ -139,6 +142,9 @@ function camposProjeto(p = {}) {
     { k: 'entrega', label: 'Entrega final', type: 'data', valor: p.entrega },
     { k: 'valor_contrato_cents', label: 'Valor contratado', type: 'dinheiro', valor: p.valor_contrato_cents },
     { k: 'imposto_aliquota', label: 'Imposto (%)', type: 'numero', step: '0.01', valor: p.imposto_aliquota },
+    { k: 'aceite_dias', label: 'Prazo de aceite do cliente (dias)', type: 'numero', valor: p.aceite_dias ?? 5, meia: true },
+    { k: 'rodadas_max', label: 'Rodadas de ajuste', type: 'numero', valor: p.rodadas_max ?? 3, meia: true },
+    { k: 'aceite_uteis', label: 'Contar o aceite em dias úteis', type: 'check', valor: p.aceite_uteis !== false },
     { k: 'obs', label: 'Observações', type: 'area', valor: p.obs }
   ];
 }

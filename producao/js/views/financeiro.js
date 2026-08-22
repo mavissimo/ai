@@ -8,6 +8,8 @@ import { RUBRICAS } from '../seed.js';
 import { salvarArquivo, abrirArquivo } from '../files.js';
 
 let aba = 'resumo';
+
+const FONTE = { empresa: 'pago pela produção', caixinha: 'caixinha', proprio: 'reembolso' };
 let filtroLanc = 'todos';
 
 export function render() {
@@ -219,8 +221,16 @@ export function camposLancamento(u, fixo = {}) {
       k: 'membro_id', label: 'Quem gastou/recebeu', type: 'select', valor: u?.id || '',
       opts: [{ v: '', t: '— produção —' }, ...membros().map((m) => ({ v: m.id, t: m.nome }))]
     } : null,
+    {
+      k: 'fonte', label: 'De onde saiu o dinheiro', type: 'select', valor: fixo.fonte || 'empresa',
+      opts: [
+        { v: 'empresa', t: 'Pago direto pela produção' },
+        { v: 'caixinha', t: 'Da caixinha (adiantamento que recebi)' },
+        { v: 'proprio', t: 'Do meu bolso — quero reembolso' }
+      ],
+      hint: 'Caixinha desconta do seu saldo. Reembolso vira uma conta a pagar para você.'
+    },
     { k: 'arquivo', label: 'Nota fiscal / comprovante', type: 'arquivo', hint: 'Foto da notinha ou PDF. Fica anexado ao lançamento.' },
-    { k: 'reembolso', label: 'É reembolso para mim', type: 'check' },
     { k: 'obs', label: 'Observações', type: 'area' }
   ].filter(Boolean);
 }
@@ -234,7 +244,8 @@ export async function salvarLancamento(v, u) {
     tipo: v.tipo, descricao: v.descricao, valor_cents: v.valor_cents, rubrica: v.rubrica,
     data: v.data || hoje(), fornecedor: v.fornecedor || '', forma: v.forma || '',
     membro_id: v.membro_id !== undefined ? (v.membro_id || null) : (u?.id || null),
-    reembolso: Boolean(v.reembolso), obs: v.obs || '', status, aprovado_por: podeAprovar ? u?.id : null
+    fonte: v.fonte || 'empresa', reembolso: v.fonte === 'proprio',
+    obs: v.obs || '', status, aprovado_por: podeAprovar ? u?.id : null
   });
   if (v.arquivo) {
     const meta = await salvarArquivo(v.arquivo, { pasta: 'notas' });
@@ -244,7 +255,7 @@ export async function salvarLancamento(v, u) {
       membro_id: lanc.membro_id, path: meta.path, nome: meta.nome, tamanho: meta.tamanho, mime: meta.tipo
     });
   }
-  if (v.reembolso && lanc.membro_id) {
+  if (lanc.fonte === 'proprio' && lanc.membro_id) {
     await store.insert('contas', {
       tipo: 'pagar', descricao: `Reembolso — ${v.descricao}`, contraparte: nomeMembro(lanc.membro_id),
       valor_cents: v.valor_cents, venc: v.data || hoje(), status: 'aberto',
@@ -286,7 +297,7 @@ export function abrirLancamento(l) {
         <div class="row"><span class="g"><span class="s">Data</span><span class="t">${esc(fmtData(l.data, { longo: true }))}</span></span></div>
         <div class="row"><span class="g"><span class="s">Fornecedor / pagador</span><span class="t">${esc(l.fornecedor || '—')}</span></span></div>
         <div class="row"><span class="g"><span class="s">Lançado por</span>
-          <span class="t">${esc(nomeMembro(l.criado_por || l.membro_id))}${l.reembolso ? ' · reembolso' : ''}</span></span></div>
+          <span class="t">${esc(nomeMembro(l.criado_por || l.membro_id))}${FONTE[l.fonte] ? ' · ' + FONTE[l.fonte] : ''}</span></span></div>
         ${l.obs ? `<div class="row"><span class="g"><span class="s">Observações</span>
           <span class="t" style="white-space:normal;font-weight:400">${esc(l.obs)}</span></span></div>` : ''}
       </div>

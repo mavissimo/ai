@@ -4,8 +4,9 @@
 import { store } from './store.js';
 import { can } from './perms.js';
 import { diasAte, prazoTxt, fmtMoney } from './utils.js';
+import { saldoCaixa } from './calc.js';
 
-const VISTOS = 'claquete:alertas-vistos';
+const VISTOS = 'unit0:alertas-vistos';
 
 export function alertas() {
   const u = store.user;
@@ -54,6 +55,40 @@ export function alertas() {
     add({ id: 'entr_' + e.id, urg: d < 0 ? 3 : 2, texto: `Entrega ${e.titulo} — ${prazoTxt(e.prazo)}`, rota: '#/agenda' });
   });
 
+  // Rodadas de aprovação que passaram do prazo (silêncio = aceite pelo contrato)
+  if (can(u, 'entregas.edit')) {
+    store.doProjeto('aprovacoes').filter((a) => a.status === 'enviado').forEach((a) => {
+      const d = diasAte(a.prazo);
+      if (d === null) return;
+      if (d < 0) add({
+        id: 'apv_' + a.id, urg: 3,
+        texto: `Prazo de aceite venceu sem resposta: ${a.titulo} — vale como aprovado`,
+        rota: '#/aprovacoes'
+      });
+      else if (d <= 2) add({
+        id: 'apvp_' + a.id, urg: 1,
+        texto: `Cliente tem ${d === 0 ? 'até hoje' : d + ' dia(s)'} para responder: ${a.titulo}`,
+        rota: '#/aprovacoes'
+      });
+    });
+  }
+
+  // Caixinha sem prestação de contas
+  {
+    const ids = [...new Set(store.doProjeto('caixa').map((m) => m.membro_id))];
+    ids.forEach((id) => {
+      if (!can(u, 'lanc.aprovar') && id !== u?.id) return;
+      const c = saldoCaixa(id);
+      if (c.saldo > 0) add({
+        id: 'caixa_' + id, urg: id === u?.id ? 2 : 1,
+        texto: id === u?.id
+          ? `Você tem ${fmtMoney(c.saldo)} da caixinha para comprovar ou devolver`
+          : `${nome(id)} tem ${fmtMoney(c.saldo)} da caixinha em aberto`,
+        rota: '#/caixa'
+      });
+    });
+  }
+
   // Etapas travadas
   store.doProjeto('etapas').filter((e) => e.status === 'travado').forEach((e) => {
     add({ id: 'trav_' + e.id, urg: 2, texto: `Travado: ${e.nome}`, rota: '#/etapas' });
@@ -91,7 +126,7 @@ export function dispararNovos() {
   const novos = atuais.filter((a) => !vistos.includes(a.id));
   novos.slice(0, 3).forEach((a) => {
     try {
-      new Notification('Claquete — ' + (store.projeto?.nome || 'Produção'), {
+      new Notification('Unit0 — ' + (store.projeto?.nome || 'Produção'), {
         body: a.texto, icon: 'icon.svg', tag: a.id
       });
     } catch (e) { console.warn(e); }

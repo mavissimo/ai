@@ -1,4 +1,5 @@
-// Agenda: diárias, reuniões, viagens e entregas — com confirmação de presença.
+// Agenda: diárias, viagens, reuniões e entregas — com ordem do dia completa,
+// horário de chamada por pessoa e confirmação de presença.
 import { store, membros, nomeMembro } from '../store.js';
 import { can, ehEquipe } from '../perms.js';
 import { el, abrirForm, sheet, toast, escolher } from '../ui.js';
@@ -8,8 +9,8 @@ import { tipoEvento } from './dash.js';
 let aba = 'proximos';
 
 const TIPOS = [
-  { v: 'diaria', t: 'Diária de gravação' }, { v: 'reuniao', t: 'Reunião' },
-  { v: 'viagem', t: 'Viagem / deslocamento' }, { v: 'entrega', t: 'Entrega' },
+  { v: 'diaria', t: 'Diária de gravação' }, { v: 'viagem', t: 'Viagem / deslocamento' },
+  { v: 'reuniao', t: 'Reunião' }, { v: 'entrega', t: 'Entrega' },
   { v: 'outro', t: 'Outro compromisso' }
 ];
 const ST_ENTREGA = [
@@ -17,6 +18,8 @@ const ST_ENTREGA = [
   { v: 'aprovacao', t: 'Com o cliente', tag: 'warn' }, { v: 'entregue', t: 'Entregue', tag: 'ok' }
 ];
 export const stEntrega = (v) => ST_ENTREGA.find((s) => s.v === v) || ST_ENTREGA[0];
+
+const mapaURL = (txt) => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(txt);
 
 export function render() {
   const u = store.user;
@@ -31,14 +34,13 @@ export function render() {
   const futuros = eventos.filter((e) => (diasAte(e.data) ?? 0) >= 0);
   const passados = eventos.filter((e) => (diasAte(e.data) ?? 0) < 0).reverse();
   const mostrar = aba === 'passados' ? passados : futuros;
-
   const entregas = ordenar(store.doProjeto('entregas'), (e) => e.prazo || '9999');
 
   const porDia = groupBy(mostrar, (e) => e.data || 'sem data');
   const agendaHTML = Object.keys(porDia).length ? Object.entries(porDia).map(([dia, its]) => `
-    <div class="sec"><div class="sec-t">${dia === 'sem data' ? 'Sem data' :
-      `${diaSemana(dia)} · ${fmtData(dia, { longo: true })}`}</div>
-      <span class="small ${prazoTag(dia) === 'bad' ? 'muted' : 'muted'}">${dia === 'sem data' ? '' : prazoTxt(dia)}</span></div>
+    <div class="sec"><div class="sec-t">${dia === 'sem data' ? 'Sem data'
+      : `${diaSemana(dia)} · ${fmtData(dia, { longo: true })}`}</div>
+      <span class="small muted">${dia === 'sem data' ? '' : prazoTxt(dia)}</span></div>
     <div class="card">${its.map((e) => linhaEvento(e, u)).join('')}</div>`).join('')
     : '<div class="empty">Nada por aqui.</div>';
 
@@ -64,7 +66,7 @@ export function render() {
       label: '+',
       onClick: async () => {
         const o = await escolher('Adicionar', [
-          { v: 'ev', t: 'Compromisso', sub: 'Diária, reunião, viagem…' },
+          { v: 'ev', t: 'Compromisso', sub: 'Diária, viagem, reunião…' },
           { v: 'en', t: 'Entrega', sub: 'Corte, master, versão…' }
         ]);
         if (o === 'ev') novoEvento();
@@ -76,13 +78,13 @@ export function render() {
 
 function linhaEvento(e, u) {
   const meu = (e.participantes || []).includes(u?.id);
-  const conf = store.doProjeto('confirmacoes')
-    .filter((c) => c.ref_id === e.id && c.tipo === 'presenca');
+  const minhaChamada = (e.chamadas || []).find((c) => c.membro_id === u?.id)?.hora;
+  const conf = store.doProjeto('confirmacoes').filter((c) => c.ref_id === e.id && c.tipo === 'presenca');
   const okN = conf.filter((c) => c.status === 'confirmado').length;
   return `<div class="row act" data-ev="${e.id}">
-    <span class="tag ${e.tipo === 'diaria' ? 'ok' : e.tipo === 'viagem' ? 'warn' : 'info'}">
-      ${e.hora_inicio || tipoEvento(e.tipo).slice(0, 3)}</span>
-    <span class="g"><span class="t">${esc(e.titulo)}${meu ? ' ·<span class="small"> você</span>' : ''}</span>
+    <span class="tag ${e.tipo === 'diaria' ? 'ok' : e.tipo === 'viagem' ? 'warn' : e.tipo === 'entrega' ? 'bad' : 'info'}">
+      ${esc(minhaChamada || e.hora_inicio || tipoEvento(e.tipo).slice(0, 3))}</span>
+    <span class="g"><span class="t">${esc(e.titulo)}${meu ? ' · <span class="small">você</span>' : ''}</span>
       <span class="s">${esc([tipoEvento(e.tipo), e.local, conf.length ? `${okN}/${conf.length} confirmados` : '']
         .filter(Boolean).join(' · '))}</span></span>
   </div>`;
@@ -96,9 +98,74 @@ function blocoEntregas(entregas) {
       <span class="tag ${e.status === 'entregue' ? 'ok' : prazoTag(e.prazo)}">${esc(s.t)}</span>
       <span class="g"><span class="t">${esc(e.titulo)}</span>
         <span class="s">${e.prazo ? fmtData(e.prazo) + ' · ' + prazoTxt(e.prazo) : 'sem prazo'}
-          ${e.responsavel_id ? ' · ' + esc(nomeMembro(e.responsavel_id)) : ''}</span></span>
+          ${e.formato ? ' · ' + esc(e.formato) : ''}</span></span>
     </div>`;
   }).join('')}</div>`;
+}
+
+/* ---------------- ordem do dia ---------------- */
+export function ordemDoDia(e) {
+  const confs = store.doProjeto('confirmacoes').filter((c) => c.ref_id === e.id && c.tipo === 'presenca');
+  const chamada = (id) => (e.chamadas || []).find((c) => c.membro_id === id);
+  const lugar = e.endereco || e.local;
+  const linhas = String(e.roteiro_dia || '').split('\n').filter((l) => l.trim());
+  const corpo = el(`<div>
+    <div class="card tight">
+      <div class="row"><span class="g"><span class="s">Quando</span>
+        <span class="t">${esc(diaSemana(e.data))}, ${esc(fmtData(e.data, { longo: true }))}
+        ${e.hora_inicio ? ' · ' + esc(e.hora_inicio) : ''}${e.hora_fim ? ' às ' + esc(e.hora_fim) : ''}</span></span></div>
+      ${lugar ? `<div class="row"><span class="g"><span class="s">Onde</span>
+        <span class="t" style="white-space:normal">${esc(lugar)}</span></span>
+        <span class="r"><a class="btn sm" href="${esc(e.mapa || mapaURL(lugar))}" target="_blank" rel="noopener">mapa</a></span></div>` : ''}
+      ${e.contato_nome ? `<div class="row"><span class="g"><span class="s">Contato no local</span>
+        <span class="t">${esc(e.contato_nome)}</span></span>
+        ${e.contato_tel ? `<span class="r"><a class="btn sm gho" href="tel:${esc(e.contato_tel)}">ligar</a></span>` : ''}</div>` : ''}
+    </div>
+    ${linhas.length ? `<div class="sec"><div class="sec-t">Roteiro do dia</div></div>
+      <div class="card"><div class="tl">${linhas.map((l) => `<div class="n"><div class="row">
+        <span class="g"><span class="t" style="white-space:normal;font-weight:500">${esc(l)}</span></span></div></div>`).join('')}</div></div>` : ''}
+    <div class="sec"><div class="sec-t">Chamada da equipe</div></div>
+    <div class="card">${(e.participantes || []).length ? (e.participantes || []).map((id) => {
+      const c = chamada(id);
+      const cf = confs.find((x) => x.membro_id === id);
+      const m = store.get('membros', id);
+      return `<div class="row">
+        <span class="tag ${cf?.status === 'confirmado' ? 'ok' : cf?.status === 'recusado' ? 'bad' : 'warn'}">
+          ${esc(c?.hora || '—')}</span>
+        <span class="g"><span class="t">${esc(nomeMembro(id))}</span>
+          <span class="s">${esc([m?.funcao, c?.obs, m?.telefone].filter(Boolean).join(' · '))}</span></span>
+      </div>`;
+    }).join('') : '<div class="empty">Ninguém convocado.</div>'}</div>
+    ${e.levar ? `<div class="sec"><div class="sec-t">O que levar</div></div>
+      <div class="card"><div class="small" style="white-space:pre-wrap;line-height:1.6">${esc(e.levar)}</div></div>` : ''}
+    ${e.obs ? `<div class="sec"><div class="sec-t">Observações</div></div>
+      <div class="card"><div class="small" style="white-space:pre-wrap;line-height:1.6">${esc(e.obs)}</div></div>` : ''}
+    <button class="btn wide gho" data-copiar>Copiar para mandar no grupo</button>
+  </div>`);
+
+  corpo.querySelector('[data-copiar]').onclick = async () => {
+    const txt = textoOrdemDoDia(e);
+    try { await navigator.clipboard.writeText(txt); toast('Copiado.'); }
+    catch { toast('Não consegui copiar neste navegador.'); }
+  };
+  sheet({ titulo: 'Ordem do dia', corpo });
+}
+
+function textoOrdemDoDia(e) {
+  const L = [];
+  L.push(`*${e.titulo}*`);
+  L.push(`${diaSemana(e.data)}, ${fmtData(e.data, { longo: true })}${e.hora_inicio ? ' · ' + e.hora_inicio : ''}`);
+  if (e.endereco || e.local) L.push(`📍 ${e.endereco || e.local}`);
+  if (e.contato_nome) L.push(`☎️ ${e.contato_nome}${e.contato_tel ? ' — ' + e.contato_tel : ''}`);
+  if (e.roteiro_dia) { L.push(''); L.push('*Roteiro do dia*'); L.push(e.roteiro_dia); }
+  const ch = (e.chamadas || []).filter((c) => c.hora);
+  if (ch.length) {
+    L.push(''); L.push('*Chamada*');
+    ch.forEach((c) => L.push(`${c.hora} — ${nomeMembro(c.membro_id)}${c.obs ? ' (' + c.obs + ')' : ''}`));
+  }
+  if (e.levar) { L.push(''); L.push('*Levar*'); L.push(e.levar); }
+  if (e.obs) { L.push(''); L.push(e.obs); }
+  return L.join('\n');
 }
 
 /* ---------------- detalhe do compromisso ---------------- */
@@ -111,35 +178,48 @@ function abrirEvento(e) {
   const pintar = () => {
     const confs = store.doProjeto('confirmacoes').filter((c) => c.ref_id === e.id);
     const minha = confs.find((c) => c.membro_id === u?.id && c.tipo === 'presenca');
+    const minhaChamada = (e.chamadas || []).find((c) => c.membro_id === u?.id);
+    const lugar = e.endereco || e.local;
     corpo.innerHTML = `
+      ${minhaChamada?.hora ? `<div class="card tight center" style="background:rgba(244,178,62,.12);border-color:rgba(244,178,62,.35)">
+        <div class="small muted">Sua chamada</div>
+        <div style="font-size:30px;font-weight:700;letter-spacing:-.5px;color:var(--ac)">${esc(minhaChamada.hora)}</div>
+        ${minhaChamada.obs ? `<div class="small">${esc(minhaChamada.obs)}</div>` : ''}</div>` : ''}
       <div class="card tight">
         <div class="row"><span class="g"><span class="s">Quando</span>
           <span class="t">${esc(fmtData(e.data, { longo: true }))}${e.hora_inicio ? ' · ' + esc(e.hora_inicio) : ''}${e.hora_fim ? ' às ' + esc(e.hora_fim) : ''}</span></span></div>
-        <div class="row"><span class="g"><span class="s">Onde</span>
-          <span class="t" style="white-space:normal">${esc(e.local || '—')}</span></span></div>
-        <div class="row"><span class="g"><span class="s">Tipo</span>
-          <span class="t">${esc(tipoEvento(e.tipo))}</span></span></div>
+        ${lugar ? `<div class="row"><span class="g"><span class="s">Onde</span>
+          <span class="t" style="white-space:normal">${esc(lugar)}</span></span>
+          <span class="r"><a class="btn sm gho" href="${esc(e.mapa || mapaURL(lugar))}" target="_blank" rel="noopener">mapa</a></span></div>` : ''}
+        <div class="row"><span class="g"><span class="s">Tipo</span><span class="t">${esc(tipoEvento(e.tipo))}</span></span></div>
         ${e.obs ? `<div class="row"><span class="g"><span class="s">Observações</span>
           <span class="t" style="white-space:normal;font-weight:400">${esc(e.obs)}</span></span></div>` : ''}
       </div>
-      ${minha ? `<div class="card">
+      <button class="btn wide" data-odd>Ver ordem do dia</button>
+      ${minha ? `<div class="card" style="margin-top:12px">
         <h2>Sua presença</h2>
         <div class="seg">
           <button data-conf="confirmado" class="${minha.status === 'confirmado' ? 'on' : ''}">Confirmo</button>
           <button data-conf="pendente" class="${minha.status === 'pendente' ? 'on' : ''}">Ainda não sei</button>
           <button data-conf="recusado" class="${minha.status === 'recusado' ? 'on' : ''}">Não posso</button>
         </div></div>` : ''}
-      <div class="sec"><div class="sec-t">Equipe convocada</div></div>
+      <div class="sec"><div class="sec-t">Equipe convocada</div>
+        ${editar ? '<button class="btn sm gho" data-chamadas>chamada</button>' : ''}</div>
       <div class="card">${confs.filter((c) => c.tipo === 'presenca').length
-        ? confs.filter((c) => c.tipo === 'presenca').map((c) => `<div class="row">
+        ? confs.filter((c) => c.tipo === 'presenca').map((c) => {
+          const ch = (e.chamadas || []).find((x) => x.membro_id === c.membro_id);
+          return `<div class="row">
+            <span class="tag mut">${esc(ch?.hora || '—')}</span>
             <span class="g"><span class="t">${esc(nomeMembro(c.membro_id))}</span>
               <span class="s">${esc(store.get('membros', c.membro_id)?.funcao || '')}</span></span>
             <span class="r"><span class="tag ${c.status === 'confirmado' ? 'ok' : c.status === 'recusado' ? 'bad' : 'warn'}">
               ${c.status === 'confirmado' ? 'confirmou' : c.status === 'recusado' ? 'não pode' : 'pendente'}</span></span>
-          </div>`).join('')
+          </div>`;
+        }).join('')
         : '<div class="empty">Ninguém convocado.</div>'}</div>
       ${editar ? '<button class="btn wide gho" data-edit>Editar compromisso</button>' : ''}`;
 
+    corpo.querySelector('[data-odd]').onclick = () => ordemDoDia(e);
     corpo.querySelectorAll('[data-conf]').forEach((b) => {
       b.onclick = async () => {
         await store.update('confirmacoes', minha.id, { status: b.dataset.conf, respondido_em: new Date().toISOString() });
@@ -147,27 +227,63 @@ function abrirEvento(e) {
         toast('Resposta registrada.'); pintar(); store.emit();
       };
     });
-    const ed = corpo.querySelector('[data-edit]');
-    if (ed) ed.onclick = () => { sh.close(); editarEvento(e); };
+    corpo.querySelector('[data-chamadas]')?.addEventListener('click', () => editarChamadas(e, pintar));
+    corpo.querySelector('[data-edit]')?.addEventListener('click', () => { sh.close(); editarEvento(e); });
   };
   pintar();
   const sh = sheet({ titulo: e.titulo, corpo });
 }
 
+/** Define o horário de chamada de cada pessoa convocada. */
+function editarChamadas(e, aoSalvar) {
+  const ids = e.participantes || [];
+  if (!ids.length) return toast('Convoque a equipe primeiro, em Editar compromisso.');
+  const atual = (id) => (e.chamadas || []).find((c) => c.membro_id === id) || {};
+  const campos = [];
+  ids.forEach((id) => {
+    campos.push({ type: 'titulo', label: nomeMembro(id), k: '_t_' + id });
+    campos.push({ k: 'hora_' + id, label: 'Horário de chamada', type: 'hora', valor: atual(id).hora, meia: true });
+    campos.push({ k: 'obs_' + id, label: 'Onde / observação', type: 'texto', valor: atual(id).obs, ph: 'Portão 3 do aeroporto' });
+  });
+  abrirForm({
+    titulo: 'Chamada da equipe',
+    subtitulo: 'Cada pessoa vê a própria chamada em destaque no celular.',
+    campos,
+    onSave: async (v) => {
+      const chamadas = ids.map((id) => ({ membro_id: id, hora: v['hora_' + id] || '', obs: v['obs_' + id] || '' }));
+      await store.update('eventos', e.id, { chamadas });
+      e.chamadas = chamadas;
+      toast('Chamada definida.'); aoSalvar && aoSalvar(); store.emit();
+    }
+  });
+}
+
 function camposEvento(e = {}) {
+  const locs = store.doProjeto('locacoes');
   return [
-    { k: 'titulo', label: 'Título', type: 'texto', req: true, valor: e.titulo, ph: 'Diária 1 — escola Bradesco' },
+    { k: 'titulo', label: 'Título', type: 'texto', req: true, valor: e.titulo, ph: 'Diária 1 — Conceição do Araguaia' },
     { k: 'tipo', label: 'Tipo', type: 'select', valor: e.tipo || 'diaria', opts: TIPOS },
     { k: 'data', label: 'Data', type: 'data', req: true, valor: e.data },
     { k: 'hora_inicio', label: 'Início', type: 'hora', valor: e.hora_inicio, meia: true },
     { k: 'hora_fim', label: 'Fim', type: 'hora', valor: e.hora_fim, meia: true },
-    { k: 'local', label: 'Local', type: 'texto', valor: e.local, ph: 'Endereço ou ponto de encontro' },
+    { k: 'local', label: 'Cidade / local', type: 'texto', valor: e.local },
+    {
+      k: 'locacao_id', label: 'Locação cadastrada', type: 'select', valor: e.locacao_id || '',
+      opts: [{ v: '', t: '— nenhuma —' }, ...locs.map((l) => ({ v: l.id, t: `${l.nome} (${l.cidade})` }))]
+    },
     {
       k: 'participantes', label: 'Quem participa', type: 'multi', valor: e.participantes || [],
       opts: membros().map((m) => ({ v: m.id, t: `${m.nome}${m.funcao ? ' — ' + m.funcao : ''}` })),
       hint: 'Cada pessoa marcada recebe um pedido de confirmação de presença.'
     },
-    { k: 'obs', label: 'Observações', type: 'area', valor: e.obs, ph: 'Ordem do dia, o que levar, contato no local…' }
+    { type: 'titulo', label: 'Ordem do dia', k: '_t_odd' },
+    { k: 'endereco', label: 'Endereço completo', type: 'texto', valor: e.endereco, ph: 'Rua, número, bairro, cidade' },
+    { k: 'mapa', label: 'Link do mapa (opcional)', type: 'texto', valor: e.mapa, hint: 'Em branco, o app monta o link do Google Maps pelo endereço.' },
+    { k: 'contato_nome', label: 'Contato no local', type: 'texto', valor: e.contato_nome },
+    { k: 'contato_tel', label: 'Telefone do contato', type: 'tel', valor: e.contato_tel },
+    { k: 'roteiro_dia', label: 'Roteiro do dia', type: 'area', valor: e.roteiro_dia, ph: '07:00 café\n08:00 set de pé\n12:30 almoço' },
+    { k: 'levar', label: 'O que levar', type: 'area', valor: e.levar },
+    { k: 'obs', label: 'Observações', type: 'area', valor: e.obs }
   ];
 }
 
@@ -190,7 +306,7 @@ function novoEvento() {
     titulo: 'Novo compromisso',
     campos: camposEvento(),
     onSave: async (v) => {
-      const ev = await store.insert('eventos', v);
+      const ev = await store.insert('eventos', { ...v, chamadas: [] });
       await sincronizarPresencas(ev);
       toast('Compromisso criado.');
     }
@@ -211,15 +327,15 @@ function editarEvento(e) {
 /* ---------------- entregas ---------------- */
 function camposEntrega(e = {}) {
   return [
-    { k: 'titulo', label: 'O que é a entrega', type: 'texto', req: true, valor: e.titulo, ph: 'Corte 1 · 60s' },
+    { k: 'titulo', label: 'O que é a entrega', type: 'texto', req: true, valor: e.titulo },
     { k: 'prazo', label: 'Prazo', type: 'data', valor: e.prazo },
     { k: 'status', label: 'Status', type: 'select', valor: e.status || 'pendente', opts: ST_ENTREGA.map((s) => ({ v: s.v, t: s.t })) },
     {
       k: 'responsavel_id', label: 'Responsável', type: 'select', valor: e.responsavel_id || '',
       opts: [{ v: '', t: '— ninguém —' }, ...membros().map((m) => ({ v: m.id, t: m.nome }))]
     },
-    { k: 'formato', label: 'Formato / especificação', type: 'texto', valor: e.formato, ph: '1080p 16:9, legendado, .mp4' },
-    { k: 'link', label: 'Link (Drive, Frame.io, WeTransfer…)', type: 'texto', valor: e.link },
+    { k: 'formato', label: 'Formato / especificação', type: 'texto', valor: e.formato },
+    { k: 'link', label: 'Link (Drive, Frame.io…)', type: 'texto', valor: e.link },
     { k: 'obs', label: 'Observações', type: 'area', valor: e.obs }
   ];
 }
@@ -229,6 +345,7 @@ function novaEntrega() {
 function abrirEntrega(e, editar) {
   if (!e) return;
   const s = stEntrega(e.status);
+  const rodadas = store.doProjeto('aprovacoes').filter((a) => a.entrega_id === e.id);
   const corpo = el(`<div>
     <div class="card tight">
       <div class="row"><span class="g"><span class="s">Status</span><span class="t">${esc(s.t)}</span></span></div>
@@ -241,6 +358,9 @@ function abrirEntrega(e, editar) {
         <a class="t" href="${esc(e.link)}" target="_blank" rel="noopener">abrir</a></span></div>` : ''}
       ${e.obs ? `<div class="row"><span class="g"><span class="s">Observações</span>
         <span class="t" style="white-space:normal;font-weight:400">${esc(e.obs)}</span></span></div>` : ''}
+      <div class="row"><span class="g"><span class="s">Aprovação</span>
+        <span class="t">${rodadas.length} rodada(s) enviada(s)</span></span>
+        <span class="r"><a class="btn sm gho" href="#/aprovacoes">ver</a></span></div>
     </div>
     ${editar ? '<button class="btn wide gho" data-edit>Editar entrega</button>' : ''}
   </div>`);

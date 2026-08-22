@@ -1,5 +1,5 @@
 -- ============================================================================
--- Claquete — schema para Supabase (Postgres)
+-- Unit0 — schema para Supabase (Postgres)
 -- Cole tudo no SQL Editor do Supabase e rode uma vez.
 --
 -- Como funciona a alçada: a tabela `membros` liga o e-mail de login ao papel
@@ -20,6 +20,7 @@ create table if not exists projetos (
   inicio text, entrega text,
   valor_contrato_cents bigint default 0,
   imposto_regime text, imposto_aliquota numeric default 0,
+  aceite_dias int default 5, aceite_uteis boolean default true, rodadas_max int default 3,
   obs text
 );
 
@@ -33,6 +34,9 @@ create table if not exists membros (
   funcao text, telefone text, doc text, chave_pix text,
   cache_cents bigint default 0, diarias numeric default 1,
   contrato_status text default 'na', ativo boolean default true,
+  tipo text default 'pf',                     -- pf (RPA) ou pj (nota fiscal)
+  rg text, nascimento text,
+  ret_inss numeric, ret_irrf numeric, ret_iss numeric, ret_pcc numeric,
   obs text
 );
 create index if not exists membros_email_idx on membros (lower(email));
@@ -56,7 +60,11 @@ create table if not exists eventos (
   projeto_id text references projetos(id) on delete cascade,
   titulo text not null, tipo text, data text,
   hora_inicio text, hora_fim text, "local" text,
-  participantes jsonb default '[]'::jsonb, obs text
+  participantes jsonb default '[]'::jsonb,
+  chamadas jsonb default '[]'::jsonb,         -- [{membro_id, hora, obs}] — ordem do dia
+  locacao_id text, endereco text, mapa text,
+  contato_nome text, contato_tel text, levar text, roteiro_dia text,
+  obs text
 );
 
 create table if not exists entregas (
@@ -79,6 +87,7 @@ create table if not exists lancamentos (
   descricao text not null, valor_cents bigint default 0, rubrica text,
   data text, fornecedor text, forma text,
   membro_id text, reembolso boolean default false,
+  fonte text default 'empresa',               -- empresa | caixinha | proprio
   status text default 'pendente', aprovado_por text, conta_id text, obs text
 );
 
@@ -88,6 +97,8 @@ create table if not exists contas (
   tipo text not null default 'pagar',
   descricao text not null, contraparte text, valor_cents bigint default 0,
   venc text, status text default 'aberto', quitado_em text,
+  retencao_cents bigint default 0, liquido_cents bigint,
+  nf_status text default 'na', nf_numero text, nf_data text,
   membro_id text, lancamento_id text, contrato_id text, parcela_id text,
   parcela text, categoria text, obs text
 );
@@ -127,6 +138,38 @@ create table if not exists atividades (
   texto text, tipo text, quando timestamptz default now()
 );
 
+create table if not exists locacoes (
+  id text primary key, criado_em timestamptz default now(), criado_por text,
+  projeto_id text references projetos(id) on delete cascade,
+  nome text not null, cidade text, uf text, endereco text,
+  contato text, telefone text, autorizacao text default 'pendente',
+  horario text, valor_cents bigint default 0, obs text
+);
+
+create table if not exists contatos (
+  id text primary key, criado_em timestamptz default now(), criado_por text,
+  projeto_id text references projetos(id) on delete cascade,
+  nome text not null, papel text, empresa text, tipo text default 'cliente',
+  email text, telefone text, obs text
+);
+
+-- Caixinha de produção: dinheiro adiantado e devolvido.
+create table if not exists caixa (
+  id text primary key, criado_em timestamptz default now(), criado_por text,
+  projeto_id text references projetos(id) on delete cascade,
+  membro_id text not null, tipo text not null default 'adiantamento',
+  valor_cents bigint default 0, data text, forma text, obs text
+);
+
+-- Rodadas de aprovação com o cliente (prazo de aceite, silêncio = aceite).
+create table if not exists aprovacoes (
+  id text primary key, criado_em timestamptz default now(), criado_por text,
+  projeto_id text references projetos(id) on delete cascade,
+  entrega_id text, rodada int default 1, titulo text, link text,
+  enviado_em text, prazo text, status text default 'enviado',
+  feedback text, respondido_em text, obs text
+);
+
 -- ------------------------------------------------------- quem sou eu aqui ---
 create or replace function public.membro_atual() returns text
 language sql stable security definer set search_path = public as $$
@@ -162,7 +205,7 @@ declare t text;
 begin
   foreach t in array array['projetos','membros','etapas','tarefas','eventos','entregas',
                            'orcamento','lancamentos','contas','contratos','documentos',
-                           'confirmacoes','atividades']
+                           'confirmacoes','atividades','locacoes','caixa','aprovacoes','contatos']
   loop
     execute format('alter table %I enable row level security', t);
     execute format('drop policy if exists p_sel on %I', t);
@@ -247,6 +290,32 @@ create policy p_sel on confirmacoes for select using (public.eh_gestao() or memb
 create policy p_ins on confirmacoes for insert with check (public.eh_producao());
 create policy p_upd on confirmacoes for update using (public.eh_producao() or membro_id = public.membro_atual());
 create policy p_del on confirmacoes for delete using (public.eh_producao());
+
+-- Locações e contatos: todo mundo do projeto lê (a equipe precisa do endereço
+-- e do telefone no dia); produção escreve.
+create policy p_sel on locacoes for select using (public.eh_membro());
+create policy p_ins on locacoes for insert with check (public.eh_producao());
+create policy p_upd on locacoes for update using (public.eh_producao());
+create policy p_del on locacoes for delete using (public.eh_producao());
+
+create policy p_sel on contatos for select using (public.eh_membro());
+create policy p_ins on contatos for insert with check (public.eh_producao());
+create policy p_upd on contatos for update using (public.eh_producao());
+create policy p_del on contatos for delete using (public.eh_producao());
+
+-- Caixinha: gestão vê e movimenta tudo; cada pessoa vê só a caixinha dela.
+create policy p_sel on caixa for select using (public.eh_gestao() or membro_id = public.membro_atual());
+create policy p_ins on caixa for insert with check (
+  public.eh_gestao() or (membro_id = public.membro_atual() and tipo = 'devolucao')
+);
+create policy p_upd on caixa for update using (public.eh_gestao());
+create policy p_del on caixa for delete using (public.eh_gestao());
+
+-- Aprovações do cliente: todo mundo lê o status; produção registra.
+create policy p_sel on aprovacoes for select using (public.eh_membro());
+create policy p_ins on aprovacoes for insert with check (public.eh_producao());
+create policy p_upd on aprovacoes for update using (public.eh_producao());
+create policy p_del on aprovacoes for delete using (public.eh_producao());
 
 create policy p_sel on atividades for select using (public.eh_membro());
 create policy p_ins on atividades for insert with check (public.eh_membro());

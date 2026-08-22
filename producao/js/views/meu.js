@@ -4,7 +4,7 @@ import { store } from '../store.js';
 import { can } from '../perms.js';
 import { el, abrirForm, toast } from '../ui.js';
 import { esc, fmtMoney, fmtData, prazoTxt, prazoTag, diasAte, ordenar, soma, iniciais } from '../utils.js';
-import { ST_LANC, ST_CONTA } from '../calc.js';
+import { ST_LANC, ST_CONTA, retencoes, saldoCaixa } from '../calc.js';
 import { camposLancamento, salvarLancamento, abrirLancamento } from './financeiro.js';
 import { tipoConf } from './equipe.js';
 import { salvarArquivo, abrirArquivo } from '../files.js';
@@ -26,14 +26,18 @@ export function render() {
   const minhasEtapas = store.doProjeto('etapas').filter((e) => e.responsavel_id === u.id && e.status !== 'feito');
   const meusDocs = store.doProjeto('documentos').filter((d) => d.membro_id === u.id);
   const p = PAPEIS[u.papel] || PAPEIS.equipe;
+  const bruto = (u.cache_cents || 0) * (u.diarias || 1);
+  const ret = retencoes(u, bruto);
+  const caixa = saldoCaixa(u.id);
 
   node.innerHTML = `
     <div class="card tight" style="display:flex;gap:12px;align-items:center">
       <span class="avatar">${esc(iniciais(u.nome))}</span>
       <div style="flex:1;min-width:0"><div style="font-weight:650">${esc(u.nome)}</div>
         <div class="small muted">${esc([u.funcao, p.curto].filter(Boolean).join(' · '))}</div></div>
-      ${u.cache_cents ? `<div class="right"><div class="small muted">seu cachê</div>
-        <div class="mono" style="font-weight:650">${fmtMoney((u.cache_cents || 0) * (u.diarias || 1))}</div></div>` : ''}
+      ${u.cache_cents ? `<div class="right"><div class="small muted">seu cachê líquido</div>
+        <div class="mono" style="font-weight:650">${fmtMoney(ret.liquido)}</div>
+        ${ret.total ? `<div class="small muted">bruto ${fmtMoney(bruto)} · ret. ${fmtMoney(ret.total)}</div>` : ''}</div>` : ''}
     </div>
 
     ${pend.length ? `<div class="sec"><div class="sec-t">Precisa da sua confirmação</div></div>
@@ -62,6 +66,14 @@ export function render() {
       <span class="tag ${e.prazo ? prazoTag(e.prazo) : 'mut'}">${e.prazo ? esc(fmtData(e.prazo, { ano: false })) : '—'}</span>
       <span class="g"><span class="t">${esc(e.nome)}</span>
         <span class="s">${e.prazo ? esc(prazoTxt(e.prazo)) : 'sem prazo'}</span></span></div>`).join('')}</div>` : ''}
+
+    ${caixa.adiantado ? `<div class="sec"><div class="sec-t">Minha caixinha</div>
+      <a href="#/caixa" class="small">abrir</a></div>
+    <div class="card tight">
+      <div class="row"><span class="g"><span class="t">Está na sua mão</span>
+        <span class="s">adiantado ${fmtMoney(caixa.adiantado)} · comprovado ${fmtMoney(caixa.gasto)}</span></span>
+        <span class="r"><span class="v" style="color:${caixa.saldo > 0 ? 'var(--warn)' : 'var(--ok)'}">${fmtMoney(caixa.saldo)}</span></span></div>
+    </div>` : ''}
 
     <div class="sec"><div class="sec-t">Meus lançamentos</div>
       <button class="btn sm pri" data-novo-gasto>+ gasto</button></div>

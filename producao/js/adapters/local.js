@@ -1,10 +1,10 @@
 // Adaptador MODO DEMO: tudo em localStorage, no próprio aparelho.
-const KEY = 'claquete:db:v1';
+const KEY = 'unit0:db:v1';
 
 export const TABELAS = [
   'projetos', 'membros', 'etapas', 'tarefas', 'eventos', 'entregas',
   'orcamento', 'lancamentos', 'contas', 'contratos', 'documentos',
-  'confirmacoes', 'atividades'
+  'confirmacoes', 'atividades', 'locacoes', 'caixa', 'aprovacoes', 'contatos'
 ];
 
 const vazio = () => {

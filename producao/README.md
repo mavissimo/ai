@@ -1,4 +1,4 @@
-# Claquete — gestão de produção audiovisual
+# Unit0 — gestão de produção audiovisual
 
 Site que roda no celular (dá para instalar na tela de início como app) para tocar
 um projeto audiovisual do começo ao fim: negociação, pré, produção, pós e entrega —
@@ -18,7 +18,12 @@ com dinheiro, agenda, equipe, contratos e notas fiscais no mesmo lugar.
 | **Contratos** | Resumo objetivo do contrato (objeto, entregáveis, direitos, praça, janela, exclusividade, multas, condições de pagamento) + parcelas que viram contas a receber com um toque. |
 | **Equipe** | Cachê × diárias, status de contrato, Pix, e as confirmações de cada um (presença, passagem, hospedagem, contrato, pagamento). |
 | **Notas e documentos** | NF, recibo, boleto, comprovante, passagem, autorização — foto ou PDF, ou link externo. Cada arquivo fica amarrado ao lançamento/conta/contrato que originou. |
-| **Meu painel** | O que é de cada pessoa: própria agenda, próprio cachê, confirmações a responder, gastos lançados e o que tem a receber. |
+| **Ordem do dia** | Call sheet por diária: horário de **chamada de cada pessoa**, endereço com link de mapa, roteiro do dia, contato no local e o que levar. Cada um vê a própria chamada em destaque; um toque copia tudo formatado para mandar no grupo. |
+| **Caixinha** | Adiantamento de produção para alguém, gasto descontado do saldo, devolução do que sobrou e prestação de contas por pessoa. |
+| **Retenções e NF** | Cada pessoa é PF (RPA) ou PJ (nota fiscal), com INSS, IRRF, ISS e PIS/COFINS/CSLL configuráveis. O app mostra bruto, retenções e **líquido a pagar**, e controla qual nota já foi emitida ou recebida. |
+| **Aprovações** | Rodadas com o cliente, com o prazo de aceite contado automaticamente (dias úteis ou corridos). Quando o prazo vence sem resposta e o contrato trata silêncio como aceite, o app avisa. |
+| **Locações e contatos** | Escolas, endereços, autorização, horário permitido e custo. Contatos do cliente, fornecedores e personagens. |
+| **Meu painel** | O que é de cada pessoa: própria agenda, próprio cachê líquido, própria caixinha, confirmações a responder, gastos lançados e o que tem a receber. |
 | **Avisos** | Alertas de vencimento, entrega próxima, gasto aguardando aprovação, etapa travada e compromisso de hoje/amanhã — com notificação no celular. |
 
 ## Alçadas
@@ -90,6 +95,16 @@ producao/
     ui.js               bottom-sheet, formulários, toast
     views/              telas
   supabase/schema.sql   tabelas + RLS + bucket
+  tools/                build de arquivo único
 ```
 
 Sem build, sem dependência: é HTML/CSS/JS puro servido estático.
+
+## Impostos e retenções — leia isto
+
+Os percentuais de retenção vêm com um padrão comum no audiovisual (PF: 11% de INSS;
+PJ: 1,5% de IRRF e 4,65% de PIS/COFINS/CSLL) e são **editáveis pessoa a pessoa**.
+O app faz a conta, não a assessoria: confirme as alíquotas com a sua contabilidade
+antes de usar os números para pagar alguém. A alíquota de imposto sobre a receita
+do projeto começa zerada — enquanto ela não for preenchida, o lucro previsto sai
+sem imposto.

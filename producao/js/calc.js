@@ -86,3 +86,72 @@ export function contasCriticas(dias = 7) {
     .filter((c) => c.dias !== null && c.dias <= dias)
     .sort((a, b) => a.dias - b.dias);
 }
+
+/* ==========================================================================
+   Retenções de imposto sobre pagamento de equipe e fornecedores.
+   Os percentuais são editáveis por pessoa — os padrões abaixo são só um ponto
+   de partida comum no audiovisual. Confirme com a sua contabilidade.
+   ========================================================================== */
+export const RET_PADRAO = {
+  pf: { inss: 11, irrf: 0, iss: 0, pcc: 0 },
+  pj: { inss: 0, irrf: 1.5, iss: 0, pcc: 4.65 }
+};
+
+export function retencoes(pessoa, brutoCents) {
+  const tipo = pessoa?.tipo === 'pj' ? 'pj' : 'pf';
+  const base = RET_PADRAO[tipo];
+  const p = (k) => {
+    const v = pessoa?.[`ret_${k}`];
+    return v === null || v === undefined || v === '' ? base[k] : Number(v) || 0;
+  };
+  const bruto = Number(brutoCents) || 0;
+  const inss = Math.round(bruto * p('inss') / 100);
+  const irrf = Math.round(bruto * p('irrf') / 100);
+  const iss = Math.round(bruto * p('iss') / 100);
+  const pcc = Math.round(bruto * p('pcc') / 100);
+  const total = inss + irrf + iss + pcc;
+  return {
+    tipo, inss, irrf, iss, pcc, total, liquido: bruto - total,
+    percentuais: { inss: p('inss'), irrf: p('irrf'), iss: p('iss'), pcc: p('pcc') }
+  };
+}
+
+/* ---------------- caixinha (adiantamento de produção) ---------------- */
+/** Saldo de quem está com dinheiro da produção na mão. */
+export function saldoCaixa(membroId) {
+  const mov = store.doProjeto('caixa').filter((m) => m.membro_id === membroId);
+  const adiantado = soma(mov.filter((m) => m.tipo === 'adiantamento'), (m) => m.valor_cents);
+  const devolvido = soma(mov.filter((m) => m.tipo === 'devolucao'), (m) => m.valor_cents);
+  const gasto = soma(store.doProjeto('lancamentos').filter(
+    (l) => l.membro_id === membroId && l.fonte === 'caixinha' && l.status !== 'rejeitado'
+  ), (l) => l.valor_cents);
+  const aprovado = soma(store.doProjeto('lancamentos').filter(
+    (l) => l.membro_id === membroId && l.fonte === 'caixinha' && (l.status === 'aprovado' || l.status === 'pago')
+  ), (l) => l.valor_cents);
+  return {
+    adiantado, devolvido, gasto, aprovado,
+    aComprovar: adiantado - devolvido - gasto,
+    saldo: adiantado - devolvido - gasto
+  };
+}
+
+export function caixasAbertos() {
+  const ids = [...new Set(store.doProjeto('caixa').map((m) => m.membro_id))];
+  return ids.map((id) => ({ membro_id: id, ...saldoCaixa(id) }))
+    .filter((c) => c.adiantado > 0)
+    .sort((a, b) => b.saldo - a.saldo);
+}
+
+/* ---------------- aprovações do cliente ---------------- */
+export const ST_APROV = {
+  enviado: { t: 'Com o cliente', tag: 'warn' },
+  aprovado: { t: 'Aprovado', tag: 'ok' },
+  tacito: { t: 'Aceite tácito', tag: 'ok' },
+  ajustes: { t: 'Pediu ajustes', tag: 'bad' }
+};
+
+/** Rodadas que passaram do prazo sem resposta — pelo contrato, viram aceite. */
+export function aprovacoesVencidas() {
+  return store.doProjeto('aprovacoes')
+    .filter((a) => a.status === 'enviado' && a.prazo && diasAte(a.prazo) < 0);
+}

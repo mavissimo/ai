@@ -5,8 +5,8 @@ import { uid, hoje } from './utils.js';
 
 export { TABELAS };
 
-const LS_PROJ = 'claquete:projeto';
-const LS_USER = 'claquete:usuario';
+const LS_PROJ = 'unit0:projeto';
+const LS_USER = 'unit0:usuario';
 
 class Store {
   constructor() {

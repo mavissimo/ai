@@ -4,7 +4,7 @@
 import { SUPABASE, isRemote } from './config.js';
 import { uid } from './utils.js';
 
-const DB = 'claquete-files';
+const DB = 'unit0-files';
 let dbp = null;
 
 function open() {
