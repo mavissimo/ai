@@ -3,9 +3,10 @@
 import { store, membros } from '../store.js';
 import { can } from '../perms.js';
 import { PAPEIS } from '../perms.js';
-import { el, abrirForm, sheet, toast } from '../ui.js';
+import { el, abrirForm, sheet, toast, confirmar } from '../ui.js';
 import { esc, fmtMoney, hoje, iniciais, soma } from '../utils.js';
 import { retencoes, RET_PADRAO } from '../calc.js';
+import { temSenha, limparSenha } from '../pin.js';
 
 const TIPOS_CONF = [
   { v: 'presenca', t: 'Presença em diária' },
@@ -154,6 +155,9 @@ function abrirMembro(m, editar, verGrana) {
         <div class="row"><span class="g"><span class="s">Líquido a pagar</span>
           <span class="t">valor que cai na conta</span></span>
           <span class="r"><span class="v" style="color:var(--ok)">${fmtMoney(r.liquido)}</span></span></div>` : ''}
+        <div class="row"><span class="g"><span class="s">Senha de acesso</span>
+          <span class="t">${temSenha(m) ? 'criada' : 'ainda não criada'}</span></span>
+          ${editar && temSenha(m) ? '<span class="r"><button class="btn sm gho" data-zerar-senha>zerar</button></span>' : ''}</div>
         <div class="row"><span class="g"><span class="s">Contrato</span>
           <span class="t">${esc(ST_CONTRATO.find((s) => s.v === (m.contrato_status || 'na'))?.t)}</span></span></div>
         ${verGrana && m.chave_pix ? `<div class="row"><span class="g"><span class="s">Pix</span><span class="t">${esc(m.chave_pix)}</span></span></div>` : ''}
@@ -194,6 +198,13 @@ function abrirMembro(m, editar, verGrana) {
         toast('Pedido enviado.'); pintar(); store.emit();
       }
     }));
+    corpo.querySelector('[data-zerar-senha]')?.addEventListener('click', async () => {
+      if (!await confirmar(`Zerar a senha de ${m.nome}? Na próxima entrada ela cria uma nova.`,
+        { ok: 'Zerar', perigo: true })) return;
+      await limparSenha(m.id);
+      m.pin_hash = '';
+      toast('Senha zerada.'); pintar(); store.emit();
+    });
     corpo.querySelector('[data-gerar-cache]')?.addEventListener('click', async () => {
       await store.insert('contas', {
         tipo: 'pagar', descricao: `Cachê — ${m.nome}${m.funcao ? ' (' + m.funcao + ')' : ''}`,

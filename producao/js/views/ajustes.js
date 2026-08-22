@@ -4,7 +4,9 @@ import { can, PAPEIS } from '../perms.js';
 import { el, abrirForm, toast, confirmar, escolher } from '../ui.js';
 import { esc, iniciais, ordenar } from '../utils.js';
 import { criarProjetoTeste } from '../seed.js';
+import { recarregarProjeto, SEED_VERSAO } from '../seed-bradesco.js';
 import { pedirPermissao } from '../notify.js';
+import { trocarSenha, temSenha } from '../pin.js';
 import { APP, isRemote } from '../config.js';
 
 export function render() {
@@ -23,7 +25,13 @@ export function render() {
       <span class="avatar">${esc(iniciais(u?.nome))}</span>
       <div style="flex:1"><div style="font-weight:650">${esc(u?.nome || '—')}</div>
         <div class="small muted">${esc(PAPEIS[u?.papel]?.nome || '')}</div></div>
-      <button class="btn sm gho" data-trocar>trocar</button>
+      <button class="btn sm gho" data-trocar>sair</button>
+    </div>
+
+    <div class="card tight" style="margin-top:-4px">
+      <div class="row"><span class="g"><span class="t">Senha de 4 dígitos</span>
+        <span class="s">${temSenha(u) ? 'pedida toda vez que você entra' : 'ainda não criada'}</span></span>
+        <button class="btn sm gho" data-senha>${temSenha(u) ? 'trocar' : 'criar'}</button></div>
     </div>
 
     <div class="sec"><div class="sec-t">Produção</div></div>
@@ -44,6 +52,10 @@ export function render() {
       <div class="row"><span class="g"><span class="t">${esc(p?.nome || 'nenhum')}</span>
         <span class="s">${esc(p?.cliente || '')}</span></span>
         ${can(u, 'projeto.edit') ? '<button class="btn sm gho" data-edit-proj>editar</button>' : ''}</div>
+      ${p && p.seed_versao !== SEED_VERSAO && can(u, 'projeto.edit') ? `<div class="banner warn small" style="margin-top:10px">
+        Os dados deste aparelho vieram de uma carga antiga do projeto. Recarregue para
+        pegar a versão mais nova — equipe, orçamento negociado, contas e perfis.</div>` : ''}
+      ${can(u, 'projeto.edit') ? '<button class="btn wide gho sm" style="margin-top:10px" data-recarregar>Recarregar dados do projeto</button>' : ''}
       ${projetos.length > 1 ? '<button class="btn wide gho sm" style="margin-top:10px" data-trocar-proj>Trocar de projeto</button>' : ''}
       ${can(u, 'projeto.edit') ? '<button class="btn wide gho sm" style="margin-top:8px" data-novo-proj>Novo projeto</button>' : ''}
     </div>
@@ -72,12 +84,32 @@ export function render() {
       ${isRemote() ? 'nuvem' : 'demo'}</div>`;
 
   node.querySelector('[data-trocar]')?.addEventListener('click', () => { store.setUser(null); location.hash = '#/'; });
+  node.querySelector('[data-senha]')?.addEventListener('click', async () => {
+    if (await trocarSenha(u)) store.emit();
+  });
   node.querySelector('[data-notif]')?.addEventListener('click', async () => {
     const r = await pedirPermissao();
     toast(r === 'granted' ? 'Notificações ativadas.' : 'Permissão não concedida.');
     store.emit();
   });
   node.querySelector('[data-edit-proj]')?.addEventListener('click', () => editarProjeto(p));
+  node.querySelector('[data-recarregar]')?.addEventListener('click', async () => {
+    const ok = await confirmar(
+      'Isto apaga o projeto deste aparelho e carrega tudo de novo, na versão mais recente. '
+      + 'O que você editou aqui dentro se perde. Baixe um backup antes se quiser guardar.',
+      { ok: 'Recarregar', perigo: true }
+    );
+    if (!ok) return;
+    try {
+      await recarregarProjeto();
+      toast('Projeto recarregado. Escolha quem você é.');
+      location.hash = '#/';
+      location.reload();
+    } catch (e) {
+      console.error(e);
+      toast('Falhou: ' + e.message);
+    }
+  });
   node.querySelector('[data-novo-proj]')?.addEventListener('click', () => novoProjeto());
   node.querySelector('[data-trocar-proj]')?.addEventListener('click', async () => {
     const id = await escolher('Trocar de projeto', projetos.map((x) => ({ v: x.id, t: x.nome, sub: x.cliente })));

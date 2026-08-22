@@ -168,3 +168,7 @@ main{flex:1;padding:14px 14px calc(96px + var(--safe-b));max-width:760px;width:1
 .who{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:13px;margin-bottom:9px;
   background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);cursor:pointer}
 .who:active{border-color:var(--ac)}
+
+.f input.pin{font-size:28px;letter-spacing:14px;text-align:center;padding:14px 12px;
+  font-variant-numeric:tabular-nums}
+.f input.pin::placeholder{letter-spacing:10px;opacity:.35}

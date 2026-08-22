@@ -16,6 +16,7 @@ class Store {
     this.projetoId = null;
     this.subs = new Set();
     this.erro = null;
+    this.ocupado = false;   // trava a carga automática durante uma recarga
   }
 
   async init() {

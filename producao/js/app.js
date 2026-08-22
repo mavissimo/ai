@@ -2,10 +2,11 @@
 import { store } from './store.js';
 import { isRemote, APP } from './config.js';
 import { can, ehEquipe, PAPEIS } from './perms.js';
-import { el, toast, abrirForm, ICO } from './ui.js';
+import { el, toast, abrirForm, confirmar, ICO } from './ui.js';
 import { esc, iniciais, valoresOcultos, alternarValores } from './utils.js';
-import { criarProjetoBradesco } from './seed-bradesco.js';
+import { criarProjetoBradesco, recarregarProjeto, SEED_VERSAO } from './seed-bradesco.js';
 import { alertas, iniciarMonitor } from './notify.js';
+import { autenticar, temSenha } from './pin.js';
 
 import * as vDash from './views/dash.js';
 import * as vEtapas from './views/etapas.js';
@@ -88,8 +89,14 @@ function telaQuemEVoce() {
     const b = el(`<button class="who">
       <span class="avatar">${esc(iniciais(m.nome))}</span>
       <span style="flex:1"><span style="display:block;font-weight:650">${esc(m.nome)}</span>
-        <span class="small muted">${esc([m.funcao, p.curto].filter(Boolean).join(' · '))}</span></span></button>`);
-    b.onclick = () => { store.setUser(m); location.hash = '#/'; render(); };
+        <span class="small muted">${esc([m.funcao, p.curto].filter(Boolean).join(' · '))}</span></span>
+      <span class="tag ${temSenha(m) ? 'mut' : 'warn'}">${temSenha(m) ? '🔒' : 'criar senha'}</span></button>`);
+    b.onclick = async () => {
+      if (!await autenticar(m)) return;
+      store.setUser(m);
+      location.hash = '#/';
+      render();
+    };
     box.append(b);
   });
   node.querySelector('[data-sou-novo]').onclick = () => abrirForm({
@@ -167,7 +174,7 @@ export function render() {
     root.append(store.all('membros').length ? telaQuemEVoce() : telaBoasVindas());
     return;
   }
-  if (!store.projeto && can(store.user, 'projeto.edit') && !store.all('projetos').length) {
+  if (!store.ocupado && !store.projeto && can(store.user, 'projeto.edit') && !store.all('projetos').length) {
     criarProjetoBradesco().then(render);
     return;
   }
@@ -200,6 +207,27 @@ export function render() {
   }
   if (store.erro) {
     root.querySelector('main').prepend(el(`<div class="banner bad">Falha ao sincronizar: ${esc(store.erro)}</div>`));
+  }
+
+  // Carga antiga no aparelho: oferece atualizar sem apagar nada por conta própria.
+  const proj = store.projeto;
+  if (proj && proj.seed_versao !== SEED_VERSAO && can(store.user, 'projeto.edit')) {
+    const aviso = el(`<div class="banner warn">
+      <div>Este aparelho está com uma carga antiga do projeto — por isso a equipe e o
+      orçamento aparecem diferentes do combinado.</div>
+      <button class="btn sm" style="margin-top:9px" data-recarregar>Recarregar agora</button>
+    </div>`);
+    aviso.querySelector('[data-recarregar]').onclick = async () => {
+      const ok = await confirmar(
+        'Isto apaga o projeto deste aparelho e carrega tudo de novo, na versão mais recente. '
+        + 'O que você editou aqui dentro se perde.',
+        { ok: 'Recarregar', perigo: true }
+      );
+      if (!ok) return;
+      try { await recarregarProjeto(); location.hash = '#/'; location.reload(); }
+      catch (e) { console.error(e); toast('Falhou: ' + e.message); }
+    };
+    root.querySelector('main').prepend(aviso);
   }
 }
 

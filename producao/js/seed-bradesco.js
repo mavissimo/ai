@@ -2,11 +2,15 @@
 // Origem dos dados: contrato 4600001793 / PRC0045076, pauta final de negociação
 // e planilha geral TÊMPORA (11/08/2026). Onde o contrato e a planilha divergem,
 // vale o contrato — e a divergência fica anotada na observação.
-import { store } from './store.js';
+import { store, TABELAS } from './store.js';
 import { uid, parseMoney } from './utils.js';
 import { retencoes } from './calc.js';
 
 const M = parseMoney;
+
+// Sobe a cada mudança na carga inicial. O app compara com o que está gravado
+// e oferece recarregar quando ficou para trás.
+export const SEED_VERSAO = 3;
 
 const PESSOAS = [
   {
@@ -213,6 +217,7 @@ export async function criarProjetoBradesco() {
     valor_contrato_cents: M('518998,86'),
     imposto_regime: 'simples',
     imposto_aliquota: 0,
+    seed_versao: SEED_VERSAO,
     obs: 'Contrato 4600001793 (PRC0045076 / PRC0045079), assinado em 22/08/2026, vigência 12 meses. '
       + 'Confirmação de cada diária exige 10 dias corridos de antecedência. '
       + 'Defina a alíquota de imposto em Dinheiro → Imposto para o lucro sair certo.'
@@ -400,4 +405,45 @@ export async function criarProjetoBradesco() {
 
   await store.log('Projeto carregado a partir do contrato 4600001793, da pauta de negociação e da planilha TÊMPORA.', 'projeto');
   return projeto;
+}
+
+
+/**
+ * Apaga tudo do projeto ativo e carrega de novo, já na versão mais recente.
+ * Usado quando a base do aparelho ficou com uma carga antiga.
+ */
+export async function recarregarProjeto() {
+  const nomeAtual = store.user?.nome || null;
+  const antigo = store.projetoId;
+
+  store.ocupado = true;
+  try {
+    store.setUser(null);
+
+    if (!store.remoto) {
+      // Modo demo: zera a base do aparelho de uma vez só. Apagar registro a
+      // registro dispara render no meio do caminho e o app tenta recarregar
+      // sozinho, criando um projeto duplicado.
+      await store.adapter.reset();
+      store.state = await store.adapter.load();
+    } else if (antigo) {
+      for (const t of TABELAS) {
+        for (const r of [...store.all(t)]) {
+          const doProjeto = t === 'projetos' ? r.id === antigo : r.projeto_id === antigo;
+          if (doProjeto) await store.adapter.remove(t, r.id);
+        }
+      }
+      store.state = await store.adapter.load();
+    }
+    store.projetoId = null;
+
+    const projeto = await criarProjetoBradesco();
+
+    // Reconecta a pessoa que estava logada, se ela existir na nova carga.
+    const eu = nomeAtual ? store.doProjeto('membros').find((m) => m.nome === nomeAtual) : null;
+    store.setUser(eu || null);
+    return projeto;
+  } finally {
+    store.ocupado = false;
+  }
 }

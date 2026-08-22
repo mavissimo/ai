@@ -21,6 +21,7 @@ create table if not exists projetos (
   valor_contrato_cents bigint default 0,
   imposto_regime text, imposto_aliquota numeric default 0,
   aceite_dias int default 5, aceite_uteis boolean default true, rodadas_max int default 3,
+  seed_versao int,
   obs text
 );
 
@@ -40,6 +41,7 @@ create table if not exists membros (
   tipo text default 'pf',                     -- pf (RPA) ou pj (nota fiscal)
   rg text, nascimento text,
   ret_inss numeric, ret_irrf numeric, ret_iss numeric, ret_pcc numeric,
+  pin_hash text,                              -- senha de 4 dígitos (só o hash)
   obs text
 );
 create index if not exists membros_email_idx on membros (lower(email));
