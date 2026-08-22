@@ -12,13 +12,11 @@ import * as vDash from './views/dash.js';
 import * as vEtapas from './views/etapas.js';
 import * as vAgenda from './views/agenda.js';
 import * as vFin from './views/financeiro.js';
-import * as vContas from './views/contas.js';
 import * as vContratos from './views/contratos.js';
 import * as vEquipe from './views/equipe.js';
 import * as vNotas from './views/notas.js';
 import * as vMeu from './views/meu.js';
 import * as vAjustes from './views/ajustes.js';
-import * as vCaixa from './views/caixa.js';
 import * as vLocacoes from './views/locacoes.js';
 import * as vAprov from './views/aprovacoes.js';
 
@@ -29,13 +27,13 @@ const ROTAS = {
   '/etapas': () => vEtapas.render(),
   '/agenda': () => vAgenda.render(),
   '/financeiro': () => vFin.render(),
-  '/contas': () => vContas.render(),
+  '/contas': () => { vFin.irPara('contas'); return vFin.render(); },
   '/contratos': () => vContratos.render(),
   '/equipe': () => vEquipe.render(),
   '/notas': () => vNotas.render(),
   '/meu': () => vMeu.render(),
   '/mais': () => vAjustes.render(),
-  '/caixa': () => vCaixa.render(),
+  '/caixa': () => { vFin.irPara('caixa'); return vFin.render(); },
   '/locacoes': () => vLocacoes.render(),
   '/aprovacoes': () => vAprov.render(),
   '/historico': () => vAjustes.renderHistorico()
@@ -190,15 +188,11 @@ export function render() {
   root.innerHTML = `
     <header class="topbar">
       <h1>${esc(v.titulo)}${v.sub ? `<span class="sub">${esc(v.sub)}</span>` : ''}</h1>
-      <button class="olho" data-olho aria-label="${valoresOcultos() ? 'Mostrar valores' : 'Ocultar valores'}"
-        title="${valoresOcultos() ? 'Mostrar valores' : 'Ocultar valores'}">${valoresOcultos() ? ICO.olhoOff : ICO.olho}</button>
       <a class="avatar" href="#/mais" aria-label="Perfil">${esc(iniciais(store.user.nome))}</a>
     </header>
     <main></main>
     ${tabs()}`;
   root.querySelector('main').append(v.node);
-
-  root.querySelector('[data-olho]').onclick = () => { alternarValores(); render(); };
 
   if (v.fab) {
     const b = el(`<button class="fab" aria-label="Adicionar">${v.fab.label}</button>`);
@@ -260,6 +254,10 @@ async function start() {
 
   store.sub(() => render());
   window.addEventListener('hashchange', render);
+  // O botão de ocultar valores aparece em várias telas; um só ouvinte dá conta.
+  app().addEventListener('click', (e) => {
+    if (e.target.closest('[data-olho]')) { alternarValores(); render(); }
+  });
   render();
   iniciarMonitor();
 

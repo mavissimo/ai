@@ -1,8 +1,8 @@
 // Caixinha de produção: dinheiro adiantado para alguém e a prestação de contas.
 import { store, membros, nomeMembro } from '../store.js';
 import { can } from '../perms.js';
-import { el, abrirForm, sheet, toast } from '../ui.js';
-import { esc, fmtMoney, fmtMoneyShort, fmtData, hoje, ordenar, soma, iniciais } from '../utils.js';
+import { el, abrirForm, sheet, toast, btnOlho } from '../ui.js';
+import { esc, fmtMoney, fmtMoneyShort, fmtData, hoje, ordenar, soma, iniciais, valoresOcultos } from '../utils.js';
 import { saldoCaixa, caixasAbertos, ST_LANC } from '../calc.js';
 
 export function render() {
@@ -17,6 +17,7 @@ export function render() {
   const totalAberto = soma(lista, (c) => c.saldo);
 
   node.innerHTML = `
+    <div class="sec" style="margin-top:4px"><div class="sec-t">Caixinha</div>${btnOlho(valoresOcultos())}</div>
     <div class="grid">
       <div class="kpi"><div class="l">Adiantado</div><div class="v">${fmtMoneyShort(totalAdiantado)}</div>
         <div class="h">${lista.filter((c) => c.adiantado).length} pessoa(s)</div></div>

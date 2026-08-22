@@ -3,9 +3,9 @@
 import { store, membros } from '../store.js';
 import { can } from '../perms.js';
 import { PAPEIS } from '../perms.js';
-import { el, abrirForm, sheet, toast, confirmar } from '../ui.js';
-import { esc, fmtMoney, hoje, iniciais, soma } from '../utils.js';
-import { retencoes, RET_PADRAO } from '../calc.js';
+import { el, abrirForm, sheet, toast, confirmar, btnOlho } from '../ui.js';
+import { esc, fmtMoney, hoje, iniciais, soma, valoresOcultos } from '../utils.js';
+import { retencoes, RET_SUGESTAO, EXPLICACAO_RETENCAO } from '../calc.js';
 import { temSenha, limparSenha } from '../pin.js';
 
 const TIPOS_CONF = [
@@ -38,7 +38,8 @@ export function render() {
   const custoEquipe = soma(lista, (m) => (m.cache_cents || 0) * (m.diarias || 0) + (m.perdiem_cents || 0));
 
   node.innerHTML = `
-    ${verGrana ? `<div class="grid">
+    ${verGrana ? `<div class="sec" style="margin-top:4px"><div class="sec-t">Equipe</div>${btnOlho(valoresOcultos())}</div>
+    <div class="grid">
       <div class="kpi"><div class="l">Pessoas</div><div class="v">${lista.length}</div></div>
       <div class="kpi"><div class="l">Custo de equipe</div><div class="v">${fmtMoney(custoEquipe)}</div>
         <div class="h">cachês e per diems fechados</div></div>
@@ -97,8 +98,7 @@ function campos(m = {}) {
     { k: 'ret_iss', label: 'ISS retido (%)', type: 'numero', step: '0.01', valor: m.ret_iss, meia: true },
     {
       k: 'ret_pcc', label: 'PIS/COFINS/CSLL (%)', type: 'numero', step: '0.01', valor: m.ret_pcc, meia: true,
-      hint: 'Em branco, o app usa o padrão do tipo: PF ' + RET_PADRAO.pf.inss + '% de INSS; PJ '
-        + RET_PADRAO.pj.irrf + '% de IRRF e ' + RET_PADRAO.pj.pcc + '% de PIS/COFINS/CSLL. Confira com a sua contabilidade.'
+      hint: 'Deixe em branco ou zero enquanto não souber. O app não inventa alíquota: só desconta o que você preencher aqui.'
     },
     { k: 'obs', label: 'Observações', type: 'area', valor: m.obs }
   ];
@@ -144,17 +144,22 @@ function abrirMembro(m, editar, verGrana) {
         ${m.perdiem_cents ? `<div class="row"><span class="g"><span class="s">Per diem</span>
           <span class="t">negociado</span></span>
           <span class="r"><span class="v">${fmtMoney(m.perdiem_cents)}</span></span></div>` : ''}
-        <div class="row"><span class="g"><span class="s">Retenções (${r.tipo.toUpperCase()})</span>
-          <span class="t" style="white-space:normal;font-weight:500">${[
+        <div class="row"><span class="g"><span class="s">Imposto retido (${(m.tipo || 'pf').toUpperCase()})</span>
+          <span class="t" style="white-space:normal;font-weight:500">${r.total ? [
             r.inss ? `INSS ${r.percentuais.inss}% · ${fmtMoney(r.inss)}` : '',
             r.irrf ? `IRRF ${r.percentuais.irrf}% · ${fmtMoney(r.irrf)}` : '',
             r.iss ? `ISS ${r.percentuais.iss}% · ${fmtMoney(r.iss)}` : '',
             r.pcc ? `PIS/COFINS/CSLL ${r.percentuais.pcc}% · ${fmtMoney(r.pcc)}` : ''
-          ].filter(Boolean).join('<br>') || 'nenhuma'}</span></span>
-          <span class="r"><span class="v">− ${fmtMoney(r.total)}</span></span></div>
-        <div class="row"><span class="g"><span class="s">Líquido a pagar</span>
-          <span class="t">valor que cai na conta</span></span>
-          <span class="r"><span class="v" style="color:var(--ok)">${fmtMoney(r.liquido)}</span></span></div>` : ''}
+          ].filter(Boolean).join('<br>') : 'nada configurado — paga o valor cheio'}</span></span>
+          <span class="r">${r.total ? `<span class="v">− ${fmtMoney(r.total)}</span>` : ''}
+            <button class="btn sm gho" data-explica-ret style="margin-top:4px">o que é?</button></span></div>
+        <div class="row"><span class="g"><span class="s">Vai cair na conta</span>
+          <span class="t">${r.total ? 'depois da retenção' : 'sem retenção configurada'}</span></span>
+          <span class="r"><span class="v" style="color:var(--ok)">${fmtMoney(r.liquido)}</span></span></div>
+        ${editar && !r.total ? `<div class="row"><span class="g">
+          <span class="s">Se esta produção retém imposto no pagamento</span>
+          <span class="t" style="white-space:normal;font-weight:400">Preencher com a sugestão para ${(m.tipo || 'pf') === 'pj' ? 'PJ' : 'PF'} — e conferir com a contabilidade.</span></span>
+          <span class="r"><button class="btn sm gho" data-sugestao>usar sugestão</button></span></div>` : ''}` : ''}
         <div class="row"><span class="g"><span class="s">Senha de acesso</span>
           <span class="t">${temSenha(m) ? 'criada' : 'ainda não criada'}</span></span>
           ${editar && temSenha(m) ? '<span class="r"><button class="btn sm gho" data-zerar-senha>zerar</button></span>' : ''}</div>
@@ -198,6 +203,33 @@ function abrirMembro(m, editar, verGrana) {
         toast('Pedido enviado.'); pintar(); store.emit();
       }
     }));
+    corpo.querySelector('[data-explica-ret]')?.addEventListener('click', () => {
+      sheet({
+        titulo: 'Imposto retido no pagamento',
+        corpo: el(`<div>
+          <p class="small" style="margin:0 0 14px;line-height:1.6">Reter imposto é descontar uma parte do
+          pagamento e recolher no lugar de quem recebe. A pessoa recebe o líquido e a produção fica
+          responsável por repassar o desconto ao governo. Nem toda produção retém, e o que se retém muda
+          conforme a pessoa é física ou jurídica, o município e o valor.</p>
+          <div class="card tight">${EXPLICACAO_RETENCAO.map(([nome, texto]) => `<div class="row">
+            <span class="g"><span class="t">${esc(nome)}</span>
+              <span class="s" style="white-space:normal">${esc(texto)}</span></span></div>`).join('')}</div>
+          <div class="banner warn small">O Unit0 só desconta o que você preencher no cadastro da pessoa.
+          Ele não calcula tabela progressiva nem teto de INSS — para valor de pagamento, confirme com a
+          sua contabilidade.</div>
+        </div>`)
+      });
+    });
+    corpo.querySelector('[data-sugestao]')?.addEventListener('click', async () => {
+      const sug = RET_SUGESTAO[(m.tipo || 'pf') === 'pj' ? 'pj' : 'pf'];
+      if (!await confirmar(sug.aviso, { ok: 'Preencher assim mesmo' })) return;
+      await store.update('membros', m.id, {
+        ret_inss: sug.valores.inss, ret_irrf: sug.valores.irrf,
+        ret_iss: sug.valores.iss, ret_pcc: sug.valores.pcc
+      });
+      Object.assign(m, { ret_inss: sug.valores.inss, ret_irrf: sug.valores.irrf, ret_iss: sug.valores.iss, ret_pcc: sug.valores.pcc });
+      toast('Sugestão aplicada. Confirme com a contabilidade.'); pintar(); store.emit();
+    });
     corpo.querySelector('[data-zerar-senha]')?.addEventListener('click', async () => {
       if (!await confirmar(`Zerar a senha de ${m.nome}? Na próxima entrada ela cria uma nova.`,
         { ok: 'Zerar', perigo: true })) return;

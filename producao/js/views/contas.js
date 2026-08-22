@@ -1,8 +1,8 @@
 // Contas a pagar e a receber, com vencimento, vínculo e comprovante.
 import { store, membros, nomeMembro } from '../store.js';
 import { can } from '../perms.js';
-import { el, abrirForm, sheet, toast } from '../ui.js';
-import { esc, fmtMoney, fmtMoneyShort, fmtData, prazoTxt, prazoTag, hoje, ordenar, soma, diasAte } from '../utils.js';
+import { el, abrirForm, sheet, toast, btnOlho } from '../ui.js';
+import { esc, fmtMoney, fmtMoneyShort, fmtData, prazoTxt, prazoTag, hoje, ordenar, soma, diasAte, valoresOcultos } from '../utils.js';
 import { ST_CONTA } from '../calc.js';
 import { salvarArquivo, abrirArquivo } from '../files.js';
 
@@ -38,6 +38,8 @@ export function render() {
       <button class="chip ${aba === 'pagar' ? 'on' : ''}" data-aba="pagar">A pagar</button>
       <button class="chip ${aba === 'receber' ? 'on' : ''}" data-aba="receber">A receber</button>
     </div>
+    <div class="sec" style="margin-top:4px"><div class="sec-t">${aba === 'pagar' ? 'A pagar' : 'A receber'}</div>
+      ${btnOlho(valoresOcultos())}</div>
     <div class="grid">
       <div class="kpi"><div class="l">Em aberto</div><div class="v">${fmtMoneyShort(soma(abertas, (c) => c.valor_cents))}</div>
         <div class="h">${abertas.length} lançamento(s)</div></div>

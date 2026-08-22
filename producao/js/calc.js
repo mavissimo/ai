@@ -96,18 +96,40 @@ export function contasCriticas(dias = 7) {
    Os percentuais são editáveis por pessoa — os padrões abaixo são só um ponto
    de partida comum no audiovisual. Confirme com a sua contabilidade.
    ========================================================================== */
-export const RET_PADRAO = {
-  pf: { inss: 11, irrf: 0, iss: 0, pcc: 0 },
-  pj: { inss: 0, irrf: 1.5, iss: 0, pcc: 4.65 }
+export const RET_PADRAO = { pf: { inss: 0, irrf: 0, iss: 0, pcc: 0 }, pj: { inss: 0, irrf: 0, iss: 0, pcc: 0 } };
+
+/**
+ * Sugestões de retenção, para preencher com um toque. NÃO são padrão: o app
+ * começa com tudo zerado justamente para não inventar imposto no lugar da
+ * contabilidade. Cada uma depende do município, do valor e da competência.
+ */
+export const RET_SUGESTAO = {
+  pf: {
+    nome: 'Pessoa física (RPA)',
+    valores: { inss: 11, irrf: 0, iss: 0, pcc: 0 },
+    aviso: 'INSS de 11% é a alíquota do contribuinte individual, mas incide por mês e tem teto: '
+      + 'sobre o total de um contrato longo o número sai errado. O IRRF segue tabela progressiva e '
+      + 'depende do valor pago no mês. Confirme com a contabilidade antes de usar para pagar alguém.'
+  },
+  pj: {
+    nome: 'Pessoa jurídica (nota fiscal)',
+    valores: { inss: 0, irrf: 1.5, iss: 0, pcc: 4.65 },
+    aviso: 'IRRF de 1,5% e PIS/COFINS/CSLL de 4,65% valem para serviços profissionais acima de um '
+      + 'valor mínimo, e o PIS/COFINS/CSLL não se aplica a optante do Simples. O ISS depende do '
+      + 'município e de quem recolhe. Confirme com a contabilidade.'
+  }
 };
+
+export const EXPLICACAO_RETENCAO = [
+  ['INSS', 'Contribuição previdenciária descontada de quem é pessoa física. Quem paga recolhe no lugar da pessoa. Tem teto mensal.'],
+  ['IRRF', 'Imposto de renda retido na fonte. Para PF segue tabela progressiva pelo valor do mês; para PJ costuma ser um percentual fixo do serviço.'],
+  ['ISS', 'Imposto municipal sobre serviço. Em alguns casos quem contrata retém e recolhe; em outros quem presta recolhe sozinho.'],
+  ['PIS/COFINS/CSLL', 'Trio de contribuições federais retidas em pagamento de serviço a pessoa jurídica, quando se aplica.']
+];
 
 export function retencoes(pessoa, brutoCents) {
   const tipo = pessoa?.tipo === 'pj' ? 'pj' : 'pf';
-  const base = RET_PADRAO[tipo];
-  const p = (k) => {
-    const v = pessoa?.[`ret_${k}`];
-    return v === null || v === undefined || v === '' ? base[k] : Number(v) || 0;
-  };
+  const p = (k) => Number(pessoa?.[`ret_${k}`]) || 0;
   const bruto = Number(brutoCents) || 0;
   const inss = Math.round(bruto * p('inss') / 100);
   const irrf = Math.round(bruto * p('irrf') / 100);
@@ -116,6 +138,8 @@ export function retencoes(pessoa, brutoCents) {
   const total = inss + irrf + iss + pcc;
   return {
     tipo, inss, irrf, iss, pcc, total, liquido: bruto - total,
+    configurado: total > 0 || ['inss', 'irrf', 'iss', 'pcc'].some((k) => pessoa?.[`ret_${k}`] !== undefined
+      && pessoa?.[`ret_${k}`] !== null && pessoa?.[`ret_${k}`] !== ''),
     percentuais: { inss: p('inss'), irrf: p('irrf'), iss: p('iss'), pcc: p('pcc') }
   };
 }

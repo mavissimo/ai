@@ -157,13 +157,16 @@ export function abrirForm({ titulo, subtitulo, campos, onSave, onDelete, onArqui
       inp.dispatchEvent(new Event('change', { bubbles: true }));
     },
     valor(k) { return corpo.querySelector(`[data-k="${k}"]`)?.value || ''; },
-    aviso(texto, tom = 'ok') {
+    aviso(texto, tom = 'ok', depoisDe = null) {
       corpo.querySelector('[data-aviso]')?.remove();
       if (!texto) return;
       const n = el(`<div class="banner ${tom === 'bad' ? 'bad' : tom === 'warn' ? 'warn' : ''}"
         data-aviso style="margin:0 0 12px">${esc(texto)}</div>`);
-      corpo.prepend(n);
-    }
+      const alvo = depoisDe ? corpo.querySelector(`[data-f="${depoisDe}"]`) : null;
+      if (alvo) alvo.after(n); else corpo.prepend(n);
+    },
+    /** Abre o seletor de arquivo de um campo, como se a pessoa tivesse tocado nele. */
+    escolherArquivo(k) { corpo.querySelector(`[data-k="${k}"]`)?.click(); }
   };
 
   corpo.querySelectorAll('input[type=file]').forEach((inp) => {
@@ -223,15 +226,27 @@ export function abrirForm({ titulo, subtitulo, campos, onSave, onDelete, onArqui
     if (erro) { toast(erro); return; }
     bS.disabled = true; bS.textContent = 'Salvando…';
     try {
-      await onSave(vals);
+      await onSave(vals, api);
       sh.close();
     } catch (e) {
+      // O formulário pode pedir para continuar aberto (ex.: falta o comprovante).
+      if (e && e.message === '__continuar') {
+        bS.disabled = false; bS.textContent = salvar;
+        return;
+      }
       console.error(e);
       toast(e.message || 'Não consegui salvar.');
       bS.disabled = false; bS.textContent = salvar;
     }
   };
   return sh;
+}
+
+/** Botãozinho de ocultar/mostrar valores, para ficar ao lado do dinheiro. */
+export function btnOlho(oculto) {
+  return `<button class="olho sm" data-olho type="button"
+    aria-label="${oculto ? 'Mostrar valores' : 'Ocultar valores'}"
+    title="${oculto ? 'Mostrar valores' : 'Ocultar valores'}">${oculto ? ICO.olhoOff : ICO.olho}</button>`;
 }
 
 /* ---------------- ícones ---------------- */

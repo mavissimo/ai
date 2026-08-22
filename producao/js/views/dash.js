@@ -1,8 +1,8 @@
 // Painel: status do projeto, o que trava, o que vence, quanto sobra.
 import { store } from '../store.js';
 import { can } from '../perms.js';
-import { el } from '../ui.js';
-import { esc, fmtMoneyShort, pct, fmtData, prazoTxt, prazoTag, diasAte } from '../utils.js';
+import { el, btnOlho } from '../ui.js';
+import { esc, fmtMoneyShort, pct, fmtData, prazoTxt, prazoTag, diasAte, valoresOcultos } from '../utils.js';
 import { financeiro } from '../calc.js';
 import { FASES, statusEtapa } from '../seed.js';
 import { alertas } from '../notify.js';
@@ -59,7 +59,7 @@ export function render() {
     const usado = pct(f.comprometido, f.orcado || 1);
     granaHTML = `
       <div class="sec"><div class="sec-t">Dinheiro</div>
-        <a href="#/financeiro" class="small">ver tudo</a></div>
+        ${btnOlho(valoresOcultos())}<a href="#/financeiro" class="small" style="margin-left:8px">ver tudo</a></div>
       <div class="grid">
         ${verLucro ? kpi('Contratado', fmtMoneyShort(f.contratado), '', '') : ''}
         <div class="kpi"><div class="l">Orçado</div><div class="v">${fmtMoneyShort(f.orcado)}</div>
