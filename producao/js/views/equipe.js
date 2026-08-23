@@ -5,7 +5,6 @@ import { can } from '../perms.js';
 import { PAPEIS } from '../perms.js';
 import { el, abrirForm, sheet, toast, confirmar, btnOlho } from '../ui.js';
 import { esc, fmtMoney, hoje, iniciais, soma, valoresOcultos } from '../utils.js';
-import { retencoes, RET_SUGESTAO, EXPLICACAO_RETENCAO } from '../calc.js';
 import { temSenha, limparSenha } from '../pin.js';
 
 const TIPOS_CONF = [
@@ -85,21 +84,14 @@ function campos(m = {}) {
     { k: 'diarias', label: 'Nº de diárias', type: 'numero', valor: m.diarias ?? 1 },
     { k: 'perdiem_cents', label: 'Per diem (total)', type: 'dinheiro', valor: m.perdiem_cents },
     { k: 'contrato_status', label: 'Contrato', type: 'select', valor: m.contrato_status || 'na', opts: ST_CONTRATO },
-    { type: 'titulo', label: 'Como esta pessoa é paga', k: '_t_fisc' },
+    { type: 'titulo', label: 'Dados de pagamento', k: '_t_fisc' },
     {
       k: 'tipo', label: 'Pessoa física ou jurídica', type: 'select', valor: m.tipo || 'pf',
-      opts: [{ v: 'pf', t: 'Pessoa física (RPA)' }, { v: 'pj', t: 'Pessoa jurídica (nota fiscal)' }],
-      hint: 'Muda quais impostos são retidos no pagamento.'
+      opts: [{ v: 'pf', t: 'Pessoa física (recibo)' }, { v: 'pj', t: 'Pessoa jurídica (nota fiscal)' }],
+      hint: 'Só serve para saber se a produção espera recibo ou nota fiscal desta pessoa.'
     },
     { k: 'doc', label: 'CPF / CNPJ', type: 'texto', valor: m.doc },
     { k: 'chave_pix', label: 'Chave Pix / dados bancários', type: 'texto', valor: m.chave_pix },
-    { k: 'ret_inss', label: 'INSS retido (%)', type: 'numero', step: '0.01', valor: m.ret_inss, meia: true },
-    { k: 'ret_irrf', label: 'IRRF retido (%)', type: 'numero', step: '0.01', valor: m.ret_irrf, meia: true },
-    { k: 'ret_iss', label: 'ISS retido (%)', type: 'numero', step: '0.01', valor: m.ret_iss, meia: true },
-    {
-      k: 'ret_pcc', label: 'PIS/COFINS/CSLL (%)', type: 'numero', step: '0.01', valor: m.ret_pcc, meia: true,
-      hint: 'Deixe em branco ou zero enquanto não souber. O app não inventa alíquota: só desconta o que você preencher aqui.'
-    },
     { k: 'obs', label: 'Observações', type: 'area', valor: m.obs }
   ];
 }
@@ -120,7 +112,6 @@ function abrirMembro(m, editar, verGrana) {
   const pintar = () => {
     const bruto = (m.cache_cents || 0) * (m.diarias || 0);
     const orcado = (m.cache_orcado_cents || 0) * (m.diarias || 0);
-    const r = retencoes(m, bruto);
     const confs = store.doProjeto('confirmacoes').filter((c) => c.membro_id === m.id);
     const gastos = store.doProjeto('lancamentos').filter((l) => l.membro_id === m.id);
     const contas = store.doProjeto('contas').filter((c) => c.membro_id === m.id);
@@ -143,23 +134,7 @@ function abrirMembro(m, editar, verGrana) {
             <div class="small muted">diferença</div></span></div>` : ''}
         ${m.perdiem_cents ? `<div class="row"><span class="g"><span class="s">Per diem</span>
           <span class="t">negociado</span></span>
-          <span class="r"><span class="v">${fmtMoney(m.perdiem_cents)}</span></span></div>` : ''}
-        <div class="row"><span class="g"><span class="s">Imposto retido (${(m.tipo || 'pf').toUpperCase()})</span>
-          <span class="t" style="white-space:normal;font-weight:500">${r.total ? [
-            r.inss ? `INSS ${r.percentuais.inss}% · ${fmtMoney(r.inss)}` : '',
-            r.irrf ? `IRRF ${r.percentuais.irrf}% · ${fmtMoney(r.irrf)}` : '',
-            r.iss ? `ISS ${r.percentuais.iss}% · ${fmtMoney(r.iss)}` : '',
-            r.pcc ? `PIS/COFINS/CSLL ${r.percentuais.pcc}% · ${fmtMoney(r.pcc)}` : ''
-          ].filter(Boolean).join('<br>') : 'nada configurado — paga o valor cheio'}</span></span>
-          <span class="r">${r.total ? `<span class="v">− ${fmtMoney(r.total)}</span>` : ''}
-            <button class="btn sm gho" data-explica-ret style="margin-top:4px">o que é?</button></span></div>
-        <div class="row"><span class="g"><span class="s">Vai cair na conta</span>
-          <span class="t">${r.total ? 'depois da retenção' : 'sem retenção configurada'}</span></span>
-          <span class="r"><span class="v" style="color:var(--ok)">${fmtMoney(r.liquido)}</span></span></div>
-        ${editar && !r.total ? `<div class="row"><span class="g">
-          <span class="s">Se esta produção retém imposto no pagamento</span>
-          <span class="t" style="white-space:normal;font-weight:400">Preencher com a sugestão para ${(m.tipo || 'pf') === 'pj' ? 'PJ' : 'PF'} — e conferir com a contabilidade.</span></span>
-          <span class="r"><button class="btn sm gho" data-sugestao>usar sugestão</button></span></div>` : ''}` : ''}
+          <span class="r"><span class="v">${fmtMoney(m.perdiem_cents)}</span></span></div>` : ''}` : ''}
         <div class="row"><span class="g"><span class="s">Senha de acesso</span>
           <span class="t">${temSenha(m) ? 'criada' : 'ainda não criada'}</span></span>
           ${editar && temSenha(m) ? '<span class="r"><button class="btn sm gho" data-zerar-senha>zerar</button></span>' : ''}</div>
@@ -203,33 +178,6 @@ function abrirMembro(m, editar, verGrana) {
         toast('Pedido enviado.'); pintar(); store.emit();
       }
     }));
-    corpo.querySelector('[data-explica-ret]')?.addEventListener('click', () => {
-      sheet({
-        titulo: 'Imposto retido no pagamento',
-        corpo: el(`<div>
-          <p class="small" style="margin:0 0 14px;line-height:1.6">Reter imposto é descontar uma parte do
-          pagamento e recolher no lugar de quem recebe. A pessoa recebe o líquido e a produção fica
-          responsável por repassar o desconto ao governo. Nem toda produção retém, e o que se retém muda
-          conforme a pessoa é física ou jurídica, o município e o valor.</p>
-          <div class="card tight">${EXPLICACAO_RETENCAO.map(([nome, texto]) => `<div class="row">
-            <span class="g"><span class="t">${esc(nome)}</span>
-              <span class="s" style="white-space:normal">${esc(texto)}</span></span></div>`).join('')}</div>
-          <div class="banner warn small">O Unit0 só desconta o que você preencher no cadastro da pessoa.
-          Ele não calcula tabela progressiva nem teto de INSS — para valor de pagamento, confirme com a
-          sua contabilidade.</div>
-        </div>`)
-      });
-    });
-    corpo.querySelector('[data-sugestao]')?.addEventListener('click', async () => {
-      const sug = RET_SUGESTAO[(m.tipo || 'pf') === 'pj' ? 'pj' : 'pf'];
-      if (!await confirmar(sug.aviso, { ok: 'Preencher assim mesmo' })) return;
-      await store.update('membros', m.id, {
-        ret_inss: sug.valores.inss, ret_irrf: sug.valores.irrf,
-        ret_iss: sug.valores.iss, ret_pcc: sug.valores.pcc
-      });
-      Object.assign(m, { ret_inss: sug.valores.inss, ret_irrf: sug.valores.irrf, ret_iss: sug.valores.iss, ret_pcc: sug.valores.pcc });
-      toast('Sugestão aplicada. Confirme com a contabilidade.'); pintar(); store.emit();
-    });
     corpo.querySelector('[data-zerar-senha]')?.addEventListener('click', async () => {
       if (!await confirmar(`Zerar a senha de ${m.nome}? Na próxima entrada ela cria uma nova.`,
         { ok: 'Zerar', perigo: true })) return;
@@ -240,10 +188,9 @@ function abrirMembro(m, editar, verGrana) {
     corpo.querySelector('[data-gerar-cache]')?.addEventListener('click', async () => {
       await store.insert('contas', {
         tipo: 'pagar', descricao: `Cachê — ${m.nome}${m.funcao ? ' (' + m.funcao + ')' : ''}`,
-        contraparte: m.nome, valor_cents: bruto, retencao_cents: r.total, liquido_cents: r.liquido,
+        contraparte: m.nome, valor_cents: bruto,
         venc: hoje(), status: 'aberto', membro_id: m.id, categoria: 'cachê',
-        nf_status: m.tipo === 'pj' ? 'a_receber' : 'na',
-        obs: r.total ? `Retenções: ${fmtMoney(r.total)}. Líquido ${fmtMoney(r.liquido)}.` : ''
+        nf_status: m.tipo === 'pj' ? 'a_receber' : 'na', obs: ''
       });
       toast('Conta a pagar criada.'); store.emit();
     });

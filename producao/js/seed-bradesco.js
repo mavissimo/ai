@@ -4,7 +4,6 @@
 // vale o contrato — e a divergência fica anotada na observação.
 import { store, TABELAS } from './store.js';
 import { uid, parseMoney } from './utils.js';
-import { retencoes } from './calc.js';
 
 const M = parseMoney;
 
@@ -316,15 +315,14 @@ export async function criarProjetoBradesco() {
     });
   }
 
-  /* cachês e per diems fechados, com retenção calculada */
+  /* cachês e per diems fechados */
   for (const p of PESSOAS) {
     const id = membros[p.nome];
     const bruto = (p.cache_cents || 0) * (p.diarias || 0);
     if (bruto) {
-      const r = retencoes(p, bruto);
       await store.insert('contas', {
         projeto_id: P, tipo: 'pagar', descricao: `Cachê — ${p.nome} (${p.funcao})`,
-        contraparte: p.nome, valor_cents: bruto, retencao_cents: r.total, liquido_cents: r.liquido,
+        contraparte: p.nome, valor_cents: bruto,
         venc: '', status: 'aberto', membro_id: id, categoria: 'cachê',
         nf_status: p.tipo === 'pj' ? 'a_receber' : 'na',
         obs: 'Valor da coluna NEGOCIADO da planilha.'

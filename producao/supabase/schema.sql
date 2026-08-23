@@ -38,9 +38,8 @@ create table if not exists membros (
   perdiem_cents bigint default 0,
   diarias numeric default 1,
   contrato_status text default 'na', ativo boolean default true,
-  tipo text default 'pf',                     -- pf (RPA) ou pj (nota fiscal)
+  tipo text default 'pf',                     -- pf (recibo) ou pj (nota fiscal)
   rg text, nascimento text,
-  ret_inss numeric, ret_irrf numeric, ret_iss numeric, ret_pcc numeric,
   pin_hash text,                              -- senha de 4 dígitos (só o hash)
   obs text
 );
@@ -105,7 +104,6 @@ create table if not exists contas (
   tipo text not null default 'pagar',
   descricao text not null, contraparte text, valor_cents bigint default 0,
   venc text, status text default 'aberto', quitado_em text,
-  retencao_cents bigint default 0, liquido_cents bigint,
   nf_status text default 'na', nf_numero text, nf_data text,
   membro_id text, lancamento_id text, contrato_id text, parcela_id text,
   parcela text, categoria text, obs text

@@ -20,7 +20,7 @@ com dinheiro, agenda, equipe, contratos e notas fiscais no mesmo lugar.
 | **Notas e documentos** | NF, recibo, boleto, comprovante, passagem, autorização — foto ou PDF, ou link externo. Cada arquivo fica amarrado ao lançamento/conta/contrato que originou. |
 | **Ordem do dia** | Call sheet por diária: horário de **chamada de cada pessoa**, endereço com link de mapa, roteiro do dia, contato no local e o que levar. Cada um vê a própria chamada em destaque; um toque copia tudo formatado para mandar no grupo. |
 | **Caixinha** | Adiantamento de produção para alguém, gasto descontado do saldo, devolução do que sobrou e prestação de contas por pessoa. |
-| **Retenções e NF** | Cada pessoa é PF (RPA) ou PJ (nota fiscal), com INSS, IRRF, ISS e PIS/COFINS/CSLL configuráveis. O app mostra bruto, retenções e **líquido a pagar**, e controla qual nota já foi emitida ou recebida. |
+| **Nota fiscal** | Cada pessoa é PF (recibo) ou PJ (nota fiscal), e o app controla qual nota falta emitir para o cliente ou cobrar do fornecedor. O imposto de quem recebe é problema de quem recebe: o Unit0 não calcula retenção nem líquido. |
 | **Aprovações** | Rodadas com o cliente, com o prazo de aceite contado automaticamente (dias úteis ou corridos). Quando o prazo vence sem resposta e o contrato trata silêncio como aceite, o app avisa. |
 | **Locações e contatos** | Escolas, endereços, autorização, horário permitido e custo. Contatos do cliente, fornecedores e personagens. |
 | **Meu painel** | O que é de cada pessoa: própria agenda, próprio cachê líquido, própria caixinha, confirmações a responder, gastos lançados e o que tem a receber. |
@@ -100,11 +100,15 @@ producao/
 
 Sem build, sem dependência: é HTML/CSS/JS puro servido estático.
 
-## Impostos e retenções — leia isto
+## Imposto
 
-Os percentuais de retenção vêm com um padrão comum no audiovisual (PF: 11% de INSS;
-PJ: 1,5% de IRRF e 4,65% de PIS/COFINS/CSLL) e são **editáveis pessoa a pessoa**.
-O app faz a conta, não a assessoria: confirme as alíquotas com a sua contabilidade
-antes de usar os números para pagar alguém. A alíquota de imposto sobre a receita
-do projeto começa zerada — enquanto ela não for preenchida, o lucro previsto sai
-sem imposto.
+O Unit0 controla dois impostos, e só esses dois:
+
+- **O imposto do projeto**, sobre a receita da produtora — a alíquota efetiva que você
+  informa em Dinheiro → Imposto, usada para prever quanto sobra de lucro.
+- **A nota fiscal**, no sentido de saber qual falta emitir para o cliente e qual falta
+  chegar do fornecedor.
+
+O que cada pessoa da equipe paga de imposto sobre o próprio cachê não passa por aqui.
+Quem recebe emite o recibo ou a nota e vê ali o que é devido. A produtora paga o valor
+combinado.

@@ -4,7 +4,7 @@ import { store } from '../store.js';
 import { can } from '../perms.js';
 import { el, abrirForm, toast, btnOlho } from '../ui.js';
 import { esc, fmtMoney, fmtData, prazoTxt, prazoTag, diasAte, ordenar, soma, iniciais, valoresOcultos } from '../utils.js';
-import { ST_LANC, ST_CONTA, retencoes, saldoCaixa } from '../calc.js';
+import { ST_LANC, ST_CONTA, saldoCaixa } from '../calc.js';
 import { camposLancamento, salvarLancamento, abrirLancamento, lerNotaNoForm, conferirComprovante } from './financeiro.js';
 import { tipoConf } from './equipe.js';
 import { salvarArquivo, abrirArquivo } from '../files.js';
@@ -27,7 +27,6 @@ export function render() {
   const meusDocs = store.doProjeto('documentos').filter((d) => d.membro_id === u.id);
   const p = PAPEIS[u.papel] || PAPEIS.equipe;
   const bruto = (u.cache_cents || 0) * (u.diarias || 0);
-  const ret = retencoes(u, bruto);
   const caixa = saldoCaixa(u.id);
 
   node.innerHTML = `
@@ -36,9 +35,8 @@ export function render() {
       <div style="flex:1;min-width:0"><div style="font-weight:650">${esc(u.nome)}</div>
         <div class="small muted">${esc([u.funcao, p.curto].filter(Boolean).join(' · '))}</div></div>
       ${bruto ? `<div class="right" style="display:flex;align-items:center;gap:8px">
-        ${btnOlho(valoresOcultos())}<div><div class="small muted">seu cachê líquido</div>
-        <div class="mono" style="font-weight:650">${fmtMoney(ret.liquido)}</div>
-        ${ret.total ? `<div class="small muted">bruto ${fmtMoney(bruto)} · ret. ${fmtMoney(ret.total)}</div>` : ''}
+        ${btnOlho(valoresOcultos())}<div><div class="small muted">seu cachê</div>
+        <div class="mono" style="font-weight:650">${fmtMoney(bruto)}</div>
         ${u.perdiem_cents ? `<div class="small muted">+ per diem ${fmtMoney(u.perdiem_cents)}</div>` : ''}</div></div>` : ''}
     </div>
 
