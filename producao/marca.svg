@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" role="img" aria-label="Unit0">
+  <text x="6" y="56" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+        font-size="52" font-weight="700" letter-spacing="-1.5" fill="currentColor">UNIT</text>
+  <g fill="none" stroke="#f4b23e" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round">
+    <circle cx="156" cy="40" r="30"/>
+    <path d="M172.00 40.00L164.00 53.86L148.00 53.86L140.00 40.00L148.00 26.14L164.00 26.14Z"/>
+    <path d="M172.00 40.00L177.58 60.84"/><path d="M164.00 53.86L148.74 69.11"/><path d="M148.00 53.86L127.16 48.27"/><path d="M140.00 40.00L134.42 19.16"/><path d="M148.00 26.14L163.26 10.89"/><path d="M164.00 26.14L184.84 31.73"/>
+  </g>
+</svg>

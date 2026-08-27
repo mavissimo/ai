@@ -70,14 +70,17 @@ export function porRubrica() {
   const mapa = new Map();
   orc.forEach((o) => mapa.set(o.rubrica, {
     rubrica: o.rubrica, id: o.id, previsto: o.previsto_cents || 0,
-    negociado: o.negociado_cents || 0, real: 0, pend: 0, obs: o.obs
+    negociado: o.negociado_cents || 0, real: 0, pago: 0, pend: 0, obs: o.obs
   }));
   lan.forEach((l) => {
     const r = l.rubrica || 'Outros';
-    if (!mapa.has(r)) mapa.set(r, { rubrica: r, id: null, previsto: 0, negociado: 0, real: 0, pend: 0 });
+    if (!mapa.has(r)) mapa.set(r, { rubrica: r, id: null, previsto: 0, negociado: 0, real: 0, pago: 0, pend: 0 });
     const m = mapa.get(r);
     if (l.status === 'pendente') m.pend += l.valor_cents || 0;
-    else m.real += l.valor_cents || 0;
+    else {
+      m.real += l.valor_cents || 0;
+      if (l.status === 'pago') m.pago += l.valor_cents || 0;
+    }
   });
   return [...mapa.values()].sort((a, b) => (b.previsto + b.real) - (a.previsto + a.real));
 }

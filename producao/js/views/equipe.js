@@ -17,6 +17,15 @@ const TIPOS_CONF = [
 ];
 export const tipoConf = (v) => TIPOS_CONF.find((t) => t.v === v)?.t || v;
 
+// Um punhado de funções que cobrem a maioria das equipes. Quem precisar de
+// outra digita na hora, sem virar item fixo da lista.
+export const FUNCOES = [
+  'Direção', 'Assistente de direção', 'Produção executiva', 'Direção de produção',
+  'Assistente de produção', 'Direção de fotografia', '1º assistente de câmera',
+  'Técnico de som direto', 'Elétrica e maquinaria', 'Direção de arte',
+  'Figurino e maquiagem', 'Montagem', 'Finalização (cor e som)', 'Roteiro', 'Motorista'
+];
+
 const ST_CONTRATO = [
   { v: 'na', t: 'Não se aplica' }, { v: 'pendente', t: 'A enviar' },
   { v: 'enviado', t: 'Enviado' }, { v: 'assinado', t: 'Assinado' }
@@ -70,7 +79,11 @@ export function render() {
 function campos(m = {}) {
   return [
     { k: 'nome', label: 'Nome', type: 'texto', req: true, valor: m.nome },
-    { k: 'funcao', label: 'Função no projeto', type: 'texto', valor: m.funcao, ph: 'Direção de fotografia' },
+    {
+      k: 'funcao', label: 'Função no projeto', type: 'livre', valor: m.funcao,
+      opts: FUNCOES.map((f) => ({ v: f, t: f })), ph: 'Escreva a função',
+      hint: 'Não achou? Escolha "outra, digitar" e escreva — vale só para esta pessoa.'
+    },
     {
       k: 'papel', label: 'Alçada no sistema', type: 'select', valor: m.papel || 'equipe',
       opts: Object.entries(PAPEIS).map(([v, p]) => ({ v, t: p.nome })),

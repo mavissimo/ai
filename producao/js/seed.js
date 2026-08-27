@@ -4,12 +4,13 @@ import { store } from './store.js';
 import { uid } from './utils.js';
 
 export const FASES = [
-  { k: 'negociacao', nome: 'Negociação', cor: 'info' },
-  { k: 'pre', nome: 'Pré-produção', cor: 'warn' },
-  { k: 'producao', nome: 'Produção', cor: 'ok' },
-  { k: 'pos', nome: 'Pós-produção', cor: 'info' },
-  { k: 'entrega', nome: 'Entrega e fechamento', cor: 'mut' }
+  { k: 'negociacao', nome: 'Negociação', cor: 'info', simbolo: '🤝' },
+  { k: 'pre', nome: 'Pré-produção', cor: 'warn', simbolo: '🗂' },
+  { k: 'producao', nome: 'Produção', cor: 'ok', simbolo: '🎬' },
+  { k: 'pos', nome: 'Pós-produção', cor: 'info', simbolo: '✂️' },
+  { k: 'entrega', nome: 'Entrega e fechamento', cor: 'mut', simbolo: '📦' }
 ];
+export const faseSimbolo = (k) => FASES.find((f) => f.k === k)?.simbolo || '•';
 export const faseNome = (k) => FASES.find((f) => f.k === k)?.nome || k;
 
 export const STATUS_ETAPA = [

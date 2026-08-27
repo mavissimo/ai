@@ -7,6 +7,7 @@ import { esc, fmtData, prazoTxt, prazoTag, diaSemana, diasAte, groupBy, ordenar 
 import { tipoEvento } from './dash.js';
 
 let aba = 'proximos';
+let modo = 'detalhe';   // detalhe = cartão completo, lista = linha compacta
 
 const TIPOS = [
   { v: 'diaria', t: 'Diária de gravação' }, { v: 'viagem', t: 'Viagem / deslocamento' },
@@ -41,7 +42,8 @@ export function render() {
     <div class="sec"><div class="sec-t">${dia === 'sem data' ? 'Sem data'
       : `${diaSemana(dia)} · ${fmtData(dia, { longo: true })}`}</div>
       <span class="small muted">${dia === 'sem data' ? '' : prazoTxt(dia)}</span></div>
-    <div class="card">${its.map((e) => linhaEvento(e, u)).join('')}</div>`).join('')
+    ${modo === 'lista' ? `<div class="card">${its.map((e) => linhaEvento(e, u)).join('')}</div>`
+      : its.map((e) => cartaoEvento(e, u)).join('')}`).join('')
     : '<div class="empty">Nada por aqui.</div>';
 
   node.innerHTML = `
@@ -51,9 +53,14 @@ export function render() {
       <button class="chip ${aba === 'passados' ? 'on' : ''}" data-aba="passados">Já passou</button>
       <button class="chip ${aba === 'entregas' ? 'on' : ''}" data-aba="entregas">Entregas</button>
     </div>
+    ${aba === 'entregas' ? '' : `<div class="seg" style="margin-bottom:12px">
+      <button data-modo="detalhe" class="${modo === 'detalhe' ? 'on' : ''}">Detalhes</button>
+      <button data-modo="lista" class="${modo === 'lista' ? 'on' : ''}">Lista</button>
+    </div>`}
     ${aba === 'entregas' ? blocoEntregas(entregas) : agendaHTML}`;
 
   node.querySelectorAll('[data-aba]').forEach((b) => { b.onclick = () => { aba = b.dataset.aba; store.emit(); }; });
+  node.querySelectorAll('[data-modo]').forEach((b) => { b.onclick = () => { modo = b.dataset.modo; store.emit(); }; });
   node.querySelectorAll('[data-ev]').forEach((n) => { n.onclick = () => abrirEvento(store.get('eventos', n.dataset.ev)); });
   node.querySelectorAll('[data-entrega]').forEach((n) => {
     n.onclick = () => abrirEntrega(store.get('entregas', n.dataset.entrega), can(u, 'entregas.edit'));
@@ -87,6 +94,38 @@ function linhaEvento(e, u) {
     <span class="g"><span class="t">${esc(e.titulo)}${meu ? ' · <span class="small">você</span>' : ''}</span>
       <span class="s">${esc([tipoEvento(e.tipo), e.local, conf.length ? `${okN}/${conf.length} confirmados` : '']
         .filter(Boolean).join(' · '))}</span></span>
+  </div>`;
+}
+
+/** Cartão com o que a pessoa precisa saber sem abrir: hora, chamada, local, equipe. */
+function cartaoEvento(e, u) {
+  const meu = (e.participantes || []).includes(u?.id);
+  const minha = (e.chamadas || []).find((c) => c.membro_id === u?.id);
+  const confs = store.doProjeto('confirmacoes').filter((c) => c.ref_id === e.id && c.tipo === 'presenca');
+  const ok = confs.filter((c) => c.status === 'confirmado').length;
+  const lugar = e.endereco || e.local;
+  const simbolo = e.tipo === 'viagem' ? '✈️' : e.tipo === 'diaria' ? '🎬'
+    : e.tipo === 'entrega' ? '📦' : e.tipo === 'reuniao' ? '💬' : '📍';
+  return `<div class="card act" data-ev="${e.id}" style="cursor:pointer">
+    <div style="display:flex;gap:11px;align-items:flex-start">
+      <span class="ico ${diasAte(e.data) === 0 ? 'urg' : ''}">${simbolo}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:650;font-size:15px">${esc(e.titulo)}</div>
+        <div class="small muted" style="margin-top:2px">${esc([tipoEvento(e.tipo),
+          e.hora_inicio ? e.hora_inicio + (e.hora_fim ? '–' + e.hora_fim : '') : ''].filter(Boolean).join(' · '))}</div>
+      </div>
+      ${meu ? '<span class="tag info">você</span>' : ''}
+    </div>
+    ${minha?.hora ? `<div class="row" style="border:0;padding:10px 0 0">
+      <span class="g"><span class="s">Sua chamada</span>
+        <span class="t" style="color:var(--ac);font-size:17px">${esc(minha.hora)}${minha.obs ? ` <span class="small muted">${esc(minha.obs)}</span>` : ''}</span></span></div>` : ''}
+    <div class="hr"></div>
+    <div class="small" style="display:flex;flex-wrap:wrap;gap:6px 14px;color:var(--tx2)">
+      ${lugar ? `<span>📍 ${esc(lugar)}</span>` : ''}
+      ${confs.length ? `<span>👥 ${ok}/${confs.length} confirmados</span>` : ''}
+      ${e.contato_nome ? `<span>☎️ ${esc(e.contato_nome)}</span>` : ''}
+      ${e.roteiro_dia ? '<span>🗒 tem roteiro do dia</span>' : ''}
+    </div>
   </div>`;
 }
 
@@ -181,7 +220,7 @@ function abrirEvento(e) {
     const minhaChamada = (e.chamadas || []).find((c) => c.membro_id === u?.id);
     const lugar = e.endereco || e.local;
     corpo.innerHTML = `
-      ${minhaChamada?.hora ? `<div class="card tight center" style="background:rgba(244,178,62,.12);border-color:rgba(244,178,62,.35)">
+      ${minhaChamada?.hora ? `<div class="card tight center" style="background:var(--ac-soft);border-color:var(--ac-line)">
         <div class="small muted">Sua chamada</div>
         <div style="font-size:30px;font-weight:700;letter-spacing:-.5px;color:var(--ac)">${esc(minhaChamada.hora)}</div>
         ${minhaChamada.obs ? `<div class="small">${esc(minhaChamada.obs)}</div>` : ''}</div>` : ''}

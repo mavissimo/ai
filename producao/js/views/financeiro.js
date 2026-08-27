@@ -178,22 +178,23 @@ function blocoOrcamento(u) {
   const rub = porRubrica();
   const total = soma(rub, (r) => r.previsto);
   const neg = soma(rub, (r) => r.negociado);
-  const gasto = soma(rub, (r) => r.real + r.pend);
+  const pago = soma(rub, (r) => r.pago);
   return `
     <div class="sec" style="margin-top:4px"><div class="sec-t">Orçamento</div>${btnOlho(valoresOcultos())}</div>
     <div class="grid3">
       <div class="kpi"><div class="l">Orçado</div><div class="v">${fmtMoneyShort(total)}</div></div>
       <div class="kpi"><div class="l">Negociado</div><div class="v">${fmtMoneyShort(neg)}</div></div>
-      <div class="kpi ${gasto > total ? 'bad' : ''}"><div class="l">Gasto</div><div class="v">${fmtMoneyShort(gasto)}</div></div>
+      <div class="kpi ${pago > total ? 'bad' : ''}"><div class="l">Pago</div><div class="v">${fmtMoneyShort(pago)}</div>
+        <div class="h">falta pagar ${fmtMoneyShort(neg - pago)}</div></div>
     </div>
-    <div class="banner small">O <b>orçado</b> é o que foi previsto na planilha. O <b>negociado</b> é o que já
-      foi realmente fechado com cada pessoa ou fornecedor. A diferença ainda está em aberto.</div>
+    <div class="banner small">Três números por rubrica: o <b>orçado</b> da planilha, o <b>negociado</b> que já foi
+      fechado com a pessoa ou o fornecedor, e o <b>pago</b> que já saiu do caixa.</div>
     <div class="sec"><div class="sec-t">Rubricas</div>
       ${can(u, 'orcamento.edit') ? '<button class="btn sm gho" data-nova-rubrica>+ rubrica</button>' : ''}</div>
     <div class="card">${rub.map((r) => `
       <div class="row ${r.id ? 'act' : ''}" ${r.id ? `data-rub="${r.id}"` : ''}>
         <span class="g"><span class="t">${esc(r.rubrica)}</span>
-          <span class="s">${r.negociado ? 'negociado ' + fmtMoney(r.negociado) : 'nada fechado ainda'}${r.real ? ' · gasto ' + fmtMoney(r.real) : ''}${r.pend ? ' · pendente ' + fmtMoney(r.pend) : ''}</span></span>
+          <span class="s">${r.negociado ? 'negociado ' + fmtMoney(r.negociado) : 'nada fechado ainda'}${r.pago ? ' · pago ' + fmtMoney(r.pago) : ''}${r.pend ? ' · a aprovar ' + fmtMoney(r.pend) : ''}</span></span>
         <span class="r"><span class="v">${fmtMoney(r.previsto)}</span>
           <div class="small muted">orçado</div></span>
       </div>`).join('')}</div>`;

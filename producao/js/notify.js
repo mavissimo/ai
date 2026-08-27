@@ -19,6 +19,7 @@ export function alertas() {
     .forEach((c) => add({
       id: 'conf_' + c.id,
       urg: c.membro_id === u?.id ? 2 : 1,
+      icone: c.membro_id === u?.id ? '🙋' : '⏳',
       texto: c.membro_id === u?.id
         ? `Confirme: ${c.titulo}`
         : `${nome(c.membro_id)} ainda não confirmou: ${c.titulo}`,
@@ -31,7 +32,7 @@ export function alertas() {
       const d = diasAte(c.venc);
       if (d === null || d > 5) return;
       add({
-        id: 'conta_' + c.id, urg: d < 0 ? 3 : 2,
+        id: 'conta_' + c.id, urg: d < 0 ? 3 : 2, icone: c.tipo === 'pagar' ? '💸' : '💰',
         texto: `${c.tipo === 'pagar' ? 'Pagar' : 'Receber'} ${fmtMoney(c.valor_cents)} — ${c.descricao} (${prazoTxt(c.venc)})`,
         rota: '#/contas'
       });
@@ -42,7 +43,7 @@ export function alertas() {
   if (can(u, 'lanc.aprovar')) {
     const pend = store.doProjeto('lancamentos').filter((l) => l.status === 'pendente');
     if (pend.length) add({
-      id: 'aprov_' + pend.length, urg: 2,
+      id: 'aprov_' + pend.length, urg: 2, icone: '🧾',
       texto: `${pend.length} lançamento(s) aguardando sua aprovação`,
       rota: '#/financeiro'
     });
@@ -52,7 +53,7 @@ export function alertas() {
   store.doProjeto('entregas').filter((e) => e.status !== 'entregue').forEach((e) => {
     const d = diasAte(e.prazo);
     if (d === null || d > 5) return;
-    add({ id: 'entr_' + e.id, urg: d < 0 ? 3 : 2, texto: `Entrega ${e.titulo} — ${prazoTxt(e.prazo)}`, rota: '#/agenda' });
+    add({ id: 'entr_' + e.id, urg: d < 0 ? 3 : 2, icone: '📦', texto: `Entrega ${e.titulo} — ${prazoTxt(e.prazo)}`, rota: '#/agenda' });
   });
 
   // Rodadas de aprovação que passaram do prazo (silêncio = aceite pelo contrato)
@@ -61,12 +62,12 @@ export function alertas() {
       const d = diasAte(a.prazo);
       if (d === null) return;
       if (d < 0) add({
-        id: 'apv_' + a.id, urg: 3,
+        id: 'apv_' + a.id, urg: 3, icone: '⏰',
         texto: `Prazo de aceite venceu sem resposta: ${a.titulo} — vale como aprovado`,
         rota: '#/aprovacoes'
       });
       else if (d <= 2) add({
-        id: 'apvp_' + a.id, urg: 1,
+        id: 'apvp_' + a.id, urg: 1, icone: '👀',
         texto: `Cliente tem ${d === 0 ? 'até hoje' : d + ' dia(s)'} para responder: ${a.titulo}`,
         rota: '#/aprovacoes'
       });
@@ -80,7 +81,7 @@ export function alertas() {
       if (!can(u, 'lanc.aprovar') && id !== u?.id) return;
       const c = saldoCaixa(id);
       if (c.saldo > 0) add({
-        id: 'caixa_' + id, urg: id === u?.id ? 2 : 1,
+        id: 'caixa_' + id, urg: id === u?.id ? 2 : 1, icone: '👛',
         texto: id === u?.id
           ? `Você tem ${fmtMoney(c.saldo)} da caixinha para comprovar ou devolver`
           : `${nome(id)} tem ${fmtMoney(c.saldo)} da caixinha em aberto`,
@@ -91,7 +92,7 @@ export function alertas() {
 
   // Etapas travadas
   store.doProjeto('etapas').filter((e) => e.status === 'travado').forEach((e) => {
-    add({ id: 'trav_' + e.id, urg: 2, texto: `Travado: ${e.nome}`, rota: '#/etapas' });
+    add({ id: 'trav_' + e.id, urg: 2, icone: '⛔', texto: `Travado: ${e.nome}`, rota: '#/etapas' });
   });
 
   // Compromissos de hoje/amanhã
@@ -101,7 +102,7 @@ export function alertas() {
     const meu = (ev.participantes || []).includes(u?.id);
     if (!meu && !can(u, 'agenda.ver')) return;
     add({
-      id: 'ev_' + ev.id, urg: d === 0 ? 3 : 1,
+      id: 'ev_' + ev.id, urg: d === 0 ? 3 : 1, icone: ev.tipo === 'viagem' ? '✈️' : ev.tipo === 'diaria' ? '🎬' : '📍',
       texto: `${d === 0 ? 'Hoje' : 'Amanhã'}: ${ev.titulo}${ev.hora_inicio ? ' às ' + ev.hora_inicio : ''}`,
       rota: '#/agenda'
     });

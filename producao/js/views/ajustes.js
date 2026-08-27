@@ -7,6 +7,7 @@ import { criarProjetoTeste } from '../seed.js';
 import { recarregarProjeto, SEED_VERSAO } from '../seed-bradesco.js';
 import { pedirPermissao } from '../notify.js';
 import { trocarSenha, temSenha } from '../pin.js';
+import { TEMAS, temaAtual, definirTema } from '../tema.js';
 import { APP, isRemote } from '../config.js';
 
 export function render() {
@@ -60,6 +61,14 @@ export function render() {
       ${can(u, 'projeto.edit') ? '<button class="btn wide gho sm" style="margin-top:8px" data-novo-proj>Novo projeto</button>' : ''}
     </div>
 
+    <div class="sec"><div class="sec-t">Aparência</div></div>
+    <div class="card">
+      <div class="seg">${TEMAS.map((t) => `<button data-tema="${t.v}"
+        class="${temaAtual() === t.v ? 'on' : ''}">${esc(t.t)}</button>`).join('')}</div>
+      <div class="small muted" style="padding-top:9px">No automático o app acompanha o tema do
+        seu celular. A escolha vale para as próximas vezes.</div>
+    </div>
+
     <div class="sec"><div class="sec-t">Avisos</div></div>
     <div class="card">
       <div class="row"><span class="g"><span class="t">Notificações no celular</span>
@@ -86,6 +95,9 @@ export function render() {
   node.querySelector('[data-trocar]')?.addEventListener('click', () => { store.setUser(null); location.hash = '#/'; });
   node.querySelector('[data-senha]')?.addEventListener('click', async () => {
     if (await trocarSenha(u)) store.emit();
+  });
+  node.querySelectorAll('[data-tema]').forEach((b) => {
+    b.onclick = () => { definirTema(b.dataset.tema); store.emit(); };
   });
   node.querySelector('[data-notif]')?.addEventListener('click', async () => {
     const r = await pedirPermissao();

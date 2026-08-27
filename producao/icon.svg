@@ -1,14 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-  <rect width="192" height="192" rx="42" fill="#0f1115"/>
-  <g fill="#f4b23e">
-    <path d="M28 66h136v76a10 10 0 0 1-10 10H38a10 10 0 0 1-10-10z" opacity=".9"/>
-  </g>
-  <g fill="#e9edf5">
-    <path d="M30 34h132a8 8 0 0 1 8 8v22H22V42a8 8 0 0 1 8-8z"/>
-  </g>
-  <g fill="#0f1115">
-    <path d="M46 34h20l-14 30H32z"/>
-    <path d="M86 34h20l-14 30H72z"/>
-    <path d="M126 34h20l-14 30h-20z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="Unit0">
+  <rect width="192" height="192" rx="44" fill="#12151b"/>
+  <g fill="none" stroke="#f4b23e" stroke-width="9" stroke-linejoin="round" stroke-linecap="round">
+    <circle cx="96" cy="96" r="62"/>
+    <path d="M130.00 96.00L113.00 125.44L79.00 125.44L62.00 96.00L79.00 66.56L113.00 66.56Z"/>
+    <path d="M130.00 96.00L140.60 139.07"/><path d="M113.00 125.44L81.00 156.16"/><path d="M79.00 125.44L36.40 113.09"/><path d="M62.00 96.00L51.40 52.93"/><path d="M79.00 66.56L111.00 35.84"/><path d="M113.00 66.56L155.60 78.91"/>
   </g>
 </svg>

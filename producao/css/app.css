@@ -1,11 +1,49 @@
+/* ============================================================================
+   Tema. O padrão do :root é o claro; o escuro entra por três caminhos, nesta
+   ordem de precedência: escolha explícita do usuário (data-tema), tema do
+   ambiente onde a página está embutida (data-theme) e, por fim, a preferência
+   do sistema. Toda cor da interface sai daqui — nada de cor solta no CSS.
+   ========================================================================= */
 :root{
-  --bg:#0f1115; --bg2:#161a21; --bg3:#1d222b; --line:#272d38;
-  --tx:#e9edf5; --tx2:#9aa5b8; --tx3:#6b7688;
-  --ac:#f4b23e; --ac2:#4c8dff;
-  --ok:#3ecf8e; --warn:#f0a33a; --bad:#f2555a; --info:#6aa9ff;
+  --bg:#f4f6f9; --bg2:#ffffff; --bg3:#eceff4; --line:#dde2ea;
+  --tx:#151a23; --tx2:#5b6478; --tx3:#8a93a5;
+  --ac:#a86a12; --ac-tx:#ffffff; --ac-soft:rgba(168,106,18,.10); --ac-line:rgba(168,106,18,.28);
+  --ac2:#2158d0;
+  --ok:#0f7a52; --warn:#9a5c08; --bad:#c02a33; --info:#2158d0;
+  --ok-bg:rgba(15,122,82,.10); --warn-bg:rgba(154,92,8,.12);
+  --bad-bg:rgba(192,42,51,.10); --info-bg:rgba(33,88,208,.10);
+  --scrim:rgba(20,24,32,.45); --sombra:0 8px 24px rgba(20,26,40,.16);
   --r:14px; --sp:16px;
   --safe-b: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
 }
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-tema="claro"]):not([data-theme="light"]){
+    --bg:#0f1115; --bg2:#161a21; --bg3:#1d222b; --line:#272d38;
+    --tx:#e9edf5; --tx2:#9aa5b8; --tx3:#6b7688;
+    --ac:#f4b23e; --ac-tx:#191203; --ac-soft:rgba(244,178,62,.12); --ac-line:rgba(244,178,62,.35);
+    --ac2:#4c8dff;
+    --ok:#3ecf8e; --warn:#f0a33a; --bad:#f2555a; --info:#6aa9ff;
+    --ok-bg:rgba(62,207,142,.14); --warn-bg:rgba(240,163,58,.15);
+    --bad-bg:rgba(242,85,90,.15); --info-bg:rgba(106,169,255,.15);
+    --scrim:rgba(0,0,0,.6); --sombra:0 8px 24px rgba(0,0,0,.45);
+    color-scheme: dark;
+  }
+}
+:root:not([data-tema="claro"])[data-theme="dark"],
+:root[data-tema="escuro"]{
+  --bg:#0f1115; --bg2:#161a21; --bg3:#1d222b; --line:#272d38;
+  --tx:#e9edf5; --tx2:#9aa5b8; --tx3:#6b7688;
+  --ac:#f4b23e; --ac-tx:#191203; --ac-soft:rgba(244,178,62,.12); --ac-line:rgba(244,178,62,.35);
+  --ac2:#4c8dff;
+  --ok:#3ecf8e; --warn:#f0a33a; --bad:#f2555a; --info:#6aa9ff;
+  --ok-bg:rgba(62,207,142,.14); --warn-bg:rgba(240,163,58,.15);
+  --bad-bg:rgba(242,85,90,.15); --info-bg:rgba(106,169,255,.15);
+  --scrim:rgba(0,0,0,.6); --sombra:0 8px 24px rgba(0,0,0,.45);
+  color-scheme: dark;
+}
+
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--tx)}
 body{font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -16,7 +54,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 
 /* layout */
 .app{min-height:100dvh;display:flex;flex-direction:column}
-.topbar{position:sticky;top:0;z-index:20;background:rgba(15,17,21,.92);backdrop-filter:blur(10px);
+.topbar{position:sticky;top:0;z-index:20;background:var(--bg);
   border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;
   display:flex;align-items:center;gap:10px}
 .topbar h1{font-size:16px;margin:0;font-weight:650;letter-spacing:.2px;flex:1;
@@ -35,18 +73,19 @@ main{flex:1;padding:14px 14px calc(96px + var(--safe-b));max-width:760px;width:1
 
 /* bottom nav */
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;
-  background:rgba(22,26,33,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);
+  background:var(--bg2);border-top:1px solid var(--line);
   padding:6px 4px calc(6px + var(--safe-b))}
 .tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;
   color:var(--tx3);font-size:10.5px;font-weight:600;border-radius:10px;position:relative}
 .tabbar a.on{color:var(--ac)}
-.tabbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;
+.tabbar a svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;
   stroke-linecap:round;stroke-linejoin:round}
 .tabbar .dot{position:absolute;top:4px;right:calc(50% - 16px);width:8px;height:8px;border-radius:50%;
   background:var(--bad);border:2px solid var(--bg2)}
 
 /* blocks */
 .card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.kpi,.card{box-shadow:0 1px 2px rgba(20,26,40,.04)}
 .card.tight{padding:10px 12px}
 .card h2,.sec-t{font-size:13px;margin:0 0 10px;color:var(--tx2);font-weight:650;
   text-transform:uppercase;letter-spacing:.6px}
@@ -74,25 +113,25 @@ main{flex:1;padding:14px 14px calc(96px + var(--safe-b));max-width:760px;width:1
 
 .tag{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:999px;
   background:var(--bg3);color:var(--tx2);letter-spacing:.3px;text-transform:uppercase;white-space:nowrap}
-.tag.ok{background:rgba(62,207,142,.14);color:var(--ok)}
-.tag.warn{background:rgba(240,163,58,.15);color:var(--warn)}
-.tag.bad{background:rgba(242,85,90,.15);color:var(--bad)}
-.tag.info{background:rgba(106,169,255,.15);color:var(--info)}
+.tag.ok{background:var(--ok-bg);color:var(--ok)}
+.tag.warn{background:var(--warn-bg);color:var(--warn)}
+.tag.bad{background:var(--bad-bg);color:var(--bad)}
+.tag.info{background:var(--info-bg);color:var(--info)}
 .tag.mut{background:var(--bg3);color:var(--tx3)}
 
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line);
   background:var(--bg3);color:var(--tx);border-radius:11px;padding:11px 14px;font-weight:650;font-size:14px;
   cursor:pointer;min-height:44px}
 .btn:active{transform:scale(.985)}
-.btn.pri{background:var(--ac);border-color:var(--ac);color:#191203}
+.btn.pri{background:var(--ac);border-color:var(--ac);color:var(--ac-tx)}
 .btn.gho{background:transparent}
 .btn.sm{padding:7px 11px;min-height:36px;font-size:13px;border-radius:9px}
 .btn.wide{width:100%}
 .btn.danger{color:var(--bad);border-color:rgba(242,85,90,.4)}
 .btns{display:flex;gap:8px;flex-wrap:wrap}
 .fab{position:fixed;right:16px;bottom:calc(84px + var(--safe-b));z-index:25;width:56px;height:56px;
-  border-radius:50%;background:var(--ac);color:#191203;border:0;font-size:28px;font-weight:400;
-  box-shadow:0 8px 24px rgba(0,0,0,.45);display:grid;place-items:center;cursor:pointer}
+  border-radius:50%;background:var(--ac);color:var(--ac-tx);border:0;font-size:28px;font-weight:400;
+  box-shadow:var(--sombra);display:grid;place-items:center;cursor:pointer}
 
 .bar{height:7px;border-radius:99px;background:var(--bg3);overflow:hidden;margin-top:8px}
 .bar i{display:block;height:100%;background:var(--ac);border-radius:99px}
@@ -112,7 +151,7 @@ main{flex:1;padding:14px 14px calc(96px + var(--safe-b));max-width:760px;width:1
 .stack>*+*{margin-top:8px}
 
 /* sheet / modal */
-.scrim{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;opacity:0;transition:opacity .18s}
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:50;opacity:0;transition:opacity .18s}
 .scrim.in{opacity:1}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:51;background:var(--bg2);
   border-radius:20px 20px 0 0;border-top:1px solid var(--line);max-height:92dvh;display:flex;
@@ -148,12 +187,12 @@ main{flex:1;padding:14px 14px calc(96px + var(--safe-b));max-width:760px;width:1
 
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + var(--safe-b));z-index:80;
   background:var(--tx);color:var(--bg);padding:11px 16px;border-radius:11px;font-weight:650;font-size:13.5px;
-  box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:88vw;text-align:center}
+  box-shadow:var(--sombra);max-width:88vw;text-align:center}
 
-.banner{background:rgba(76,141,255,.1);border:1px solid rgba(76,141,255,.3);color:#cfe0ff;
+.banner{background:var(--info-bg);border:1px solid var(--info);color:var(--tx);
   border-radius:var(--r);padding:11px 13px;font-size:13px;margin-bottom:12px}
-.banner.warn{background:rgba(240,163,58,.1);border-color:rgba(240,163,58,.32);color:#ffdca8}
-.banner.bad{background:rgba(242,85,90,.1);border-color:rgba(242,85,90,.32);color:#ffc9cb}
+.banner.warn{background:var(--warn-bg);border-color:var(--warn)}
+.banner.bad{background:var(--bad-bg);border-color:var(--bad)}
 
 .tl{position:relative;padding-left:22px}
 .tl::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--line)}
@@ -175,3 +214,56 @@ main{flex:1;padding:14px 14px calc(96px + var(--safe-b));max-width:760px;width:1
 .f input.pin{font-size:28px;letter-spacing:14px;text-align:center;padding:14px 12px;
   font-variant-numeric:tabular-nums}
 .f input.pin::placeholder{letter-spacing:10px;opacity:.35}
+
+/* ============================================================================
+   Desktop. O app nasceu para o celular; a partir de 900px a navegação vira uma
+   coluna fixa à esquerda e o conteúdo se espalha em duas colunas, para a tela
+   grande não ficar com cara de celular esticado.
+   ========================================================================= */
+.marca{display:block;color:var(--tx)}
+.marca svg{width:100%;height:auto;display:block}
+.tabbar .brand{display:none}
+
+@media (min-width:900px){
+  .app{padding-left:224px}
+  .tabbar{top:0;bottom:0;right:auto;width:224px;flex-direction:column;justify-content:flex-start;
+    border-top:0;border-right:1px solid var(--line);padding:20px 12px;gap:2px}
+  .tabbar .brand{display:block;padding:6px 14px 24px}
+  .tabbar .brand .marca{width:124px}
+  .tabbar a{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;
+    padding:11px 14px;font-size:14.5px;width:100%}
+  .tabbar a.on{background:var(--bg3)}
+  .tabbar a svg{width:20px;height:20px}
+  .tabbar .dot{position:static;margin-left:auto;border-color:var(--bg2)}
+  .topbar{padding:18px 28px;border-bottom:1px solid var(--line)}
+  .topbar h1{font-size:20px}
+  main{padding:24px 28px 48px;max-width:1240px;margin:0}
+  .fab{right:36px;bottom:36px;width:60px;height:60px}
+  .grid{grid-template-columns:repeat(4,1fr)}
+  .grid3{grid-template-columns:repeat(3,1fr)}
+  .sheet{max-width:600px;border-radius:20px;bottom:auto;top:50%;left:50%;right:auto;
+    transform:translate(-50%,-45%) scale(.98);opacity:0;max-height:86dvh}
+  .sheet.in{transform:translate(-50%,-50%) scale(1);opacity:1}
+  .sheet-f{padding-bottom:16px}
+  .kpi .v{font-size:22px}
+
+  /* painel em duas colunas, cada bloco inteiro numa coluna só */
+  .dash{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 22px;align-items:start}
+  .dash > .bloco{grid-column:auto}
+  .dash > .bloco.largo{grid-column:1 / -1}
+  /* na tela grande o dinheiro sobe para a faixa do topo e os demais blocos
+     dividem as colunas sem deixar buraco */
+  .dash > .bloco.topo{order:-2}
+  .dash > .bloco.dinheiro{order:-1}
+  .bloco > .sec:first-child{margin-top:14px}
+}
+@media (min-width:1280px){
+  .dash{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .dash > .bloco.largo{grid-column:1 / -1}
+}
+
+/* símbolo à esquerda das linhas do painel */
+.ico{flex:none;width:30px;height:30px;border-radius:9px;background:var(--bg3);display:grid;
+  place-items:center;font-size:15px;line-height:1}
+.ico.urg{background:var(--bad-bg)}
+.ico.med{background:var(--warn-bg)}

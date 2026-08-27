@@ -97,6 +97,17 @@ function campoHTML(c) {
     case 'area':
       inner = `<textarea id="${id}" data-k="${c.k}" placeholder="${esc(c.ph || '')}">${esc(v)}</textarea>`;
       break;
+    case 'livre': {
+      const val = v ?? '';
+      const naLista = (c.opts || []).some((o) => String(o.v) === String(val));
+      inner = `<select id="${id}" data-k="${c.k}" data-livre="${c.k}">
+          ${(c.opts || []).map((o) => `<option value="${esc(o.v)}"${String(o.v) === String(val) ? ' selected' : ''}>${esc(o.t)}</option>`).join('')}
+          <option value="__outra"${!naLista && val ? ' selected' : ''}>— outra, digitar —</option>
+        </select>
+        <input data-k="${c.k}__livre" type="text" placeholder="${esc(c.ph || 'Escreva a função')}"
+          value="${esc(naLista ? '' : val)}" style="margin-top:8px${naLista || !val ? ';display:none' : ''}">`;
+      break;
+    }
     case 'select':
       inner = `<select id="${id}" data-k="${c.k}">${(c.opts || []).map((o) =>
         `<option value="${esc(o.v)}"${String(o.v) === String(v) ? ' selected' : ''}>${esc(o.t)}</option>`).join('')}</select>`;
@@ -169,6 +180,17 @@ export function abrirForm({ titulo, subtitulo, campos, onSave, onDelete, onArqui
     escolherArquivo(k) { corpo.querySelector(`[data-k="${k}"]`)?.click(); }
   };
 
+  // "— outra, digitar —" revela o campo de texto ao lado.
+  corpo.querySelectorAll('[data-livre]').forEach((sel) => {
+    const txt = corpo.querySelector(`[data-k="${sel.dataset.livre}__livre"]`);
+    if (!txt) return;
+    sel.onchange = () => {
+      const outra = sel.value === '__outra';
+      txt.style.display = outra ? '' : 'none';
+      if (outra) txt.focus();
+    };
+  });
+
   corpo.querySelectorAll('input[type=file]').forEach((inp) => {
     inp.onchange = async () => {
       const n = inp.closest('.filebox');
@@ -213,7 +235,11 @@ export function abrirForm({ titulo, subtitulo, campos, onSave, onDelete, onArqui
         else if (c.type === 'arquivo') vals[c.k] = inp.files[0] || null;
         else if (c.type === 'dinheiro') vals[c.k] = parseMoney(inp.value);
         else if (c.type === 'numero') vals[c.k] = inp.value === '' ? null : Number(inp.value);
-        else vals[c.k] = inp.value.trim();
+        else if (c.type === 'livre') {
+          vals[c.k] = inp.value === '__outra'
+            ? (corpo.querySelector(`[data-k="${c.k}__livre"]`)?.value || '').trim()
+            : inp.value;
+        } else vals[c.k] = inp.value.trim();
       }
       const vazio = c.type === 'multi' ? !vals[c.k].length
         : c.type === 'dinheiro' ? !vals[c.k]
@@ -248,6 +274,9 @@ export function btnOlho(oculto) {
     aria-label="${oculto ? 'Mostrar valores' : 'Ocultar valores'}"
     title="${oculto ? 'Mostrar valores' : 'Ocultar valores'}">${oculto ? ICO.olhoOff : ICO.olho}</button>`;
 }
+
+/** Marca do Unit0: o zero é um diafragma de lente. Inline para herdar a cor do tema. */
+export const MARCA = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" role="img" aria-label="Unit0">  <text x="6" y="56" font-family="-apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif"        font-size="52" font-weight="700" letter-spacing="-1.5" fill="currentColor">UNIT</text>  <g fill="none" stroke="#f4b23e" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round">    <circle cx="156" cy="40" r="30"/>    <path d="M172.00 40.00L164.00 53.86L148.00 53.86L140.00 40.00L148.00 26.14L164.00 26.14Z"/>    <path d="M172.00 40.00L177.58 60.84"/><path d="M164.00 53.86L148.74 69.11"/><path d="M148.00 53.86L127.16 48.27"/><path d="M140.00 40.00L134.42 19.16"/><path d="M148.00 26.14L163.26 10.89"/><path d="M164.00 26.14L184.84 31.73"/>  </g></svg>';
 
 /* ---------------- ícones ---------------- */
 export const ICO = {

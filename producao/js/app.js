@@ -2,11 +2,12 @@
 import { store } from './store.js';
 import { isRemote, APP } from './config.js';
 import { can, ehEquipe, PAPEIS } from './perms.js';
-import { el, toast, abrirForm, confirmar, ICO } from './ui.js';
+import { el, toast, abrirForm, confirmar, ICO, MARCA } from './ui.js';
 import { esc, iniciais, valoresOcultos, alternarValores } from './utils.js';
 import { criarProjetoBradesco, recarregarProjeto, SEED_VERSAO } from './seed-bradesco.js';
 import { alertas, iniciarMonitor } from './notify.js';
 import { autenticar, temSenha } from './pin.js';
+import { aplicarTema } from './tema.js';
 
 import * as vDash from './views/dash.js';
 import * as vEtapas from './views/etapas.js';
@@ -45,8 +46,7 @@ const rotaAtual = () => (location.hash || '#/').slice(1).split('?')[0] || '/';
 /* ---------------- login ---------------- */
 function telaBoasVindas() {
   const node = el(`<div class="login">
-    <img src="icon.svg" class="logo" alt="">
-    <h1>${esc(APP.nome)}</h1>
+    <span class="marca" style="width:180px;display:block;margin-bottom:18px">${MARCA}</span>
     <p>Gestão de produção audiovisual: negociação, pré, produção, pós, dinheiro
       e equipe — tudo no celular.</p>
     <button class="btn pri wide" data-comecar>Começar</button>
@@ -117,8 +117,7 @@ function telaQuemEVoce() {
 
 function telaLoginRemoto() {
   const node = el(`<div class="login">
-    <img src="icon.svg" class="logo" alt="">
-    <h1>${esc(APP.nome)}</h1>
+    <span class="marca" style="width:180px;display:block;margin-bottom:18px">${MARCA}</span>
     <p>Entre com seu e-mail. A gente manda um link de acesso — sem senha.</p>
     <div class="f"><label>E-mail</label><input type="email" data-email placeholder="voce@email.com"></div>
     <button class="btn pri wide" data-enviar>Receber link de acesso</button>
@@ -160,7 +159,7 @@ function tabs() {
     { r: '#/mais', i: ICO.mais, t: 'Mais' }
   ];
   const atual = '#' + rotaAtual();
-  return `<nav class="tabbar">${itens.map((x) => `<a href="${x.r}" class="${atual === x.r || (x.r === '#/' && atual === '#/') ? 'on' : ''}">
+  return `<nav class="tabbar"><div class="brand"><span class="marca">${MARCA}</span></div>${itens.map((x) => `<a href="${x.r}" class="${atual === x.r || (x.r === '#/' && atual === '#/') ? 'on' : ''}">
     ${x.i}<span>${x.t}</span>${x.dot ? '<span class="dot"></span>' : ''}</a>`).join('')}</nav>`;
 }
 
@@ -227,6 +226,9 @@ export function render() {
 
 /* ---------------- start ---------------- */
 async function start() {
+  aplicarTema();
+  window.matchMedia?.('(prefers-color-scheme: dark)')
+    .addEventListener?.('change', () => { aplicarTema(); render(); });
   try {
     await store.init();
   } catch (e) {
