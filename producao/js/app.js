@@ -28,6 +28,7 @@ const ROTAS = {
   '/painel': () => vDash.render(),
   '/etapas': () => vEtapas.render(),
   '/agenda': () => vAgenda.render(),
+  '/viagens': () => { vAgenda.irPara('viagens'); return vAgenda.render(); },
   '/financeiro': () => vFin.render(),
   '/contas': () => { vFin.irPara('contas'); return vFin.render(); },
   '/pagamentos': () => { vFin.irPara('pagamentos'); return vFin.render(); },

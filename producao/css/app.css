@@ -68,6 +68,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .olho.sm{width:28px;height:28px;border-radius:8px}
 .olho.sm svg{width:16px;height:16px}
 .sec .olho{margin-left:auto}
+.avatar.sm{width:22px;height:22px;font-size:9px}
 .avatar{width:34px;height:34px;border-radius:50%;background:var(--bg3);border:1px solid var(--line);
   display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--ac);flex:none}
 main{flex:1;padding:14px 14px calc(96px + var(--safe-b));max-width:760px;width:100%;margin:0 auto}

@@ -74,6 +74,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .olho.sm{width:28px;height:28px;border-radius:8px}
 .olho.sm svg{width:16px;height:16px}
 .sec .olho{margin-left:auto}
+.avatar.sm{width:22px;height:22px;font-size:9px}
 .avatar{width:34px;height:34px;border-radius:50%;background:var(--bg3);border:1px solid var(--line);
   display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--ac);flex:none}
 main{flex:1;padding:14px 14px calc(96px + var(--safe-b));max-width:760px;width:100%;margin:0 auto}
@@ -293,7 +294,7 @@ const KEY = 'unit0:db:v1';
 const TABELAS = [
   'projetos', 'membros', 'etapas', 'tarefas', 'eventos', 'entregas',
   'orcamento', 'lancamentos', 'contas', 'contratos', 'documentos',
-  'confirmacoes', 'atividades', 'locacoes', 'caixa', 'aprovacoes', 'contatos'
+  'confirmacoes', 'atividades', 'locacoes', 'caixa', 'aprovacoes', 'contatos', 'viagens'
 ];
 
 const vazio = () => {
@@ -429,6 +430,7 @@ const ROTAS = {
   '/painel': () => vDash.render(),
   '/etapas': () => vEtapas.render(),
   '/agenda': () => vAgenda.render(),
+  '/viagens': () => { vAgenda.irPara('viagens'); return vAgenda.render(); },
   '/financeiro': () => vFin.render(),
   '/contas': () => { vFin.irPara('contas'); return vFin.render(); },
   '/pagamentos': () => { vFin.irPara('pagamentos'); return vFin.render(); },
@@ -1545,7 +1547,7 @@ const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-const SEED_VERSAO = 5;
+const SEED_VERSAO = 6;
 
 const PESSOAS = [
   {
@@ -1791,6 +1793,33 @@ const AGENDA = [
   ['2027-01-07', 'outro', 'Pagamento — 2ª parcela (50%)', '', false,
     'Pelo contrato: faturada na entrega final e paga em até 30 dias corridos (cláusula 6.1.II). '
     + 'A planilha e a agenda marcam 09/12/2026 — vale o contrato.']
+];
+
+// As 11 viagens da aba "custo viagem " da planilha, com orçado por viagem.
+// [nº, título, ida, volta, sai de, vai para, orçado, situação, observação]
+const VIAGENS = [
+  ['1', 'SP → Palmas → Conceição do Araguaia', '2026-08-23', '2026-08-26', 'São Paulo (CGH)', 'Conceição do Araguaia (PA)',
+    '16026', 'feita', 'Voo GOL via Brasília, localizador WFNEWO. Carro Movida retirado em Palmas. 395 km / 5h07 até a escola.'],
+  ['2', 'SP → Recife → Jaboatão', '2026-08-30', '2026-09-02', 'São Paulo (GRU)', 'Jaboatão dos Guararapes (PE)',
+    '15350', 'confirmada', 'Azul 4232 / 4320, localizador ZWQY3Q. Carro Movida no aeroporto. Rede Andrade LG Inn em Boa Viagem.'],
+  ['3', 'SP → Porto Alegre → Gravataí', '2026-09-09', '2026-09-12', 'São Paulo', 'Gravataí (RS)',
+    '14900', 'confirmada', 'Voo ainda não fechado. POA → Gravataí: 30 km.'],
+  ['4', 'SP → Campo Grande → Bodoquena', '2026-09-15', '2026-09-19', 'São Paulo', 'Miranda (MS)',
+    '14900', 'prevista', 'Datas de filmagem ainda não confirmadas pela Fundação. 250–265 km / 3h38 do aeroporto.'],
+  ['5', 'SP → Palmas → Canuanã', '2026-09-21', '2026-09-25', 'São Paulo', 'Formoso do Araguaia (TO)',
+    '14900', 'prevista', 'Datas de filmagem ainda não confirmadas pela Fundação. 330 km / 4h16 do aeroporto.'],
+  ['6', 'SP → Osasco', '2026-10-06', '2026-10-08', 'São Paulo', 'Osasco (SP)',
+    '7300', 'prevista', 'Sem voo — só carro. Datas ainda não confirmadas.'],
+  ['7', 'SP → Belém (Patricia Brasil)', '2026-10-12', '2026-10-14', 'São Paulo', 'Belém (PA)',
+    '13900', 'prevista', 'Entrevista de estúdio. Data prevista.'],
+  ['8', 'São Paulo (Lalo de Almeida)', '2026-10-15', '2026-10-15', 'São Paulo', 'São Paulo (SP)',
+    '7000', 'prevista', 'Entrevista de estúdio, sem voo. Data prevista.'],
+  ['9', 'SP → Salvador (Edgar Azevedo)', '2026-10-19', '2026-10-21', 'São Paulo', 'Salvador (BA)',
+    '13900', 'prevista', 'Entrevista de estúdio. Data prevista.'],
+  ['10', 'Salvador → Curitiba (Vilma Slomp)', '2026-10-21', '2026-10-23', 'Salvador', 'Curitiba (PR)',
+    '13900', 'prevista', 'Entrevista de estúdio. Data prevista.'],
+  ['11', 'São Paulo (Maíra Erlich)', '2026-10-26', '2026-10-27', 'São Paulo', 'São Paulo (SP)',
+    '6800', 'prevista', 'Entrevista de estúdio, sem voo. Data prevista.']
 ];
 
 const ETAPAS = [
@@ -2084,6 +2113,30 @@ async function criarProjetoBradesco() {
       status: 'aprovado', aprovado_por: membros['Maví Simões'],
       obs: 'Veio da aba "verba a vista" da planilha. Falta anexar o comprovante.'
     });
+  }
+
+  /* viagens */
+  const viagens = {};
+  for (const [numero, titulo, ida, volta, origem, destino, orcado, status, obs] of VIAGENS) {
+    const v = await store.insert('viagens', {
+      projeto_id: P, numero, titulo, ida, volta, origem, destino,
+      orcado_cents: M(orcado), status, obs, participantes: viajantes
+    });
+    viagens[numero] = v.id;
+  }
+  // Amarra o que já sabemos: eventos e compromissos caem na viagem pela data.
+  const daData = (d) => VIAGENS.find(([, , ida, volta]) => d >= ida && d <= volta)?.[0];
+  for (const e of store.doProjeto('eventos')) {
+    const n = daData(e.data);
+    if (n) await store.update('eventos', e.id, { viagem_id: viagens[n] });
+  }
+  for (const c of store.doProjeto('contas')) {
+    const n = c.venc && daData(c.venc);
+    if (n && c.tipo === 'pagar') await store.update('contas', c.id, { viagem_id: viagens[n] });
+  }
+  for (const l of store.doProjeto('lancamentos')) {
+    const n = daData(l.data);
+    if (n) await store.update('lancamentos', l.id, { viagem_id: viagens[n] });
   }
 
   /* confirmações de passagem das duas primeiras viagens */
@@ -2870,6 +2923,7 @@ __defs["js/views/agenda.js"] = function () {
 // horário de chamada por pessoa e confirmação de presença.
 const { store, membros, nomeMembro } = __req("js/store.js");
 const { can, ehEquipe } = __req("js/perms.js");
+const vViagens = __req("js/views/viagens.js");
 const { el, abrirForm, sheet, toast, escolher } = __req("js/ui.js");
 const { esc, fmtData, prazoTxt, prazoTag, diaSemana, diasAte, groupBy, ordenar } = __req("js/utils.js");
 const { tipoEvento } = __req("js/views/dash.js");
@@ -2879,6 +2933,21 @@ const { abrirLancamento, camposLancamento, salvarLancamento, lerNotaNoForm, conf
 const { podeVerTudo } = __req("js/perms.js");
 let aba = 'proximos';
 let modo = 'detalhe';   // detalhe = cartão completo, lista = linha compacta
+let secao = 'agenda';   // agenda | viagens
+
+const irPara = (s) => { secao = s; };
+
+const CHIPS = `<div class="chips" data-chips-log>
+  <button class="chip" data-log="agenda">Agenda</button>
+  <button class="chip" data-log="viagens">Viagens</button>
+</div>`;
+
+function ligarLog(node) {
+  node.querySelectorAll('[data-log]').forEach((b) => {
+    b.classList.toggle('on', secao === b.dataset.log);
+    b.onclick = () => { secao = b.dataset.log; store.emit(); };
+  });
+}
 
 const TIPOS = [
   { v: 'diaria', t: 'Diária de gravação' }, { v: 'viagem', t: 'Viagem / deslocamento' },
@@ -2895,6 +2964,12 @@ const mapaURL = (txt) => 'https://www.google.com/maps/search/?api=1&query=' + en
 
 function render() {
   const u = store.user;
+  if (secao === 'viagens') {
+    const v = vViagens.render();
+    v.node.prepend(el(CHIPS));
+    ligarLog(v.node);
+    return { titulo: 'Agenda', node: v.node, fab: v.fab };
+  }
   const editar = can(u, 'agenda.edit');
   const soMinha = ehEquipe(u) && !can(u, 'agenda.ver');
   const node = el('<div></div>');
@@ -2918,6 +2993,7 @@ function render() {
     : '<div class="empty">Nada por aqui.</div>';
 
   node.innerHTML = `
+    ${CHIPS}
     <div class="chips">
       <button class="chip ${aba === 'proximos' ? 'on' : ''}" data-aba="proximos">Próximos</button>
       ${soMinha ? '' : `<button class="chip ${aba === 'minha' ? 'on' : ''}" data-aba="minha">Minha agenda</button>`}
@@ -2930,6 +3006,7 @@ function render() {
     </div>`}
     ${aba === 'entregas' ? blocoEntregas(entregas) : agendaHTML}`;
 
+  ligarLog(node);
   node.querySelectorAll('[data-aba]').forEach((b) => { b.onclick = () => { aba = b.dataset.aba; store.emit(); }; });
   node.querySelectorAll('[data-modo]').forEach((b) => { b.onclick = () => { modo = b.dataset.modo; store.emit(); }; });
   node.querySelectorAll('[data-ev]').forEach((n) => { n.onclick = () => abrirEvento(store.get('eventos', n.dataset.ev)); });
@@ -3322,7 +3399,7 @@ function abrirEntrega(e, editar) {
   });
 }
 
-  return { stEntrega, render, ordemDoDia };
+  return { irPara, stEntrega, render, ordemDoDia };
 };
 
 __defs["js/views/ajustes.js"] = function () {
@@ -6316,6 +6393,212 @@ function abrir(t) {
 }
 
   return { ST_TAREFA, statusDe, emAberto, atrasadas, minhasTarefas, render, nova };
+};
+
+__defs["js/views/viagens.js"] = function () {
+// Viagens: o bloco logístico. Cada ida e volta com quem vai, o que já está
+// fechado (voo, hotel, carro) e quanto custou de verdade contra o orçado.
+const { store, nomeMembro, membros } = __req("js/store.js");
+const { can } = __req("js/perms.js");
+const { el, abrirForm, sheet, toast, btnOlho } = __req("js/ui.js");
+const { esc, fmtMoney, fmtMoneyShort, fmtData, ordenar, soma, iniciais, diasAte, valoresOcultos } = __req("js/utils.js");
+const ST_VIAGEM = {
+  prevista: { t: 'Data prevista', tag: 'warn' },
+  confirmada: { t: 'Confirmada', tag: 'ok' },
+  feita: { t: 'Já rodou', tag: 'mut' }
+};
+const st = (v) => ST_VIAGEM[v] || ST_VIAGEM.prevista;
+
+// O que toda viagem precisa ter fechado antes de embarcar.
+const ITENS = [
+  { k: 'passagens', icone: '✈️', t: 'Voo' },
+  { k: 'hospedagem', icone: '🏨', t: 'Hotel' },
+  { k: 'transporte', icone: '🚗', t: 'Carro' }
+];
+
+const noPeriodo = (data, v) => Boolean(data) && data >= v.ida && data <= (v.volta || v.ida);
+
+/** Contas amarradas na viagem — por vínculo explícito ou pela data. */
+function contasDaViagem(v) {
+  return store.doProjeto('contas').filter((c) => c.tipo === 'pagar'
+    && (c.viagem_id === v.id || (!c.viagem_id && noPeriodo(c.venc, v))));
+}
+
+function eventosDaViagem(v) {
+  return ordenar(store.doProjeto('eventos').filter((e) => e.viagem_id === v.id || noPeriodo(e.data, v)),
+    (e) => e.data);
+}
+
+/** Orçado, fechado e já gasto de uma viagem. */
+function contaDaViagem(v) {
+  const contas = contasDaViagem(v);
+  const gastos = store.doProjeto('lancamentos').filter((l) => l.tipo === 'saida'
+    && l.status !== 'rejeitado' && (l.viagem_id === v.id || (!l.viagem_id && noPeriodo(l.data, v))));
+  const fechado = soma(contas, (c) => c.valor_cents);
+  return {
+    contas, gastos, fechado,
+    orcado: v.orcado_cents || 0,
+    gasto: soma(gastos, (l) => l.valor_cents),
+    aPagar: soma(contas.filter((c) => c.status === 'aberto'), (c) => c.valor_cents),
+    faltando: ITENS.filter((i) => !contas.some((c) => c.categoria === i.k))
+  };
+}
+
+function render() {
+  const u = store.user;
+  const editar = can(u, 'agenda.edit');
+  const vs = ordenar(store.doProjeto('viagens'), (v) => v.ida);
+  const node = el('<div></div>');
+
+  const proximas = vs.filter((v) => v.status !== 'feita');
+  const totalOrcado = soma(vs, (v) => v.orcado_cents || 0);
+  const totalFechado = soma(vs, (v) => contaDaViagem(v).fechado);
+
+  node.innerHTML = `
+    <div class="sec" style="margin-top:4px"><div class="sec-t">Viagens</div>${btnOlho(valoresOcultos())}</div>
+    <div class="grid">
+      <div class="kpi"><div class="l">Viagens</div><div class="v">${vs.length}</div>
+        <div class="h">${proximas.length} ainda por rodar</div></div>
+      <div class="kpi"><div class="l">Orçado</div><div class="v">${fmtMoneyShort(totalOrcado)}</div>
+        <div class="h">fechado ${fmtMoneyShort(totalFechado)}</div></div>
+    </div>
+    ${vs.length ? vs.map((v) => cartao(v, u)).join('') : '<div class="empty">Nenhuma viagem cadastrada.</div>'}`;
+
+  node.querySelectorAll('[data-viagem]').forEach((n) => {
+    n.onclick = () => abrir(store.get('viagens', n.dataset.viagem), editar);
+  });
+
+  return {
+    titulo: 'Viagens',
+    node,
+    fab: editar ? { label: '+', onClick: () => editarViagem({}) } : null
+  };
+}
+
+function cartao(v, u) {
+  const c = contaDaViagem(v);
+  const s = st(v.status);
+  const meu = (v.participantes || []).includes(u?.id);
+  const dias = diasAte(v.ida);
+  const quando = v.status === 'feita' ? 'já rodou'
+    : dias === 0 ? 'é hoje' : dias > 0 ? `em ${dias} dia${dias > 1 ? 's' : ''}` : 'em curso';
+
+  return `<div class="card act" data-viagem="${v.id}" style="cursor:pointer">
+    <div style="display:flex;gap:11px;align-items:flex-start">
+      <span class="ico ${dias === 0 ? 'urg' : ''}">${v.numero || '✈️'}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:650;font-size:15px">${esc(v.titulo)}</div>
+        <div class="small muted" style="margin-top:2px">
+          ${esc(fmtData(v.ida))} → ${esc(fmtData(v.volta || v.ida))} · ${esc(quando)}</div>
+      </div>
+      <span class="tag ${s.tag}">${esc(s.t)}</span>
+    </div>
+    <div class="row" style="border:0;padding:9px 0 0">
+      <span class="g"><span class="s">Orçado ${fmtMoney(c.orcado)}</span>
+        <span class="t">${c.fechado ? `fechado ${fmtMoney(c.fechado)}` : 'nada fechado ainda'}</span></span>
+      ${c.aPagar ? `<span class="r"><span class="v" style="color:var(--warn)">${fmtMoney(c.aPagar)}</span>
+        <div class="small muted">a pagar</div></span>` : ''}
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+      ${ITENS.map((i) => {
+        const ok = !c.faltando.some((f) => f.k === i.k);
+        return `<span class="tag ${ok ? 'ok' : 'warn'}">${i.icone} ${esc(i.t)}${ok ? '' : ' —'}</span>`;
+      }).join('')}
+      ${(v.participantes || []).map((id) => `<span class="avatar sm">${esc(iniciais(nomeMembro(id)))}</span>`).join('')}
+      ${meu ? '<span class="tag info">você vai</span>' : ''}
+    </div>`
+    + '</div>';
+}
+
+function abrir(v, editar) {
+  if (!v) return;
+  const c = contaDaViagem(v);
+  const evs = eventosDaViagem(v);
+  const s = st(v.status);
+  const diff = c.orcado - c.fechado;
+
+  const corpo = `
+    <div class="card tight">
+    <div class="row"><span class="g"><span class="s">Quando</span>
+      <span class="t">${esc(fmtData(v.ida))} → ${esc(fmtData(v.volta || v.ida))}</span></span>
+      <span class="r"><span class="tag ${s.tag}">${esc(s.t)}</span></span></div>
+    ${v.origem || v.destino ? `<div class="row"><span class="g"><span class="s">Trajeto</span>
+      <span class="t">${esc([v.origem, v.destino].filter(Boolean).join(' → '))}</span></span></div>` : ''}
+    ${(v.participantes || []).length ? `<div class="row"><span class="g"><span class="s">Quem vai</span>
+      <span class="t">${esc((v.participantes || []).map(nomeMembro).join(', '))}</span></span></div>` : ''}
+    ${v.obs ? `<div class="row"><span class="g"><span class="s">Observação</span>
+      <span class="t" style="white-space:normal">${esc(v.obs)}</span></span></div>` : ''}
+    </div>
+
+    <div class="sec"><div class="sec-t">Dinheiro</div></div>
+    <div class="card">
+      <div class="row"><span class="g"><span class="t">Orçado</span></span>
+        <span class="r"><span class="v">${fmtMoney(c.orcado)}</span></span></div>
+      <div class="row"><span class="g"><span class="t">Já fechado</span>
+        <span class="s">${c.contas.length} compromisso(s)</span></span>
+        <span class="r"><span class="v">${fmtMoney(c.fechado)}</span></span></div>
+      <div class="row"><span class="g"><span class="t">${diff >= 0 ? 'Sobra do orçado' : 'Estouro'}</span>
+        <span class="s">orçado − fechado</span></span>
+        <span class="r"><span class="v" style="color:${diff < 0 ? 'var(--bad)' : 'var(--ok)'}">${fmtMoney(Math.abs(diff))}</span></span></div>
+      ${c.gasto ? `<div class="row"><span class="g"><span class="t">Já saiu do caixa</span>
+        <span class="s">inclui os compromissos pagos + notas e caixinha</span></span>
+        <span class="r"><span class="v">${fmtMoney(c.gasto)}</span></span></div>` : ''}
+    </div>
+
+    ${c.faltando.length ? `<div class="banner warn small">Falta fechar:
+      ${c.faltando.map((i) => `<b>${esc(i.t)}</b>`).join(' · ')}.</div>` : ''}
+
+    ${c.contas.length ? `<div class="sec"><div class="sec-t">Compromissos</div></div>
+      <div class="card">${c.contas.map((x) => `<div class="row">
+        <span class="tag ${x.status === 'quitado' ? 'ok' : 'warn'}">${x.status === 'quitado' ? 'pago' : 'aberto'}</span>
+        <span class="g"><span class="t">${esc(x.descricao)}</span>
+          <span class="s">${esc(x.contraparte || '')}</span></span>
+        <span class="r"><span class="v">${fmtMoney(x.valor_cents)}</span></span></div>`).join('')}</div>` : ''}
+
+    ${evs.length ? `<div class="sec"><div class="sec-t">Na agenda</div></div>
+      <div class="card">${evs.map((e) => `<div class="row">
+        <span class="tag ${e.tipo === 'diaria' ? 'ok' : 'info'}">${esc(fmtData(e.data).slice(0, 5))}</span>
+        <span class="g"><span class="t">${esc(e.titulo)}</span>
+          <span class="s">${esc(e.local || '')}</span></span></div>`).join('')}</div>` : ''}`;
+
+  const nodeCorpo = el(`<div>${corpo}
+    ${editar ? '<button class="btn wide gho" data-edit>Editar viagem</button>' : ''}</div>`);
+  const sh = sheet({ titulo: `${v.numero ? 'Viagem ' + v.numero + ' — ' : ''}${v.titulo}`, corpo: nodeCorpo });
+  nodeCorpo.querySelector('[data-edit]')?.addEventListener('click', () => { sh.close(); editarViagem(v); });
+}
+
+function editarViagem(v) {
+  const nova = !v.id;
+  abrirForm({
+    titulo: nova ? 'Nova viagem' : 'Editar viagem',
+    campos: [
+      { k: 'numero', label: 'Nº', type: 'texto', valor: v.numero || '', meia: true },
+      {
+        k: 'status', label: 'Situação', type: 'select', meia: true, valor: v.status || 'prevista',
+        opts: Object.entries(ST_VIAGEM).map(([k, o]) => ({ v: k, t: o.t }))
+      },
+      { k: 'titulo', label: 'Viagem', type: 'texto', req: true, valor: v.titulo || '' },
+      { k: 'ida', label: 'Ida', type: 'data', req: true, valor: v.ida || '', meia: true },
+      { k: 'volta', label: 'Volta', type: 'data', valor: v.volta || '', meia: true },
+      { k: 'origem', label: 'Sai de', type: 'texto', valor: v.origem || '', meia: true },
+      { k: 'destino', label: 'Vai para', type: 'texto', valor: v.destino || '', meia: true },
+      {
+        k: 'participantes', label: 'Quem vai', type: 'multi', valor: v.participantes || [],
+        opts: membros().map((m) => ({ v: m.id, t: m.nome }))
+      },
+      { k: 'orcado_cents', label: 'Orçado', type: 'dinheiro', valor: v.orcado_cents || 0 },
+      { k: 'obs', label: 'Observação', type: 'area', valor: v.obs || '' }
+    ],
+    onSave: async (dados) => {
+      if (nova) await store.insert('viagens', dados);
+      else await store.update('viagens', v.id, dados);
+      toast(nova ? 'Viagem criada.' : 'Viagem atualizada.');
+    },
+    onDelete: nova ? null : async () => { await store.remove('viagens', v.id); toast('Viagem apagada.'); }
+  });
+}
+
+  return { ST_VIAGEM, contasDaViagem, eventosDaViagem, contaDaViagem, render };
 };
 __req('js/app.js');
 </script>

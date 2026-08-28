@@ -2,6 +2,7 @@
 // horário de chamada por pessoa e confirmação de presença.
 import { store, membros, nomeMembro } from '../store.js';
 import { can, ehEquipe } from '../perms.js';
+import * as vViagens from './viagens.js';
 import { el, abrirForm, sheet, toast, escolher } from '../ui.js';
 import { esc, fmtData, prazoTxt, prazoTag, diaSemana, diasAte, groupBy, ordenar } from '../utils.js';
 import { tipoEvento } from './dash.js';
@@ -12,6 +13,21 @@ import { podeVerTudo } from '../perms.js';
 
 let aba = 'proximos';
 let modo = 'detalhe';   // detalhe = cartão completo, lista = linha compacta
+let secao = 'agenda';   // agenda | viagens
+
+export const irPara = (s) => { secao = s; };
+
+const CHIPS = `<div class="chips" data-chips-log>
+  <button class="chip" data-log="agenda">Agenda</button>
+  <button class="chip" data-log="viagens">Viagens</button>
+</div>`;
+
+function ligarLog(node) {
+  node.querySelectorAll('[data-log]').forEach((b) => {
+    b.classList.toggle('on', secao === b.dataset.log);
+    b.onclick = () => { secao = b.dataset.log; store.emit(); };
+  });
+}
 
 const TIPOS = [
   { v: 'diaria', t: 'Diária de gravação' }, { v: 'viagem', t: 'Viagem / deslocamento' },
@@ -28,6 +44,12 @@ const mapaURL = (txt) => 'https://www.google.com/maps/search/?api=1&query=' + en
 
 export function render() {
   const u = store.user;
+  if (secao === 'viagens') {
+    const v = vViagens.render();
+    v.node.prepend(el(CHIPS));
+    ligarLog(v.node);
+    return { titulo: 'Agenda', node: v.node, fab: v.fab };
+  }
   const editar = can(u, 'agenda.edit');
   const soMinha = ehEquipe(u) && !can(u, 'agenda.ver');
   const node = el('<div></div>');
@@ -51,6 +73,7 @@ export function render() {
     : '<div class="empty">Nada por aqui.</div>';
 
   node.innerHTML = `
+    ${CHIPS}
     <div class="chips">
       <button class="chip ${aba === 'proximos' ? 'on' : ''}" data-aba="proximos">Próximos</button>
       ${soMinha ? '' : `<button class="chip ${aba === 'minha' ? 'on' : ''}" data-aba="minha">Minha agenda</button>`}
@@ -63,6 +86,7 @@ export function render() {
     </div>`}
     ${aba === 'entregas' ? blocoEntregas(entregas) : agendaHTML}`;
 
+  ligarLog(node);
   node.querySelectorAll('[data-aba]').forEach((b) => { b.onclick = () => { aba = b.dataset.aba; store.emit(); }; });
   node.querySelectorAll('[data-modo]').forEach((b) => { b.onclick = () => { modo = b.dataset.modo; store.emit(); }; });
   node.querySelectorAll('[data-ev]').forEach((n) => { n.onclick = () => abrirEvento(store.get('eventos', n.dataset.ev)); });

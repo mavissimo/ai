@@ -14,7 +14,7 @@ const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-export const SEED_VERSAO = 5;
+export const SEED_VERSAO = 6;
 
 const PESSOAS = [
   {
@@ -260,6 +260,33 @@ const AGENDA = [
   ['2027-01-07', 'outro', 'Pagamento — 2ª parcela (50%)', '', false,
     'Pelo contrato: faturada na entrega final e paga em até 30 dias corridos (cláusula 6.1.II). '
     + 'A planilha e a agenda marcam 09/12/2026 — vale o contrato.']
+];
+
+// As 11 viagens da aba "custo viagem " da planilha, com orçado por viagem.
+// [nº, título, ida, volta, sai de, vai para, orçado, situação, observação]
+const VIAGENS = [
+  ['1', 'SP → Palmas → Conceição do Araguaia', '2026-08-23', '2026-08-26', 'São Paulo (CGH)', 'Conceição do Araguaia (PA)',
+    '16026', 'feita', 'Voo GOL via Brasília, localizador WFNEWO. Carro Movida retirado em Palmas. 395 km / 5h07 até a escola.'],
+  ['2', 'SP → Recife → Jaboatão', '2026-08-30', '2026-09-02', 'São Paulo (GRU)', 'Jaboatão dos Guararapes (PE)',
+    '15350', 'confirmada', 'Azul 4232 / 4320, localizador ZWQY3Q. Carro Movida no aeroporto. Rede Andrade LG Inn em Boa Viagem.'],
+  ['3', 'SP → Porto Alegre → Gravataí', '2026-09-09', '2026-09-12', 'São Paulo', 'Gravataí (RS)',
+    '14900', 'confirmada', 'Voo ainda não fechado. POA → Gravataí: 30 km.'],
+  ['4', 'SP → Campo Grande → Bodoquena', '2026-09-15', '2026-09-19', 'São Paulo', 'Miranda (MS)',
+    '14900', 'prevista', 'Datas de filmagem ainda não confirmadas pela Fundação. 250–265 km / 3h38 do aeroporto.'],
+  ['5', 'SP → Palmas → Canuanã', '2026-09-21', '2026-09-25', 'São Paulo', 'Formoso do Araguaia (TO)',
+    '14900', 'prevista', 'Datas de filmagem ainda não confirmadas pela Fundação. 330 km / 4h16 do aeroporto.'],
+  ['6', 'SP → Osasco', '2026-10-06', '2026-10-08', 'São Paulo', 'Osasco (SP)',
+    '7300', 'prevista', 'Sem voo — só carro. Datas ainda não confirmadas.'],
+  ['7', 'SP → Belém (Patricia Brasil)', '2026-10-12', '2026-10-14', 'São Paulo', 'Belém (PA)',
+    '13900', 'prevista', 'Entrevista de estúdio. Data prevista.'],
+  ['8', 'São Paulo (Lalo de Almeida)', '2026-10-15', '2026-10-15', 'São Paulo', 'São Paulo (SP)',
+    '7000', 'prevista', 'Entrevista de estúdio, sem voo. Data prevista.'],
+  ['9', 'SP → Salvador (Edgar Azevedo)', '2026-10-19', '2026-10-21', 'São Paulo', 'Salvador (BA)',
+    '13900', 'prevista', 'Entrevista de estúdio. Data prevista.'],
+  ['10', 'Salvador → Curitiba (Vilma Slomp)', '2026-10-21', '2026-10-23', 'Salvador', 'Curitiba (PR)',
+    '13900', 'prevista', 'Entrevista de estúdio. Data prevista.'],
+  ['11', 'São Paulo (Maíra Erlich)', '2026-10-26', '2026-10-27', 'São Paulo', 'São Paulo (SP)',
+    '6800', 'prevista', 'Entrevista de estúdio, sem voo. Data prevista.']
 ];
 
 const ETAPAS = [
@@ -553,6 +580,30 @@ export async function criarProjetoBradesco() {
       status: 'aprovado', aprovado_por: membros['Maví Simões'],
       obs: 'Veio da aba "verba a vista" da planilha. Falta anexar o comprovante.'
     });
+  }
+
+  /* viagens */
+  const viagens = {};
+  for (const [numero, titulo, ida, volta, origem, destino, orcado, status, obs] of VIAGENS) {
+    const v = await store.insert('viagens', {
+      projeto_id: P, numero, titulo, ida, volta, origem, destino,
+      orcado_cents: M(orcado), status, obs, participantes: viajantes
+    });
+    viagens[numero] = v.id;
+  }
+  // Amarra o que já sabemos: eventos e compromissos caem na viagem pela data.
+  const daData = (d) => VIAGENS.find(([, , ida, volta]) => d >= ida && d <= volta)?.[0];
+  for (const e of store.doProjeto('eventos')) {
+    const n = daData(e.data);
+    if (n) await store.update('eventos', e.id, { viagem_id: viagens[n] });
+  }
+  for (const c of store.doProjeto('contas')) {
+    const n = c.venc && daData(c.venc);
+    if (n && c.tipo === 'pagar') await store.update('contas', c.id, { viagem_id: viagens[n] });
+  }
+  for (const l of store.doProjeto('lancamentos')) {
+    const n = daData(l.data);
+    if (n) await store.update('lancamentos', l.id, { viagem_id: viagens[n] });
   }
 
   /* confirmações de passagem das duas primeiras viagens */
