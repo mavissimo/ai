@@ -6,7 +6,7 @@ import { esc, fmtMoney, fmtMoneyShort, fmtData, prazoTxt, prazoTag, hoje, ordena
 import { ST_CONTA } from '../calc.js';
 import { salvarArquivo, abrirArquivo } from '../files.js';
 
-let aba = 'pagar';
+let aba = 'receber';
 
 const NF = [
   { v: 'na', t: 'Não se aplica' },
@@ -18,12 +18,14 @@ const NF = [
 const nfTxt = (v) => NF.find((n) => n.v === v)?.t || 'Não se aplica';
 const nfTag = (v) => (v === 'emitida' || v === 'recebida') ? 'ok' : (v === 'na' || !v) ? 'mut' : 'warn';
 
+/** Tela do que entra. O que sai fica em Pagamentos, que tem plano por pessoa. */
 export function render() {
   const u = store.user;
+  aba = 'receber';
   const node = el('<div></div>');
   if (!can(u, 'contas.ver')) {
-    node.innerHTML = '<div class="empty">Sem acesso a contas a pagar/receber.</div>';
-    return { titulo: 'Contas', node };
+    node.innerHTML = '<div class="empty">Sem acesso ao contas a receber.</div>';
+    return { titulo: 'A receber', node };
   }
   const editar = can(u, 'contas.edit');
   const todas = store.doProjeto('contas');
@@ -32,11 +34,7 @@ export function render() {
   const vencidas = abertas.filter((c) => (diasAte(c.venc) ?? 9) < 0);
 
   node.innerHTML = `
-    <div class="chips">
-      <button class="chip ${aba === 'pagar' ? 'on' : ''}" data-aba="pagar">A pagar</button>
-      <button class="chip ${aba === 'receber' ? 'on' : ''}" data-aba="receber">A receber</button>
-    </div>
-    <div class="sec" style="margin-top:4px"><div class="sec-t">${aba === 'pagar' ? 'A pagar' : 'A receber'}</div>
+    <div class="sec" style="margin-top:4px"><div class="sec-t">A receber</div>
       ${btnOlho(valoresOcultos())}</div>
     <div class="grid">
       <div class="kpi"><div class="l">Em aberto</div><div class="v">${fmtMoneyShort(soma(abertas, (c) => c.valor_cents))}</div>
@@ -56,13 +54,12 @@ export function render() {
       </div>`;
     }).join('') : '<div class="empty">Nada aqui.</div>'}</div>`;
 
-  node.querySelectorAll('[data-aba]').forEach((b) => { b.onclick = () => { aba = b.dataset.aba; store.emit(); }; });
   node.querySelectorAll('[data-conta]').forEach((n) => { n.onclick = () => abrirConta(store.get('contas', n.dataset.conta), editar); });
 
-  return { titulo: 'Contas', node, fab: editar ? { label: '+', onClick: () => novaConta(aba) } : null };
+  return { titulo: 'A receber', node, fab: editar ? { label: '+', onClick: () => novaConta('receber') } : null };
 }
 
-function campos(c = {}, tipo) {
+export function campos(c = {}, tipo) {
   return [
     {
       k: 'tipo', label: 'Tipo', type: 'select', valor: c.tipo || tipo || 'pagar',
@@ -89,7 +86,7 @@ function campos(c = {}, tipo) {
   ];
 }
 
-function novaConta(tipo) {
+export function novaConta(tipo) {
   abrirForm({
     titulo: tipo === 'receber' ? 'Nova conta a receber' : 'Nova conta a pagar',
     campos: campos({}, tipo),
@@ -97,7 +94,7 @@ function novaConta(tipo) {
   });
 }
 
-function abrirConta(c, editar) {
+export function abrirConta(c, editar) {
   if (!c) return;
   const st = ST_CONTA[c.status] || ST_CONTA.aberto;
   const corpo = el('<div></div>');

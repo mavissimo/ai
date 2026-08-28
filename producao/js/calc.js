@@ -133,3 +133,41 @@ export function aprovacoesVencidas() {
   return store.doProjeto('aprovacoes')
     .filter((a) => a.status === 'enviado' && a.prazo && diasAte(a.prazo) < 0);
 }
+
+/* ---------------- custo por diária e por cidade ---------------- */
+const gastosValidos = () => store.doProjeto('lancamentos')
+  .filter((l) => l.tipo === 'saida' && l.status !== 'rejeitado');
+
+/** Quanto já foi gasto numa diária, contando o que está pendente à parte. */
+export function custoDoEvento(eventoId) {
+  const its = gastosValidos().filter((l) => l.evento_id === eventoId);
+  return {
+    itens: its,
+    total: soma(its.filter((l) => l.status !== 'pendente'), (l) => l.valor_cents),
+    pendente: soma(its.filter((l) => l.status === 'pendente'), (l) => l.valor_cents)
+  };
+}
+
+/** Agrupa o gasto pelas cidades das diárias, para comparar bloco a bloco. */
+export function custoPorCidade() {
+  const eventos = store.doProjeto('eventos');
+  const porEvento = {};
+  gastosValidos().forEach((l) => {
+    if (!l.evento_id) return;
+    porEvento[l.evento_id] = (porEvento[l.evento_id] || 0) + (l.valor_cents || 0);
+  });
+  const mapa = new Map();
+  eventos.forEach((e) => {
+    const cidade = (e.local || '').trim() || 'Sem cidade';
+    const m = mapa.get(cidade) || { cidade, gasto: 0, diarias: 0, eventos: 0 };
+    m.eventos++;
+    if (e.tipo === 'diaria') m.diarias++;
+    m.gasto += porEvento[e.id] || 0;
+    mapa.set(cidade, m);
+  });
+  const solto = soma(gastosValidos().filter((l) => !l.evento_id), (l) => l.valor_cents);
+  return {
+    cidades: [...mapa.values()].filter((c) => c.gasto || c.diarias).sort((a, b) => b.gasto - a.gasto),
+    semDiaria: solto
+  };
+}

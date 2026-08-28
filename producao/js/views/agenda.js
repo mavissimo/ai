@@ -5,6 +5,10 @@ import { can, ehEquipe } from '../perms.js';
 import { el, abrirForm, sheet, toast, escolher } from '../ui.js';
 import { esc, fmtData, prazoTxt, prazoTag, diaSemana, diasAte, groupBy, ordenar } from '../utils.js';
 import { tipoEvento } from './dash.js';
+import { custoDoEvento } from '../calc.js';
+import { fmtMoney } from '../utils.js';
+import { abrirLancamento, camposLancamento, salvarLancamento, lerNotaNoForm, conferirComprovante } from './financeiro.js';
+import { podeVerTudo } from '../perms.js';
 
 let aba = 'proximos';
 let modo = 'detalhe';   // detalhe = cartão completo, lista = linha compacta
@@ -142,6 +146,22 @@ function blocoEntregas(entregas) {
   }).join('')}</div>`;
 }
 
+/** O que esta diária consumiu, para comparar cidade a cidade depois. */
+function blocoCusto(e, u) {
+  const c = custoDoEvento(e.id);
+  return `<div class="sec"><div class="sec-t">Custo desta diária</div>
+      <button class="btn sm gho" data-gasto-diaria>+ gasto</button></div>
+    <div class="card">
+      <div class="row"><span class="g"><span class="t">Gasto até agora</span>
+        <span class="s">${c.itens.length} lançamento(s)${c.pendente ? ' · ' + fmtMoney(c.pendente) + ' a aprovar' : ''}</span></span>
+        <span class="r"><span class="v">${fmtMoney(c.total)}</span></span></div>
+      ${c.itens.slice(0, 8).map((l) => `<div class="row act" data-lanc="${l.id}">
+        <span class="g"><span class="t">${esc(l.descricao)}</span>
+          <span class="s">${esc([l.rubrica, l.membro_id ? nomeMembro(l.membro_id) : ''].filter(Boolean).join(' · '))}</span></span>
+        <span class="r"><span class="v">${fmtMoney(l.valor_cents)}</span></span></div>`).join('')}
+    </div>`;
+}
+
 /* ---------------- ordem do dia ---------------- */
 export function ordemDoDia(e) {
   const confs = store.doProjeto('confirmacoes').filter((c) => c.ref_id === e.id && c.tipo === 'presenca');
@@ -256,7 +276,25 @@ function abrirEvento(e) {
           </div>`;
         }).join('')
         : '<div class="empty">Ninguém convocado.</div>'}</div>
+      ${can(u, 'orcamento.ver') || podeVerTudo(u) ? blocoCusto(e, u) : ''}
       ${editar ? '<button class="btn wide gho" data-edit>Editar compromisso</button>' : ''}`;
+
+    corpo.querySelectorAll('[data-lanc]').forEach((n) => {
+      n.onclick = () => abrirLancamento(store.get('lancamentos', n.dataset.lanc));
+    });
+    corpo.querySelector('[data-gasto-diaria]')?.addEventListener('click', () => {
+      abrirForm({
+        titulo: 'Gasto desta diária',
+        subtitulo: e.titulo,
+        campos: camposLancamento(u, { tipo: 'saida', evento_id: e.id }),
+        onArquivo: lerNotaNoForm,
+        onSave: async (v, api) => {
+          if (!await conferirComprovante(v, api)) throw new Error('__continuar');
+          await salvarLancamento({ ...v, evento_id: e.id, data: v.data || e.data }, u);
+          toast('Lançado nesta diária.'); pintar(); store.emit();
+        }
+      });
+    });
 
     corpo.querySelector('[data-odd]').onclick = () => ordemDoDia(e);
     corpo.querySelectorAll('[data-conf]').forEach((b) => {

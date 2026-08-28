@@ -4,11 +4,33 @@ import { can } from '../perms.js';
 import { el, abrirForm, sheet, toast } from '../ui.js';
 import { esc, fmtData, prazoTxt, prazoTag } from '../utils.js';
 import { FASES, faseNome, STATUS_ETAPA, statusEtapa } from '../seed.js';
+import * as vTarefas from './tarefas.js';
 
 let filtro = 'todas';
+let aba = 'etapas';
+
+export const irPara = (a) => { aba = a; };
+
+const CHIPS = `<div class="chips" data-chips-trabalho>
+  <button class="chip" data-trab="etapas">Etapas</button>
+  <button class="chip" data-trab="tarefas">Tarefas</button>
+</div>`;
+
+function ligarTrabalho(node) {
+  node.querySelectorAll('[data-trab]').forEach((b) => {
+    b.classList.toggle('on', aba === b.dataset.trab);
+    b.onclick = () => { aba = b.dataset.trab; store.emit(); };
+  });
+}
 
 export function render() {
   const u = store.user;
+  if (aba === 'tarefas') {
+    const v = vTarefas.render();
+    v.node.prepend(el(CHIPS));
+    ligarTrabalho(v.node);
+    return { titulo: 'Trabalho', node: v.node, fab: v.fab };
+  }
   const editar = can(u, 'etapas.edit');
   const etapas = store.doProjeto('etapas').sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
   const node = el('<div></div>');
@@ -26,10 +48,12 @@ export function render() {
   }).join('');
 
   node.innerHTML = `
+    ${CHIPS}
     <div class="chips">${chips.map((c) => `<button class="chip ${filtro === c ? 'on' : ''}" data-chip="${c}">
       ${c === 'todas' ? 'Todas' : esc(faseNome(c))}</button>`).join('')}</div>
     ${grupos || '<div class="empty">Nenhuma etapa nesta fase.</div>'}`;
 
+  ligarTrabalho(node);
   node.querySelectorAll('[data-chip]').forEach((b) => {
     b.onclick = () => { filtro = b.dataset.chip; store.emit(); };
   });
@@ -38,7 +62,7 @@ export function render() {
   });
 
   return {
-    titulo: 'Etapas',
+    titulo: 'Trabalho',
     node,
     fab: editar ? { label: '+', onClick: () => novaEtapa() } : null
   };
@@ -93,7 +117,10 @@ function abrirEtapa(e, editar) {
       <div class="card">${tarefas().length ? tarefas().map((t) => `
         <label class="check" style="border-bottom:1px solid var(--line)">
           <input type="checkbox" data-tar="${t.id}" ${t.feito ? 'checked' : ''} ${editar ? '' : 'disabled'}>
-          <span style="flex:1;${t.feito ? 'opacity:.55;text-decoration:line-through' : ''}">${esc(t.titulo)}</span>
+          <span style="flex:1;${t.feito ? 'opacity:.55;text-decoration:line-through' : ''}">${esc(t.titulo)}
+            ${t.responsavel_id || t.prazo ? `<span class="small muted" style="display:block">${esc([
+              t.responsavel_id ? nomeMembro(t.responsavel_id) : '',
+              t.prazo ? fmtData(t.prazo) : ''].filter(Boolean).join(' · '))}</span>` : ''}</span>
           ${editar ? `<button class="btn sm gho" data-del-tar="${t.id}">×</button>` : ''}
         </label>`).join('') : '<div class="empty">Sem itens.</div>'}</div>
       ${editar ? '<button class="btn wide gho" data-edit>Editar etapa</button>' : ''}`;
@@ -117,9 +144,19 @@ function abrirEtapa(e, editar) {
     });
     const nt = corpo.querySelector('[data-nova-tarefa]');
     if (nt) nt.onclick = () => abrirForm({
-      titulo: 'Novo item do checklist',
-      campos: [{ k: 'titulo', label: 'O que precisa ser feito', type: 'texto', req: true }],
-      onSave: async (v) => { await store.insert('tarefas', { etapa_id: e.id, titulo: v.titulo, feito: false }); pintar(); store.emit(); }
+      titulo: 'Nova tarefa desta etapa',
+      campos: [
+        { k: 'titulo', label: 'O que precisa ser feito', type: 'texto', req: true },
+        {
+          k: 'responsavel_id', label: 'Quem faz', type: 'select', valor: '',
+          opts: [{ v: '', t: '— ninguém ainda —' }, ...membros().map((m) => ({ v: m.id, t: m.nome }))]
+        },
+        { k: 'prazo', label: 'Para quando', type: 'data' }
+      ],
+      onSave: async (v) => {
+        await store.insert('tarefas', { ...v, etapa_id: e.id, status: 'aberta', feito: false });
+        pintar(); store.emit();
+      }
     });
     const ed = corpo.querySelector('[data-edit]');
     if (ed) ed.onclick = () => { sh.close(); editarEtapa(e); };

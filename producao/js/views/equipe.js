@@ -6,6 +6,7 @@ import { PAPEIS } from '../perms.js';
 import { el, abrirForm, sheet, toast, confirmar, btnOlho } from '../ui.js';
 import { esc, fmtMoney, hoje, iniciais, soma, valoresOcultos } from '../utils.js';
 import { temSenha, limparSenha } from '../pin.js';
+import { planoDe, abrirPlano } from './pagamentos.js';
 
 const TIPOS_CONF = [
   { v: 'presenca', t: 'Presença em diária' },
@@ -104,7 +105,11 @@ function campos(m = {}) {
       hint: 'Só serve para saber se a produção espera recibo ou nota fiscal desta pessoa.'
     },
     { k: 'doc', label: 'CPF / CNPJ', type: 'texto', valor: m.doc },
-    { k: 'chave_pix', label: 'Chave Pix / dados bancários', type: 'texto', valor: m.chave_pix },
+    { k: 'chave_pix', label: 'Chave Pix', type: 'texto', valor: m.chave_pix },
+    { k: 'banco', label: 'Banco', type: 'texto', valor: m.banco, meia: true },
+    { k: 'agencia', label: 'Agência', type: 'texto', valor: m.agencia, meia: true },
+    { k: 'conta_banco', label: 'Conta', type: 'texto', valor: m.conta_banco, meia: true },
+    { k: 'titular', label: 'Titular, se for outro nome', type: 'texto', valor: m.titular },
     { k: 'obs', label: 'Observações', type: 'area', valor: m.obs }
   ];
 }
@@ -157,6 +162,16 @@ function abrirMembro(m, editar, verGrana) {
         ${m.obs ? `<div class="row"><span class="g"><span class="s">Observações</span>
           <span class="t" style="white-space:normal;font-weight:400">${esc(m.obs)}</span></span></div>` : ''}
       </div>
+      ${verGrana ? `<div class="sec"><div class="sec-t">Pagamento</div>
+        <button class="btn sm gho" data-plano>abrir plano</button></div>
+      <div class="card tight">
+        <div class="row"><span class="g"><span class="t">Combinado</span>
+          <span class="s">cachê e per diem</span></span>
+          <span class="r"><span class="v">${fmtMoney(bruto + (m.perdiem_cents || 0))}</span></span></div>
+        <div class="row"><span class="g"><span class="t">Falta pagar</span>
+          <span class="s">${planoDe(m.id).itens.length} parcela(s) combinada(s)</span></span>
+          <span class="r"><span class="v">${fmtMoney(planoDe(m.id).falta)}</span></span></div>
+      </div>` : ''}
       <div class="sec"><div class="sec-t">Confirmações</div>
         ${editar ? '<button class="btn sm gho" data-nova-conf>+ pedir</button>' : ''}</div>
       <div class="card">${confs.length ? confs.map((c) => `<div class="row">
@@ -175,7 +190,6 @@ function abrirMembro(m, editar, verGrana) {
           <span class="r"><span class="v">${fmtMoney(soma(contas.filter((c) => c.status === 'aberto'), (c) => c.valor_cents))}</span></span></div>
       </div>` : ''}
       ${editar ? `<div class="btns" style="margin-top:6px">
-        ${verGrana && bruto ? '<button class="btn" style="flex:1" data-gerar-cache>Lançar cachê a pagar</button>' : ''}
         <button class="btn gho" style="flex:1" data-edit>Editar</button></div>` : ''}`;
 
     corpo.querySelector('[data-nova-conf]')?.addEventListener('click', () => abrirForm({
@@ -191,21 +205,13 @@ function abrirMembro(m, editar, verGrana) {
         toast('Pedido enviado.'); pintar(); store.emit();
       }
     }));
+    corpo.querySelector('[data-plano]')?.addEventListener('click', () => { sh.close(); abrirPlano(m.id, editar); });
     corpo.querySelector('[data-zerar-senha]')?.addEventListener('click', async () => {
       if (!await confirmar(`Zerar a senha de ${m.nome}? Na próxima entrada ela cria uma nova.`,
         { ok: 'Zerar', perigo: true })) return;
       await limparSenha(m.id);
       m.pin_hash = '';
       toast('Senha zerada.'); pintar(); store.emit();
-    });
-    corpo.querySelector('[data-gerar-cache]')?.addEventListener('click', async () => {
-      await store.insert('contas', {
-        tipo: 'pagar', descricao: `Cachê — ${m.nome}${m.funcao ? ' (' + m.funcao + ')' : ''}`,
-        contraparte: m.nome, valor_cents: bruto,
-        venc: hoje(), status: 'aberto', membro_id: m.id, categoria: 'cachê',
-        nf_status: m.tipo === 'pj' ? 'a_receber' : 'na', obs: ''
-      });
-      toast('Conta a pagar criada.'); store.emit();
     });
     corpo.querySelector('[data-edit]')?.addEventListener('click', () => {
       sh.close();

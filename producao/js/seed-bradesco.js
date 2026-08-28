@@ -9,7 +9,7 @@ const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-export const SEED_VERSAO = 3;
+export const SEED_VERSAO = 4;
 
 const PESSOAS = [
   {
@@ -196,6 +196,22 @@ const ETAPAS = [
   ['entrega', 'Liberação de portfólio (após divulgação ou 6 meses)', 'nao', '']
 ];
 
+// Tarefas do que está em cima da hora, com dono e prazo.
+// [título, nome de quem faz, prazo, etapa a que pertence]
+const TAREFAS = [
+  ['Emitir a NF da 1ª parcela', 'Tato Pessanha', '2026-08-24', 'Receber 1ª parcela (50%)'],
+  ['Fechar os contratos de PF e PJ da equipe', 'Tato Pessanha', '2026-08-28', 'Contratos da equipe (PF e PJ) assinados'],
+  ['Juntar as certidões de antecedentes de quem entra nas escolas', 'Tato Pessanha', '2026-08-28',
+    'Certidões de antecedentes de quem entra nas escolas'],
+  ['Confirmar as diárias de Jaboatão com 10 dias de antecedência', 'Tato Pessanha', '2026-08-21',
+    'Cronograma das 9 cidades confirmado'],
+  ['Fechar hospedagem e carro de Jaboatão', 'Tato Pessanha', '2026-08-26', ''],
+  ['Fazer o backup duplo do material de Conceição', 'Julio Becker', '2026-08-26',
+    'Backup duplo criptografado em locais separados'],
+  ['Levantar as autorizações de imagem das escolas', 'Patrick Bombassaro', '2026-08-30',
+    'Autorizações de imagem, nome e voz (com termo para menores)']
+];
+
 const ENTREGAS = [
   ['Documentário principal — 15 min', '2026-12-08', 'Aprox. 15 minutos'],
   ['33 cortes individuais — até 1 min', '2026-12-08', '3 por fotógrafo(a), 11 fotógrafos'],
@@ -344,6 +360,15 @@ export async function criarProjetoBradesco() {
     await store.insert('etapas', {
       projeto_id: P, fase, nome, status, prazo, responsavel_id: null,
       depende_de: [], ordem: ordem++, obs: ''
+    });
+  }
+
+  /* tarefas em aberto */
+  for (const [titulo, dono, prazo, etapaNome] of TAREFAS) {
+    const etapa = etapaNome ? store.doProjeto('etapas').find((e) => e.nome === etapaNome) : null;
+    await store.insert('tarefas', {
+      projeto_id: P, titulo, responsavel_id: membros[dono] || null, prazo,
+      etapa_id: etapa?.id || null, status: 'aberta', feito: false, cobrado_em: '', descricao: ''
     });
   }
 

@@ -90,6 +90,28 @@ export function alertas() {
     });
   }
 
+  // Tarefas: atrasadas, cobradas e as de hoje
+  store.doProjeto('tarefas').forEach((t) => {
+    const aberto = (t.status || (t.feito ? 'feita' : 'aberta')) !== 'feita';
+    if (!aberto) return;
+    const meu = t.responsavel_id === u?.id;
+    if (!meu && !can(u, 'lanc.ver')) return;
+    if (t.cobrado_em && meu) {
+      add({ id: 'tcob_' + t.id, urg: 3, icone: '⚡', texto: `Cobraram você: ${t.titulo}`, rota: '#/tarefas' });
+      return;
+    }
+    const d = diasAte(t.prazo);
+    if (d === null) return;
+    if (d < 0) add({
+      id: 'tatr_' + t.id, urg: meu ? 3 : 2, icone: '⏱',
+      texto: meu ? `Atrasada: ${t.titulo}` : `${nome(t.responsavel_id)} está atrasado: ${t.titulo}`,
+      rota: '#/tarefas'
+    });
+    else if (d === 0 && meu) add({
+      id: 'thoje_' + t.id, urg: 2, icone: '✅', texto: `Para hoje: ${t.titulo}`, rota: '#/tarefas'
+    });
+  });
+
   // Etapas travadas
   store.doProjeto('etapas').filter((e) => e.status === 'travado').forEach((e) => {
     add({ id: 'trav_' + e.id, urg: 2, icone: '⛔', texto: `Travado: ${e.nome}`, rota: '#/etapas' });

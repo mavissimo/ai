@@ -32,7 +32,8 @@ create table if not exists membros (
   projeto_id text references projetos(id) on delete cascade,
   nome text not null,
   email text, papel text not null default 'equipe',
-  funcao text, telefone text, doc text, chave_pix text,
+  funcao text, telefone text, doc text,
+  chave_pix text, banco text, agencia text, conta_banco text, titular text,
   cache_cents bigint default 0,               -- cachê negociado, por diária
   cache_orcado_cents bigint default 0,        -- cachê orçado, por diária
   perdiem_cents bigint default 0,
@@ -56,7 +57,11 @@ create table if not exists etapas (
 create table if not exists tarefas (
   id text primary key, criado_em timestamptz default now(), criado_por text,
   projeto_id text references projetos(id) on delete cascade,
-  etapa_id text, titulo text not null, feito boolean default false
+  etapa_id text, titulo text not null, descricao text,
+  responsavel_id text, prazo text,
+  status text default 'aberta',               -- aberta | fazendo | feita
+  feito boolean default false,                -- espelho de status, para o checklist
+  cobrado_em text                             -- quando a produção cobrou
 );
 
 create table if not exists eventos (
@@ -93,7 +98,8 @@ create table if not exists lancamentos (
   tipo text not null default 'saida',
   descricao text not null, valor_cents bigint default 0, rubrica text,
   data text, fornecedor text, forma text,
-  membro_id text, reembolso boolean default false,
+  membro_id text, evento_id text,             -- a qual diária o gasto pertence
+  reembolso boolean default false,
   fonte text default 'empresa',               -- empresa | caixinha | proprio
   status text default 'pendente', aprovado_por text, conta_id text, obs text
 );
@@ -240,7 +246,7 @@ create policy p_del on etapas for delete using (public.eh_producao());
 
 create policy p_sel on tarefas for select using (public.eh_membro());
 create policy p_ins on tarefas for insert with check (public.eh_producao());
-create policy p_upd on tarefas for update using (public.eh_membro());
+create policy p_upd on tarefas for update using (public.eh_producao() or responsavel_id = public.membro_atual());
 create policy p_del on tarefas for delete using (public.eh_producao());
 
 create policy p_sel on eventos for select using (public.eh_membro());

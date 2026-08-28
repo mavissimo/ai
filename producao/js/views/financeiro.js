@@ -5,7 +5,8 @@ import { el, abrirForm, sheet, toast, confirmar, escolher, btnOlho } from '../ui
 import { esc, fmtMoney, fmtMoneyShort, pct, fmtData, hoje, ordenar, soma, parseMoney, valoresOcultos } from '../utils.js';
 import * as vContas from './contas.js';
 import * as vCaixa from './caixa.js';
-import { financeiro, porRubrica, ST_LANC } from '../calc.js';
+import * as vPagamentos from './pagamentos.js';
+import { financeiro, porRubrica, custoPorCidade, ST_LANC } from '../calc.js';
 import { RUBRICAS } from '../seed.js';
 import { salvarArquivo, abrirArquivo } from '../files.js';
 import { lerNotaDaImagem, leitorDisponivel, resumo as resumoNota } from '../nota.js';
@@ -52,7 +53,8 @@ export const irPara = (nova) => { aba = nova; };
 const ABAS = [
   { v: 'resumo', t: 'Resumo', cap: null },
   { v: 'gastos', t: 'Gastos', cap: null },
-  { v: 'contas', t: 'Contas', cap: 'contas.ver' },
+  { v: 'pagamentos', t: 'Pagamentos', cap: 'contas.ver' },
+  { v: 'contas', t: 'A receber', cap: 'contas.ver' },
   { v: 'caixa', t: 'Caixinha', cap: null },
   { v: 'orcamento', t: 'Orçamento', cap: 'orcamento.ver' }
 ];
@@ -76,6 +78,7 @@ export function render() {
 
   // As telas de contas e caixinha vivem dentro de Dinheiro, para o dinheiro
   // todo ficar num lugar só em vez de espalhado pelo menu.
+  if (aba === 'pagamentos' && can(u, 'contas.ver')) return embutir(vPagamentos.render(), u);
   if (aba === 'contas' && can(u, 'contas.ver')) return embutir(vContas.render(), u);
   if (aba === 'caixa') return embutir(vCaixa.render(), u);
 
@@ -159,6 +162,7 @@ function blocoResumo(f, verLucro, u) {
         <span class="s">recebido − gasto − imposto</span></span>
         <span class="r"><span class="v" style="color:${f.lucroRealizado < 0 ? 'var(--bad)' : 'var(--ok)'}">${fmtMoney(f.lucroRealizado)}</span></span></div>
     </div>` : ''}
+    ${blocoCidades()}
     <div class="sec"><div class="sec-t">Orçado × gasto por rubrica</div></div>
     <div class="card">${rub.length ? rub.map((r) => {
       const base = r.negociado || r.previsto || (r.real + r.pend) || 1;
@@ -171,6 +175,26 @@ function blocoResumo(f, verLucro, u) {
         <div class="bar"><i class="${p > 100 ? 'bad' : p > 85 ? 'warn' : 'ok'}" style="width:${Math.min(p, 100)}%"></i></div>
       </div>`;
     }).join('') : '<div class="empty">Preencha o orçamento para acompanhar aqui.</div>'}</div>`;
+}
+
+/** Quanto cada cidade consumiu — o doc roda em nove delas. */
+function blocoCidades() {
+  const { cidades, semDiaria } = custoPorCidade();
+  const comGasto = cidades.filter((c) => c.gasto);
+  if (!comGasto.length && !semDiaria) return '';
+  const maior = Math.max(...comGasto.map((c) => c.gasto), 1);
+  return `<div class="sec"><div class="sec-t">Custo por cidade</div></div>
+    <div class="card">${comGasto.map((c) => `<div style="padding:9px 0;border-bottom:1px solid var(--line)">
+      <div style="display:flex;gap:8px;align-items:baseline">
+        <span style="flex:1;font-weight:600;font-size:14px">${esc(c.cidade)}</span>
+        <span class="small muted">${c.diarias ? c.diarias + ' diária(s)' : ''}</span>
+        <span class="small mono">${fmtMoney(c.gasto)}</span>
+      </div>
+      <div class="bar"><i class="ok" style="width:${Math.round(c.gasto / maior * 100)}%"></i></div>
+    </div>`).join('')}
+    ${semDiaria ? `<div class="row"><span class="g"><span class="t">Fora de diária</span>
+      <span class="s">gasto sem compromisso amarrado</span></span>
+      <span class="r"><span class="v">${fmtMoney(semDiaria)}</span></span></div>` : ''}</div>`;
 }
 
 /* ---------------- orçamento ---------------- */
@@ -319,6 +343,12 @@ export function camposLancamento(u, fixo = {}) {
     { k: 'descricao', label: entrada ? 'De onde veio' : 'O que foi', type: 'texto',
       ph: entrada ? '1ª parcela Fundação Bradesco' : 'Almoço da equipe — diária 1' },
     { k: 'data', label: 'Data', type: 'data', valor: hoje() },
+    entrada ? null : {
+      k: 'evento_id', label: 'De qual diária', type: 'select', valor: fixo.evento_id || '',
+      opts: [{ v: '', t: '— pela data, automático —' }, ...ordenar(store.doProjeto('eventos'), (e) => e.data, -1)
+        .slice(0, 40).map((e) => ({ v: e.id, t: `${fmtData(e.data, { ano: false })} · ${e.titulo}` }))],
+      hint: 'Em branco, o app amarra ao compromisso do mesmo dia.'
+    },
     { k: 'fornecedor', label: entrada ? 'Quem pagou' : 'Fornecedor', type: 'texto' },
     {
       k: 'forma', label: 'Forma de pagamento', type: 'select', valor: 'pix',
@@ -370,6 +400,14 @@ export async function lerNotaNoForm(arquivo, api) {
   api.aviso('Foto salva e nota lida: ' + resumoNota(d), 'ok', 'arquivo');
 }
 
+/** Compromisso do mesmo dia, para amarrar o gasto sem pedir nada a mais. */
+function eventoDoDia(data) {
+  if (!data) return null;
+  const doDia = store.doProjeto('eventos').filter((e) => e.data === data);
+  const diaria = doDia.find((e) => e.tipo === 'diaria');
+  return (diaria || doDia[0])?.id || null;
+}
+
 export async function salvarLancamento(v, u) {
   const podeAprovar = can(u, 'lanc.aprovar');
   const status = (v.tipo || 'saida') === 'entrada'
@@ -380,6 +418,7 @@ export async function salvarLancamento(v, u) {
     descricao: v.descricao || v.rubrica || (v.tipo === 'entrada' ? 'Entrada' : 'Gasto'), valor_cents: v.valor_cents, rubrica: v.rubrica,
     data: v.data || hoje(), fornecedor: v.fornecedor || '', forma: v.forma || '',
     membro_id: v.membro_id !== undefined ? (v.membro_id || null) : (u?.id || null),
+    evento_id: v.evento_id || eventoDoDia(v.data),
     fonte: v.fonte || 'empresa', reembolso: v.fonte === 'proprio',
     sem_comprovante: !v.arquivo && (v.tipo || 'saida') === 'saida',
     obs: v.obs || '', status, aprovado_por: podeAprovar ? u?.id : null

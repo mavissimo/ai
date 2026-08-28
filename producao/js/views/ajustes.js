@@ -39,7 +39,9 @@ export function render() {
     <div class="card">
       ${can(u, 'equipe.ver') ? atalho('#/equipe', 'Equipe', 'Pessoas, cachês, confirmações') : ''}
       ${can(u, 'contratos.ver') ? atalho('#/contratos', 'Contratos', 'Resumo, parcelas e prazos') : ''}
-      ${can(u, 'contas.ver') ? atalho('#/contas', 'Contas a pagar e receber', 'Vencimentos e quitação') : ''}
+      ${atalho('#/tarefas', 'Tarefas', 'O que cada um precisa fazer')}
+      ${can(u, 'contas.ver') ? atalho('#/pagamentos', 'Pagamentos', 'O que sai, por data e por pessoa') : ''}
+      ${can(u, 'contas.ver') ? atalho('#/contas', 'A receber', 'Parcelas do cliente') : ''}
       ${atalho('#/caixa', 'Caixinha', 'Adiantamentos e prestação de contas')}
       ${atalho('#/locacoes', 'Locações e contatos', 'Escolas, endereços, cliente e fornecedores')}
       ${atalho('#/aprovacoes', 'Aprovações do cliente', 'Rodadas, prazo de aceite e feedback')}

@@ -3,9 +3,10 @@ import { store } from './store.js';
 import { isRemote, APP } from './config.js';
 import { can, ehEquipe, PAPEIS } from './perms.js';
 import { el, toast, abrirForm, confirmar, ICO, MARCA } from './ui.js';
-import { esc, iniciais, valoresOcultos, alternarValores } from './utils.js';
+import { esc, iniciais, valoresOcultos, alternarValores, diasAte } from './utils.js';
 import { criarProjetoBradesco, recarregarProjeto, SEED_VERSAO } from './seed-bradesco.js';
 import { alertas, iniciarMonitor } from './notify.js';
+import { minhasTarefas } from './views/tarefas.js';
 import { autenticar, temSenha } from './pin.js';
 import { aplicarTema } from './tema.js';
 
@@ -29,6 +30,8 @@ const ROTAS = {
   '/agenda': () => vAgenda.render(),
   '/financeiro': () => vFin.render(),
   '/contas': () => { vFin.irPara('contas'); return vFin.render(); },
+  '/pagamentos': () => { vFin.irPara('pagamentos'); return vFin.render(); },
+  '/tarefas': () => { vEtapas.irPara('tarefas'); return vEtapas.render(); },
   '/contratos': () => vContratos.render(),
   '/equipe': () => vEquipe.render(),
   '/notas': () => vNotas.render(),
@@ -145,15 +148,16 @@ function tabs() {
   const u = store.user;
   const equipe = ehEquipe(u);
   const nAlertas = alertas().length;
+  const nTarefas = minhasTarefas(u?.id).filter((t) => (t.prazo && (diasAte(t.prazo) ?? 9) <= 0) || t.cobrado_em).length;
   const itens = equipe ? [
     { r: '#/', i: ICO.eu, t: 'Meu', dot: nAlertas },
     { r: '#/agenda', i: ICO.agenda, t: 'Agenda' },
-    { r: '#/etapas', i: ICO.etapas, t: 'Etapas' },
+    { r: '#/etapas', i: ICO.etapas, t: 'Trabalho', dot: nTarefas },
     { r: '#/notas', i: ICO.nota, t: 'Notas' },
     { r: '#/mais', i: ICO.mais, t: 'Mais' }
   ] : [
     { r: '#/', i: ICO.casa, t: 'Painel', dot: nAlertas },
-    { r: '#/etapas', i: ICO.etapas, t: 'Etapas' },
+    { r: '#/etapas', i: ICO.etapas, t: 'Trabalho', dot: nTarefas },
     { r: '#/agenda', i: ICO.agenda, t: 'Agenda' },
     { r: '#/financeiro', i: ICO.grana, t: 'Dinheiro' },
     { r: '#/mais', i: ICO.mais, t: 'Mais' }

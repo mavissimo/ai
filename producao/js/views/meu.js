@@ -8,6 +8,7 @@ import { ST_LANC, ST_CONTA, saldoCaixa } from '../calc.js';
 import { camposLancamento, salvarLancamento, abrirLancamento, lerNotaNoForm, conferirComprovante } from './financeiro.js';
 import { tipoConf } from './equipe.js';
 import { salvarArquivo, abrirArquivo } from '../files.js';
+import { minhasTarefas, ST_TAREFA, statusDe } from './tarefas.js';
 import { PAPEIS } from '../perms.js';
 
 export function render() {
@@ -28,6 +29,7 @@ export function render() {
   const p = PAPEIS[u.papel] || PAPEIS.equipe;
   const bruto = (u.cache_cents || 0) * (u.diarias || 0);
   const caixa = saldoCaixa(u.id);
+  const tarefas = minhasTarefas(u.id);
 
   node.innerHTML = `
     <div class="card tight" style="display:flex;gap:12px;align-items:center">
@@ -60,6 +62,18 @@ export function render() {
         <span class="g"><span class="t">${esc(e.titulo)}</span>
           <span class="s">${esc([e.hora_inicio, e.local].filter(Boolean).join(' · ') || prazoTxt(e.data))}</span></span>
       </div>`).join('') : '<div class="empty">Nada marcado para você.</div>'}</div>
+
+    ${tarefas.length ? `<div class="sec"><div class="sec-t">Minhas tarefas</div>
+      <a href="#/tarefas" class="small">ver todas</a></div>
+    <div class="card">${tarefas.slice(0, 6).map((t) => {
+      const atrasada = t.prazo && (diasAte(t.prazo) ?? 9) < 0;
+      return `<div class="row">
+        <span class="tag ${atrasada ? 'bad' : t.cobrado_em ? 'warn' : ST_TAREFA[statusDe(t)].tag}">
+          ${atrasada ? 'atrasada' : t.cobrado_em ? 'cobrada' : ST_TAREFA[statusDe(t)].t}</span>
+        <span class="g"><span class="t" style="white-space:normal">${esc(t.titulo)}</span>
+          <span class="s">${t.prazo ? esc(fmtData(t.prazo) + ' · ' + prazoTxt(t.prazo)) : 'sem prazo'}</span></span>
+      </div>`;
+    }).join('')}</div>` : ''}
 
     ${minhasEtapas.length ? `<div class="sec"><div class="sec-t">Sob sua responsabilidade</div></div>
     <div class="card">${minhasEtapas.map((e) => `<div class="row">

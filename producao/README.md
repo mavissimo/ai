@@ -19,6 +19,9 @@ com dinheiro, agenda, equipe, contratos e notas fiscais no mesmo lugar.
 | **Equipe** | Cachê × diárias, status de contrato, Pix, e as confirmações de cada um (presença, passagem, hospedagem, contrato, pagamento). |
 | **Notas e documentos** | NF, recibo, boleto, comprovante, passagem, autorização — foto ou PDF, ou link externo. Cada arquivo fica amarrado ao lançamento/conta/contrato que originou. |
 | **Ordem do dia** | Call sheet por diária: horário de **chamada de cada pessoa**, endereço com link de mapa, roteiro do dia, contato no local e o que levar. Cada um vê a própria chamada em destaque; um toque copia tudo formatado para mandar no grupo. |
+| **Tarefas** | Tarefa com dono e prazo, solta ou pendurada numa etapa. Cada pessoa vê as suas; a produção vê o que está atrasado e **cobra pelo app** — a cobrança aparece no painel de quem é responsável. |
+| **Pagamentos** | Tudo que sai, agrupado por vencimento, e o **plano de cada pessoa**: parcelas com data e valor livres, quanto já foi pago, quanto falta, e por qual chave ou conta ela recebe. |
+| **Custo por diária e cidade** | Todo gasto se amarra sozinho ao compromisso do mesmo dia. A diária mostra quanto consumiu, e o resumo compara cidade a cidade. |
 | **Caixinha** | Adiantamento de produção para alguém, gasto descontado do saldo, devolução do que sobrou e prestação de contas por pessoa. |
 | **Nota fiscal** | Cada pessoa é PF (recibo) ou PJ (nota fiscal), e o app controla qual nota falta emitir para o cliente ou cobrar do fornecedor. O imposto de quem recebe é problema de quem recebe: o Unit0 não calcula retenção nem líquido. |
 | **Aprovações** | Rodadas com o cliente, com o prazo de aceite contado automaticamente (dias úteis ou corridos). Quando o prazo vence sem resposta e o contrato trata silêncio como aceite, o app avisa. |
@@ -93,7 +96,7 @@ producao/
     notify.js           alertas e notificações
     seed.js             estrutura padrão de um projeto
     ui.js               bottom-sheet, formulários, toast
-    views/              telas
+    views/              telas (painel, trabalho, agenda, dinheiro, equipe…)
   supabase/schema.sql   tabelas + RLS + bucket
   tools/                build de arquivo único
 ```
