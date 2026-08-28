@@ -275,10 +275,10 @@ export function btnOlho(oculto) {
     title="${oculto ? 'Mostrar valores' : 'Ocultar valores'}">${oculto ? ICO.olhoOff : ICO.olho}</button>`;
 }
 
-/** Marca do Unit0: a palavra em texto e o zero desenhado como um fotograma.
-    O zero é dimensionado em em e alinhado pela linha de base, então a marca
-    continua encaixada mesmo se a fonte de título não carregar. */
-export const MARCA = '<span class="marca-txt">unit</span><svg viewBox="0 0 29.52 41.00" aria-hidden="true"><rect x="2.36" y="2.36" width="24.80" height="36.28" rx="5.33" fill="none" stroke="#f4b23e" stroke-width="4.71"/><rect x="2.88" y="4.61" width="3.39" height="3.49" rx="1.19" fill="#f4b23e"/><rect x="23.25" y="4.61" width="3.39" height="3.49" rx="1.19" fill="#f4b23e"/><rect x="2.88" y="14.04" width="3.39" height="3.49" rx="1.19" fill="#f4b23e"/><rect x="23.25" y="14.04" width="3.39" height="3.49" rx="1.19" fill="#f4b23e"/><rect x="2.88" y="23.47" width="3.39" height="3.49" rx="1.19" fill="#f4b23e"/><rect x="23.25" y="23.47" width="3.39" height="3.49" rx="1.19" fill="#f4b23e"/><rect x="2.88" y="32.90" width="3.39" height="3.49" rx="1.19" fill="#f4b23e"/><rect x="23.25" y="32.90" width="3.39" height="3.49" rx="1.19" fill="#f4b23e"/></svg>';
+/** Marca do Unit0: a palavra em texto e o zero desenhado como o anel de listras
+    da claquete. O zero é dimensionado em em e alinhado pela linha de base, então
+    a marca continua encaixada mesmo se a fonte de título não carregar. */
+export const MARCA = '<span class="marca-txt">unit</span><svg viewBox="0 0 41.00 41.00" aria-hidden="true"><defs><mask id="u0zero" maskUnits="userSpaceOnUse" x="0" y="0" width="41.00" height="41.00"><rect x="0" y="0" width="41.00" height="41.00" fill="#fff"/><g transform="translate(20.50 20.50) rotate(-38)"><rect x="-41.00" y="-55.45" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="-44.79" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="-34.13" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="-23.47" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="-12.81" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="-2.15" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="8.51" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="19.17" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="29.83" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="40.49" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="51.15" width="123.00" height="4.30" fill="#000"/></g></mask></defs><circle cx="20.50" cy="20.50" r="16.40" fill="none" stroke="#f4b23e" stroke-width="8.20" mask="url(#u0zero)"/></svg>';
 
 /* ---------------- ícones ---------------- */
 export const ICO = {
