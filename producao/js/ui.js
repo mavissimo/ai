@@ -275,8 +275,10 @@ export function btnOlho(oculto) {
     title="${oculto ? 'Mostrar valores' : 'Ocultar valores'}">${oculto ? ICO.olhoOff : ICO.olho}</button>`;
 }
 
-/** Marca do Unit0: o zero é um diafragma de lente. Inline para herdar a cor do tema. */
-export const MARCA = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" role="img" aria-label="Unit0">  <text x="6" y="56" font-family="-apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif"        font-size="52" font-weight="700" letter-spacing="-1.5" fill="currentColor">UNIT</text>  <g fill="none" stroke="#f4b23e" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round">    <circle cx="156" cy="40" r="30"/>    <path d="M172.00 40.00L164.00 53.86L148.00 53.86L140.00 40.00L148.00 26.14L164.00 26.14Z"/>    <path d="M172.00 40.00L177.58 60.84"/><path d="M164.00 53.86L148.74 69.11"/><path d="M148.00 53.86L127.16 48.27"/><path d="M140.00 40.00L134.42 19.16"/><path d="M148.00 26.14L163.26 10.89"/><path d="M164.00 26.14L184.84 31.73"/>  </g></svg>';
+/** Marca do Unit0: a palavra em texto e o zero desenhado como um fotograma.
+    O zero é dimensionado em em e alinhado pela linha de base, então a marca
+    continua encaixada mesmo se a fonte de título não carregar. */
+export const MARCA = '<span class="marca-txt">unit</span><svg viewBox="0 0 29.52 41.00" aria-hidden="true"><rect x="2.36" y="2.36" width="24.80" height="36.28" rx="5.33" fill="none" stroke="#f4b23e" stroke-width="4.71"/><rect x="2.88" y="4.61" width="3.39" height="3.49" rx="1.19" fill="#f4b23e"/><rect x="23.25" y="4.61" width="3.39" height="3.49" rx="1.19" fill="#f4b23e"/><rect x="2.88" y="14.04" width="3.39" height="3.49" rx="1.19" fill="#f4b23e"/><rect x="23.25" y="14.04" width="3.39" height="3.49" rx="1.19" fill="#f4b23e"/><rect x="2.88" y="23.47" width="3.39" height="3.49" rx="1.19" fill="#f4b23e"/><rect x="23.25" y="23.47" width="3.39" height="3.49" rx="1.19" fill="#f4b23e"/><rect x="2.88" y="32.90" width="3.39" height="3.49" rx="1.19" fill="#f4b23e"/><rect x="23.25" y="32.90" width="3.39" height="3.49" rx="1.19" fill="#f4b23e"/></svg>';
 
 /* ---------------- ícones ---------------- */
 export const ICO = {

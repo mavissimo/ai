@@ -46,7 +46,7 @@ const rotaAtual = () => (location.hash || '#/').slice(1).split('?')[0] || '/';
 /* ---------------- login ---------------- */
 function telaBoasVindas() {
   const node = el(`<div class="login">
-    <span class="marca" style="width:180px;display:block;margin-bottom:18px">${MARCA}</span>
+    <span class="marca" style="font-size:40px;margin-bottom:18px">${MARCA}</span>
     <p>Gestão de produção audiovisual: negociação, pré, produção, pós, dinheiro
       e equipe — tudo no celular.</p>
     <button class="btn pri wide" data-comecar>Começar</button>
@@ -117,7 +117,7 @@ function telaQuemEVoce() {
 
 function telaLoginRemoto() {
   const node = el(`<div class="login">
-    <span class="marca" style="width:180px;display:block;margin-bottom:18px">${MARCA}</span>
+    <span class="marca" style="font-size:40px;margin-bottom:18px">${MARCA}</span>
     <p>Entre com seu e-mail. A gente manda um link de acesso — sem senha.</p>
     <div class="f"><label>E-mail</label><input type="email" data-email placeholder="voce@email.com"></div>
     <button class="btn pri wide" data-enviar>Receber link de acesso</button>

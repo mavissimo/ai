@@ -13,6 +13,7 @@
   --ok-bg:rgba(15,122,82,.10); --warn-bg:rgba(154,92,8,.12);
   --bad-bg:rgba(192,42,51,.10); --info-bg:rgba(33,88,208,.10);
   --scrim:rgba(20,24,32,.45); --sombra:0 8px 24px rgba(20,26,40,.16);
+  --titulo: Archivo, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --r:14px; --sp:16px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   color-scheme: light;
@@ -57,7 +58,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .topbar{position:sticky;top:0;z-index:20;background:var(--bg);
   border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;
   display:flex;align-items:center;gap:10px}
-.topbar h1{font-size:16px;margin:0;font-weight:650;letter-spacing:.2px;flex:1;
+.topbar h1{font-family:var(--titulo);font-size:16px;margin:0;font-weight:700;letter-spacing:-.2px;flex:1;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .topbar .sub{display:block;font-size:11px;color:var(--tx3);font-weight:500}
 .olho{width:32px;height:32px;flex:none;border-radius:50%;background:transparent;border:1px solid var(--line);
@@ -96,7 +97,7 @@ main{flex:1;padding:14px 14px calc(96px + var(--safe-b));max-width:760px;width:1
 @media(max-width:360px){.grid3{grid-template-columns:1fr 1fr}}
 .kpi{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:12px}
 .kpi .l{font-size:11px;color:var(--tx3);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
-.kpi .v{font-size:19px;font-weight:700;margin-top:4px;letter-spacing:-.3px}
+.kpi .v{font-family:var(--titulo);font-size:19px;font-weight:700;margin-top:4px;letter-spacing:-.4px}
 .kpi .h{font-size:11px;color:var(--tx3);margin-top:2px}
 .kpi.ok .v{color:var(--ok)} .kpi.bad .v{color:var(--bad)} .kpi.warn .v{color:var(--warn)}
 
@@ -159,7 +160,7 @@ main{flex:1;padding:14px 14px calc(96px + var(--safe-b));max-width:760px;width:1
   max-width:760px;margin:0 auto}
 .sheet.in{transform:translateY(0)}
 .sheet-h{padding:14px 16px 10px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
-.sheet-h h3{margin:0;font-size:16px;flex:1;font-weight:650}
+.sheet-h h3{font-family:var(--titulo);margin:0;font-size:16px;flex:1;font-weight:700;letter-spacing:-.2px}
 .sheet-b{padding:14px 16px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1}
 .sheet-f{padding:12px 16px calc(14px + var(--safe-b));border-top:1px solid var(--line);display:flex;gap:8px}
 .sheet-f .btn{flex:1}
@@ -205,7 +206,7 @@ main{flex:1;padding:14px 14px calc(96px + var(--safe-b));max-width:760px;width:1
 
 .login{max-width:420px;margin:0 auto;padding:34px 18px calc(40px + var(--safe-b))}
 .login .logo{width:56px;height:56px;margin-bottom:16px}
-.login h1{font-size:24px;margin:0 0 6px;letter-spacing:-.4px}
+.login h1{font-family:var(--titulo);font-size:24px;margin:0 0 6px;letter-spacing:-.6px}
 .login p{color:var(--tx2);margin:0 0 22px;font-size:14px}
 .who{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:13px;margin-bottom:9px;
   background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);cursor:pointer}
@@ -220,8 +221,9 @@ main{flex:1;padding:14px 14px calc(96px + var(--safe-b));max-width:760px;width:1
    coluna fixa à esquerda e o conteúdo se espalha em duas colunas, para a tela
    grande não ficar com cara de celular esticado.
    ========================================================================= */
-.marca{display:block;color:var(--tx)}
-.marca svg{width:100%;height:auto;display:block}
+.marca{font-family:var(--titulo);font-weight:700;letter-spacing:-.035em;line-height:1;
+  white-space:nowrap;color:var(--tx);display:inline-block;font-size:30px}
+.marca svg{height:.72em;width:auto;vertical-align:baseline;margin-left:.04em}
 .tabbar .brand{display:none}
 
 @media (min-width:900px){
@@ -229,7 +231,7 @@ main{flex:1;padding:14px 14px calc(96px + var(--safe-b));max-width:760px;width:1
   .tabbar{top:0;bottom:0;right:auto;width:224px;flex-direction:column;justify-content:flex-start;
     border-top:0;border-right:1px solid var(--line);padding:20px 12px;gap:2px}
   .tabbar .brand{display:block;padding:6px 14px 24px}
-  .tabbar .brand .marca{width:124px}
+  .tabbar .brand .marca{font-size:31px}
   .tabbar a{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;
     padding:11px 14px;font-size:14.5px;width:100%}
   .tabbar a.on{background:var(--bg3)}
