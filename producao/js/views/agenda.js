@@ -95,7 +95,8 @@ function linhaEvento(e, u) {
   return `<div class="row act" data-ev="${e.id}">
     <span class="tag ${e.tipo === 'diaria' ? 'ok' : e.tipo === 'viagem' ? 'warn' : e.tipo === 'entrega' ? 'bad' : 'info'}">
       ${esc(minhaChamada || e.hora_inicio || tipoEvento(e.tipo).slice(0, 3))}</span>
-    <span class="g"><span class="t">${esc(e.titulo)}${meu ? ' · <span class="small">você</span>' : ''}</span>
+    <span class="g"><span class="t">${esc(e.titulo)}${meu ? ' · <span class="small">você</span>' : ''}${
+      e.confirmado === false ? ' <span class="tag warn">a confirmar</span>' : ''}</span>
       <span class="s">${esc([tipoEvento(e.tipo), e.local, conf.length ? `${okN}/${conf.length} confirmados` : '']
         .filter(Boolean).join(' · '))}</span></span>
   </div>`;
@@ -114,7 +115,8 @@ function cartaoEvento(e, u) {
     <div style="display:flex;gap:11px;align-items:flex-start">
       <span class="ico ${diasAte(e.data) === 0 ? 'urg' : ''}">${simbolo}</span>
       <div style="flex:1;min-width:0">
-        <div style="font-weight:650;font-size:15px">${esc(e.titulo)}</div>
+        <div style="font-weight:650;font-size:15px">${esc(e.titulo)}${
+          e.confirmado === false ? ' <span class="tag warn">data a confirmar</span>' : ''}</div>
         <div class="small muted" style="margin-top:2px">${esc([tipoEvento(e.tipo),
           e.hora_inicio ? e.hora_inicio + (e.hora_fim ? '–' + e.hora_fim : '') : ''].filter(Boolean).join(' · '))}</div>
       </div>
@@ -341,6 +343,7 @@ function camposEvento(e = {}) {
     { k: 'titulo', label: 'Título', type: 'texto', req: true, valor: e.titulo, ph: 'Diária 1 — Conceição do Araguaia' },
     { k: 'tipo', label: 'Tipo', type: 'select', valor: e.tipo || 'diaria', opts: TIPOS },
     { k: 'data', label: 'Data', type: 'data', req: true, valor: e.data },
+    { k: 'confirmado', label: 'Data confirmada pelo cliente', type: 'check', valor: e.confirmado !== false },
     { k: 'hora_inicio', label: 'Início', type: 'hora', valor: e.hora_inicio, meia: true },
     { k: 'hora_fim', label: 'Fim', type: 'hora', valor: e.hora_fim, meia: true },
     { k: 'local', label: 'Cidade / local', type: 'texto', valor: e.local },

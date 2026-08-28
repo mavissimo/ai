@@ -155,7 +155,13 @@ function blocoResumo(f, verLucro, u) {
       <div class="row"><span class="g"><span class="t">Custo total previsto</span>
         <span class="s">orçamento + imposto</span></span>
         <span class="r"><span class="v">${fmtMoney(f.custoPrevistoTotal)}</span></span></div>
-      <div class="row"><span class="g"><span class="t">Lucro previsto</span>
+      <div class="row"><span class="g"><span class="t">Economia já negociada</span>
+        <span class="s">só nas rubricas fechadas: orçado − negociado</span></span>
+        <span class="r"><span class="v" style="color:${f.economia < 0 ? 'var(--bad)' : 'var(--ok)'}">${fmtMoney(f.economia)}</span></span></div>
+      <div class="row"><span class="g"><span class="t">Lucro se o resto fechar no orçado</span>
+        <span class="s">contratado − (orçado − economia) − imposto</span></span>
+        <span class="r"><span class="v" style="color:${f.lucroSeFechar < 0 ? 'var(--bad)' : 'var(--ok)'}">${fmtMoney(f.lucroSeFechar)}</span></span></div>
+      <div class="row"><span class="g"><span class="t">Lucro previsto (orçamento cheio)</span>
         <span class="s">margem ${f.margemPrevista}%</span></span>
         <span class="r"><span class="v" style="color:${f.lucroPrevisto < 0 ? 'var(--bad)' : 'var(--ok)'}">${fmtMoney(f.lucroPrevisto)}</span></span></div>
       <div class="row"><span class="g"><span class="t">Lucro realizado</span>

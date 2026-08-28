@@ -94,9 +94,12 @@ export function render() {
         <div class="kpi ${f.saldoOrcamento < 0 ? 'bad' : ''}"><div class="l">Ainda posso gastar</div>
           <div class="v">${fmtMoneyShort(f.saldoOrcamento)}</div>
           <div class="h">orçado − comprometido</div></div>
-        ${verLucro ? `<div class="kpi ${f.lucroPrevisto < 0 ? 'bad' : 'ok'}"><div class="l">Lucro previsto</div>
-          <div class="v">${fmtMoneyShort(f.lucroPrevisto)}</div>
-          <div class="h">margem ${f.margemPrevista}%</div></div>` : ''}
+        ${verLucro ? `<div class="kpi ${f.economia < 0 ? 'bad' : 'ok'}"><div class="l">Economia negociada</div>
+          <div class="v">${fmtMoneyShort(f.economia)}</div>
+          <div class="h">orçado − fechado, no que já fechou</div></div>
+        <div class="kpi ${f.lucroSeFechar < 0 ? 'bad' : 'ok'}"><div class="l">Lucro hoje</div>
+          <div class="v">${fmtMoneyShort(f.lucroSeFechar)}</div>
+          <div class="h">se o resto fechar no orçado</div></div>` : ''}
         ${can(u, 'contas.ver') ? `<div class="kpi"><div class="l">A pagar</div>
           <div class="v">${fmtMoneyShort(f.aPagar)}</div></div>
         <div class="kpi"><div class="l">A receber</div>

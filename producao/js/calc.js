@@ -27,6 +27,9 @@ export function financeiro() {
 
   const orcado = soma(orc, (o) => o.previsto_cents);
   const negociado = soma(orc, (o) => o.negociado_cents);
+  // Só o que já foi fechado conta: quanto o negociado ficou abaixo (ou acima) do orçado.
+  const fechadas = orc.filter((o) => o.negociado_cents);
+  const economia = soma(fechadas, (o) => o.previsto_cents) - soma(fechadas, (o) => o.negociado_cents);
   const realizado = soma(saidas.filter((l) => l.status === 'pago' || l.status === 'aprovado'), (l) => l.valor_cents);
   const pendente = soma(saidas.filter((l) => l.status === 'pendente'), (l) => l.valor_cents);
   const pago = soma(saidas.filter((l) => l.status === 'pago'), (l) => l.valor_cents);
@@ -51,8 +54,10 @@ export function financeiro() {
   const comprometido = realizado + pendente + aPagar;
 
   return {
-    contratado, orcado, negociado, realizado, pendente, pago, recebido,
+    contratado, orcado, negociado, realizado, pendente, pago, recebido, economia,
     aNegociar: orcado - negociado,
+    // Lucro se tudo o que falta fechar sair pelo valor orçado.
+    lucroSeFechar: contratado - (orcado - economia) - Math.round(contratado * aliq),
     aPagar, aReceber, impostoPrevisto, impostoRealizado,
     custoPrevistoTotal, lucroPrevisto, lucroRealizado, caixa, comprometido,
     saldoOrcamento: orcado - comprometido,
