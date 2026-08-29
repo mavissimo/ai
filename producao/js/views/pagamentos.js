@@ -113,7 +113,7 @@ function blocoPessoas() {
   const pessoas = membros().filter((m) => aPagar().some((c) => c.membro_id === m.id));
   const outros = aPagar().filter((c) => !c.membro_id);
   if (!pessoas.length && !outros.length) return '<div class="empty">Nenhum pagamento cadastrado.</div>';
-  return `<div class="card">${pessoas.map((m) => {
+  return `<div class="card lista">${pessoas.map((m) => {
     const p = planoDe(m.id);
     return `<div class="row act" data-plano="${m.id}">
       <span class="avatar">${esc(iniciais(m.nome))}</span>

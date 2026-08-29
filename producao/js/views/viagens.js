@@ -155,14 +155,14 @@ function abrir(v, editar) {
       ${c.faltando.map((i) => `<b>${esc(i.t)}</b>`).join(' · ')}.</div>` : ''}
 
     ${c.contas.length ? `<div class="sec"><div class="sec-t">Compromissos</div></div>
-      <div class="card">${c.contas.map((x) => `<div class="row">
+      <div class="card lista">${c.contas.map((x) => `<div class="row">
         <span class="tag ${x.status === 'quitado' ? 'ok' : 'warn'}">${x.status === 'quitado' ? 'pago' : 'aberto'}</span>
         <span class="g"><span class="t">${esc(x.descricao)}</span>
           <span class="s">${esc(x.contraparte || '')}</span></span>
         <span class="r"><span class="v">${fmtMoney(x.valor_cents)}</span></span></div>`).join('')}</div>` : ''}
 
     ${evs.length ? `<div class="sec"><div class="sec-t">Na agenda</div></div>
-      <div class="card">${evs.map((e) => `<div class="row">
+      <div class="card lista">${evs.map((e) => `<div class="row">
         <span class="tag ${e.tipo === 'diaria' ? 'ok' : 'info'}">${esc(fmtData(e.data).slice(0, 5))}</span>
         <span class="g"><span class="t">${esc(e.titulo)}</span>
           <span class="s">${esc(e.local || '')}</span></span></div>`).join('')}</div>` : ''}`;

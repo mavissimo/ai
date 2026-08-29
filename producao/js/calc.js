@@ -125,6 +125,29 @@ export function caixasAbertos() {
     .sort((a, b) => b.saldo - a.saldo);
 }
 
+/* ---------------- fontes vivas do projeto ---------------- */
+export const FREQ_FONTE = [
+  { v: 'diaria', t: 'Todo dia', dias: 1 },
+  { v: 'semanal', t: 'Toda semana', dias: 7 },
+  { v: 'quinzenal', t: 'A cada 15 dias', dias: 15 },
+  { v: 'quando_mudar', t: 'Só quando avisarem', dias: 0 }
+];
+export const freqFonte = (v) => FREQ_FONTE.find((f) => f.v === v) || FREQ_FONTE[1];
+
+/** Há quantos dias ninguém confere a fonte, e se já passou do combinado. */
+export function statusFonte(f) {
+  const janela = freqFonte(f.frequencia).dias;
+  if (!f.conferido_em) return { dias: null, vencida: janela > 0, txt: 'nunca conferida' };
+  const dias = Math.abs(diasAte(f.conferido_em) ?? 0);
+  return {
+    dias,
+    vencida: janela > 0 && dias > janela,
+    txt: dias === 0 ? 'conferida hoje' : dias === 1 ? 'conferida ontem' : `há ${dias} dias`
+  };
+}
+
+export const fontesVencidas = () => store.doProjeto('fontes').filter((f) => statusFonte(f).vencida);
+
 /* ---------------- aprovações do cliente ---------------- */
 export const ST_APROV = {
   enviado: { t: 'Com o cliente', tag: 'warn' },

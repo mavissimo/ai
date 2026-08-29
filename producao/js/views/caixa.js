@@ -25,7 +25,7 @@ export function render() {
         <div class="v">${fmtMoneyShort(totalAberto)}</div>
         <div class="h">nota ou devolução</div></div>
     </div>
-    <div class="card">${lista.filter((c) => c.adiantado || c.gasto).length
+    <div class="card lista">${lista.filter((c) => c.adiantado || c.gasto).length
       ? lista.filter((c) => c.adiantado || c.gasto).map((c) => `<div class="row act" data-caixa="${c.membro_id}">
         <span class="avatar">${esc(iniciais(nomeMembro(c.membro_id)))}</span>
         <span class="g"><span class="t">${esc(nomeMembro(c.membro_id))}</span>
@@ -97,7 +97,7 @@ function abrirCaixa(membroId, gestor) {
           <span class="r"><span class="v">− ${fmtMoney(c.devolvido)}</span></span></div>
       </div>
       <div class="sec"><div class="sec-t">Gastos da caixinha</div></div>
-      <div class="card">${gastos.length ? gastos.map((l) => {
+      <div class="card lista">${gastos.length ? gastos.map((l) => {
         const st = ST_LANC[l.status] || ST_LANC.pendente;
         const doc = store.doProjeto('documentos').find((d) => d.lancamento_id === l.id);
         return `<div class="row">
@@ -107,7 +107,7 @@ function abrirCaixa(membroId, gestor) {
           <span class="r"><span class="v">${fmtMoney(l.valor_cents)}</span></span></div>`;
       }).join('') : '<div class="empty">Nada gasto ainda.</div>'}</div>
       <div class="sec"><div class="sec-t">Movimentos</div></div>
-      <div class="card">${mov.map((m) => `<div class="row">
+      <div class="card lista">${mov.map((m) => `<div class="row">
         <span class="tag ${m.tipo === 'adiantamento' ? 'info' : 'ok'}">${m.tipo === 'adiantamento' ? 'entrou' : 'devolveu'}</span>
         <span class="g"><span class="t">${esc(m.obs || (m.tipo === 'adiantamento' ? 'Adiantamento' : 'Devolução'))}</span>
           <span class="s">${esc(fmtData(m.data))}${m.forma ? ' · ' + esc(m.forma) : ''}</span></span>

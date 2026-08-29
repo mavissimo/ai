@@ -34,7 +34,7 @@ export function render() {
       <button class="chip ${aba === 'locacoes' ? 'on' : ''}" data-aba="locacoes">Locações</button>
       <button class="chip ${aba === 'contatos' ? 'on' : ''}" data-aba="contatos">Contatos</button>
     </div>
-    ${aba === 'locacoes' ? `<div class="card">${locs.length ? locs.map((l) => {
+    ${aba === 'locacoes' ? `<div class="card lista">${locs.length ? locs.map((l) => {
       const s = stAut(l.autorizacao);
       const diarias = store.doProjeto('eventos').filter((e) => e.locacao_id === l.id).length;
       return `<div class="row act" data-loc="${l.id}">
@@ -44,7 +44,7 @@ export function render() {
         ${l.valor_cents ? `<span class="r"><span class="v">${fmtMoney(l.valor_cents)}</span></span>` : ''}
       </div>`;
     }).join('') : '<div class="empty">Nenhuma locação cadastrada.</div>'}</div>`
-      : `<div class="card">${contatos.length ? contatos.map((c) => `<div class="row act" data-contato="${c.id}">
+      : `<div class="card lista">${contatos.length ? contatos.map((c) => `<div class="row act" data-contato="${c.id}">
         <span class="tag ${c.tipo === 'cliente' ? 'info' : c.tipo === 'fornecedor' ? 'warn' : 'mut'}">${esc(c.tipo)}</span>
         <span class="g"><span class="t">${esc(c.nome)}</span>
           <span class="s">${esc([c.papel, c.empresa].filter(Boolean).join(' · '))}</span></span>
@@ -100,7 +100,7 @@ function abrirLocacao(l, editar) {
       ${linha('Observações', l.obs)}
     </div>
     ${eventos.length ? `<div class="sec"><div class="sec-t">Diárias nesta locação</div></div>
-      <div class="card">${eventos.map((e) => `<div class="row"><span class="g">
+      <div class="card lista">${eventos.map((e) => `<div class="row"><span class="g">
         <span class="t">${esc(e.titulo)}</span><span class="s">${esc(e.data)}</span></span></div>`).join('')}</div>` : ''}
     ${editar ? '<button class="btn wide gho" data-edit>Editar locação</button>' : ''}
   </div>`);

@@ -21,6 +21,9 @@
   --scrim:rgba(20,24,32,.45); --sombra:0 8px 24px rgba(20,26,40,.16);
   --titulo: Archivo, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --r:14px; --sp:16px;
+  /* escala de espaço: tudo no layout sai de um destes seis degraus */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:36px;
+  --r-sm:10px; --r-lg:18px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   color-scheme: light;
 }
@@ -53,8 +56,8 @@
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--tx)}
-body{font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  overscroll-behavior-y:none}
+body{font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  overscroll-behavior-y:none;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 a{color:var(--ac2);text-decoration:none}
 button,input,select,textarea{font:inherit;color:inherit}
 .boot{padding:40px;text-align:center;color:var(--tx2)}
@@ -77,7 +80,11 @@ button,input,select,textarea{font:inherit;color:inherit}
 .avatar.sm{width:22px;height:22px;font-size:9px}
 .avatar{width:34px;height:34px;border-radius:50%;background:var(--bg3);border:1px solid var(--line);
   display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--ac);flex:none}
-main{flex:1;padding:14px 14px calc(96px + var(--safe-b));max-width:760px;width:100%;margin:0 auto}
+main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760px;width:100%;margin:0 auto}
+.titulao{font-family:var(--titulo);font-size:28px;font-weight:700;letter-spacing:-.8px;
+  margin:var(--s1) 0 var(--s4);line-height:1.12}
+.titulao .sub{display:block;font-family:inherit;font-size:13.5px;font-weight:500;
+  color:var(--tx3);letter-spacing:0;margin-top:var(--s1)}
 
 /* bottom nav */
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;
@@ -92,35 +99,56 @@ main{flex:1;padding:14px 14px calc(96px + var(--safe-b));max-width:760px;width:1
   background:var(--bad);border:2px solid var(--bg2)}
 
 /* blocks */
-.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);
+  padding:var(--s4);margin-bottom:var(--s3)}
 .kpi,.card{box-shadow:0 1px 2px rgba(20,26,40,.04)}
-.card.tight{padding:10px 12px}
-.card h2,.sec-t{font-size:13px;margin:0 0 10px;color:var(--tx2);font-weight:650;
-  text-transform:uppercase;letter-spacing:.6px}
-.sec{margin:22px 0 10px;display:flex;align-items:center;gap:8px}
+.card.tight{padding:2px var(--s4)}
+/* lista agrupada: as linhas encostam nas bordas e o separador recua até o texto */
+.card.lista{padding:0 0 0 var(--s4)}
+.card.lista > .row{padding-right:var(--s4)}
+.card h2,.sec-t{font-size:13px;margin:0 0 var(--s3);color:var(--tx3);font-weight:650;
+  letter-spacing:0;text-transform:none}
+.sec{margin:var(--s6) 0 var(--s3);display:flex;align-items:baseline;gap:var(--s2)}
+.sec:first-child{margin-top:var(--s3)}
 .sec .sec-t{margin:0;flex:1}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s2);margin-bottom:var(--s3)}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--s2);margin-bottom:var(--s3)}
 @media(max-width:360px){.grid3{grid-template-columns:1fr 1fr}}
-.kpi{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:12px}
-.kpi .l{font-size:11px;color:var(--tx3);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
-.kpi .v{font-family:var(--titulo);font-size:19px;font-weight:700;margin-top:4px;letter-spacing:-.4px}
-.kpi .h{font-size:11px;color:var(--tx3);margin-top:2px}
+.kpi{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:var(--s3) var(--s4)}
+.kpi .l{font-size:11.5px;color:var(--tx3);font-weight:600;letter-spacing:0;text-transform:none}
+.kpi .v{font-family:var(--titulo);font-size:22px;font-weight:700;margin-top:var(--s1);
+  letter-spacing:-.6px;line-height:1.15}
+.kpi .h{font-size:11.5px;color:var(--tx3);margin-top:var(--s1);line-height:1.3}
 .kpi.ok .v{color:var(--ok)} .kpi.bad .v{color:var(--bad)} .kpi.warn .v{color:var(--warn)}
 
-.row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.row{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) 0;min-height:52px;
+  border-bottom:1px solid var(--line)}
 .row:last-child{border-bottom:0}
+/* quando o título ocupa várias linhas, tudo encosta no topo em vez de flutuar no meio */
+.row.alto{align-items:flex-start}
+.row.alto .t{white-space:normal}
+.row.alto > .r{padding-top:1px}
 .row .g{flex:1;min-width:0}
-.row .t{display:block;font-weight:600;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.row .s{display:block;font-size:12px;color:var(--tx3);margin-top:2px;overflow:hidden;text-overflow:ellipsis}
+.row .t{display:block;font-weight:600;font-size:15px;line-height:1.35;letter-spacing:-.1px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .s{display:block;font-size:12.5px;color:var(--tx3);margin-top:1px;line-height:1.35;
+  overflow:hidden;text-overflow:ellipsis}
 .row .r{text-align:right;flex:none;font-variant-numeric:tabular-nums}
-.row .r .v{font-weight:650;font-size:14px}
-.row.act{cursor:pointer}
-.row.act:active{opacity:.6}
+.row .r .v{font-weight:650;font-size:15px;letter-spacing:-.2px}
+/* seta de "isto abre alguma coisa" — a dica que faltava para saber o que é clicável */
+.row.act{cursor:pointer;position:relative;padding-right:var(--s5)}
+.row.act::after{content:"";position:absolute;right:var(--s2);top:50%;width:7px;height:7px;
+  border-right:1.8px solid var(--tx3);border-bottom:1.8px solid var(--tx3);
+  transform:translateY(-50%) rotate(-45deg);opacity:.55}
+.card.lista > .row.act{padding-right:var(--s5)}
+.card.lista > .row.act::after{right:var(--s3)}
+.row.act:active{background:var(--bg3)}
+.row.act.sem-seta{padding-right:0}
+.row.act.sem-seta::after{display:none}
 .mono{font-variant-numeric:tabular-nums}
 
-.tag{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:999px;
-  background:var(--bg3);color:var(--tx2);letter-spacing:.3px;text-transform:uppercase;white-space:nowrap}
+.tag{display:inline-block;font-size:11px;font-weight:650;padding:3px 9px;border-radius:999px;
+  background:var(--bg3);color:var(--tx2);letter-spacing:0;text-transform:none;white-space:nowrap}
 .tag.ok{background:var(--ok-bg);color:var(--ok)}
 .tag.warn{background:var(--warn-bg);color:var(--warn)}
 .tag.bad{background:var(--bad-bg);color:var(--bad)}
@@ -145,7 +173,7 @@ main{flex:1;padding:14px 14px calc(96px + var(--safe-b));max-width:760px;width:1
 .bar i{display:block;height:100%;background:var(--ac);border-radius:99px}
 .bar i.ok{background:var(--ok)} .bar i.bad{background:var(--bad)} .bar i.warn{background:var(--warn)}
 
-.chips{display:flex;gap:7px;overflow-x:auto;padding:2px 0 8px;-webkit-overflow-scrolling:touch;
+.chips{display:flex;gap:var(--s2);overflow-x:auto;padding:2px 0 var(--s3);-webkit-overflow-scrolling:touch;
   scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:none;padding:8px 13px;border-radius:999px;background:var(--bg2);border:1px solid var(--line);
@@ -197,8 +225,10 @@ main{flex:1;padding:14px 14px calc(96px + var(--safe-b));max-width:760px;width:1
   background:var(--tx);color:var(--bg);padding:11px 16px;border-radius:11px;font-weight:650;font-size:13.5px;
   box-shadow:var(--sombra);max-width:88vw;text-align:center}
 
-.banner{background:var(--info-bg);border:1px solid var(--info);color:var(--tx);
-  border-radius:var(--r);padding:11px 13px;font-size:13px;margin-bottom:12px}
+.banner{background:var(--bg3);border:1px solid var(--line);color:var(--tx2);
+  border-radius:var(--r);padding:var(--s3) var(--s4);font-size:13px;line-height:1.5;
+  margin-bottom:var(--s3)}
+.banner b{color:var(--tx)}
 .banner.warn{background:var(--warn-bg);border-color:var(--warn)}
 .banner.bad{background:var(--bad-bg);border-color:var(--bad)}
 
@@ -271,6 +301,30 @@ main{flex:1;padding:14px 14px calc(96px + var(--safe-b));max-width:760px;width:1
   .dash > .bloco.largo{grid-column:1 / -1}
 }
 
+/* ---------------------------------------------------------------- tabela ---
+   Para quando a leitura certa é a da planilha: colunas alinhadas, número
+   tabular e o total no rodapé. Rola sozinha na horizontal no celular. */
+.tabela-rolo{position:relative;overflow-x:auto;-webkit-overflow-scrolling:touch;background:var(--bg2);
+  border:1px solid var(--line);border-radius:var(--r);margin-bottom:var(--s2)}
+/* a sombra na borda direita é o que avisa que a tabela continua para o lado */
+.tabela-caixa{position:relative}
+.tabela-caixa::after{content:"";position:absolute;top:1px;bottom:var(--s2);right:1px;width:26px;
+  border-radius:0 var(--r) var(--r) 0;pointer-events:none;
+  background:linear-gradient(90deg,transparent,var(--bg2))}
+.tabela-dica{font-size:11.5px;color:var(--tx3);margin:0 0 var(--s3);text-align:right}
+.tabela{width:100%;border-collapse:collapse;font-size:13.5px;min-width:560px}
+.tabela th,.tabela td{padding:var(--s2) var(--s3);text-align:left;
+  border-bottom:1px solid var(--line);white-space:nowrap}
+@media(min-width:760px){.tabela-caixa::after,.tabela-dica{display:none}}
+.tabela th{font-size:11.5px;font-weight:650;color:var(--tx3);background:var(--bg);
+  position:sticky;top:0}
+.tabela td .sub{display:block;font-size:11.5px;color:var(--tx3);font-weight:400;margin-top:1px}
+.tabela .n{text-align:right;font-variant-numeric:tabular-nums}
+.tabela .forte{font-weight:700}
+.tabela .bom{color:var(--ok)} .tabela .ruim{color:var(--bad)}
+.tabela tbody tr:active{background:var(--bg3)}
+.tabela tfoot td{border-bottom:0;border-top:1.5px solid var(--tx3);font-weight:700;background:var(--bg)}
+
 /* símbolo à esquerda das linhas do painel */
 .ico{flex:none;width:30px;height:30px;border-radius:9px;background:var(--bg3);display:grid;
   place-items:center;font-size:15px;line-height:1}
@@ -294,7 +348,7 @@ const KEY = 'unit0:db:v1';
 const TABELAS = [
   'projetos', 'membros', 'etapas', 'tarefas', 'eventos', 'entregas',
   'orcamento', 'lancamentos', 'contas', 'contratos', 'documentos',
-  'confirmacoes', 'atividades', 'locacoes', 'caixa', 'aprovacoes', 'contatos', 'viagens'
+  'confirmacoes', 'atividades', 'locacoes', 'caixa', 'aprovacoes', 'contatos', 'viagens', 'fontes'
 ];
 
 const vazio = () => {
@@ -423,6 +477,7 @@ const vNotas = __req("js/views/notas.js");
 const vMeu = __req("js/views/meu.js");
 const vAjustes = __req("js/views/ajustes.js");
 const vLocacoes = __req("js/views/locacoes.js");
+const vFontes = __req("js/views/fontes.js");
 const vAprov = __req("js/views/aprovacoes.js");
 const ROTAS = {
   '': () => (ehEquipe(store.user) ? vMeu.render() : vDash.render()),
@@ -442,6 +497,7 @@ const ROTAS = {
   '/mais': () => vAjustes.render(),
   '/caixa': () => { vFin.irPara('caixa'); return vFin.render(); },
   '/locacoes': () => vLocacoes.render(),
+  '/fontes': () => vFontes.render(),
   '/aprovacoes': () => vAprov.render(),
   '/historico': () => vAjustes.renderHistorico()
 };
@@ -807,6 +863,29 @@ function caixasAbertos() {
     .sort((a, b) => b.saldo - a.saldo);
 }
 
+/* ---------------- fontes vivas do projeto ---------------- */
+const FREQ_FONTE = [
+  { v: 'diaria', t: 'Todo dia', dias: 1 },
+  { v: 'semanal', t: 'Toda semana', dias: 7 },
+  { v: 'quinzenal', t: 'A cada 15 dias', dias: 15 },
+  { v: 'quando_mudar', t: 'Só quando avisarem', dias: 0 }
+];
+const freqFonte = (v) => FREQ_FONTE.find((f) => f.v === v) || FREQ_FONTE[1];
+
+/** Há quantos dias ninguém confere a fonte, e se já passou do combinado. */
+function statusFonte(f) {
+  const janela = freqFonte(f.frequencia).dias;
+  if (!f.conferido_em) return { dias: null, vencida: janela > 0, txt: 'nunca conferida' };
+  const dias = Math.abs(diasAte(f.conferido_em) ?? 0);
+  return {
+    dias,
+    vencida: janela > 0 && dias > janela,
+    txt: dias === 0 ? 'conferida hoje' : dias === 1 ? 'conferida ontem' : `há ${dias} dias`
+  };
+}
+
+const fontesVencidas = () => store.doProjeto('fontes').filter((f) => statusFonte(f).vencida);
+
 /* ---------------- aprovações do cliente ---------------- */
 const ST_APROV = {
   enviado: { t: 'Com o cliente', tag: 'warn' },
@@ -859,7 +938,7 @@ function custoPorCidade() {
   };
 }
 
-  return { ST_LANC, ST_CONTA, financeiro, porRubrica, contasCriticas, saldoCaixa, caixasAbertos, ST_APROV, aprovacoesVencidas, custoDoEvento, custoPorCidade };
+  return { ST_LANC, ST_CONTA, financeiro, porRubrica, contasCriticas, saldoCaixa, caixasAbertos, FREQ_FONTE, freqFonte, statusFonte, fontesVencidas, ST_APROV, aprovacoesVencidas, custoDoEvento, custoPorCidade };
 };
 
 __defs["js/config.js"] = function () {
@@ -1108,7 +1187,7 @@ __defs["js/notify.js"] = function () {
 const { store } = __req("js/store.js");
 const { can } = __req("js/perms.js");
 const { diasAte, prazoTxt, fmtMoney } = __req("js/utils.js");
-const { saldoCaixa } = __req("js/calc.js");
+const { saldoCaixa, statusFonte } = __req("js/calc.js");
 const VISTOS = 'unit0:alertas-vistos';
 
 function alertas() {
@@ -1123,9 +1202,8 @@ function alertas() {
       id: 'conf_' + c.id,
       urg: c.membro_id === u?.id ? 2 : 1,
       icone: c.membro_id === u?.id ? '🙋' : '⏳',
-      texto: c.membro_id === u?.id
-        ? `Confirme: ${c.titulo}`
-        : `${nome(c.membro_id)} ainda não confirmou: ${c.titulo}`,
+      texto: c.titulo,
+      detalhe: c.membro_id === u?.id ? 'Confirme' : `${nome(c.membro_id)} ainda não confirmou`,
       rota: c.membro_id === u?.id ? '#/meu' : '#/equipe'
     }));
 
@@ -1136,7 +1214,8 @@ function alertas() {
       if (d === null || d > 5) return;
       add({
         id: 'conta_' + c.id, urg: d < 0 ? 3 : 2, icone: c.tipo === 'pagar' ? '💸' : '💰',
-        texto: `${c.tipo === 'pagar' ? 'Pagar' : 'Receber'} ${fmtMoney(c.valor_cents)} — ${c.descricao} (${prazoTxt(c.venc)})`,
+        texto: `${c.tipo === 'pagar' ? 'Pagar' : 'Receber'} ${fmtMoney(c.valor_cents)}`,
+        detalhe: `${c.descricao} · ${prazoTxt(c.venc)}`,
         rota: '#/contas'
       });
     });
@@ -1147,7 +1226,7 @@ function alertas() {
     const pend = store.doProjeto('lancamentos').filter((l) => l.status === 'pendente');
     if (pend.length) add({
       id: 'aprov_' + pend.length, urg: 2, icone: '🧾',
-      texto: `${pend.length} lançamento(s) aguardando sua aprovação`,
+      texto: `${pend.length} lançamento(s) para aprovar`, detalhe: 'Gastos lançados pela equipe',
       rota: '#/financeiro'
     });
   }
@@ -1156,7 +1235,8 @@ function alertas() {
   store.doProjeto('entregas').filter((e) => e.status !== 'entregue').forEach((e) => {
     const d = diasAte(e.prazo);
     if (d === null || d > 5) return;
-    add({ id: 'entr_' + e.id, urg: d < 0 ? 3 : 2, icone: '📦', texto: `Entrega ${e.titulo} — ${prazoTxt(e.prazo)}`, rota: '#/agenda' });
+    add({ id: 'entr_' + e.id, urg: d < 0 ? 3 : 2, icone: '📦', texto: e.titulo,
+      detalhe: `Entrega · ${prazoTxt(e.prazo)}`, rota: '#/agenda' });
   });
 
   // Rodadas de aprovação que passaram do prazo (silêncio = aceite pelo contrato)
@@ -1166,12 +1246,13 @@ function alertas() {
       if (d === null) return;
       if (d < 0) add({
         id: 'apv_' + a.id, urg: 3, icone: '⏰',
-        texto: `Prazo de aceite venceu sem resposta: ${a.titulo} — vale como aprovado`,
+        texto: a.titulo, detalhe: 'Prazo de aceite venceu sem resposta',
         rota: '#/aprovacoes'
       });
       else if (d <= 2) add({
         id: 'apvp_' + a.id, urg: 1, icone: '👀',
-        texto: `Cliente tem ${d === 0 ? 'até hoje' : d + ' dia(s)'} para responder: ${a.titulo}`,
+        texto: a.titulo,
+        detalhe: `Cliente tem ${d === 0 ? 'até hoje' : d + ' dia(s)'} para responder`,
         rota: '#/aprovacoes'
       });
     });
@@ -1185,9 +1266,8 @@ function alertas() {
       const c = saldoCaixa(id);
       if (c.saldo > 0) add({
         id: 'caixa_' + id, urg: id === u?.id ? 2 : 1, icone: '👛',
-        texto: id === u?.id
-          ? `Você tem ${fmtMoney(c.saldo)} da caixinha para comprovar ou devolver`
-          : `${nome(id)} tem ${fmtMoney(c.saldo)} da caixinha em aberto`,
+        texto: `${fmtMoney(c.saldo)} de caixinha em aberto`,
+        detalhe: id === u?.id ? 'Comprove ou devolva' : `Com ${nome(id)}`,
         rota: '#/caixa'
       });
     });
@@ -1200,24 +1280,26 @@ function alertas() {
     const meu = t.responsavel_id === u?.id;
     if (!meu && !can(u, 'lanc.ver')) return;
     if (t.cobrado_em && meu) {
-      add({ id: 'tcob_' + t.id, urg: 3, icone: '⚡', texto: `Cobraram você: ${t.titulo}`, rota: '#/tarefas' });
+      add({ id: 'tcob_' + t.id, urg: 3, icone: '⚡', texto: t.titulo,
+        detalhe: 'Cobraram você', rota: '#/tarefas' });
       return;
     }
     const d = diasAte(t.prazo);
     if (d === null) return;
     if (d < 0) add({
       id: 'tatr_' + t.id, urg: meu ? 3 : 2, icone: '⏱',
-      texto: meu ? `Atrasada: ${t.titulo}` : `${nome(t.responsavel_id)} está atrasado: ${t.titulo}`,
+      texto: t.titulo,
+      detalhe: meu ? `Atrasada · ${prazoTxt(t.prazo)}` : `${nome(t.responsavel_id)} · atrasada ${prazoTxt(t.prazo)}`,
       rota: '#/tarefas'
     });
     else if (d === 0 && meu) add({
-      id: 'thoje_' + t.id, urg: 2, icone: '✅', texto: `Para hoje: ${t.titulo}`, rota: '#/tarefas'
+      id: 'thoje_' + t.id, urg: 2, icone: '✅', texto: t.titulo, detalhe: 'Para hoje', rota: '#/tarefas'
     });
   });
 
   // Etapas travadas
   store.doProjeto('etapas').filter((e) => e.status === 'travado').forEach((e) => {
-    add({ id: 'trav_' + e.id, urg: 2, icone: '⛔', texto: `Travado: ${e.nome}`, rota: '#/etapas' });
+    add({ id: 'trav_' + e.id, urg: 2, icone: '⛔', texto: e.nome, detalhe: 'Etapa travada', rota: '#/etapas' });
   });
 
   // Compromissos de hoje/amanhã
@@ -1228,10 +1310,24 @@ function alertas() {
     if (!meu && !can(u, 'agenda.ver')) return;
     add({
       id: 'ev_' + ev.id, urg: d === 0 ? 3 : 1, icone: ev.tipo === 'viagem' ? '✈️' : ev.tipo === 'diaria' ? '🎬' : '📍',
-      texto: `${d === 0 ? 'Hoje' : 'Amanhã'}: ${ev.titulo}${ev.hora_inicio ? ' às ' + ev.hora_inicio : ''}`,
+      texto: ev.titulo,
+      detalhe: `${d === 0 ? 'Hoje' : 'Amanhã'}${ev.hora_inicio ? ' às ' + ev.hora_inicio : ''}`
+        + (ev.confirmado === false ? ' · data a confirmar' : ''),
       rota: '#/agenda'
     });
   });
+
+  // Fontes de fora (planilha, agenda) que ninguém reconfere há tempo demais.
+  if (can(u, 'projeto.edit')) {
+    store.doProjeto('fontes').forEach((f) => {
+      const st = statusFonte(f);
+      if (!st.vencida) return;
+      add({
+        id: 'fonte_' + f.id, urg: 2, icone: '🔗', texto: f.titulo,
+        detalhe: `Reconferir — ${st.txt}`, rota: '#/fontes'
+      });
+    });
+  }
 
   return out.sort((a, b) => b.urg - a.urg);
 }
@@ -1253,7 +1349,7 @@ function dispararNovos() {
   novos.slice(0, 3).forEach((a) => {
     try {
       new Notification('Unit0 — ' + (store.projeto?.nome || 'Produção'), {
-        body: a.texto, icon: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5NiA5NiI+PHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiByeD0iMjIiIGZpbGw9IiMxMjE1MWIiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxOC4wMCAxOC4wMCkiPjxkZWZzPjxtYXNrIGlkPSJ1MGljb24iIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI2MC4wMCIgaGVpZ2h0PSI2MC4wMCI+PHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjYwLjAwIiBoZWlnaHQ9IjYwLjAwIiBmaWxsPSIjZmZmIi8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzAuMDAgMzAuMDApIHJvdGF0ZSgtMzgpIj48cmVjdCB4PSItNjAuMDAiIHk9Ii04MS4xNSIgd2lkdGg9IjE4MC4wMCIgaGVpZ2h0PSI2LjMwIiBmaWxsPSIjMDAwIi8+PHJlY3QgeD0iLTYwLjAwIiB5PSItNjUuNTUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iLTQ5Ljk1IiB3aWR0aD0iMTgwLjAwIiBoZWlnaHQ9IjYuMzAiIGZpbGw9IiMwMDAiLz48cmVjdCB4PSItNjAuMDAiIHk9Ii0zNC4zNSIgd2lkdGg9IjE4MC4wMCIgaGVpZ2h0PSI2LjMwIiBmaWxsPSIjMDAwIi8+PHJlY3QgeD0iLTYwLjAwIiB5PSItMTguNzUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iLTMuMTUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iMTIuNDUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iMjguMDUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iNDMuNjUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iNTkuMjUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iNzQuODUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjwvZz48L21hc2s+PC9kZWZzPjxjaXJjbGUgY3g9IjMwLjAwIiBjeT0iMzAuMDAiIHI9IjI0LjAwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmNGIyM2UiIHN0cm9rZS13aWR0aD0iMTIuMDAiIG1hc2s9InVybCgjdTBpY29uKSIvPjwvZz48L3N2Zz4=", tag: a.id
+        body: a.detalhe ? `${a.texto} — ${a.detalhe}` : a.texto, icon: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5NiA5NiI+PHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiByeD0iMjIiIGZpbGw9IiMxMjE1MWIiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxOC4wMCAxOC4wMCkiPjxkZWZzPjxtYXNrIGlkPSJ1MGljb24iIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI2MC4wMCIgaGVpZ2h0PSI2MC4wMCI+PHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjYwLjAwIiBoZWlnaHQ9IjYwLjAwIiBmaWxsPSIjZmZmIi8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzAuMDAgMzAuMDApIHJvdGF0ZSgtMzgpIj48cmVjdCB4PSItNjAuMDAiIHk9Ii04MS4xNSIgd2lkdGg9IjE4MC4wMCIgaGVpZ2h0PSI2LjMwIiBmaWxsPSIjMDAwIi8+PHJlY3QgeD0iLTYwLjAwIiB5PSItNjUuNTUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iLTQ5Ljk1IiB3aWR0aD0iMTgwLjAwIiBoZWlnaHQ9IjYuMzAiIGZpbGw9IiMwMDAiLz48cmVjdCB4PSItNjAuMDAiIHk9Ii0zNC4zNSIgd2lkdGg9IjE4MC4wMCIgaGVpZ2h0PSI2LjMwIiBmaWxsPSIjMDAwIi8+PHJlY3QgeD0iLTYwLjAwIiB5PSItMTguNzUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iLTMuMTUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iMTIuNDUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iMjguMDUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iNDMuNjUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iNTkuMjUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iNzQuODUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjwvZz48L21hc2s+PC9kZWZzPjxjaXJjbGUgY3g9IjMwLjAwIiBjeT0iMzAuMDAiIHI9IjI0LjAwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmNGIyM2UiIHN0cm9rZS13aWR0aD0iMTIuMDAiIG1hc2s9InVybCgjdTBpY29uKSIvPjwvZz48L3N2Zz4=", tag: a.id
       });
     } catch (e) { console.warn(e); }
   });
@@ -1290,16 +1386,18 @@ const PAPEIS = {
     cor: 'ok'
   },
   diretor: {
-    nome: 'Direção',
+    nome: 'Direção / Sócio',
     curto: 'Direção',
-    desc: 'Etapas, agenda, entregas, aprovações, locações e equipe. Vê o orçamento, mas não mexe em contas nem vê a margem.',
+    desc: 'Dirige e assina pela produtora: paga, emite nota fiscal, assina contrato e vê a margem. '
+      + 'É quem aperta o botão no dinheiro.',
     cor: 'info'
   },
   coord: {
-    nome: 'Coordenação / Produção',
-    curto: 'Coordenação',
-    desc: 'Etapas, agenda, entregas, equipe e custos. Não vê margem nem valor de contrato.',
-    cor: 'info'
+    nome: 'Produção',
+    curto: 'Produção',
+    desc: 'Organiza o projeto: negocia valores, monta as contas, cuida de contratos e autorizações, '
+      + 'agenda e equipe. Não paga nem vê a margem.',
+    cor: 'ok'
   },
   fin: {
     nome: 'Financeiro',
@@ -1318,17 +1416,21 @@ const PAPEIS = {
 const CAPS = {
   master: ['*'],
   admin: ['*'],
+  // Direção / sócio: manda no dinheiro que sai e no que a produtora assina.
   diretor: [
     'projeto.ver', 'projeto.edit',
     'etapas.ver', 'etapas.edit',
     'agenda.ver', 'agenda.edit',
     'entregas.ver', 'entregas.edit',
-    'equipe.ver',
-    'orcamento.ver',
-    'lanc.ver', 'lanc.edit',
+    'equipe.ver', 'equipe.edit',
+    'orcamento.ver', 'orcamento.edit',
+    'lanc.ver', 'lanc.edit', 'lanc.aprovar',
+    'contas.ver', 'contas.edit', 'pagamento.executar', 'nf.emitir',
     'docs.ver', 'docs.edit',
-    'contratos.ver'
+    'contratos.ver', 'contratos.valores', 'contratos.assinar',
+    'lucro.ver', 'imposto.edit'
   ],
+  // Produção: negocia e organiza tudo, mas quem paga é a direção.
   coord: [
     'projeto.ver', 'projeto.edit',
     'etapas.ver', 'etapas.edit',
@@ -1337,9 +1439,9 @@ const CAPS = {
     'equipe.ver', 'equipe.edit',
     'orcamento.ver', 'orcamento.edit',
     'lanc.ver', 'lanc.edit', 'lanc.aprovar',
-    'contas.ver',
+    'contas.ver', 'contas.edit',
     'docs.ver', 'docs.edit',
-    'contratos.ver'
+    'contratos.ver', 'contratos.edit', 'autorizacoes.edit'
   ],
   fin: [
     'projeto.ver',
@@ -1349,7 +1451,7 @@ const CAPS = {
     'equipe.ver',
     'orcamento.ver', 'orcamento.edit',
     'lanc.ver', 'lanc.edit', 'lanc.aprovar',
-    'contas.ver', 'contas.edit',
+    'contas.ver', 'contas.edit', 'pagamento.executar', 'nf.emitir',
     'docs.ver', 'docs.edit',
     'contratos.ver', 'contratos.valores',
     'lucro.ver', 'imposto.edit'
@@ -1364,6 +1466,16 @@ const CAPS = {
 
 // Capacidades que envolvem dinheiro "de cima" (contrato, lucro, imposto).
 const SIGILOSAS = ['contratos.valores', 'lucro.ver', 'imposto.edit'];
+
+// Quem faz o quê, em uma frase, para aparecer no perfil de cada pessoa.
+const RESPONSA = {
+  master: 'Cria e cuida de tudo no sistema.',
+  admin: 'Vê e edita tudo do projeto.',
+  diretor: 'Paga, assina e emite as notas fiscais.',
+  coord: 'Organiza o projeto, negocia e cuida de contratos e autorizações.',
+  fin: 'Cuida das contas, das notas e do imposto.',
+  equipe: 'Confirma o que é dela, lança os próprios gastos e sobe as notas.'
+};
 
 function can(user, cap) {
   if (!user) return false;
@@ -1381,7 +1493,7 @@ function meus(user, lista, campo = 'member_id') {
   return lista.filter((r) => r[campo] === user?.id || r.criado_por === user?.id);
 }
 
-  return { PAPEIS, SIGILOSAS, can, ehEquipe, podeVerTudo, meus };
+  return { PAPEIS, SIGILOSAS, RESPONSA, can, ehEquipe, podeVerTudo, meus };
 };
 
 __defs["js/pin.js"] = function () {
@@ -1547,7 +1659,7 @@ const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-const SEED_VERSAO = 6;
+const SEED_VERSAO = 7;
 
 const PESSOAS = [
   {
@@ -1563,6 +1675,7 @@ const PESSOAS = [
     cache_cents: M('3000'), cache_orcado_cents: M('3000'), diarias: 26, perdiem_cents: M('7000'),
     contrato_status: 'na', chave_pix: 'mavissimo1@gmail.com',
     obs: 'Sócio da MATHEUS SIMÕES AVILA LTDA (CNPJ 47.661.128/0001-60), a parte contratada. '
+      + 'É quem paga, assina e emite as notas fiscais. '
       + 'Direção fechada em R$ 3.000 × 26 = R$ 78.000 (coluna NEGOCIADO da planilha, que na versão '
       + 'anterior estava zerada). Per diem: R$ 7.000 (35 × R$ 200).'
   },
@@ -1573,8 +1686,8 @@ const PESSOAS = [
     cache_cents: M('1600'), cache_orcado_cents: M('1600'), diarias: 26, perdiem_cents: M('7000'),
     contrato_status: 'pendente',
     obs: 'Cachê fechado em R$ 41.600 (total job: executivo + produtor de viagem + som), igual ao orçado. '
-      + 'Per diem: R$ 7.000 (35 × R$ 200). Está como Coordenação: vê custos, agenda e equipe, '
-      + 'mas não vê valor de contrato nem margem.'
+      + 'Per diem: R$ 7.000 (35 × R$ 200). Está como Produção: organiza o projeto, negocia, '
+      + 'monta as contas e cuida de contratos e autorizações. Não dá baixa em pagamento nem vê a margem.'
   },
   {
     nome: 'Julio Becker', funcao: '1º assistente de câmera', papel: 'equipe', tipo: 'pf', rubrica: '1º assistente de câmera',
@@ -1586,11 +1699,12 @@ const PESSOAS = [
       + 'R$ 33.800, sobrando R$ 5.200. Per diem: R$ 7.000 (35 × R$ 200).'
   },
   {
-    nome: 'Patrick Bombassaro', funcao: 'Assistente criativo', papel: 'equipe', tipo: 'pf', rubrica: 'Assistente criativo',
+    nome: 'Patrick Bombassaro', funcao: 'Pesquisa de imagens', papel: 'equipe', tipo: 'pf', rubrica: 'Assistente criativo',
     email: 'patrick@tempora', telefone: '',
     cache_cents: M('4000'), cache_orcado_cents: M('8000'), diarias: 1, perdiem_cents: 0,
     contrato_status: 'pendente',
-    obs: 'Orçado em R$ 8.000, fechado em R$ 4.000 (coluna NEGOCIADO).'
+    obs: 'Neste projeto faz só pesquisa de imagens. Entra na planilha como Assistente Criativo: '
+      + 'orçado R$ 8.000, fechado R$ 4.000 (coluna NEGOCIADO).'
   }
 ];
 
@@ -1820,6 +1934,24 @@ const VIAGENS = [
     '13900', 'prevista', 'Entrevista de estúdio. Data prevista.'],
   ['11', 'São Paulo (Maíra Erlich)', '2026-10-26', '2026-10-27', 'São Paulo', 'São Paulo (SP)',
     '6800', 'prevista', 'Entrevista de estúdio, sem voo. Data prevista.']
+];
+
+// Os links de onde a informação vem e que mudam sem avisar.
+// [título, url, tipo, frequência, quem confere, o que olhar]
+const FONTES = [
+  ['Planilha geral TÊMPORA — Bradesco 70', 'https://docs.google.com/spreadsheets/d/1YzxxBFst2R4c3-vgEYDI50qxhVYIp9UrCeazoKER5Oo/edit',
+    'planilha', 'semanal', 'Tato Pessanha',
+    'Abas: mavi + profissionais (coluna NEGOCIADO), custo viagem (as 11 viagens), '
+    + 'cronograma, lista de voos e verba a vista. É a fonte do orçamento e dos cachês.'],
+  ['Google Agenda do projeto', 'https://calendar.google.com/calendar/u/1?cid=OTU5NDNkYjNkZWZjYzU1MmEwNTFmNDYwYjNmYTVlOTRlM2Y3NDk0NjVjNWRiYWJhZmNiYjllYmY5NWJiNjk1M0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t',
+    'agenda', 'diaria', 'Tato Pessanha',
+    'Voos, carros, hotéis e localizadores. O ⏳ no título marca data ainda não confirmada.'],
+  ['Cronograma oficial (PDF no Drive)', 'https://drive.google.com/file/d/1ZSHAscVHWb8UC9XU-entRsEckflVPeMH/view',
+    'contrato', 'quando_mudar', 'Tato Pessanha', 'Anexo I do contrato. Referência das diárias.'],
+  ['Contrato 4600001793 rev 04', '', 'contrato', 'quando_mudar', 'Maví Simões',
+    'Cláusula 6.10 (retenção de 5%) x Quadro Resumo VI (sem retenção). Prazo da 2ª parcela.'],
+  ['Vouchers e comprovantes de viagem', '', 'pasta', 'quando_mudar', 'Tato Pessanha',
+    'Voos, locação de carro e hotéis. Cada viagem precisa do seu antes do embarque.']
 ];
 
 const ETAPAS = [
@@ -2112,6 +2244,14 @@ async function criarProjetoBradesco() {
       fonte: 'empresa', reembolso: false, sem_comprovante: true,
       status: 'aprovado', aprovado_por: membros['Maví Simões'],
       obs: 'Veio da aba "verba a vista" da planilha. Falta anexar o comprovante.'
+    });
+  }
+
+  /* fontes vivas do projeto */
+  for (const [titulo, url, tipoF, frequencia, quem, obs] of FONTES) {
+    await store.insert('fontes', {
+      projeto_id: P, titulo, url, tipo: tipoF, frequencia,
+      responsavel_id: membros[quem] || null, conferido_em: '2026-08-28', obs
     });
   }
 
@@ -2937,9 +3077,9 @@ let secao = 'agenda';   // agenda | viagens
 
 const irPara = (s) => { secao = s; };
 
-const CHIPS = `<div class="chips" data-chips-log>
-  <button class="chip" data-log="agenda">Agenda</button>
-  <button class="chip" data-log="viagens">Viagens</button>
+const CHIPS = `<div class="seg" style="margin-bottom:var(--s3)">
+  <button data-log="agenda">Agenda</button>
+  <button data-log="viagens">Viagens</button>
 </div>`;
 
 function ligarLog(node) {
@@ -3447,6 +3587,7 @@ function render() {
       ${can(u, 'contas.ver') ? atalho('#/pagamentos', 'Pagamentos', 'O que sai, por data e por pessoa') : ''}
       ${can(u, 'contas.ver') ? atalho('#/contas', 'A receber', 'Parcelas do cliente') : ''}
       ${atalho('#/caixa', 'Caixinha', 'Adiantamentos e prestação de contas')}
+      ${atalho('#/fontes', 'Fontes do projeto', 'Planilha, agenda e contrato — o que precisa ser reconferido')}
       ${atalho('#/locacoes', 'Locações e contatos', 'Escolas, endereços, cliente e fornecedores')}
       ${atalho('#/aprovacoes', 'Aprovações do cliente', 'Rodadas, prazo de aceite e feedback')}
       ${atalho('#/notas', 'Notas e documentos', 'NFs, recibos, comprovantes')}
@@ -3624,7 +3765,7 @@ function novoProjeto() {
 function renderHistorico() {
   const node = el('<div></div>');
   const logs = ordenar(store.doProjeto('atividades'), (a) => a.quando || a.criado_em, -1).slice(0, 120);
-  node.innerHTML = `<div class="card">${logs.length ? logs.map((a) => `<div class="row">
+  node.innerHTML = `<div class="card lista">${logs.length ? logs.map((a) => `<div class="row">
       <span class="g"><span class="t" style="white-space:normal;font-weight:500">${esc(a.texto)}</span>
         <span class="s">${esc(new Date(a.quando || a.criado_em).toLocaleString('pt-BR'))}</span></span>
     </div>`).join('') : '<div class="empty">Nada registrado ainda.</div>'}</div>`;
@@ -3679,7 +3820,7 @@ function render() {
       if (!rod.length) return '';
       return `<div class="sec"><div class="sec-t">${esc(e.titulo)}</div>
           <span class="small muted">${rod.length}/${c.max} rodadas</span></div>
-        <div class="card">${rod.map((a) => linha(a)).join('')}</div>`;
+        <div class="card lista">${rod.map((a) => linha(a)).join('')}</div>`;
     }).join('')}
     ${!todas.length ? '<div class="empty">Nenhuma rodada enviada ainda.<br>Registre quando mandar um corte para o cliente.</div>' : ''}`;
 
@@ -3826,7 +3967,7 @@ function render() {
         <div class="v">${fmtMoneyShort(totalAberto)}</div>
         <div class="h">nota ou devolução</div></div>
     </div>
-    <div class="card">${lista.filter((c) => c.adiantado || c.gasto).length
+    <div class="card lista">${lista.filter((c) => c.adiantado || c.gasto).length
       ? lista.filter((c) => c.adiantado || c.gasto).map((c) => `<div class="row act" data-caixa="${c.membro_id}">
         <span class="avatar">${esc(iniciais(nomeMembro(c.membro_id)))}</span>
         <span class="g"><span class="t">${esc(nomeMembro(c.membro_id))}</span>
@@ -3898,7 +4039,7 @@ function abrirCaixa(membroId, gestor) {
           <span class="r"><span class="v">− ${fmtMoney(c.devolvido)}</span></span></div>
       </div>
       <div class="sec"><div class="sec-t">Gastos da caixinha</div></div>
-      <div class="card">${gastos.length ? gastos.map((l) => {
+      <div class="card lista">${gastos.length ? gastos.map((l) => {
         const st = ST_LANC[l.status] || ST_LANC.pendente;
         const doc = store.doProjeto('documentos').find((d) => d.lancamento_id === l.id);
         return `<div class="row">
@@ -3908,7 +4049,7 @@ function abrirCaixa(membroId, gestor) {
           <span class="r"><span class="v">${fmtMoney(l.valor_cents)}</span></span></div>`;
       }).join('') : '<div class="empty">Nada gasto ainda.</div>'}</div>
       <div class="sec"><div class="sec-t">Movimentos</div></div>
-      <div class="card">${mov.map((m) => `<div class="row">
+      <div class="card lista">${mov.map((m) => `<div class="row">
         <span class="tag ${m.tipo === 'adiantamento' ? 'info' : 'ok'}">${m.tipo === 'adiantamento' ? 'entrou' : 'devolveu'}</span>
         <span class="g"><span class="t">${esc(m.obs || (m.tipo === 'adiantamento' ? 'Adiantamento' : 'Devolução'))}</span>
           <span class="s">${esc(fmtData(m.data))}${m.forma ? ' · ' + esc(m.forma) : ''}</span></span>
@@ -3985,7 +4126,7 @@ function render() {
         <div class="v">${fmtMoneyShort(soma(vencidas, (c) => c.valor_cents))}</div>
         <div class="h">${vencidas.length} conta(s)</div></div>
     </div>
-    <div class="card">${lista.length ? lista.map((c) => {
+    <div class="card lista">${lista.length ? lista.map((c) => {
       const st = ST_CONTA[c.status] || ST_CONTA.aberto;
       return `<div class="row act" data-conta="${c.id}">
         <span class="tag ${c.status === 'quitado' ? 'ok' : prazoTag(c.venc)}">${c.venc ? esc(fmtData(c.venc, { ano: false })) : '—'}</span>
@@ -4037,6 +4178,10 @@ function novaConta(tipo) {
 }
 
 function abrirConta(c, editar) {
+  // Montar a conta e dar baixa nela são coisas diferentes: a produção monta e
+  // negocia, a direção paga e emite a nota.
+  const podePagar = can(store.user, 'pagamento.executar');
+  const podeNF = can(store.user, 'nf.emitir');
   if (!c) return;
   const st = ST_CONTA[c.status] || ST_CONTA.aberto;
   const corpo = el('<div></div>');
@@ -4066,10 +4211,12 @@ function abrirConta(c, editar) {
           <span class="r">${doc ? '<button class="btn sm" data-ver>abrir</button>'
         : editar ? '<button class="btn sm gho" data-anexar>anexar</button>' : ''}</span></div>
       </div>
-      ${editar && (c.nf_status === 'a_emitir' || c.nf_status === 'a_receber') ? `<button class="btn wide" data-nf>
+      ${podeNF && (c.nf_status === 'a_emitir' || c.nf_status === 'a_receber') ? `<button class="btn wide" data-nf>
         ${c.nf_status === 'a_emitir' ? 'Marcar NF como emitida' : 'Marcar NF como recebida'}</button>` : ''}
-      ${editar && c.status === 'aberto' ? `<button class="btn wide pri" style="margin-top:8px" data-quitar>
+      ${podePagar && c.status === 'aberto' ? `<button class="btn wide pri" style="margin-top:8px" data-quitar>
         Marcar como ${c.tipo === 'pagar' ? 'pago' : 'recebido'}</button>` : ''}
+      ${!podePagar && c.status === 'aberto' ? `<div class="banner small">Quem dá baixa no pagamento é
+        a direção. Você monta e negocia a conta; a baixa fica com quem paga.</div>` : ''}
       ${editar ? '<button class="btn wide gho" style="margin-top:8px" data-edit>Editar</button>' : ''}`;
 
     corpo.querySelector('[data-ver]')?.addEventListener('click', async () => {
@@ -4392,12 +4539,15 @@ function render() {
   const alertaHTML = !al.length ? '' : `<section class="bloco">
     <div class="sec"><div class="sec-t">Precisa de você</div>
       <span class="small muted">${al.length}</span></div>
-    <div class="card">
-      ${al.slice(0, 8).map((a) => `
-        <a class="row act" href="${a.rota}" style="text-decoration:none;color:inherit">
+    <div class="card lista">
+      ${al.slice(0, 6).map((a) => `
+        <a class="row act alto" href="${a.rota}" style="text-decoration:none;color:inherit">
           <span class="ico ${a.urg >= 3 ? 'urg' : a.urg === 2 ? 'med' : ''}">${a.icone || '•'}</span>
-          <span class="g"><span class="t" style="white-space:normal">${esc(a.texto)}</span></span>
+          <span class="g"><span class="t">${esc(a.texto)}</span>
+            ${a.detalhe ? `<span class="s">${esc(a.detalhe)}</span>` : ''}</span>
         </a>`).join('')}
+      ${al.length > 6 ? `<a class="row act" href="#/tarefas" style="text-decoration:none;color:inherit">
+        <span class="g"><span class="t" style="color:var(--ac2)">Ver os outros ${al.length - 6}</span></span></a>` : ''}
     </div>
   </section>`;
 
@@ -4531,7 +4681,7 @@ __defs["js/views/equipe.js"] = function () {
 // (presença, passagem, hospedagem, recebimento).
 const { store, membros } = __req("js/store.js");
 const { can } = __req("js/perms.js");
-const { PAPEIS } = __req("js/perms.js");
+const { PAPEIS, RESPONSA } = __req("js/perms.js");
 const { el, abrirForm, sheet, toast, confirmar, btnOlho } = __req("js/ui.js");
 const { esc, fmtMoney, hoje, iniciais, soma, valoresOcultos } = __req("js/utils.js");
 const { temSenha, limparSenha } = __req("js/pin.js");
@@ -4555,6 +4705,8 @@ const FUNCOES = [
   'Figurino e maquiagem', 'Montagem', 'Finalização (cor e som)', 'Roteiro', 'Motorista'
 ];
 
+let visao = 'pessoas';   // pessoas | planilha
+
 const ST_CONTRATO = [
   { v: 'na', t: 'Não se aplica' }, { v: 'pendente', t: 'A enviar' },
   { v: 'enviado', t: 'Enviado' }, { v: 'assinado', t: 'Assinado' }
@@ -4573,22 +4725,30 @@ function render() {
   const confs = store.doProjeto('confirmacoes');
 
   const custoEquipe = soma(lista, (m) => (m.cache_cents || 0) * (m.diarias || 0) + (m.perdiem_cents || 0));
+  const orcadoEquipe = soma(lista, (m) => (m.cache_orcado_cents || m.cache_cents || 0) * (m.diarias || 0));
 
   node.innerHTML = `
-    ${verGrana ? `<div class="sec" style="margin-top:4px"><div class="sec-t">Equipe</div>${btnOlho(valoresOcultos())}</div>
+    ${verGrana ? `<div class="sec"><div class="sec-t">Quanto custa a equipe</div>${btnOlho(valoresOcultos())}</div>
     <div class="grid">
-      <div class="kpi"><div class="l">Pessoas</div><div class="v">${lista.length}</div></div>
+      <div class="kpi"><div class="l">Pessoas</div><div class="v">${lista.length}</div>
+        <div class="h">${lista.filter((m) => m.papel === 'equipe').length} em campo</div></div>
       <div class="kpi"><div class="l">Custo de equipe</div><div class="v">${fmtMoney(custoEquipe)}</div>
         <div class="h">cachês e per diems fechados</div></div>
+    </div>
+    <div class="seg" style="margin-bottom:14px">
+      <button data-visao="pessoas" class="${visao === 'pessoas' ? 'on' : ''}">Pessoas</button>
+      <button data-visao="planilha" class="${visao === 'planilha' ? 'on' : ''}">Planilha</button>
     </div>` : ''}
-    <div class="card">${lista.length ? lista.map((m) => {
+
+    ${visao === 'planilha' && verGrana ? tabela(lista, orcadoEquipe, custoEquipe) : `
+    <div class="card lista">${lista.length ? lista.map((m) => {
       const meus = confs.filter((c) => c.membro_id === m.id);
       const pend = meus.filter((c) => c.status === 'pendente').length;
       const p = PAPEIS[m.papel] || PAPEIS.equipe;
       return `<div class="row act" data-membro="${m.id}">
         <span class="avatar">${esc(iniciais(m.nome))}</span>
         <span class="g"><span class="t">${esc(m.nome)}</span>
-          <span class="s">${esc([m.funcao, p.curto, (m.tipo || 'pf').toUpperCase()].filter(Boolean).join(' · '))}</span></span>
+          <span class="s">${esc([m.funcao, p.curto].filter(Boolean).join(' · '))}</span></span>
         <span class="r">${pend ? `<span class="tag warn">${pend} pend.</span>`
         : meus.length ? '<span class="tag ok">ok</span>' : ''}
           ${verGrana && (m.cache_cents || m.perdiem_cents) ? `<div class="small muted mono" style="margin-top:3px">
@@ -4596,10 +4756,14 @@ function render() {
       </div>`;
     }).join('') : '<div class="empty">Ninguém cadastrado ainda.</div>'}</div>
     <div class="banner small">Cada pessoa entra no app e vê só a parte dela: a própria agenda, o
-      próprio cachê, as próprias confirmações e os próprios gastos.</div>`;
+      próprio cachê, as próprias confirmações e os próprios gastos.</div>`}`;
 
+  node.querySelectorAll('[data-visao]').forEach((b) => {
+    b.onclick = () => { visao = b.dataset.visao; store.emit(); };
+  });
   node.querySelectorAll('[data-membro]').forEach((n) => {
     n.onclick = () => abrirMembro(store.get('membros', n.dataset.membro), editar, verGrana);
+    if (n.tagName === 'TR') n.style.cursor = 'pointer';
   });
 
   return { titulo: 'Equipe', node, fab: editar ? { label: '+', onClick: () => novoMembro() } : null };
@@ -4664,8 +4828,8 @@ function abrirMembro(m, editar, verGrana) {
     corpo.innerHTML = `
       <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px">
         <span class="avatar" style="width:48px;height:48px;font-size:16px">${esc(iniciais(m.nome))}</span>
-        <div><div style="font-weight:650">${esc(m.funcao || '—')}</div>
-          <div class="small muted">${esc(p.nome)}</div></div>
+        <div style="min-width:0"><div style="font-weight:650">${esc(m.funcao || '—')}</div>
+          <div class="small muted">${esc(p.nome)} — ${esc(RESPONSA[m.papel] || RESPONSA.equipe)}</div></div>
       </div>
       <div class="card tight">
         ${m.email ? `<div class="row"><span class="g"><span class="s">E-mail</span><span class="t">${esc(m.email)}</span></span></div>` : ''}
@@ -4702,7 +4866,7 @@ function abrirMembro(m, editar, verGrana) {
       </div>` : ''}
       <div class="sec"><div class="sec-t">Confirmações</div>
         ${editar ? '<button class="btn sm gho" data-nova-conf>+ pedir</button>' : ''}</div>
-      <div class="card">${confs.length ? confs.map((c) => `<div class="row">
+      <div class="card lista">${confs.length ? confs.map((c) => `<div class="row">
           <span class="tag ${c.status === 'confirmado' ? 'ok' : c.status === 'recusado' ? 'bad' : 'warn'}">
             ${c.status === 'confirmado' ? '✓' : c.status === 'recusado' ? '✕' : '…'}</span>
           <span class="g"><span class="t">${esc(c.titulo)}</span>
@@ -4754,6 +4918,43 @@ function abrirMembro(m, editar, verGrana) {
   const sh = sheet({ titulo: m.nome, corpo });
 }
 
+/* ---------------------------------------------------------------- planilha ---
+   A mesma leitura da planilha da produtora: função, diárias, valor da diária,
+   total orçado, o que foi fechado e a diferença — com totais no rodapé. */
+function tabela(lista, orcadoTotal, negociadoTotal) {
+  const linha = (m) => {
+    const d = m.diarias || 0;
+    const orc = (m.cache_orcado_cents || m.cache_cents || 0) * d;
+    const neg = (m.cache_cents || 0) * d;
+    const dif = orc - neg;
+    return `<tr data-membro="${m.id}">
+      <td><b>${esc(m.nome)}</b><span class="sub">${esc(m.funcao || '—')}</span></td>
+      <td class="n">${d || '—'}</td>
+      <td class="n">${m.cache_cents ? fmtMoney(m.cache_cents) : '—'}</td>
+      <td class="n">${orc ? fmtMoney(orc) : '—'}</td>
+      <td class="n forte">${neg ? fmtMoney(neg) : '—'}</td>
+      <td class="n ${dif < 0 ? 'ruim' : dif > 0 ? 'bom' : ''}">${dif ? fmtMoney(dif) : '—'}</td>
+      <td class="n">${m.perdiem_cents ? fmtMoney(m.perdiem_cents) : '—'}</td>
+    </tr>`;
+  };
+  return `<div class="tabela-caixa"><div class="tabela-rolo"><table class="tabela">
+    <thead><tr>
+      <th>Quem / função</th><th class="n">Diárias</th><th class="n">Diária</th>
+      <th class="n">Orçado</th><th class="n">Negociado</th><th class="n">Dif.</th><th class="n">Per diem</th>
+    </tr></thead>
+    <tbody>${lista.map(linha).join('')}</tbody>
+    <tfoot><tr>
+      <td>Total</td><td class="n"></td><td class="n"></td>
+      <td class="n">${fmtMoney(orcadoTotal)}</td>
+      <td class="n forte">${fmtMoney(negociadoTotal)}</td>
+      <td class="n"></td><td class="n"></td>
+    </tr></tfoot>
+  </table></div></div>
+  <div class="tabela-dica">arraste para o lado para ver o resto →</div>
+  <div class="banner small">Mesma leitura da planilha da produtora. O <b>negociado</b> é o que vale
+    como compromisso; a <b>diferença</b> é o que sobrou do orçado.</div>`;
+}
+
   return { tipoConf, FUNCOES, render };
 };
 
@@ -4770,9 +4971,9 @@ let aba = 'etapas';
 
 const irPara = (a) => { aba = a; };
 
-const CHIPS = `<div class="chips" data-chips-trabalho>
-  <button class="chip" data-trab="etapas">Etapas</button>
-  <button class="chip" data-trab="tarefas">Tarefas</button>
+const CHIPS = `<div class="seg" style="margin-bottom:var(--s3)">
+  <button data-trab="etapas">Etapas</button>
+  <button data-trab="tarefas">Tarefas</button>
 </div>`;
 
 function ligarTrabalho(node) {
@@ -5516,6 +5717,129 @@ function abrirLancamento(l) {
   return { rubricasPara, irPara, render, camposLancamento, conferirComprovante, lerNotaNoForm, salvarLancamento, abrirLancamento };
 };
 
+__defs["js/views/fontes.js"] = function () {
+// Fontes do projeto: os links de onde a informação vem e que mudam sozinhos
+// (planilha, agenda, contrato, cronograma). O app não lê esses links — ele
+// lembra de conferir, e mostra há quanto tempo ninguém olhou.
+const { store, nomeMembro, membros } = __req("js/store.js");
+const { can } = __req("js/perms.js");
+const { el, abrirForm, sheet, toast } = __req("js/ui.js");
+const { esc, fmtData, hoje, ordenar } = __req("js/utils.js");
+const { FREQ_FONTE, freqFonte, statusFonte } = __req("js/calc.js");
+const TIPOS = [
+  { v: 'planilha', t: 'Planilha', icone: '📊' },
+  { v: 'agenda', t: 'Agenda', icone: '🗓' },
+  { v: 'contrato', t: 'Contrato', icone: '📄' },
+  { v: 'pasta', t: 'Pasta de arquivos', icone: '📁' },
+  { v: 'link', t: 'Link', icone: '🔗' }
+];
+const tipo = (v) => TIPOS.find((t) => t.v === v) || TIPOS[4];
+
+
+function render() {
+  const u = store.user;
+  const editar = can(u, 'projeto.edit');
+  const node = el('<div></div>');
+  const lista = ordenar(store.doProjeto('fontes'), (f) => (statusFonte(f).vencida ? '0' : '1') + f.titulo);
+  const vencidas = lista.filter((f) => statusFonte(f).vencida);
+
+  node.innerHTML = `
+    ${vencidas.length ? `<div class="banner warn small">
+      <b>${vencidas.length} fonte(s) para reconferir.</b> A informação do projeto vive nesses links —
+      quando eles mudam e ninguém olha, o app fica contando história velha.</div>` : ''}
+    <div class="card lista">${lista.length ? lista.map((f) => {
+      const s = statusFonte(f);
+      const t = tipo(f.tipo);
+      return `<div class="row act alto" data-fonte="${f.id}">
+        <span class="ico ${s.vencida ? 'urg' : ''}">${t.icone}</span>
+        <span class="g"><span class="t">${esc(f.titulo)}</span>
+          <span class="s">${esc([freqFonte(f.frequencia).t,
+            f.responsavel_id ? nomeMembro(f.responsavel_id) : ''].filter(Boolean).join(' · '))}</span></span>
+        <span class="r"><span class="tag ${s.vencida ? 'warn' : 'ok'}">${esc(s.txt)}</span></span>
+      </div>`;
+    }).join('') : '<div class="empty">Nenhuma fonte cadastrada.</div>'}</div>
+    <div class="banner small">Cadastre aqui tudo que muda fora do app: a planilha do Drive, a agenda
+      do Google, o contrato, a pasta de vouchers. Ao conferir, marque — assim todo mundo sabe se o
+      que está na tela é a versão de hoje ou a da semana passada.</div>`;
+
+  node.querySelectorAll('[data-fonte]').forEach((n) => {
+    n.onclick = () => abrir(store.get('fontes', n.dataset.fonte), editar);
+  });
+
+  return { titulo: 'Fontes', node, fab: editar ? { label: '+', onClick: () => editarFonte({}) } : null };
+}
+
+function abrir(f, editar) {
+  if (!f) return;
+  const corpo = el('<div></div>');
+  const pintar = () => {
+    const s = statusFonte(f);
+    corpo.innerHTML = `
+      <div class="card tight">
+        <div class="row"><span class="g"><span class="s">Tipo</span>
+          <span class="t">${esc(tipo(f.tipo).icone + ' ' + tipo(f.tipo).t)}</span></span></div>
+        <div class="row"><span class="g"><span class="s">Reconferir</span>
+          <span class="t">${esc(freqFonte(f.frequencia).t)}</span></span>
+          <span class="r"><span class="tag ${s.vencida ? 'warn' : 'ok'}">${esc(s.txt)}</span></span></div>
+        ${f.responsavel_id ? `<div class="row"><span class="g"><span class="s">Quem confere</span>
+          <span class="t">${esc(nomeMembro(f.responsavel_id))}</span></span></div>` : ''}
+        ${f.conferido_em ? `<div class="row"><span class="g"><span class="s">Última conferida</span>
+          <span class="t">${esc(fmtData(f.conferido_em, { longo: true }))}</span></span></div>` : ''}
+        ${f.obs ? `<div class="row"><span class="g"><span class="s">O que olhar</span>
+          <span class="t" style="white-space:normal;font-weight:400">${esc(f.obs)}</span></span></div>` : ''}
+      </div>
+      ${f.url ? `<a class="btn wide pri" href="${esc(f.url)}" target="_blank" rel="noopener">Abrir</a>` : ''}
+      ${editar ? '<button class="btn wide" style="margin-top:8px" data-conferi>Conferi agora</button>' : ''}
+      ${editar ? '<button class="btn wide gho" style="margin-top:8px" data-edit>Editar</button>' : ''}`;
+
+    corpo.querySelector('[data-conferi]')?.addEventListener('click', async () => {
+      await store.update('fontes', f.id, { conferido_em: hoje() });
+      f.conferido_em = hoje();
+      await store.log(`${store.user?.nome || 'Alguém'} conferiu a fonte: ${f.titulo}`, 'projeto');
+      toast('Marcada como conferida hoje.');
+      pintar(); store.emit();
+    });
+    corpo.querySelector('[data-edit]')?.addEventListener('click', () => { sh.close(); editarFonte(f); });
+  };
+  pintar();
+  const sh = sheet({ titulo: f.titulo, corpo });
+}
+
+function editarFonte(f) {
+  const nova = !f.id;
+  abrirForm({
+    titulo: nova ? 'Nova fonte' : 'Editar fonte',
+    subtitulo: 'Um link de fora que o projeto depende.',
+    campos: [
+      { k: 'titulo', label: 'O que é', type: 'texto', req: true, valor: f.titulo || '' },
+      { k: 'url', label: 'Link', type: 'texto', valor: f.url || '', ph: 'https://' },
+      {
+        k: 'tipo', label: 'Tipo', type: 'select', valor: f.tipo || 'link', meia: true,
+        opts: TIPOS.map((t) => ({ v: t.v, t: t.t }))
+      },
+      {
+        k: 'frequencia', label: 'Reconferir', type: 'select', valor: f.frequencia || 'semanal', meia: true,
+        opts: FREQ_FONTE.map((x) => ({ v: x.v, t: x.t }))
+      },
+      {
+        k: 'responsavel_id', label: 'Quem confere', type: 'select', valor: f.responsavel_id || '',
+        opts: [{ v: '', t: 'Ninguém definido' }, ...membros().map((m) => ({ v: m.id, t: m.nome }))]
+      },
+      { k: 'obs', label: 'O que olhar', type: 'area', valor: f.obs || '',
+        ph: 'Ex.: coluna NEGOCIADO da aba mavi + profissionais' }
+    ],
+    onSave: async (v) => {
+      if (nova) await store.insert('fontes', { ...v, conferido_em: '' });
+      else await store.update('fontes', f.id, v);
+      toast(nova ? 'Fonte cadastrada.' : 'Fonte atualizada.');
+    },
+    onDelete: nova ? null : async () => { await store.remove('fontes', f.id); toast('Fonte removida.'); }
+  });
+}
+
+  return { render };
+};
+
 __defs["js/views/locacoes.js"] = function () {
 // Locações (escolas, estúdios, casas) e contatos do projeto — cliente e fornecedores.
 const { store } = __req("js/store.js");
@@ -5552,7 +5876,7 @@ function render() {
       <button class="chip ${aba === 'locacoes' ? 'on' : ''}" data-aba="locacoes">Locações</button>
       <button class="chip ${aba === 'contatos' ? 'on' : ''}" data-aba="contatos">Contatos</button>
     </div>
-    ${aba === 'locacoes' ? `<div class="card">${locs.length ? locs.map((l) => {
+    ${aba === 'locacoes' ? `<div class="card lista">${locs.length ? locs.map((l) => {
       const s = stAut(l.autorizacao);
       const diarias = store.doProjeto('eventos').filter((e) => e.locacao_id === l.id).length;
       return `<div class="row act" data-loc="${l.id}">
@@ -5562,7 +5886,7 @@ function render() {
         ${l.valor_cents ? `<span class="r"><span class="v">${fmtMoney(l.valor_cents)}</span></span>` : ''}
       </div>`;
     }).join('') : '<div class="empty">Nenhuma locação cadastrada.</div>'}</div>`
-      : `<div class="card">${contatos.length ? contatos.map((c) => `<div class="row act" data-contato="${c.id}">
+      : `<div class="card lista">${contatos.length ? contatos.map((c) => `<div class="row act" data-contato="${c.id}">
         <span class="tag ${c.tipo === 'cliente' ? 'info' : c.tipo === 'fornecedor' ? 'warn' : 'mut'}">${esc(c.tipo)}</span>
         <span class="g"><span class="t">${esc(c.nome)}</span>
           <span class="s">${esc([c.papel, c.empresa].filter(Boolean).join(' · '))}</span></span>
@@ -5618,7 +5942,7 @@ function abrirLocacao(l, editar) {
       ${linha('Observações', l.obs)}
     </div>
     ${eventos.length ? `<div class="sec"><div class="sec-t">Diárias nesta locação</div></div>
-      <div class="card">${eventos.map((e) => `<div class="row"><span class="g">
+      <div class="card lista">${eventos.map((e) => `<div class="row"><span class="g">
         <span class="t">${esc(e.titulo)}</span><span class="s">${esc(e.data)}</span></span></div>`).join('')}</div>` : ''}
     ${editar ? '<button class="btn wide gho" data-edit>Editar locação</button>' : ''}
   </div>`);
@@ -5884,7 +6208,7 @@ function render() {
       <div class="kpi"><div class="l">Documentos</div><div class="v">${docs.length}</div></div>
       <div class="kpi"><div class="l">Valor somado</div><div class="v">${fmtMoney(soma(docs, (d) => d.valor_cents))}</div></div>
     </div>
-    <div class="card">${docs.length ? docs.map((d) => `<div class="row act" data-doc="${d.id}">
+    <div class="card lista">${docs.length ? docs.map((d) => `<div class="row act" data-doc="${d.id}">
       <span class="tag ${d.tipo === 'nf' ? 'info' : d.tipo === 'contrato' ? 'ok' : 'mut'}">${esc(tipoTxt(d.tipo).slice(0, 10))}</span>
       <span class="g"><span class="t">${esc(d.titulo || d.nome || 'documento')}</span>
         <span class="s">${esc([d.emissor, fmtData(d.data), d.membro_id ? nomeMembro(d.membro_id) : '', d.numero ? 'nº ' + d.numero : '']
@@ -6087,7 +6411,7 @@ function blocoPessoas() {
   const pessoas = membros().filter((m) => aPagar().some((c) => c.membro_id === m.id));
   const outros = aPagar().filter((c) => !c.membro_id);
   if (!pessoas.length && !outros.length) return '<div class="empty">Nenhum pagamento cadastrado.</div>';
-  return `<div class="card">${pessoas.map((m) => {
+  return `<div class="card lista">${pessoas.map((m) => {
     const p = planoDe(m.id);
     return `<div class="row act" data-plano="${m.id}">
       <span class="avatar">${esc(iniciais(m.nome))}</span>
@@ -6281,7 +6605,7 @@ function blocoLista(lista, u) {
     const g = grupos[k];
     return `<div class="sec"><div class="sec-t">${esc(g.t)}</div>
         <span class="small muted">${g.itens.length}</span></div>
-      <div class="card">${ordenar(g.itens, (t) => t.prazo || '9999').map((t) => linha(t, u)).join('')}</div>`;
+      <div class="card lista">${ordenar(g.itens, (t) => t.prazo || '9999').map((t) => linha(t, u)).join('')}</div>`;
   }).join('');
 }
 
@@ -6289,14 +6613,15 @@ function linha(t, u) {
   const st = ST_TAREFA[statusDe(t)];
   const atrasada = emAberto(t) && t.prazo && (diasAte(t.prazo) ?? 9) < 0;
   const cobrada = t.cobrado_em && emAberto(t);
-  return `<label class="row act" data-tarefa="${t.id}" style="cursor:pointer">
+  return `<label class="row act alto" data-tarefa="${t.id}" style="cursor:pointer">
     <input type="checkbox" data-check="${t.id}" ${emAberto(t) ? '' : 'checked'}
       style="width:22px;height:22px;flex:none" aria-label="Concluir">
-    <span class="g"><span class="t" style="white-space:normal;${emAberto(t) ? '' : 'opacity:.55;text-decoration:line-through'}">${esc(t.titulo)}</span>
+    <span class="g" style="padding-top:1px"><span class="t" style="white-space:normal;${emAberto(t) ? '' : 'opacity:.55;text-decoration:line-through'}">${esc(t.titulo)}</span>
       <span class="s">${esc([
         t.responsavel_id ? nomeMembro(t.responsavel_id) : 'sem dono',
-        t.prazo ? fmtData(t.prazo) + ' · ' + prazoTxt(t.prazo) : 'sem prazo',
-        cobrada ? '⚡ cobrada' : ''
+        t.prazo ? (atrasada ? 'venceu ' + fmtData(t.prazo) : prazoTxt(t.prazo)) : 'sem prazo',
+        cobrada ? '⚡ cobrada' : '',
+        (t.remarcacoes || []).length ? `↻ ${t.remarcacoes.length}ª data` : ''
       ].filter(Boolean).join(' · '))}</span></span>
     <span class="r"><span class="tag ${atrasada ? 'bad' : st.tag}">${atrasada ? 'atrasada' : st.t}</span></span>
   </label>`;
@@ -6340,6 +6665,59 @@ function nova(u, fixo = {}) {
   });
 }
 
+/** Muda o prazo guardando de onde veio, para onde foi e por quê. */
+function remarcar(t) {
+  const u = store.user;
+  const hj = hoje();
+  const daqui = (n) => {
+    const d = new Date(`${t.prazo || hj}T12:00:00`);
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
+  abrirForm({
+    titulo: 'Mudar o prazo',
+    subtitulo: t.titulo,
+    campos: [
+      {
+        k: '_atalho', label: 'Empurrar para', type: 'select', valor: '',
+        opts: [
+          { v: '', t: 'Escolher a data na mão' },
+          { v: hj, t: 'Hoje' },
+          { v: daqui(1), t: 'Amanhã (1 dia)' },
+          { v: daqui(3), t: 'Daqui a 3 dias' },
+          { v: daqui(7), t: 'Daqui a 1 semana' },
+          { v: daqui(14), t: 'Daqui a 2 semanas' }
+        ],
+        hint: 'Os atalhos contam a partir do prazo atual. Para tirar o prazo, apague a data abaixo.'
+      },
+      { k: 'prazo', label: 'Novo prazo', type: 'data', valor: t.prazo || '' },
+      {
+        k: 'motivo', label: 'Por que mudou', type: 'livre', valor: '',
+        opts: [
+          'Cliente remarcou', 'Dependência atrasou', 'Falta informação',
+          'Mudança de agenda da equipe', 'Prioridade mudou', 'Prazo era otimista'
+        ].map((v) => ({ v, t: v })),
+        ph: 'Escreva o motivo',
+        hint: 'Fica no histórico da tarefa. Ajuda a entender depois por que o projeto escorregou.'
+      }
+    ],
+    onSave: async (v) => {
+      // O atalho manda; se ninguém escolheu atalho, vale a data digitada.
+      const antes = t.prazo || '';
+      const novo = v._atalho || v.prazo || '';
+      if (novo === antes) { toast('O prazo continua o mesmo.'); return; }
+      const hist = [...(t.remarcacoes || []),
+        { de: antes, para: novo, motivo: v.motivo || '', por: u?.nome || '', em: hj }];
+      await store.update('tarefas', t.id, { prazo: novo, remarcacoes: hist });
+      Object.assign(t, { prazo: novo, remarcacoes: hist });
+      await store.log(`${u?.nome || 'Alguém'} mudou o prazo de "${t.titulo}" de `
+        + `${antes || 'sem prazo'} para ${novo || 'sem prazo'}`
+        + (v.motivo ? ` — ${v.motivo}` : ''), 'tarefa');
+      toast('Prazo alterado. Ficou no histórico.');
+    }
+  });
+}
+
 function abrir(t) {
   if (!t) return;
   const u = store.user;
@@ -6357,7 +6735,8 @@ function abrir(t) {
         <div class="row"><span class="g"><span class="s">Quem faz</span>
           <span class="t">${esc(t.responsavel_id ? nomeMembro(t.responsavel_id) : '—')}</span></span></div>
         <div class="row"><span class="g"><span class="s">Prazo</span>
-          <span class="t">${t.prazo ? esc(fmtData(t.prazo, { longo: true }) + ' · ' + prazoTxt(t.prazo)) : '—'}</span></span></div>
+          <span class="t">${t.prazo ? esc(fmtData(t.prazo, { longo: true }) + ' · ' + prazoTxt(t.prazo)) : 'sem prazo'}</span></span>
+          ${gestor || meu ? '<span class="r"><button class="btn sm gho" data-adiar>mudar</button></span>' : ''}</div>
         ${etapa ? `<div class="row"><span class="g"><span class="s">Etapa</span>
           <span class="t">${esc(etapa.nome)}</span></span></div>` : ''}
         ${t.cobrado_em ? `<div class="row"><span class="g"><span class="s">Cobrada</span>
@@ -6365,6 +6744,12 @@ function abrir(t) {
         ${t.descricao ? `<div class="row"><span class="g"><span class="s">Detalhes</span>
           <span class="t" style="white-space:normal;font-weight:400">${esc(t.descricao)}</span></span></div>` : ''}
       </div>
+      ${(t.remarcacoes || []).length ? `<div class="sec"><div class="sec-t">Mudanças de data</div>
+        <span class="small muted">${(t.remarcacoes || []).length}</span></div>
+        <div class="card tight">${[...(t.remarcacoes || [])].reverse().map((r) => `<div class="row">
+          <span class="g"><span class="t">${esc(fmtData(r.de) || 'sem prazo')} → ${esc(fmtData(r.para) || 'sem prazo')}</span>
+            <span class="s">${esc([r.motivo, r.por, fmtData(r.em)].filter(Boolean).join(' · '))}</span></span>
+        </div>`).join('')}</div>` : ''}
       ${gestor && emAberto(t) && t.responsavel_id && !meu
         ? '<button class="btn wide" data-cobrar>Cobrar quem ficou responsável</button>' : ''}
       <button class="btn wide gho" style="margin-top:8px" data-edit>Editar tarefa</button>`;
@@ -6372,6 +6757,7 @@ function abrir(t) {
     corpo.querySelectorAll('[data-st]').forEach((b) => {
       b.onclick = async () => { await marcar(t, b.dataset.st); t.status = b.dataset.st; pintar(); store.emit(); };
     });
+    corpo.querySelector('[data-adiar]')?.addEventListener('click', () => { sh.close(); remarcar(t); });
     corpo.querySelector('[data-cobrar]')?.addEventListener('click', async () => {
       await store.update('tarefas', t.id, { cobrado_em: hoje() });
       t.cobrado_em = hoje();
@@ -6392,7 +6778,7 @@ function abrir(t) {
   const sh = sheet({ titulo: t.titulo, corpo });
 }
 
-  return { ST_TAREFA, statusDe, emAberto, atrasadas, minhasTarefas, render, nova };
+  return { ST_TAREFA, statusDe, emAberto, atrasadas, minhasTarefas, render, nova, remarcar };
 };
 
 __defs["js/views/viagens.js"] = function () {
@@ -6549,14 +6935,14 @@ function abrir(v, editar) {
       ${c.faltando.map((i) => `<b>${esc(i.t)}</b>`).join(' · ')}.</div>` : ''}
 
     ${c.contas.length ? `<div class="sec"><div class="sec-t">Compromissos</div></div>
-      <div class="card">${c.contas.map((x) => `<div class="row">
+      <div class="card lista">${c.contas.map((x) => `<div class="row">
         <span class="tag ${x.status === 'quitado' ? 'ok' : 'warn'}">${x.status === 'quitado' ? 'pago' : 'aberto'}</span>
         <span class="g"><span class="t">${esc(x.descricao)}</span>
           <span class="s">${esc(x.contraparte || '')}</span></span>
         <span class="r"><span class="v">${fmtMoney(x.valor_cents)}</span></span></div>`).join('')}</div>` : ''}
 
     ${evs.length ? `<div class="sec"><div class="sec-t">Na agenda</div></div>
-      <div class="card">${evs.map((e) => `<div class="row">
+      <div class="card lista">${evs.map((e) => `<div class="row">
         <span class="tag ${e.tipo === 'diaria' ? 'ok' : 'info'}">${esc(fmtData(e.data).slice(0, 5))}</span>
         <span class="g"><span class="t">${esc(e.titulo)}</span>
           <span class="s">${esc(e.local || '')}</span></span></div>`).join('')}</div>` : ''}`;

@@ -61,7 +61,9 @@ create table if not exists tarefas (
   responsavel_id text, prazo text,
   status text default 'aberta',               -- aberta | fazendo | feita
   feito boolean default false,                -- espelho de status, para o checklist
-  cobrado_em text                             -- quando a produção cobrou
+  cobrado_em text,                            -- quando a produção cobrou
+  -- [{de, para, motivo, por, em}] — toda mudança de prazo fica registrada
+  remarcacoes jsonb default '[]'::jsonb
 );
 
 create table if not exists eventos (
@@ -187,6 +189,16 @@ create table if not exists aprovacoes (
 );
 
 
+-- Links vivos do projeto: planilha, agenda, contrato, cronograma. É de onde
+-- a informação vem, e o que precisa ser reconferido antes de decidir.
+create table if not exists fontes (
+  id text primary key, criado_em timestamptz default now(), criado_por text,
+  projeto_id text references projetos(id) on delete cascade,
+  titulo text not null, url text, tipo text default 'link',
+  responsavel_id text, frequencia text,       -- diaria | semanal | quando_mudar
+  conferido_em text, obs text
+);
+
 -- Viagens do projeto: cada ida e volta com orçado próprio.
 create table if not exists viagens (
   id text primary key, criado_em timestamptz default now(), criado_por text,
@@ -234,7 +246,7 @@ begin
   foreach t in array array['projetos','membros','etapas','tarefas','eventos','entregas',
                            'orcamento','lancamentos','contas','contratos','documentos',
                            'confirmacoes','atividades','locacoes','caixa','aprovacoes','contatos',
-                           'viagens']
+                           'viagens','fontes']
   loop
     execute format('alter table %I enable row level security', t);
     execute format('drop policy if exists p_sel on %I', t);
@@ -322,6 +334,11 @@ create policy p_del on confirmacoes for delete using (public.eh_producao());
 
 -- Locações e contatos: todo mundo do projeto lê (a equipe precisa do endereço
 -- e do telefone no dia); produção escreve.
+create policy p_sel on fontes for select using (public.eh_membro());
+create policy p_ins on fontes for insert with check (public.eh_producao());
+create policy p_upd on fontes for update using (public.eh_producao());
+create policy p_del on fontes for delete using (public.eh_producao());
+
 create policy p_sel on viagens for select using (public.eh_membro());
 create policy p_ins on viagens for insert with check (public.eh_producao());
 create policy p_upd on viagens for update using (public.eh_producao());

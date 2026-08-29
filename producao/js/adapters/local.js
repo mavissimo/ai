@@ -4,7 +4,7 @@ const KEY = 'unit0:db:v1';
 export const TABELAS = [
   'projetos', 'membros', 'etapas', 'tarefas', 'eventos', 'entregas',
   'orcamento', 'lancamentos', 'contas', 'contratos', 'documentos',
-  'confirmacoes', 'atividades', 'locacoes', 'caixa', 'aprovacoes', 'contatos', 'viagens'
+  'confirmacoes', 'atividades', 'locacoes', 'caixa', 'aprovacoes', 'contatos', 'viagens', 'fontes'
 ];
 
 const vazio = () => {

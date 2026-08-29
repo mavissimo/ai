@@ -45,12 +45,15 @@ export function render() {
   const alertaHTML = !al.length ? '' : `<section class="bloco">
     <div class="sec"><div class="sec-t">Precisa de você</div>
       <span class="small muted">${al.length}</span></div>
-    <div class="card">
-      ${al.slice(0, 8).map((a) => `
-        <a class="row act" href="${a.rota}" style="text-decoration:none;color:inherit">
+    <div class="card lista">
+      ${al.slice(0, 6).map((a) => `
+        <a class="row act alto" href="${a.rota}" style="text-decoration:none;color:inherit">
           <span class="ico ${a.urg >= 3 ? 'urg' : a.urg === 2 ? 'med' : ''}">${a.icone || '•'}</span>
-          <span class="g"><span class="t" style="white-space:normal">${esc(a.texto)}</span></span>
+          <span class="g"><span class="t">${esc(a.texto)}</span>
+            ${a.detalhe ? `<span class="s">${esc(a.detalhe)}</span>` : ''}</span>
         </a>`).join('')}
+      ${al.length > 6 ? `<a class="row act" href="#/tarefas" style="text-decoration:none;color:inherit">
+        <span class="g"><span class="t" style="color:var(--ac2)">Ver os outros ${al.length - 6}</span></span></a>` : ''}
     </div>
   </section>`;
 

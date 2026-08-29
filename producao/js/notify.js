@@ -4,7 +4,7 @@
 import { store } from './store.js';
 import { can } from './perms.js';
 import { diasAte, prazoTxt, fmtMoney } from './utils.js';
-import { saldoCaixa } from './calc.js';
+import { saldoCaixa, statusFonte } from './calc.js';
 
 const VISTOS = 'unit0:alertas-vistos';
 
@@ -20,9 +20,8 @@ export function alertas() {
       id: 'conf_' + c.id,
       urg: c.membro_id === u?.id ? 2 : 1,
       icone: c.membro_id === u?.id ? '🙋' : '⏳',
-      texto: c.membro_id === u?.id
-        ? `Confirme: ${c.titulo}`
-        : `${nome(c.membro_id)} ainda não confirmou: ${c.titulo}`,
+      texto: c.titulo,
+      detalhe: c.membro_id === u?.id ? 'Confirme' : `${nome(c.membro_id)} ainda não confirmou`,
       rota: c.membro_id === u?.id ? '#/meu' : '#/equipe'
     }));
 
@@ -33,7 +32,8 @@ export function alertas() {
       if (d === null || d > 5) return;
       add({
         id: 'conta_' + c.id, urg: d < 0 ? 3 : 2, icone: c.tipo === 'pagar' ? '💸' : '💰',
-        texto: `${c.tipo === 'pagar' ? 'Pagar' : 'Receber'} ${fmtMoney(c.valor_cents)} — ${c.descricao} (${prazoTxt(c.venc)})`,
+        texto: `${c.tipo === 'pagar' ? 'Pagar' : 'Receber'} ${fmtMoney(c.valor_cents)}`,
+        detalhe: `${c.descricao} · ${prazoTxt(c.venc)}`,
         rota: '#/contas'
       });
     });
@@ -44,7 +44,7 @@ export function alertas() {
     const pend = store.doProjeto('lancamentos').filter((l) => l.status === 'pendente');
     if (pend.length) add({
       id: 'aprov_' + pend.length, urg: 2, icone: '🧾',
-      texto: `${pend.length} lançamento(s) aguardando sua aprovação`,
+      texto: `${pend.length} lançamento(s) para aprovar`, detalhe: 'Gastos lançados pela equipe',
       rota: '#/financeiro'
     });
   }
@@ -53,7 +53,8 @@ export function alertas() {
   store.doProjeto('entregas').filter((e) => e.status !== 'entregue').forEach((e) => {
     const d = diasAte(e.prazo);
     if (d === null || d > 5) return;
-    add({ id: 'entr_' + e.id, urg: d < 0 ? 3 : 2, icone: '📦', texto: `Entrega ${e.titulo} — ${prazoTxt(e.prazo)}`, rota: '#/agenda' });
+    add({ id: 'entr_' + e.id, urg: d < 0 ? 3 : 2, icone: '📦', texto: e.titulo,
+      detalhe: `Entrega · ${prazoTxt(e.prazo)}`, rota: '#/agenda' });
   });
 
   // Rodadas de aprovação que passaram do prazo (silêncio = aceite pelo contrato)
@@ -63,12 +64,13 @@ export function alertas() {
       if (d === null) return;
       if (d < 0) add({
         id: 'apv_' + a.id, urg: 3, icone: '⏰',
-        texto: `Prazo de aceite venceu sem resposta: ${a.titulo} — vale como aprovado`,
+        texto: a.titulo, detalhe: 'Prazo de aceite venceu sem resposta',
         rota: '#/aprovacoes'
       });
       else if (d <= 2) add({
         id: 'apvp_' + a.id, urg: 1, icone: '👀',
-        texto: `Cliente tem ${d === 0 ? 'até hoje' : d + ' dia(s)'} para responder: ${a.titulo}`,
+        texto: a.titulo,
+        detalhe: `Cliente tem ${d === 0 ? 'até hoje' : d + ' dia(s)'} para responder`,
         rota: '#/aprovacoes'
       });
     });
@@ -82,9 +84,8 @@ export function alertas() {
       const c = saldoCaixa(id);
       if (c.saldo > 0) add({
         id: 'caixa_' + id, urg: id === u?.id ? 2 : 1, icone: '👛',
-        texto: id === u?.id
-          ? `Você tem ${fmtMoney(c.saldo)} da caixinha para comprovar ou devolver`
-          : `${nome(id)} tem ${fmtMoney(c.saldo)} da caixinha em aberto`,
+        texto: `${fmtMoney(c.saldo)} de caixinha em aberto`,
+        detalhe: id === u?.id ? 'Comprove ou devolva' : `Com ${nome(id)}`,
         rota: '#/caixa'
       });
     });
@@ -97,24 +98,26 @@ export function alertas() {
     const meu = t.responsavel_id === u?.id;
     if (!meu && !can(u, 'lanc.ver')) return;
     if (t.cobrado_em && meu) {
-      add({ id: 'tcob_' + t.id, urg: 3, icone: '⚡', texto: `Cobraram você: ${t.titulo}`, rota: '#/tarefas' });
+      add({ id: 'tcob_' + t.id, urg: 3, icone: '⚡', texto: t.titulo,
+        detalhe: 'Cobraram você', rota: '#/tarefas' });
       return;
     }
     const d = diasAte(t.prazo);
     if (d === null) return;
     if (d < 0) add({
       id: 'tatr_' + t.id, urg: meu ? 3 : 2, icone: '⏱',
-      texto: meu ? `Atrasada: ${t.titulo}` : `${nome(t.responsavel_id)} está atrasado: ${t.titulo}`,
+      texto: t.titulo,
+      detalhe: meu ? `Atrasada · ${prazoTxt(t.prazo)}` : `${nome(t.responsavel_id)} · atrasada ${prazoTxt(t.prazo)}`,
       rota: '#/tarefas'
     });
     else if (d === 0 && meu) add({
-      id: 'thoje_' + t.id, urg: 2, icone: '✅', texto: `Para hoje: ${t.titulo}`, rota: '#/tarefas'
+      id: 'thoje_' + t.id, urg: 2, icone: '✅', texto: t.titulo, detalhe: 'Para hoje', rota: '#/tarefas'
     });
   });
 
   // Etapas travadas
   store.doProjeto('etapas').filter((e) => e.status === 'travado').forEach((e) => {
-    add({ id: 'trav_' + e.id, urg: 2, icone: '⛔', texto: `Travado: ${e.nome}`, rota: '#/etapas' });
+    add({ id: 'trav_' + e.id, urg: 2, icone: '⛔', texto: e.nome, detalhe: 'Etapa travada', rota: '#/etapas' });
   });
 
   // Compromissos de hoje/amanhã
@@ -125,10 +128,24 @@ export function alertas() {
     if (!meu && !can(u, 'agenda.ver')) return;
     add({
       id: 'ev_' + ev.id, urg: d === 0 ? 3 : 1, icone: ev.tipo === 'viagem' ? '✈️' : ev.tipo === 'diaria' ? '🎬' : '📍',
-      texto: `${d === 0 ? 'Hoje' : 'Amanhã'}: ${ev.titulo}${ev.hora_inicio ? ' às ' + ev.hora_inicio : ''}`,
+      texto: ev.titulo,
+      detalhe: `${d === 0 ? 'Hoje' : 'Amanhã'}${ev.hora_inicio ? ' às ' + ev.hora_inicio : ''}`
+        + (ev.confirmado === false ? ' · data a confirmar' : ''),
       rota: '#/agenda'
     });
   });
+
+  // Fontes de fora (planilha, agenda) que ninguém reconfere há tempo demais.
+  if (can(u, 'projeto.edit')) {
+    store.doProjeto('fontes').forEach((f) => {
+      const st = statusFonte(f);
+      if (!st.vencida) return;
+      add({
+        id: 'fonte_' + f.id, urg: 2, icone: '🔗', texto: f.titulo,
+        detalhe: `Reconferir — ${st.txt}`, rota: '#/fontes'
+      });
+    });
+  }
 
   return out.sort((a, b) => b.urg - a.urg);
 }
@@ -150,7 +167,7 @@ export function dispararNovos() {
   novos.slice(0, 3).forEach((a) => {
     try {
       new Notification('Unit0 — ' + (store.projeto?.nome || 'Produção'), {
-        body: a.texto, icon: 'icon.svg', tag: a.id
+        body: a.detalhe ? `${a.texto} — ${a.detalhe}` : a.texto, icon: 'icon.svg', tag: a.id
       });
     } catch (e) { console.warn(e); }
   });

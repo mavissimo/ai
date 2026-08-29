@@ -43,6 +43,7 @@ export function render() {
       ${can(u, 'contas.ver') ? atalho('#/pagamentos', 'Pagamentos', 'O que sai, por data e por pessoa') : ''}
       ${can(u, 'contas.ver') ? atalho('#/contas', 'A receber', 'Parcelas do cliente') : ''}
       ${atalho('#/caixa', 'Caixinha', 'Adiantamentos e prestação de contas')}
+      ${atalho('#/fontes', 'Fontes do projeto', 'Planilha, agenda e contrato — o que precisa ser reconferido')}
       ${atalho('#/locacoes', 'Locações e contatos', 'Escolas, endereços, cliente e fornecedores')}
       ${atalho('#/aprovacoes', 'Aprovações do cliente', 'Rodadas, prazo de aceite e feedback')}
       ${atalho('#/notas', 'Notas e documentos', 'NFs, recibos, comprovantes')}
@@ -220,7 +221,7 @@ function novoProjeto() {
 export function renderHistorico() {
   const node = el('<div></div>');
   const logs = ordenar(store.doProjeto('atividades'), (a) => a.quando || a.criado_em, -1).slice(0, 120);
-  node.innerHTML = `<div class="card">${logs.length ? logs.map((a) => `<div class="row">
+  node.innerHTML = `<div class="card lista">${logs.length ? logs.map((a) => `<div class="row">
       <span class="g"><span class="t" style="white-space:normal;font-weight:500">${esc(a.texto)}</span>
         <span class="s">${esc(new Date(a.quando || a.criado_em).toLocaleString('pt-BR'))}</span></span>
     </div>`).join('') : '<div class="empty">Nada registrado ainda.</div>'}</div>`;

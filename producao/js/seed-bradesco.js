@@ -14,7 +14,7 @@ const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-export const SEED_VERSAO = 6;
+export const SEED_VERSAO = 7;
 
 const PESSOAS = [
   {
@@ -30,6 +30,7 @@ const PESSOAS = [
     cache_cents: M('3000'), cache_orcado_cents: M('3000'), diarias: 26, perdiem_cents: M('7000'),
     contrato_status: 'na', chave_pix: 'mavissimo1@gmail.com',
     obs: 'Sócio da MATHEUS SIMÕES AVILA LTDA (CNPJ 47.661.128/0001-60), a parte contratada. '
+      + 'É quem paga, assina e emite as notas fiscais. '
       + 'Direção fechada em R$ 3.000 × 26 = R$ 78.000 (coluna NEGOCIADO da planilha, que na versão '
       + 'anterior estava zerada). Per diem: R$ 7.000 (35 × R$ 200).'
   },
@@ -40,8 +41,8 @@ const PESSOAS = [
     cache_cents: M('1600'), cache_orcado_cents: M('1600'), diarias: 26, perdiem_cents: M('7000'),
     contrato_status: 'pendente',
     obs: 'Cachê fechado em R$ 41.600 (total job: executivo + produtor de viagem + som), igual ao orçado. '
-      + 'Per diem: R$ 7.000 (35 × R$ 200). Está como Coordenação: vê custos, agenda e equipe, '
-      + 'mas não vê valor de contrato nem margem.'
+      + 'Per diem: R$ 7.000 (35 × R$ 200). Está como Produção: organiza o projeto, negocia, '
+      + 'monta as contas e cuida de contratos e autorizações. Não dá baixa em pagamento nem vê a margem.'
   },
   {
     nome: 'Julio Becker', funcao: '1º assistente de câmera', papel: 'equipe', tipo: 'pf', rubrica: '1º assistente de câmera',
@@ -53,11 +54,12 @@ const PESSOAS = [
       + 'R$ 33.800, sobrando R$ 5.200. Per diem: R$ 7.000 (35 × R$ 200).'
   },
   {
-    nome: 'Patrick Bombassaro', funcao: 'Assistente criativo', papel: 'equipe', tipo: 'pf', rubrica: 'Assistente criativo',
+    nome: 'Patrick Bombassaro', funcao: 'Pesquisa de imagens', papel: 'equipe', tipo: 'pf', rubrica: 'Assistente criativo',
     email: 'patrick@tempora', telefone: '',
     cache_cents: M('4000'), cache_orcado_cents: M('8000'), diarias: 1, perdiem_cents: 0,
     contrato_status: 'pendente',
-    obs: 'Orçado em R$ 8.000, fechado em R$ 4.000 (coluna NEGOCIADO).'
+    obs: 'Neste projeto faz só pesquisa de imagens. Entra na planilha como Assistente Criativo: '
+      + 'orçado R$ 8.000, fechado R$ 4.000 (coluna NEGOCIADO).'
   }
 ];
 
@@ -287,6 +289,24 @@ const VIAGENS = [
     '13900', 'prevista', 'Entrevista de estúdio. Data prevista.'],
   ['11', 'São Paulo (Maíra Erlich)', '2026-10-26', '2026-10-27', 'São Paulo', 'São Paulo (SP)',
     '6800', 'prevista', 'Entrevista de estúdio, sem voo. Data prevista.']
+];
+
+// Os links de onde a informação vem e que mudam sem avisar.
+// [título, url, tipo, frequência, quem confere, o que olhar]
+const FONTES = [
+  ['Planilha geral TÊMPORA — Bradesco 70', 'https://docs.google.com/spreadsheets/d/1YzxxBFst2R4c3-vgEYDI50qxhVYIp9UrCeazoKER5Oo/edit',
+    'planilha', 'semanal', 'Tato Pessanha',
+    'Abas: mavi + profissionais (coluna NEGOCIADO), custo viagem (as 11 viagens), '
+    + 'cronograma, lista de voos e verba a vista. É a fonte do orçamento e dos cachês.'],
+  ['Google Agenda do projeto', 'https://calendar.google.com/calendar/u/1?cid=OTU5NDNkYjNkZWZjYzU1MmEwNTFmNDYwYjNmYTVlOTRlM2Y3NDk0NjVjNWRiYWJhZmNiYjllYmY5NWJiNjk1M0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t',
+    'agenda', 'diaria', 'Tato Pessanha',
+    'Voos, carros, hotéis e localizadores. O ⏳ no título marca data ainda não confirmada.'],
+  ['Cronograma oficial (PDF no Drive)', 'https://drive.google.com/file/d/1ZSHAscVHWb8UC9XU-entRsEckflVPeMH/view',
+    'contrato', 'quando_mudar', 'Tato Pessanha', 'Anexo I do contrato. Referência das diárias.'],
+  ['Contrato 4600001793 rev 04', '', 'contrato', 'quando_mudar', 'Maví Simões',
+    'Cláusula 6.10 (retenção de 5%) x Quadro Resumo VI (sem retenção). Prazo da 2ª parcela.'],
+  ['Vouchers e comprovantes de viagem', '', 'pasta', 'quando_mudar', 'Tato Pessanha',
+    'Voos, locação de carro e hotéis. Cada viagem precisa do seu antes do embarque.']
 ];
 
 const ETAPAS = [
@@ -579,6 +599,14 @@ export async function criarProjetoBradesco() {
       fonte: 'empresa', reembolso: false, sem_comprovante: true,
       status: 'aprovado', aprovado_por: membros['Maví Simões'],
       obs: 'Veio da aba "verba a vista" da planilha. Falta anexar o comprovante.'
+    });
+  }
+
+  /* fontes vivas do projeto */
+  for (const [titulo, url, tipoF, frequencia, quem, obs] of FONTES) {
+    await store.insert('fontes', {
+      projeto_id: P, titulo, url, tipo: tipoF, frequencia,
+      responsavel_id: membros[quem] || null, conferido_em: '2026-08-28', obs
     });
   }
 

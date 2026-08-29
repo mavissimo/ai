@@ -94,7 +94,7 @@ function blocoLista(lista, u) {
     const g = grupos[k];
     return `<div class="sec"><div class="sec-t">${esc(g.t)}</div>
         <span class="small muted">${g.itens.length}</span></div>
-      <div class="card">${ordenar(g.itens, (t) => t.prazo || '9999').map((t) => linha(t, u)).join('')}</div>`;
+      <div class="card lista">${ordenar(g.itens, (t) => t.prazo || '9999').map((t) => linha(t, u)).join('')}</div>`;
   }).join('');
 }
 
@@ -102,14 +102,15 @@ function linha(t, u) {
   const st = ST_TAREFA[statusDe(t)];
   const atrasada = emAberto(t) && t.prazo && (diasAte(t.prazo) ?? 9) < 0;
   const cobrada = t.cobrado_em && emAberto(t);
-  return `<label class="row act" data-tarefa="${t.id}" style="cursor:pointer">
+  return `<label class="row act alto" data-tarefa="${t.id}" style="cursor:pointer">
     <input type="checkbox" data-check="${t.id}" ${emAberto(t) ? '' : 'checked'}
       style="width:22px;height:22px;flex:none" aria-label="Concluir">
-    <span class="g"><span class="t" style="white-space:normal;${emAberto(t) ? '' : 'opacity:.55;text-decoration:line-through'}">${esc(t.titulo)}</span>
+    <span class="g" style="padding-top:1px"><span class="t" style="white-space:normal;${emAberto(t) ? '' : 'opacity:.55;text-decoration:line-through'}">${esc(t.titulo)}</span>
       <span class="s">${esc([
         t.responsavel_id ? nomeMembro(t.responsavel_id) : 'sem dono',
-        t.prazo ? fmtData(t.prazo) + ' · ' + prazoTxt(t.prazo) : 'sem prazo',
-        cobrada ? '⚡ cobrada' : ''
+        t.prazo ? (atrasada ? 'venceu ' + fmtData(t.prazo) : prazoTxt(t.prazo)) : 'sem prazo',
+        cobrada ? '⚡ cobrada' : '',
+        (t.remarcacoes || []).length ? `↻ ${t.remarcacoes.length}ª data` : ''
       ].filter(Boolean).join(' · '))}</span></span>
     <span class="r"><span class="tag ${atrasada ? 'bad' : st.tag}">${atrasada ? 'atrasada' : st.t}</span></span>
   </label>`;
@@ -153,6 +154,59 @@ export function nova(u, fixo = {}) {
   });
 }
 
+/** Muda o prazo guardando de onde veio, para onde foi e por quê. */
+export function remarcar(t) {
+  const u = store.user;
+  const hj = hoje();
+  const daqui = (n) => {
+    const d = new Date(`${t.prazo || hj}T12:00:00`);
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
+  abrirForm({
+    titulo: 'Mudar o prazo',
+    subtitulo: t.titulo,
+    campos: [
+      {
+        k: '_atalho', label: 'Empurrar para', type: 'select', valor: '',
+        opts: [
+          { v: '', t: 'Escolher a data na mão' },
+          { v: hj, t: 'Hoje' },
+          { v: daqui(1), t: 'Amanhã (1 dia)' },
+          { v: daqui(3), t: 'Daqui a 3 dias' },
+          { v: daqui(7), t: 'Daqui a 1 semana' },
+          { v: daqui(14), t: 'Daqui a 2 semanas' }
+        ],
+        hint: 'Os atalhos contam a partir do prazo atual. Para tirar o prazo, apague a data abaixo.'
+      },
+      { k: 'prazo', label: 'Novo prazo', type: 'data', valor: t.prazo || '' },
+      {
+        k: 'motivo', label: 'Por que mudou', type: 'livre', valor: '',
+        opts: [
+          'Cliente remarcou', 'Dependência atrasou', 'Falta informação',
+          'Mudança de agenda da equipe', 'Prioridade mudou', 'Prazo era otimista'
+        ].map((v) => ({ v, t: v })),
+        ph: 'Escreva o motivo',
+        hint: 'Fica no histórico da tarefa. Ajuda a entender depois por que o projeto escorregou.'
+      }
+    ],
+    onSave: async (v) => {
+      // O atalho manda; se ninguém escolheu atalho, vale a data digitada.
+      const antes = t.prazo || '';
+      const novo = v._atalho || v.prazo || '';
+      if (novo === antes) { toast('O prazo continua o mesmo.'); return; }
+      const hist = [...(t.remarcacoes || []),
+        { de: antes, para: novo, motivo: v.motivo || '', por: u?.nome || '', em: hj }];
+      await store.update('tarefas', t.id, { prazo: novo, remarcacoes: hist });
+      Object.assign(t, { prazo: novo, remarcacoes: hist });
+      await store.log(`${u?.nome || 'Alguém'} mudou o prazo de "${t.titulo}" de `
+        + `${antes || 'sem prazo'} para ${novo || 'sem prazo'}`
+        + (v.motivo ? ` — ${v.motivo}` : ''), 'tarefa');
+      toast('Prazo alterado. Ficou no histórico.');
+    }
+  });
+}
+
 function abrir(t) {
   if (!t) return;
   const u = store.user;
@@ -170,7 +224,8 @@ function abrir(t) {
         <div class="row"><span class="g"><span class="s">Quem faz</span>
           <span class="t">${esc(t.responsavel_id ? nomeMembro(t.responsavel_id) : '—')}</span></span></div>
         <div class="row"><span class="g"><span class="s">Prazo</span>
-          <span class="t">${t.prazo ? esc(fmtData(t.prazo, { longo: true }) + ' · ' + prazoTxt(t.prazo)) : '—'}</span></span></div>
+          <span class="t">${t.prazo ? esc(fmtData(t.prazo, { longo: true }) + ' · ' + prazoTxt(t.prazo)) : 'sem prazo'}</span></span>
+          ${gestor || meu ? '<span class="r"><button class="btn sm gho" data-adiar>mudar</button></span>' : ''}</div>
         ${etapa ? `<div class="row"><span class="g"><span class="s">Etapa</span>
           <span class="t">${esc(etapa.nome)}</span></span></div>` : ''}
         ${t.cobrado_em ? `<div class="row"><span class="g"><span class="s">Cobrada</span>
@@ -178,6 +233,12 @@ function abrir(t) {
         ${t.descricao ? `<div class="row"><span class="g"><span class="s">Detalhes</span>
           <span class="t" style="white-space:normal;font-weight:400">${esc(t.descricao)}</span></span></div>` : ''}
       </div>
+      ${(t.remarcacoes || []).length ? `<div class="sec"><div class="sec-t">Mudanças de data</div>
+        <span class="small muted">${(t.remarcacoes || []).length}</span></div>
+        <div class="card tight">${[...(t.remarcacoes || [])].reverse().map((r) => `<div class="row">
+          <span class="g"><span class="t">${esc(fmtData(r.de) || 'sem prazo')} → ${esc(fmtData(r.para) || 'sem prazo')}</span>
+            <span class="s">${esc([r.motivo, r.por, fmtData(r.em)].filter(Boolean).join(' · '))}</span></span>
+        </div>`).join('')}</div>` : ''}
       ${gestor && emAberto(t) && t.responsavel_id && !meu
         ? '<button class="btn wide" data-cobrar>Cobrar quem ficou responsável</button>' : ''}
       <button class="btn wide gho" style="margin-top:8px" data-edit>Editar tarefa</button>`;
@@ -185,6 +246,7 @@ function abrir(t) {
     corpo.querySelectorAll('[data-st]').forEach((b) => {
       b.onclick = async () => { await marcar(t, b.dataset.st); t.status = b.dataset.st; pintar(); store.emit(); };
     });
+    corpo.querySelector('[data-adiar]')?.addEventListener('click', () => { sh.close(); remarcar(t); });
     corpo.querySelector('[data-cobrar]')?.addEventListener('click', async () => {
       await store.update('tarefas', t.id, { cobrado_em: hoje() });
       t.cobrado_em = hoje();

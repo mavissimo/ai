@@ -16,16 +16,18 @@ export const PAPEIS = {
     cor: 'ok'
   },
   diretor: {
-    nome: 'Direção',
+    nome: 'Direção / Sócio',
     curto: 'Direção',
-    desc: 'Etapas, agenda, entregas, aprovações, locações e equipe. Vê o orçamento, mas não mexe em contas nem vê a margem.',
+    desc: 'Dirige e assina pela produtora: paga, emite nota fiscal, assina contrato e vê a margem. '
+      + 'É quem aperta o botão no dinheiro.',
     cor: 'info'
   },
   coord: {
-    nome: 'Coordenação / Produção',
-    curto: 'Coordenação',
-    desc: 'Etapas, agenda, entregas, equipe e custos. Não vê margem nem valor de contrato.',
-    cor: 'info'
+    nome: 'Produção',
+    curto: 'Produção',
+    desc: 'Organiza o projeto: negocia valores, monta as contas, cuida de contratos e autorizações, '
+      + 'agenda e equipe. Não paga nem vê a margem.',
+    cor: 'ok'
   },
   fin: {
     nome: 'Financeiro',
@@ -44,17 +46,21 @@ export const PAPEIS = {
 const CAPS = {
   master: ['*'],
   admin: ['*'],
+  // Direção / sócio: manda no dinheiro que sai e no que a produtora assina.
   diretor: [
     'projeto.ver', 'projeto.edit',
     'etapas.ver', 'etapas.edit',
     'agenda.ver', 'agenda.edit',
     'entregas.ver', 'entregas.edit',
-    'equipe.ver',
-    'orcamento.ver',
-    'lanc.ver', 'lanc.edit',
+    'equipe.ver', 'equipe.edit',
+    'orcamento.ver', 'orcamento.edit',
+    'lanc.ver', 'lanc.edit', 'lanc.aprovar',
+    'contas.ver', 'contas.edit', 'pagamento.executar', 'nf.emitir',
     'docs.ver', 'docs.edit',
-    'contratos.ver'
+    'contratos.ver', 'contratos.valores', 'contratos.assinar',
+    'lucro.ver', 'imposto.edit'
   ],
+  // Produção: negocia e organiza tudo, mas quem paga é a direção.
   coord: [
     'projeto.ver', 'projeto.edit',
     'etapas.ver', 'etapas.edit',
@@ -63,9 +69,9 @@ const CAPS = {
     'equipe.ver', 'equipe.edit',
     'orcamento.ver', 'orcamento.edit',
     'lanc.ver', 'lanc.edit', 'lanc.aprovar',
-    'contas.ver',
+    'contas.ver', 'contas.edit',
     'docs.ver', 'docs.edit',
-    'contratos.ver'
+    'contratos.ver', 'contratos.edit', 'autorizacoes.edit'
   ],
   fin: [
     'projeto.ver',
@@ -75,7 +81,7 @@ const CAPS = {
     'equipe.ver',
     'orcamento.ver', 'orcamento.edit',
     'lanc.ver', 'lanc.edit', 'lanc.aprovar',
-    'contas.ver', 'contas.edit',
+    'contas.ver', 'contas.edit', 'pagamento.executar', 'nf.emitir',
     'docs.ver', 'docs.edit',
     'contratos.ver', 'contratos.valores',
     'lucro.ver', 'imposto.edit'
@@ -90,6 +96,16 @@ const CAPS = {
 
 // Capacidades que envolvem dinheiro "de cima" (contrato, lucro, imposto).
 export const SIGILOSAS = ['contratos.valores', 'lucro.ver', 'imposto.edit'];
+
+// Quem faz o quê, em uma frase, para aparecer no perfil de cada pessoa.
+export const RESPONSA = {
+  master: 'Cria e cuida de tudo no sistema.',
+  admin: 'Vê e edita tudo do projeto.',
+  diretor: 'Paga, assina e emite as notas fiscais.',
+  coord: 'Organiza o projeto, negocia e cuida de contratos e autorizações.',
+  fin: 'Cuida das contas, das notas e do imposto.',
+  equipe: 'Confirma o que é dela, lança os próprios gastos e sobe as notas.'
+};
 
 export function can(user, cap) {
   if (!user) return false;

@@ -17,9 +17,9 @@ let secao = 'agenda';   // agenda | viagens
 
 export const irPara = (s) => { secao = s; };
 
-const CHIPS = `<div class="chips" data-chips-log>
-  <button class="chip" data-log="agenda">Agenda</button>
-  <button class="chip" data-log="viagens">Viagens</button>
+const CHIPS = `<div class="seg" style="margin-bottom:var(--s3)">
+  <button data-log="agenda">Agenda</button>
+  <button data-log="viagens">Viagens</button>
 </div>`;
 
 function ligarLog(node) {

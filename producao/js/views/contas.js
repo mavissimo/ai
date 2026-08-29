@@ -43,7 +43,7 @@ export function render() {
         <div class="v">${fmtMoneyShort(soma(vencidas, (c) => c.valor_cents))}</div>
         <div class="h">${vencidas.length} conta(s)</div></div>
     </div>
-    <div class="card">${lista.length ? lista.map((c) => {
+    <div class="card lista">${lista.length ? lista.map((c) => {
       const st = ST_CONTA[c.status] || ST_CONTA.aberto;
       return `<div class="row act" data-conta="${c.id}">
         <span class="tag ${c.status === 'quitado' ? 'ok' : prazoTag(c.venc)}">${c.venc ? esc(fmtData(c.venc, { ano: false })) : '—'}</span>
@@ -95,6 +95,10 @@ export function novaConta(tipo) {
 }
 
 export function abrirConta(c, editar) {
+  // Montar a conta e dar baixa nela são coisas diferentes: a produção monta e
+  // negocia, a direção paga e emite a nota.
+  const podePagar = can(store.user, 'pagamento.executar');
+  const podeNF = can(store.user, 'nf.emitir');
   if (!c) return;
   const st = ST_CONTA[c.status] || ST_CONTA.aberto;
   const corpo = el('<div></div>');
@@ -124,10 +128,12 @@ export function abrirConta(c, editar) {
           <span class="r">${doc ? '<button class="btn sm" data-ver>abrir</button>'
         : editar ? '<button class="btn sm gho" data-anexar>anexar</button>' : ''}</span></div>
       </div>
-      ${editar && (c.nf_status === 'a_emitir' || c.nf_status === 'a_receber') ? `<button class="btn wide" data-nf>
+      ${podeNF && (c.nf_status === 'a_emitir' || c.nf_status === 'a_receber') ? `<button class="btn wide" data-nf>
         ${c.nf_status === 'a_emitir' ? 'Marcar NF como emitida' : 'Marcar NF como recebida'}</button>` : ''}
-      ${editar && c.status === 'aberto' ? `<button class="btn wide pri" style="margin-top:8px" data-quitar>
+      ${podePagar && c.status === 'aberto' ? `<button class="btn wide pri" style="margin-top:8px" data-quitar>
         Marcar como ${c.tipo === 'pagar' ? 'pago' : 'recebido'}</button>` : ''}
+      ${!podePagar && c.status === 'aberto' ? `<div class="banner small">Quem dá baixa no pagamento é
+        a direção. Você monta e negocia a conta; a baixa fica com quem paga.</div>` : ''}
       ${editar ? '<button class="btn wide gho" style="margin-top:8px" data-edit>Editar</button>' : ''}`;
 
     corpo.querySelector('[data-ver]')?.addEventListener('click', async () => {

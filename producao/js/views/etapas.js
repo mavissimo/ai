@@ -11,9 +11,9 @@ let aba = 'etapas';
 
 export const irPara = (a) => { aba = a; };
 
-const CHIPS = `<div class="chips" data-chips-trabalho>
-  <button class="chip" data-trab="etapas">Etapas</button>
-  <button class="chip" data-trab="tarefas">Tarefas</button>
+const CHIPS = `<div class="seg" style="margin-bottom:var(--s3)">
+  <button data-trab="etapas">Etapas</button>
+  <button data-trab="tarefas">Tarefas</button>
 </div>`;
 
 function ligarTrabalho(node) {

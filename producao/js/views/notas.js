@@ -32,7 +32,7 @@ export function render() {
       <div class="kpi"><div class="l">Documentos</div><div class="v">${docs.length}</div></div>
       <div class="kpi"><div class="l">Valor somado</div><div class="v">${fmtMoney(soma(docs, (d) => d.valor_cents))}</div></div>
     </div>
-    <div class="card">${docs.length ? docs.map((d) => `<div class="row act" data-doc="${d.id}">
+    <div class="card lista">${docs.length ? docs.map((d) => `<div class="row act" data-doc="${d.id}">
       <span class="tag ${d.tipo === 'nf' ? 'info' : d.tipo === 'contrato' ? 'ok' : 'mut'}">${esc(tipoTxt(d.tipo).slice(0, 10))}</span>
       <span class="g"><span class="t">${esc(d.titulo || d.nome || 'documento')}</span>
         <span class="s">${esc([d.emissor, fmtData(d.data), d.membro_id ? nomeMembro(d.membro_id) : '', d.numero ? 'nº ' + d.numero : '']

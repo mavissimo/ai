@@ -43,7 +43,7 @@ export function render() {
       if (!rod.length) return '';
       return `<div class="sec"><div class="sec-t">${esc(e.titulo)}</div>
           <span class="small muted">${rod.length}/${c.max} rodadas</span></div>
-        <div class="card">${rod.map((a) => linha(a)).join('')}</div>`;
+        <div class="card lista">${rod.map((a) => linha(a)).join('')}</div>`;
     }).join('')}
     ${!todas.length ? '<div class="empty">Nenhuma rodada enviada ainda.<br>Registre quando mandar um corte para o cliente.</div>' : ''}`;
 
