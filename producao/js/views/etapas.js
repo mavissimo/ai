@@ -75,17 +75,26 @@ function nodeEtapa(e, todas) {
   const cls = e.status === 'feito' ? 'done' : e.status === 'fazendo' ? 'doing' : e.status === 'travado' ? 'block' : '';
   const tarefas = store.doProjeto('tarefas').filter((t) => t.etapa_id === e.id);
   const tOk = tarefas.filter((t) => t.feito).length;
-  return `<div class="n ${cls}"><div class="row act" data-etapa="${e.id}">
+  // Etapa que é feita em partes mostra quantas já saíram, não só "fazendo".
+  const meta = Number(e.meta || 0);
+  const feitos = Math.min(Number(e.feitos || 0), meta || Infinity);
+  const p100 = meta ? Math.round((feitos / meta) * 100) : 0;
+  return `<div class="n ${cls}"><div class="row act alto" data-etapa="${e.id}">
       <span class="g">
-        <span class="t" style="white-space:normal;${e.status === 'feito' ? 'opacity:.6' : ''}">${esc(e.nome)}</span>
+        <span class="t" style="${e.status === 'feito' ? 'opacity:.6' : ''}">${esc(e.nome)}</span>
         <span class="s">${[
           e.responsavel_id ? nomeMembro(e.responsavel_id) : '',
           e.prazo ? fmtData(e.prazo) + ' · ' + prazoTxt(e.prazo) : '',
           tarefas.length ? `checklist ${tOk}/${tarefas.length}` : '',
           travando.length ? '⛔ aguarda: ' + travando.map((d) => d.nome).join(', ') : ''
         ].filter(Boolean).join(' · ') || 'sem responsável'}</span>
+        ${meta ? `<span class="bar" style="margin-top:6px;max-width:180px">
+          <i class="${p100 === 100 ? 'ok' : ''}" style="width:${p100}%"></i></span>` : ''}
       </span>
-      <span class="r"><span class="tag ${e.prazo && e.status !== 'feito' ? prazoTag(e.prazo) : st.tag}">${esc(st.t)}</span></span>
+      <span class="r">${meta
+        ? `<span class="v mono">${feitos}/${meta}</span>
+           <div class="small muted">${esc(e.unidade || 'partes')}</div>`
+        : `<span class="tag ${e.prazo && e.status !== 'feito' ? prazoTag(e.prazo) : st.tag}">${esc(st.t)}</span>`}</span>
     </div></div>`;
 }
 
@@ -101,6 +110,19 @@ function abrirEtapa(e, editar) {
       <div class="small muted" style="margin-bottom:10px">${esc(faseNome(e.fase))}</div>
       <div class="seg" style="margin-bottom:14px">${STATUS_ETAPA.map((s) =>
         `<button data-st="${s.v}" class="${e.status === s.v ? 'on' : ''}">${esc(s.t)}</button>`).join('')}</div>
+      ${Number(e.meta || 0) ? `<div class="card">
+        <div class="row" style="border:0;padding:0">
+          <span class="g"><span class="s">Já saíram</span>
+            <span class="t" style="font-size:22px;font-family:var(--titulo)">${e.feitos || 0} de ${e.meta}
+              <span class="small muted" style="font-weight:400">${esc(e.unidade || 'partes')}</span></span></span>
+          ${editar ? `<span class="r" style="display:flex;gap:6px">
+            <button class="btn sm gho" data-menos ${(e.feitos || 0) <= 0 ? 'disabled' : ''}>−</button>
+            <button class="btn sm pri" data-mais ${(e.feitos || 0) >= e.meta ? 'disabled' : ''}>+1</button>
+          </span>` : ''}
+        </div>
+        <div class="bar"><i class="${(e.feitos || 0) >= e.meta ? 'ok' : ''}"
+          style="width:${Math.round(((e.feitos || 0) / e.meta) * 100)}%"></i></div>
+      </div>` : ''}
       <div class="card tight">
         <div class="row"><span class="g"><span class="s">Responsável</span>
           <span class="t">${esc(e.responsavel_id ? nomeMembro(e.responsavel_id) : '—')}</span></span></div>
@@ -124,6 +146,17 @@ function abrirEtapa(e, editar) {
           ${editar ? `<button class="btn sm gho" data-del-tar="${t.id}">×</button>` : ''}
         </label>`).join('') : '<div class="empty">Sem itens.</div>'}</div>
       ${editar ? '<button class="btn wide gho" data-edit>Editar etapa</button>' : ''}`;
+
+    const mexer = async (delta) => {
+      const novo = Math.max(0, Math.min(Number(e.meta || 0), (Number(e.feitos) || 0) + delta));
+      // Chegar na meta fecha a etapa; sair dela reabre.
+      const status = novo >= Number(e.meta) ? 'feito' : novo > 0 ? 'fazendo' : e.status;
+      await store.update('etapas', e.id, { feitos: novo, status });
+      Object.assign(e, { feitos: novo, status });
+      pintar(); store.emit();
+    };
+    corpo.querySelector('[data-mais]')?.addEventListener('click', () => mexer(1));
+    corpo.querySelector('[data-menos]')?.addEventListener('click', () => mexer(-1));
 
     corpo.querySelectorAll('[data-st]').forEach((b) => {
       b.onclick = async () => {
@@ -176,6 +209,10 @@ function camposEtapa(e = {}) {
       opts: [{ v: '', t: '— ninguém —' }, ...membros().map((m) => ({ v: m.id, t: m.nome }))]
     },
     { k: 'prazo', label: 'Prazo', type: 'data', valor: e.prazo },
+    { k: 'meta', label: 'Feita em quantas partes', type: 'numero', valor: e.meta || 0, meia: true,
+      hint: 'Ex.: 6 escolas. Deixe 0 se for uma coisa só.' },
+    { k: 'unidade', label: 'Nome das partes', type: 'texto', valor: e.unidade || '', meia: true,
+      ph: 'escolas, viagens, peças…' },
     {
       k: 'depende_de', label: 'Depende de', type: 'multi', valor: e.depende_de || [],
       opts: outras.map((x) => ({ v: x.id, t: `${faseNome(x.fase)} · ${x.nome}` })),

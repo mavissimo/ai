@@ -48,14 +48,18 @@ create index if not exists membros_email_idx on membros (lower(email));
 
 create table if not exists etapas (
   id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,                                 -- chave estável da carga inicial
   projeto_id text references projetos(id) on delete cascade,
   fase text, nome text not null, status text default 'nao',
   responsavel_id text, prazo text, depende_de jsonb default '[]'::jsonb,
-  ordem int default 0, obs text
+  ordem int default 0, obs text,
+  -- etapa feita em partes (6 escolas, 40 peças): o progresso sai daqui
+  meta int default 0, feitos int default 0, unidade text
 );
 
 create table if not exists tarefas (
   id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,                                 -- chave estável da carga inicial
   projeto_id text references projetos(id) on delete cascade,
   etapa_id text, titulo text not null, descricao text,
   responsavel_id text, prazo text,
@@ -68,6 +72,7 @@ create table if not exists tarefas (
 
 create table if not exists eventos (
   id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,                                 -- chave estável da carga inicial
   projeto_id text references projetos(id) on delete cascade,
   titulo text not null, tipo text, data text,
   hora_inicio text, hora_fim text, "local" text,
@@ -81,6 +86,7 @@ create table if not exists eventos (
 
 create table if not exists entregas (
   id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,                                 -- chave estável da carga inicial
   projeto_id text references projetos(id) on delete cascade,
   titulo text not null, prazo text, status text default 'pendente',
   responsavel_id text, formato text, link text, obs text
@@ -88,6 +94,7 @@ create table if not exists entregas (
 
 create table if not exists orcamento (
   id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,                                 -- chave estável da carga inicial
   projeto_id text references projetos(id) on delete cascade,
   rubrica text not null, descricao text,
   previsto_cents bigint default 0,            -- orçado
@@ -97,6 +104,7 @@ create table if not exists orcamento (
 
 create table if not exists lancamentos (
   id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,                                 -- chave estável da carga inicial
   projeto_id text references projetos(id) on delete cascade,
   tipo text not null default 'saida',
   descricao text not null, valor_cents bigint default 0, rubrica text,
@@ -111,6 +119,7 @@ create table if not exists lancamentos (
 
 create table if not exists contas (
   id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,                                 -- chave estável da carga inicial
   projeto_id text references projetos(id) on delete cascade,
   tipo text not null default 'pagar',
   descricao text not null, contraparte text, valor_cents bigint default 0,
@@ -122,6 +131,7 @@ create table if not exists contas (
 
 create table if not exists contratos (
   id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,                                 -- chave estável da carga inicial
   projeto_id text references projetos(id) on delete cascade,
   titulo text not null, tipo text default 'cliente',
   contratante text, contratado text, valor_total_cents bigint default 0,
@@ -133,6 +143,7 @@ create table if not exists contratos (
 
 create table if not exists documentos (
   id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,                                 -- chave estável da carga inicial
   projeto_id text references projetos(id) on delete cascade,
   tipo text default 'nf', titulo text, valor_cents bigint default 0,
   data text, emissor text, numero text,
@@ -144,6 +155,7 @@ create table if not exists documentos (
 
 create table if not exists confirmacoes (
   id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,                                 -- chave estável da carga inicial
   projeto_id text references projetos(id) on delete cascade,
   membro_id text not null, tipo text default 'presenca', ref_id text,
   titulo text not null, status text default 'pendente',
@@ -152,12 +164,14 @@ create table if not exists confirmacoes (
 
 create table if not exists atividades (
   id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,                                 -- chave estável da carga inicial
   projeto_id text references projetos(id) on delete cascade,
   texto text, tipo text, quando timestamptz default now()
 );
 
 create table if not exists locacoes (
   id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,                                 -- chave estável da carga inicial
   projeto_id text references projetos(id) on delete cascade,
   nome text not null, cidade text, uf text, endereco text,
   contato text, telefone text, autorizacao text default 'pendente',
@@ -166,6 +180,7 @@ create table if not exists locacoes (
 
 create table if not exists contatos (
   id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,                                 -- chave estável da carga inicial
   projeto_id text references projetos(id) on delete cascade,
   nome text not null, papel text, empresa text, tipo text default 'cliente',
   email text, telefone text, obs text
@@ -174,6 +189,7 @@ create table if not exists contatos (
 -- Caixinha de produção: dinheiro adiantado e devolvido.
 create table if not exists caixa (
   id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,                                 -- chave estável da carga inicial
   projeto_id text references projetos(id) on delete cascade,
   membro_id text not null, tipo text not null default 'adiantamento',
   valor_cents bigint default 0, data text, forma text, obs text
@@ -182,6 +198,7 @@ create table if not exists caixa (
 -- Rodadas de aprovação com o cliente (prazo de aceite, silêncio = aceite).
 create table if not exists aprovacoes (
   id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,                                 -- chave estável da carga inicial
   projeto_id text references projetos(id) on delete cascade,
   entrega_id text, rodada int default 1, titulo text, link text,
   enviado_em text, prazo text, status text default 'enviado',
@@ -193,6 +210,7 @@ create table if not exists aprovacoes (
 -- a informação vem, e o que precisa ser reconferido antes de decidir.
 create table if not exists fontes (
   id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,                                 -- chave estável da carga inicial
   projeto_id text references projetos(id) on delete cascade,
   titulo text not null, url text, tipo text default 'link',
   responsavel_id text, frequencia text,       -- diaria | semanal | quando_mudar
@@ -202,6 +220,7 @@ create table if not exists fontes (
 -- Viagens do projeto: cada ida e volta com orçado próprio.
 create table if not exists viagens (
   id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,                                 -- chave estável da carga inicial
   projeto_id text references projetos(id) on delete cascade,
   numero text, titulo text not null, ida text, volta text,
   origem text, destino text, cidade text, uf text,

@@ -3,7 +3,7 @@
 // no modo Supabase dá para plugar e-mail/push por Edge Function (ver README).
 import { store } from './store.js';
 import { can } from './perms.js';
-import { diasAte, prazoTxt, fmtMoney } from './utils.js';
+import { diasAte, prazoTxt, fmtMoney, fmtData, hoje } from './utils.js';
 import { saldoCaixa, statusFonte } from './calc.js';
 
 const VISTOS = 'unit0:alertas-vistos';
@@ -180,4 +180,79 @@ export function iniciarMonitor() {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') dispararNovos();
   });
+}
+
+/* ---------------------------------------------------------- decisões ---
+   Perguntas de sim ou não que dá para resolver na hora, sem sair do painel.
+   No máximo três: se tudo é urgente, nada é. */
+export function perguntas() {
+  const u = store.user;
+  const out = [];
+
+  // Confirmações pendentes da própria pessoa: um toque resolve.
+  store.doProjeto('confirmacoes')
+    .filter((c) => c.status === 'pendente' && c.membro_id === u?.id)
+    .slice(0, 2)
+    .forEach((c) => out.push({
+      id: 'q_conf_' + c.id, urg: 3, icone: '🙋',
+      pergunta: c.titulo,
+      contexto: c.obs || 'Confirme para a produção saber que está de pé.',
+      sim: 'Confirmo', nao: 'Tenho problema',
+      async aoSim() { await store.update('confirmacoes', c.id, { status: 'confirmado', respondido_em: hoje() }); },
+      async aoNao() { await store.update('confirmacoes', c.id, { status: 'problema', respondido_em: hoje() }); }
+    }));
+
+  // Contas vencidas: quem pode dar baixa responde se já saiu.
+  if (can(u, 'pagamento.executar')) {
+    store.doProjeto('contas')
+      .filter((c) => c.status === 'aberto' && (diasAte(c.venc) ?? 9) < 0)
+      .slice(0, 2)
+      .forEach((c) => out.push({
+        id: 'q_conta_' + c.id, urg: 3, icone: c.tipo === 'pagar' ? '💸' : '💰',
+        pergunta: `${c.tipo === 'pagar' ? 'Já pagou' : 'Já caiu'} ${fmtMoney(c.valor_cents)}?`,
+        contexto: `${c.descricao} · venceu ${prazoTxt(c.venc)}`,
+        sim: c.tipo === 'pagar' ? 'Já paguei' : 'Já caiu', nao: 'Ainda não',
+        async aoSim() {
+          await store.update('contas', c.id, { status: 'quitado', quitado_em: hoje() });
+          await store.insert('lancamentos', {
+            tipo: c.tipo === 'pagar' ? 'saida' : 'entrada', descricao: c.descricao,
+            valor_cents: c.valor_cents, data: hoje(), rubrica: c.rubrica || '',
+            fornecedor: c.contraparte || '', membro_id: c.membro_id || null,
+            status: c.tipo === 'pagar' ? 'pago' : 'recebido', conta_id: c.id,
+            fonte: 'empresa', obs: 'Respondido no painel.'
+          });
+        }
+      }));
+  }
+
+  // Datas de filmagem ainda não confirmadas pela Fundação.
+  if (can(u, 'agenda.edit')) {
+    const porConfirmar = store.doProjeto('eventos')
+      .filter((e) => e.confirmado === false && e.tipo === 'diaria' && (diasAte(e.data) ?? 99) <= 21)
+      .sort((a, b) => String(a.data).localeCompare(String(b.data)));
+    if (porConfirmar[0]) {
+      const e = porConfirmar[0];
+      out.push({
+        id: 'q_data_' + e.id, urg: 2, icone: '📅',
+        pergunta: `O cliente confirmou ${e.titulo}?`,
+        contexto: `${fmtData(e.data, { longo: true })} · o contrato pede 10 dias úteis de antecedência`,
+        sim: 'Confirmou', nao: 'Ainda não',
+        async aoSim() { await store.update('eventos', e.id, { confirmado: true }); }
+      });
+    }
+  }
+
+  // Fontes que ninguém reconfere há tempo demais.
+  if (can(u, 'projeto.edit')) {
+    const velha = store.doProjeto('fontes').find((f) => statusFonte(f).vencida);
+    if (velha) out.push({
+      id: 'q_fonte_' + velha.id, urg: 2, icone: '🔗',
+      pergunta: `Conferiu ${velha.titulo}?`,
+      contexto: statusFonte(velha).txt + ' — o projeto depende desse link',
+      sim: 'Conferi agora', nao: 'Depois',
+      async aoSim() { await store.update('fontes', velha.id, { conferido_em: hoje() }); }
+    });
+  }
+
+  return out.sort((a, b) => b.urg - a.urg).slice(0, 3);
 }

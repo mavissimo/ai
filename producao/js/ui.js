@@ -1,5 +1,5 @@
 // Kit de interface: bottom-sheet, formulários gerados por spec, toast, confirmação.
-import { esc, moneyInput, parseMoney } from './utils.js';
+import { esc, moneyInput, mascaraMoeda, parseMoney } from './utils.js';
 
 export function el(html) {
   const t = document.createElement('template');
@@ -113,11 +113,16 @@ function campoHTML(c) {
         `<option value="${esc(o.v)}"${String(o.v) === String(v) ? ' selected' : ''}>${esc(o.t)}</option>`).join('')}</select>`;
       break;
     case 'multi': {
+      // Botão que resume a escolha e abre a lista, em vez de despejar 40
+      // caixinhas dentro do formulário.
       const sel = Array.isArray(v) ? v.map(String) : [];
-      inner = `<div data-multi="${c.k}" class="stack" style="max-height:210px;overflow:auto">${(c.opts || []).map((o) =>
-        `<label class="check" style="padding:7px 0;margin:0">
-          <input type="checkbox" value="${esc(o.v)}"${sel.includes(String(o.v)) ? ' checked' : ''}>
-          <span>${esc(o.t)}</span></label>`).join('')}</div>`;
+      const nomes = (c.opts || []).filter((o) => sel.includes(String(o.v))).map((o) => o.t);
+      inner = `<button type="button" class="multi-abre" data-multi-abre="${c.k}">
+          <span data-multi-txt>${esc(resumoMulti(nomes, c.ph))}</span>
+          <span class="multi-seta"></span>
+        </button>
+        <div data-multi="${c.k}" hidden>${(c.opts || []).map((o) =>
+          `<input type="checkbox" value="${esc(o.v)}"${sel.includes(String(o.v)) ? ' checked' : ''}>`).join('')}</div>`;
       break;
     }
     case 'check':
@@ -179,6 +184,23 @@ export function abrirForm({ titulo, subtitulo, campos, onSave, onDelete, onArqui
     /** Abre o seletor de arquivo de um campo, como se a pessoa tivesse tocado nele. */
     escolherArquivo(k) { corpo.querySelector(`[data-k="${k}"]`)?.click(); }
   };
+
+  // Multiselect: o botão abre a lista numa folha, e o resumo volta para o botão.
+  corpo.querySelectorAll('[data-multi-abre]').forEach((btn) => {
+    const k = btn.dataset.multiAbre;
+    const guarda = corpo.querySelector(`[data-multi="${k}"]`);
+    const campo = campos.find((x) => x.k === k) || {};
+    btn.onclick = () => abrirMulti(campo, guarda, btn);
+  });
+
+  // Dinheiro: formata enquanto digita, com ponto de milhar e vírgula nos centavos.
+  corpo.querySelectorAll('[data-money]').forEach((inp) => {
+    inp.addEventListener('input', () => {
+      const fim = inp.selectionStart === inp.value.length;
+      inp.value = mascaraMoeda(inp.value);
+      if (fim) inp.setSelectionRange(inp.value.length, inp.value.length);
+    });
+  });
 
   // "— outra, digitar —" revela o campo de texto ao lado.
   corpo.querySelectorAll('[data-livre]').forEach((sel) => {
@@ -292,3 +314,51 @@ export const ICO = {
   olho: '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/></svg>',
   olhoOff: '<svg viewBox="0 0 24 24"><path d="M4 4l16 16"/><path d="M9.9 5.7A10.6 10.6 0 0 1 12 5.5c6.4 0 10 6.5 10 6.5a17.6 17.6 0 0 1-3.4 4.2"/><path d="M6.5 7.8A17.4 17.4 0 0 0 2 12s3.6 6.5 10 6.5c1.5 0 2.8-.3 4-.8"/><path d="M9.6 9.9a2.8 2.8 0 0 0 3.9 3.9"/></svg>'
 };
+
+/* ------------------------------------------------------- multiselect ---
+   Um botão que resume a escolha e abre a lista em folha própria. Cabe em
+   qualquer formulário, mesmo com quarenta opções. */
+export function resumoMulti(nomes, ph) {
+  if (!nomes.length) return ph || 'Ninguém selecionado';
+  if (nomes.length <= 2) return nomes.join(', ');
+  return `${nomes[0]}, ${nomes[1]} e mais ${nomes.length - 2}`;
+}
+
+function abrirMulti(campo, guarda, botao) {
+  const opts = campo.opts || [];
+  const marcados = () => new Set([...guarda.querySelectorAll('input:checked')].map((i) => i.value));
+  const sel = marcados();
+  const corpo = el(`<div>
+    ${opts.length > 8 ? '<input data-busca placeholder="Buscar" style="width:100%;background:var(--bg3);'
+      + 'border:1px solid var(--line);border-radius:11px;padding:11px;font-size:16px;margin-bottom:10px">' : ''}
+    <div class="card lista" data-lista>${opts.map((o) => `
+      <label class="row act sem-seta" data-op="${esc(String(o.t).toLowerCase())}" style="cursor:pointer">
+        <input type="checkbox" value="${esc(o.v)}"${sel.has(String(o.v)) ? ' checked' : ''}
+          style="width:22px;height:22px;flex:none">
+        <span class="g"><span class="t">${esc(o.t)}</span></span>
+      </label>`).join('')}</div>
+    <div class="btns"><button class="btn gho" data-nada>Limpar</button>
+      <button class="btn pri" style="flex:1" data-ok>Pronto</button></div>
+  </div>`);
+
+  const busca = corpo.querySelector('[data-busca]');
+  if (busca) {
+    busca.oninput = () => {
+      const q = busca.value.trim().toLowerCase();
+      corpo.querySelectorAll('[data-op]').forEach((n) => {
+        n.hidden = Boolean(q) && !n.dataset.op.includes(q);
+      });
+    };
+  }
+  corpo.querySelector('[data-nada]').onclick = () => {
+    corpo.querySelectorAll('input[type=checkbox]').forEach((i) => { i.checked = false; });
+  };
+  const sh = sheet({ titulo: campo.label || 'Escolher', corpo });
+  corpo.querySelector('[data-ok]').onclick = () => {
+    const escolhidos = new Set([...corpo.querySelectorAll('input:checked')].map((i) => i.value));
+    guarda.querySelectorAll('input').forEach((i) => { i.checked = escolhidos.has(i.value); });
+    const nomes = opts.filter((o) => escolhidos.has(String(o.v))).map((o) => o.t);
+    botao.querySelector('[data-multi-txt]').textContent = resumoMulti(nomes, campo.ph);
+    sh.close();
+  };
+}

@@ -4,7 +4,7 @@ import { can, PAPEIS } from '../perms.js';
 import { el, abrirForm, toast, confirmar, escolher } from '../ui.js';
 import { esc, iniciais, ordenar } from '../utils.js';
 import { criarProjetoTeste } from '../seed.js';
-import { recarregarProjeto, SEED_VERSAO } from '../seed-bradesco.js';
+import { recarregarProjeto, atualizarProjeto, SEED_VERSAO } from '../seed-bradesco.js';
 import { pedirPermissao } from '../notify.js';
 import { trocarSenha, temSenha } from '../pin.js';
 import { TEMAS, temaAtual, definirTema } from '../tema.js';
@@ -59,7 +59,9 @@ export function render() {
       ${p && p.seed_versao !== SEED_VERSAO && can(u, 'projeto.edit') ? `<div class="banner warn small" style="margin-top:10px">
         Os dados deste aparelho vieram de uma carga antiga do projeto. Recarregue para
         pegar a versão mais nova — equipe, orçamento negociado, contas e perfis.</div>` : ''}
-      ${can(u, 'projeto.edit') ? '<button class="btn wide gho sm" style="margin-top:10px" data-recarregar>Recarregar dados do projeto</button>' : ''}
+      ${can(u, 'projeto.edit') ? `<button class="btn wide gho sm" style="margin-top:10px" data-recarregar>Atualizar carga do projeto</button>
+      <div class="small muted" style="margin-top:6px">Só acrescenta o que falta. Nada que você editou é apagado.</div>
+      <button class="btn wide gho sm danger" style="margin-top:14px" data-zerar>Apagar e recarregar do zero</button>` : ''}
       ${projetos.length > 1 ? '<button class="btn wide gho sm" style="margin-top:10px" data-trocar-proj>Trocar de projeto</button>' : ''}
       ${can(u, 'projeto.edit') ? '<button class="btn wide gho sm" style="margin-top:8px" data-novo-proj>Novo projeto</button>' : ''}
     </div>
@@ -109,21 +111,28 @@ export function render() {
   });
   node.querySelector('[data-edit-proj]')?.addEventListener('click', () => editarProjeto(p));
   node.querySelector('[data-recarregar]')?.addEventListener('click', async () => {
-    const ok = await confirmar(
-      'Isto apaga o projeto deste aparelho e carrega tudo de novo, na versão mais recente. '
-      + 'O que você editou aqui dentro se perde. Baixe um backup antes se quiser guardar.',
-      { ok: 'Recarregar', perigo: true }
-    );
-    if (!ok) return;
     try {
-      await recarregarProjeto();
-      toast('Projeto recarregado. Escolha quem você é.');
-      location.hash = '#/';
-      location.reload();
+      const r = await atualizarProjeto();
+      toast(r.novos ? `${r.novos} item(ns) novo(s). Nada foi apagado.` : 'Já estava em dia.');
+      store.emit();
     } catch (e) {
       console.error(e);
       toast('Falhou: ' + e.message);
     }
+  });
+  node.querySelector('[data-zerar]')?.addEventListener('click', async () => {
+    const ok = await confirmar(
+      'Isto APAGA o projeto deste aparelho e carrega tudo do zero. Todo trabalho feito aqui '
+      + 'dentro se perde — gastos, notas, confirmações, datas alteradas. Baixe um backup antes.',
+      { ok: 'Apagar e recarregar', perigo: true }
+    );
+    if (!ok) return;
+    try {
+      await recarregarProjeto();
+      toast('Projeto recarregado do zero.');
+      location.hash = '#/';
+      location.reload();
+    } catch (e) { console.error(e); toast('Falhou: ' + e.message); }
   });
   node.querySelector('[data-novo-proj]')?.addEventListener('click', () => novoProjeto());
   node.querySelector('[data-trocar-proj]')?.addEventListener('click', async () => {

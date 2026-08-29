@@ -4,7 +4,7 @@ import { isRemote, APP } from './config.js';
 import { can, ehEquipe, PAPEIS } from './perms.js';
 import { el, toast, abrirForm, confirmar, ICO, MARCA } from './ui.js';
 import { esc, iniciais, valoresOcultos, alternarValores, diasAte } from './utils.js';
-import { criarProjetoBradesco, recarregarProjeto, SEED_VERSAO } from './seed-bradesco.js';
+import { criarProjetoBradesco, atualizarProjeto, SEED_VERSAO } from './seed-bradesco.js';
 import { alertas, iniciarMonitor } from './notify.js';
 import { minhasTarefas } from './views/tarefas.js';
 import { autenticar, temSenha } from './pin.js';
@@ -213,19 +213,16 @@ export function render() {
   const proj = store.projeto;
   if (proj && proj.seed_versao !== SEED_VERSAO && can(store.user, 'projeto.edit')) {
     const aviso = el(`<div class="banner warn">
-      <div>Este aparelho está com uma carga antiga do projeto — por isso a equipe e o
-      orçamento aparecem diferentes do combinado.</div>
-      <button class="btn sm" style="margin-top:9px" data-recarregar>Recarregar agora</button>
+      <div><b>Tem novidade na carga do projeto.</b> Atualizar só acrescenta o que falta —
+      nada que você editou, criou ou marcou aqui dentro é apagado ou sobrescrito.</div>
+      <button class="btn sm" style="margin-top:9px" data-recarregar>Atualizar</button>
     </div>`);
     aviso.querySelector('[data-recarregar]').onclick = async () => {
-      const ok = await confirmar(
-        'Isto apaga o projeto deste aparelho e carrega tudo de novo, na versão mais recente. '
-        + 'O que você editou aqui dentro se perde.',
-        { ok: 'Recarregar', perigo: true }
-      );
-      if (!ok) return;
-      try { await recarregarProjeto(); location.hash = '#/'; location.reload(); }
-      catch (e) { console.error(e); toast('Falhou: ' + e.message); }
+      try {
+        const r = await atualizarProjeto();
+        toast(r.novos ? `${r.novos} item(ns) novo(s). Nada foi apagado.` : 'Já estava em dia.');
+        store.emit();
+      } catch (e) { console.error(e); toast('Falhou: ' + e.message); }
     };
     root.querySelector('main').prepend(aviso);
   }

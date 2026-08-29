@@ -211,6 +211,13 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .seg button{flex:1;padding:11px 6px;background:transparent;border:0;font-size:13px;font-weight:650;
   color:var(--tx2);cursor:pointer}
 .seg button.on{background:var(--tx);color:var(--bg)}
+.multi-abre{width:100%;display:flex;align-items:center;gap:var(--s2);text-align:left;
+  background:var(--bg3);border:1px solid var(--line);border-radius:11px;padding:12px;
+  font-size:15px;color:var(--tx);cursor:pointer;min-height:48px}
+.multi-abre:active{border-color:var(--ac2)}
+.multi-abre > span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.multi-seta{flex:none;width:8px;height:8px;border-right:1.8px solid var(--tx3);
+  border-bottom:1.8px solid var(--tx3);transform:translateY(-2px) rotate(45deg);opacity:.6}
 .filebox{border:1px dashed var(--line);border-radius:11px;padding:14px;text-align:center;color:var(--tx3);
   font-size:13px;cursor:pointer}
 .filebox.has{border-style:solid;color:var(--tx);text-align:left}
@@ -318,6 +325,22 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .tabela .bom{color:var(--ok)} .tabela .ruim{color:var(--bad)}
 .tabela tbody tr:active{background:var(--bg3)}
 .tabela tfoot td{border-bottom:0;border-top:1.5px solid var(--tx3);font-weight:700;background:var(--bg)}
+
+/* ------------------------------------------------- perguntas rápidas ---
+   Cartão de decisão: pergunta em cima, contexto embaixo, dois botões no pé.
+   No celular vira uma coluna; a partir de 560px, três lado a lado. */
+.perguntas .grid3{grid-template-columns:1fr}
+@media(min-width:560px){.perguntas .grid3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.pergunta{display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--ac-line);
+  border-radius:var(--r);padding:var(--s3) var(--s4) var(--s3);box-shadow:0 1px 2px rgba(20,26,40,.04);
+  transition:opacity .16s,transform .16s}
+.pergunta.indo{opacity:0;transform:scale(.97)}
+.pergunta .p-cab{display:flex;gap:var(--s3);align-items:flex-start}
+.pergunta .p-txt{flex:1;min-width:0;font-weight:650;font-size:15px;line-height:1.3;letter-spacing:-.2px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pergunta .p-ctx{font-size:12.5px;color:var(--tx3);margin-top:var(--s1);line-height:1.4;
+  padding-left:calc(30px + var(--s3));
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
 /* símbolo à esquerda das linhas do painel */
 .ico{flex:none;width:30px;height:30px;border-radius:9px;background:var(--bg3);display:grid;

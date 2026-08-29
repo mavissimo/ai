@@ -3,11 +3,11 @@
 // colunas, como um quadro de produção.
 import { store } from '../store.js';
 import { can } from '../perms.js';
-import { el, btnOlho } from '../ui.js';
+import { el, btnOlho, toast } from '../ui.js';
 import { esc, fmtMoneyShort, pct, fmtData, prazoTxt, prazoTag, diasAte, valoresOcultos } from '../utils.js';
 import { financeiro } from '../calc.js';
 import { FASES, statusEtapa, faseSimbolo } from '../seed.js';
-import { alertas } from '../notify.js';
+import { alertas, perguntas } from '../notify.js';
 
 const PERIODOS = [
   { v: 1, t: '24h' }, { v: 3, t: '3 dias' }, { v: 7, t: 'Semana' }, { v: 30, t: 'Mês' }
@@ -27,6 +27,7 @@ export function render() {
   const feitas = etapas.filter((e) => e.status === 'feito').length;
   const f = financeiro();
   const al = alertas();
+  const qs = perguntas();
   const verGrana = can(u, 'orcamento.ver');
   const verLucro = can(u, 'lucro.ver') || can(u, 'contratos.valores');
 
@@ -39,6 +40,24 @@ export function render() {
       </div>
       <span class="tag ${feitas === etapas.length && etapas.length ? 'ok' : 'info'}">${pct(feitas, etapas.length || 1)}%</span>
     </div>
+  </section>`;
+
+  /* ---- decisões rápidas: no máximo três, resolvidas no toque ---- */
+  const perguntasHTML = !qs.length ? '' : `<section class="bloco largo perguntas">
+    <div class="sec"><div class="sec-t">Resolve agora</div>
+      <span class="small muted">${qs.length === 1 ? '1 pergunta' : qs.length + ' perguntas'}</span></div>
+    <div class="grid3">${qs.map((q) => `
+      <div class="pergunta" data-q="${q.id}">
+        <div class="p-cab">
+          <span class="ico ${q.urg >= 3 ? 'urg' : 'med'}">${q.icone}</span>
+          <span class="p-txt">${esc(q.pergunta)}</span>
+        </div>
+        <div class="p-ctx">${esc(q.contexto || '')}</div>
+        <div class="btns" style="margin-top:auto;padding-top:var(--s3)">
+          <button class="btn sm pri" style="flex:1" data-sim>${esc(q.sim || 'Sim')}</button>
+          <button class="btn sm gho" data-nao>${esc(q.nao || 'Agora não')}</button>
+        </div>
+      </div>`).join('')}</div>
   </section>`;
 
   /* ---- alertas ---- */
@@ -166,7 +185,21 @@ export function render() {
       </div>`).join('') : '<div class="empty">Marque prazos nas etapas para aparecerem aqui.</div>'}</div>
   </section>`;
 
-  node.innerHTML = cabecalho + alertaHTML + fasesHTML + granaHTML + agendaHTML + travadoHTML + proximasHTML;
+  node.innerHTML = cabecalho + perguntasHTML + alertaHTML + fasesHTML + granaHTML
+    + agendaHTML + travadoHTML + proximasHTML;
+
+  // Responder uma pergunta grava e some com o cartão, sem trocar de tela.
+  node.querySelectorAll('[data-q]').forEach((n) => {
+    const q = qs.find((x) => x.id === n.dataset.q);
+    if (!q) return;
+    const responder = async (fn) => {
+      n.classList.add('indo');
+      try { if (fn) await fn(); } catch (e) { console.error(e); toast('Não consegui salvar: ' + e.message); }
+      setTimeout(() => store.emit(), 180);
+    };
+    n.querySelector('[data-sim]').onclick = () => responder(q.aoSim);
+    n.querySelector('[data-nao]').onclick = () => responder(q.aoNao);
+  });
   node.querySelectorAll('[data-periodo]').forEach((b) => {
     b.onclick = () => { periodo = Number(b.dataset.periodo); store.emit(); };
   });

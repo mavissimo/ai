@@ -12,6 +12,7 @@ const TIPOS_CONF = [
   { v: 'presenca', t: 'Presença em diária' },
   { v: 'passagem', t: 'Recebimento de passagem' },
   { v: 'hospedagem', t: 'Hospedagem confirmada' },
+  { v: 'checkin', t: 'Check-in de voo feito' },
   { v: 'contrato', t: 'Contrato assinado' },
   { v: 'pagamento', t: 'Recebimento do pagamento' },
   { v: 'outro', t: 'Outro' }

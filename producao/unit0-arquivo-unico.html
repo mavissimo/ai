@@ -217,6 +217,13 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .seg button{flex:1;padding:11px 6px;background:transparent;border:0;font-size:13px;font-weight:650;
   color:var(--tx2);cursor:pointer}
 .seg button.on{background:var(--tx);color:var(--bg)}
+.multi-abre{width:100%;display:flex;align-items:center;gap:var(--s2);text-align:left;
+  background:var(--bg3);border:1px solid var(--line);border-radius:11px;padding:12px;
+  font-size:15px;color:var(--tx);cursor:pointer;min-height:48px}
+.multi-abre:active{border-color:var(--ac2)}
+.multi-abre > span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.multi-seta{flex:none;width:8px;height:8px;border-right:1.8px solid var(--tx3);
+  border-bottom:1.8px solid var(--tx3);transform:translateY(-2px) rotate(45deg);opacity:.6}
 .filebox{border:1px dashed var(--line);border-radius:11px;padding:14px;text-align:center;color:var(--tx3);
   font-size:13px;cursor:pointer}
 .filebox.has{border-style:solid;color:var(--tx);text-align:left}
@@ -324,6 +331,22 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .tabela .bom{color:var(--ok)} .tabela .ruim{color:var(--bad)}
 .tabela tbody tr:active{background:var(--bg3)}
 .tabela tfoot td{border-bottom:0;border-top:1.5px solid var(--tx3);font-weight:700;background:var(--bg)}
+
+/* ------------------------------------------------- perguntas rápidas ---
+   Cartão de decisão: pergunta em cima, contexto embaixo, dois botões no pé.
+   No celular vira uma coluna; a partir de 560px, três lado a lado. */
+.perguntas .grid3{grid-template-columns:1fr}
+@media(min-width:560px){.perguntas .grid3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.pergunta{display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--ac-line);
+  border-radius:var(--r);padding:var(--s3) var(--s4) var(--s3);box-shadow:0 1px 2px rgba(20,26,40,.04);
+  transition:opacity .16s,transform .16s}
+.pergunta.indo{opacity:0;transform:scale(.97)}
+.pergunta .p-cab{display:flex;gap:var(--s3);align-items:flex-start}
+.pergunta .p-txt{flex:1;min-width:0;font-weight:650;font-size:15px;line-height:1.3;letter-spacing:-.2px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pergunta .p-ctx{font-size:12.5px;color:var(--tx3);margin-top:var(--s1);line-height:1.4;
+  padding-left:calc(30px + var(--s3));
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
 /* símbolo à esquerda das linhas do painel */
 .ico{flex:none;width:30px;height:30px;border-radius:9px;background:var(--bg3);display:grid;
@@ -462,7 +485,7 @@ const { isRemote, APP } = __req("js/config.js");
 const { can, ehEquipe, PAPEIS } = __req("js/perms.js");
 const { el, toast, abrirForm, confirmar, ICO, MARCA } = __req("js/ui.js");
 const { esc, iniciais, valoresOcultos, alternarValores, diasAte } = __req("js/utils.js");
-const { criarProjetoBradesco, recarregarProjeto, SEED_VERSAO } = __req("js/seed-bradesco.js");
+const { criarProjetoBradesco, atualizarProjeto, SEED_VERSAO } = __req("js/seed-bradesco.js");
 const { alertas, iniciarMonitor } = __req("js/notify.js");
 const { minhasTarefas } = __req("js/views/tarefas.js");
 const { autenticar, temSenha } = __req("js/pin.js");
@@ -669,19 +692,16 @@ function render() {
   const proj = store.projeto;
   if (proj && proj.seed_versao !== SEED_VERSAO && can(store.user, 'projeto.edit')) {
     const aviso = el(`<div class="banner warn">
-      <div>Este aparelho está com uma carga antiga do projeto — por isso a equipe e o
-      orçamento aparecem diferentes do combinado.</div>
-      <button class="btn sm" style="margin-top:9px" data-recarregar>Recarregar agora</button>
+      <div><b>Tem novidade na carga do projeto.</b> Atualizar só acrescenta o que falta —
+      nada que você editou, criou ou marcou aqui dentro é apagado ou sobrescrito.</div>
+      <button class="btn sm" style="margin-top:9px" data-recarregar>Atualizar</button>
     </div>`);
     aviso.querySelector('[data-recarregar]').onclick = async () => {
-      const ok = await confirmar(
-        'Isto apaga o projeto deste aparelho e carrega tudo de novo, na versão mais recente. '
-        + 'O que você editou aqui dentro se perde.',
-        { ok: 'Recarregar', perigo: true }
-      );
-      if (!ok) return;
-      try { await recarregarProjeto(); location.hash = '#/'; location.reload(); }
-      catch (e) { console.error(e); toast('Falhou: ' + e.message); }
+      try {
+        const r = await atualizarProjeto();
+        toast(r.novos ? `${r.novos} item(ns) novo(s). Nada foi apagado.` : 'Já estava em dia.');
+        store.emit();
+      } catch (e) { console.error(e); toast('Falhou: ' + e.message); }
     };
     root.querySelector('main').prepend(aviso);
   }
@@ -1186,7 +1206,7 @@ __defs["js/notify.js"] = function () {
 // no modo Supabase dá para plugar e-mail/push por Edge Function (ver README).
 const { store } = __req("js/store.js");
 const { can } = __req("js/perms.js");
-const { diasAte, prazoTxt, fmtMoney } = __req("js/utils.js");
+const { diasAte, prazoTxt, fmtMoney, fmtData, hoje } = __req("js/utils.js");
 const { saldoCaixa, statusFonte } = __req("js/calc.js");
 const VISTOS = 'unit0:alertas-vistos';
 
@@ -1364,7 +1384,82 @@ function iniciarMonitor() {
   });
 }
 
-  return { alertas, pedirPermissao, dispararNovos, iniciarMonitor };
+/* ---------------------------------------------------------- decisões ---
+   Perguntas de sim ou não que dá para resolver na hora, sem sair do painel.
+   No máximo três: se tudo é urgente, nada é. */
+function perguntas() {
+  const u = store.user;
+  const out = [];
+
+  // Confirmações pendentes da própria pessoa: um toque resolve.
+  store.doProjeto('confirmacoes')
+    .filter((c) => c.status === 'pendente' && c.membro_id === u?.id)
+    .slice(0, 2)
+    .forEach((c) => out.push({
+      id: 'q_conf_' + c.id, urg: 3, icone: '🙋',
+      pergunta: c.titulo,
+      contexto: c.obs || 'Confirme para a produção saber que está de pé.',
+      sim: 'Confirmo', nao: 'Tenho problema',
+      async aoSim() { await store.update('confirmacoes', c.id, { status: 'confirmado', respondido_em: hoje() }); },
+      async aoNao() { await store.update('confirmacoes', c.id, { status: 'problema', respondido_em: hoje() }); }
+    }));
+
+  // Contas vencidas: quem pode dar baixa responde se já saiu.
+  if (can(u, 'pagamento.executar')) {
+    store.doProjeto('contas')
+      .filter((c) => c.status === 'aberto' && (diasAte(c.venc) ?? 9) < 0)
+      .slice(0, 2)
+      .forEach((c) => out.push({
+        id: 'q_conta_' + c.id, urg: 3, icone: c.tipo === 'pagar' ? '💸' : '💰',
+        pergunta: `${c.tipo === 'pagar' ? 'Já pagou' : 'Já caiu'} ${fmtMoney(c.valor_cents)}?`,
+        contexto: `${c.descricao} · venceu ${prazoTxt(c.venc)}`,
+        sim: c.tipo === 'pagar' ? 'Já paguei' : 'Já caiu', nao: 'Ainda não',
+        async aoSim() {
+          await store.update('contas', c.id, { status: 'quitado', quitado_em: hoje() });
+          await store.insert('lancamentos', {
+            tipo: c.tipo === 'pagar' ? 'saida' : 'entrada', descricao: c.descricao,
+            valor_cents: c.valor_cents, data: hoje(), rubrica: c.rubrica || '',
+            fornecedor: c.contraparte || '', membro_id: c.membro_id || null,
+            status: c.tipo === 'pagar' ? 'pago' : 'recebido', conta_id: c.id,
+            fonte: 'empresa', obs: 'Respondido no painel.'
+          });
+        }
+      }));
+  }
+
+  // Datas de filmagem ainda não confirmadas pela Fundação.
+  if (can(u, 'agenda.edit')) {
+    const porConfirmar = store.doProjeto('eventos')
+      .filter((e) => e.confirmado === false && e.tipo === 'diaria' && (diasAte(e.data) ?? 99) <= 21)
+      .sort((a, b) => String(a.data).localeCompare(String(b.data)));
+    if (porConfirmar[0]) {
+      const e = porConfirmar[0];
+      out.push({
+        id: 'q_data_' + e.id, urg: 2, icone: '📅',
+        pergunta: `O cliente confirmou ${e.titulo}?`,
+        contexto: `${fmtData(e.data, { longo: true })} · o contrato pede 10 dias úteis de antecedência`,
+        sim: 'Confirmou', nao: 'Ainda não',
+        async aoSim() { await store.update('eventos', e.id, { confirmado: true }); }
+      });
+    }
+  }
+
+  // Fontes que ninguém reconfere há tempo demais.
+  if (can(u, 'projeto.edit')) {
+    const velha = store.doProjeto('fontes').find((f) => statusFonte(f).vencida);
+    if (velha) out.push({
+      id: 'q_fonte_' + velha.id, urg: 2, icone: '🔗',
+      pergunta: `Conferiu ${velha.titulo}?`,
+      contexto: statusFonte(velha).txt + ' — o projeto depende desse link',
+      sim: 'Conferi agora', nao: 'Depois',
+      async aoSim() { await store.update('fontes', velha.id, { conferido_em: hoje() }); }
+    });
+  }
+
+  return out.sort((a, b) => b.urg - a.urg).slice(0, 3);
+}
+
+  return { alertas, pedirPermissao, dispararNovos, iniciarMonitor, perguntas };
 };
 
 __defs["js/perms.js"] = function () {
@@ -1654,12 +1749,12 @@ __defs["js/seed-bradesco.js"] = function () {
 //   4. Google Agenda "Fundação Bradesco" — logística viva (voos, carros, hotéis).
 // Onde as fontes divergem, vale o contrato e a divergência fica na observação.
 const { store, TABELAS } = __req("js/store.js");
-const { uid, parseMoney } = __req("js/utils.js");
+const { uid, parseMoney, somarDiasUteis, somarDias, hoje } = __req("js/utils.js");
 const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-const SEED_VERSAO = 7;
+const SEED_VERSAO = 8;
 
 const PESSOAS = [
   {
@@ -1954,6 +2049,20 @@ const FONTES = [
     'Voos, locação de carro e hotéis. Cada viagem precisa do seu antes do embarque.']
 ];
 
+// Quantas partes cada etapa tem de verdade. O progresso sai daqui, não de um
+// "feito / não feito" que esconde 5 escolas ainda por rodar.
+const METAS = {
+  'Rodar as 6 escolas': { meta: 6, unidade: 'escolas', feitos: 2 },
+  'Rodar as 5 entrevistas de fotógrafo em estúdio': { meta: 5, unidade: 'entrevistas', feitos: 0 },
+  'Backup duplo criptografado em locais separados': { meta: 6, unidade: 'escolas', feitos: 2 },
+  'Fechar os voos das viagens 3 a 11': { meta: 9, unidade: 'viagens', feitos: 0 },
+  'Contratos da equipe (PF e PJ) assinados': { meta: 4, unidade: 'contratos', feitos: 0 },
+  'Autorizações de imagem, nome e voz (Anexo II, com termo para menores)': { meta: 6, unidade: 'escolas', feitos: 0 },
+  'Certidões de antecedentes de quem entra nas escolas': { meta: 3, unidade: 'certidões', feitos: 0 },
+  'Confirmar datas de Bodoquena, Canuanã e Osasco': { meta: 3, unidade: 'escolas', feitos: 0 },
+  'Entrega final das 40 peças': { meta: 40, unidade: 'peças', feitos: 0 }
+};
+
 const ETAPAS = [
   ['negociacao', 'Carta-Orçamento V2 e Cronograma V2 aprovados', 'feito', '2026-08-14'],
   ['negociacao', 'Cadastro de fornecedor no Bradesco', 'feito', '2026-07-31'],
@@ -1972,7 +2081,14 @@ const ETAPAS = [
   ['producao', 'Rodar as 6 escolas', 'fazendo', '2026-10-08'],
   ['producao', 'Rodar as 5 entrevistas de fotógrafo em estúdio', 'nao', '2026-10-27'],
   ['producao', 'Backup duplo criptografado em locais separados', 'fazendo', '2026-10-27'],
-  ['pos', 'Fechar editores, trilha e color', 'fazendo', '2026-09-30'],
+  // A planilha tem uma linha por contratação — aqui também. "Fechar a pós" não
+  // é uma coisa só: são seis fornecedores diferentes, com valor e prazo próprios.
+  ['pos', 'Fechar montador do documentário (R$ 13.000 orçado / 5.000 negociado)', 'fazendo', '2026-09-15'],
+  ['pos', 'Fechar montador dos cortes de fotógrafo (R$ 13.000 / 5.000)', 'nao', '2026-09-15'],
+  ['pos', 'Fechar montador dos minidocs de escola (R$ 13.000 / 5.000)', 'nao', '2026-09-15'],
+  ['pos', 'Fechar quem faz as versões (R$ 8.000 / 5.000)', 'nao', '2026-09-30'],
+  ['pos', 'Fechar a trilha (R$ 12.000 / 5.000)', 'nao', '2026-09-30'],
+  ['pos', 'Fechar o color (R$ 10.000 / 12.000 — estourou)', 'fazendo', '2026-09-30'],
   ['pos', 'Montagem — primeiro corte', 'nao', '2026-11-13'],
   ['pos', 'Rodada 1 de aprovação com a Fundação (5 dias úteis)', 'nao', '2026-11-18'],
   ['pos', 'Versão 2', 'nao', '2026-11-19'],
@@ -2006,7 +2122,10 @@ const TAREFAS = [
   ['Levantar as autorizações de imagem das escolas', 'Patrick Bombassaro', '2026-08-31',
     'Autorizações de imagem, nome e voz (Anexo II, com termo para menores)'],
   ['Lançar o adiantamento da verba à vista para bater a caixinha', 'Tato Pessanha', '2026-08-31', ''],
-  ['Fechar os três editores, a trilha e o color', 'Maví Simões', '2026-09-30', 'Fechar editores, trilha e color']
+  ['Fechar o color com Vini, Jesus, Braiom ou Rafaim', 'Maví Simões', '2026-09-30',
+    'Fechar o color (R$ 10.000 / 12.000 — estourou)'],
+  ['Escolher e fechar o montador do documentário', 'Maví Simões', '2026-09-15',
+    'Fechar montador do documentário (R$ 13.000 orçado / 5.000 negociado)']
 ];
 
 const ENTREGAS = [
@@ -2017,9 +2136,37 @@ const ENTREGAS = [
   ['Masters, brutos e editáveis', '2026-12-08', 'Com relação dos arquivos e recibo. Backups por 90 dias.']
 ];
 
-async function criarProjetoBradesco() {
-  const projeto = await store.insert('projetos', {
+/* Semeadura idempotente. Cada registro da carga ganha uma `chave` estável.
+   Semear de novo só insere o que ainda não existe — nunca sobrescreve, nunca
+   apaga. É o que garante que atualizar a carga não desfaça o trabalho de
+   ninguém. */
+let P = null;
+
+const achar = (tabela, chave) => store.doProjeto(tabela).find((r) => r.chave === chave);
+
+async function ins(tabela, chave, dados) {
+  const existe = achar(tabela, chave);
+  if (existe) return existe;
+  return store.insert(tabela, { ...dados, projeto_id: P, chave });
+}
+
+/** Só preenche campo que ainda está vazio — não pisa no que já foi escrito. */
+async function completar(tabela, id, dados) {
+  const r = store.get(tabela, id);
+  if (!r) return;
+  const falta = {};
+  for (const [k, v] of Object.entries(dados)) {
+    const atual = r[k];
+    if (atual === undefined || atual === null || atual === ''
+      || (Array.isArray(atual) && !atual.length)) falta[k] = v;
+  }
+  if (Object.keys(falta).length) await store.update(tabela, id, falta);
+}
+
+async function criarProjetoBradesco(existente = null) {
+  const projeto = existente || await store.insert('projetos', {
     id: uid('proj'),
+    chave: 'proj:bradesco70',
     nome: 'Doc Fundação Bradesco 70 Anos',
     cliente: 'Fundação Bradesco',
     agencia: 'Têmpora (marca e crédito)',
@@ -2037,33 +2184,32 @@ async function criarProjetoBradesco() {
       + 'A alíquota de 12% é a que a planilha usa para chegar no valor de NF.'
   });
   store.setProjeto(projeto.id);
-  const P = projeto.id;
+  P = projeto.id;
 
   /* equipe */
   const membros = {};
   for (const p of PESSOAS) {
-    const m = await store.insert('membros', { projeto_id: P, ativo: true, ...p });
+    const m = await ins('membros', 'membro:' + p.email, { ativo: true, ...p });
     membros[p.nome] = m.id;
   }
   const viajantes = [membros['Maví Simões'], membros['Julio Becker'], membros['Tato Pessanha']];
 
   /* contatos */
   for (const [nome, papel, empresa, email, tipo, obs] of CONTATOS) {
-    await store.insert('contatos', { projeto_id: P, nome, papel, empresa, email, tipo, telefone: '', obs });
+    await ins('contatos', 'contato:' + nome, { nome, papel, empresa, email, tipo, telefone: '', obs });
   }
 
   /* locações */
   for (const [nome, cidade, uf, obs] of LOCACOES) {
-    await store.insert('locacoes', {
-      projeto_id: P, nome, cidade, uf, endereco: '', contato: '', telefone: '',
+    await ins('locacoes', 'loc:' + cidade, {
+      nome, cidade, uf, endereco: '', contato: '', telefone: '',
       valor_cents: 0, autorizacao: 'pendente', horario: '', obs
     });
   }
 
   /* contrato + parcelas */
   const parcela1 = uid('parc'), parcela2 = uid('parc');
-  const contrato = await store.insert('contratos', {
-    projeto_id: P,
+  const contrato = await ins('contratos', 'contrato:4600001793', {
     titulo: 'Fundação Bradesco — Making of 70 Anos (nº 4600001793)',
     tipo: 'cliente',
     contratante: 'Fundação Bradesco (CNPJ 60.701.521/0001-06)',
@@ -2105,16 +2251,16 @@ async function criarProjetoBradesco() {
     ]
   });
 
-  await store.insert('contas', {
-    projeto_id: P, tipo: 'receber', descricao: 'Fundação Bradesco — 1ª parcela (50%)',
+  await ins('contas', 'conta:parcela1', {
+    tipo: 'receber', descricao: 'Fundação Bradesco — 1ª parcela (50%)',
     contraparte: 'Fundação Bradesco', valor_cents: M('259499,43'), venc: '2026-08-27',
     status: 'aberto', contrato_id: contrato.id, parcela_id: parcela1, parcela: '1/2',
     categoria: 'contrato', nf_status: 'a_emitir',
     obs: 'Faturada na assinatura (22/08) e paga em até 3 dias úteis. Não depende de aceite. '
       + 'O cronograma da planilha marcava 18/08.'
   });
-  await store.insert('contas', {
-    projeto_id: P, tipo: 'receber', descricao: 'Fundação Bradesco — 2ª parcela (50%)',
+  await ins('contas', 'conta:parcela2', {
+    tipo: 'receber', descricao: 'Fundação Bradesco — 2ª parcela (50%)',
     contraparte: 'Fundação Bradesco', valor_cents: M('259499,43'), venc: '2027-01-07',
     status: 'aberto', contrato_id: contrato.id, parcela_id: parcela2, parcela: '2/2',
     categoria: 'contrato', nf_status: 'a_emitir',
@@ -2124,22 +2270,22 @@ async function criarProjetoBradesco() {
 
   /* orçamento */
   for (const [rubrica, orcado, negociado, obs] of ORCAMENTO) {
-    await store.insert('orcamento', {
-      projeto_id: P, rubrica, descricao: '',
+    await ins('orcamento', 'rub:' + rubrica, {
+      rubrica, descricao: '',
       previsto_cents: M(orcado), negociado_cents: M(negociado), obs
     });
   }
 
   /* pagamentos já fechados viram contas a pagar */
   for (const [descricao, contraparte, valor, categoria, rubrica, venc, status, obs] of PAGAVEIS) {
-    await store.insert('contas', {
-      projeto_id: P, tipo: 'pagar', descricao, contraparte, valor_cents: M(valor),
+    await ins('contas', 'pag:' + descricao, {
+      tipo: 'pagar', descricao, contraparte, valor_cents: M(valor),
       venc, status, categoria, rubrica, nf_status: 'a_receber', obs
     });
     // O que já saiu também entra como gasto realizado, para o dinheiro bater.
     if (status === 'quitado') {
-      await store.insert('lancamentos', {
-        projeto_id: P, tipo: 'saida', descricao, valor_cents: M(valor), rubrica,
+      await ins('lancamentos', 'lanc:' + descricao, {
+        tipo: 'saida', descricao, valor_cents: M(valor), rubrica,
         data: venc || '2026-08-22', fornecedor: contraparte, forma: 'crédito',
         membro_id: null, evento_id: null, fonte: 'empresa', reembolso: false,
         sem_comprovante: true, status: 'pago', aprovado_por: null, obs
@@ -2147,25 +2293,57 @@ async function criarProjetoBradesco() {
     }
   }
 
+  /* --------------------------------------------------------------------
+     1ª leva de pagamentos: 3 dias úteis depois de a 1ª parcela cair.
+     Combinado: 100% dos per diems, 100% do Tato, 60% do Becker e 50% do Maví.
+     -------------------------------------------------------------------- */
+  const parc1 = achar('contas', 'conta:parcela1');
+  const baseLeva = parc1?.quitado_em || parc1?.venc || '2026-08-27';
+  const vencLeva = somarDiasUteis(baseLeva, 3);
+  const FATIA = { 'mavi@tempora': 0.5, 'tato@tempora': 1, 'becker@tempora': 0.6 };
+
   /* cachês e per diems fechados */
   for (const p of PESSOAS) {
     const id = membros[p.nome];
     const bruto = (p.cache_cents || 0) * (p.diarias || 0);
-    if (bruto) {
-      await store.insert('contas', {
-        projeto_id: P, tipo: 'pagar', descricao: `Cachê — ${p.nome} (${p.funcao})`,
+    const fatia = FATIA[p.email] || 0;
+
+    if (bruto && fatia) {
+      // Parte combinada para a 1ª leva, e o resto fica em aberto sem data.
+      const agora = Math.round(bruto * fatia);
+      await ins('contas', 'cache1:' + p.email, {
+        tipo: 'pagar', descricao: `Cachê — ${p.nome} (${Math.round(fatia * 100)}%)`,
+        contraparte: p.nome, valor_cents: agora, venc: vencLeva, status: 'aberto',
+        membro_id: id, categoria: 'cachê', rubrica: p.rubrica, parcela: '1/2',
+        nf_status: p.tipo === 'pj' ? 'a_receber' : 'na',
+        obs: `${Math.round(fatia * 100)}% de ${(bruto / 100).toLocaleString('pt-BR',
+          { style: 'currency', currency: 'BRL' })}. Combinado: 3 dias úteis depois de a 1ª parcela cair.`
+      });
+      if (bruto - agora > 0) {
+        await ins('contas', 'cache2:' + p.email, {
+          tipo: 'pagar', descricao: `Cachê — ${p.nome} (saldo)`,
+          contraparte: p.nome, valor_cents: bruto - agora, venc: '', status: 'aberto',
+          membro_id: id, categoria: 'cachê', rubrica: p.rubrica, parcela: '2/2',
+          nf_status: p.tipo === 'pj' ? 'a_receber' : 'na',
+          obs: 'Saldo do cachê. Data a combinar.'
+        });
+      }
+    } else if (bruto) {
+      await ins('contas', 'cache:' + p.email, {
+        tipo: 'pagar', descricao: `Cachê — ${p.nome} (${p.funcao})`,
         contraparte: p.nome, valor_cents: bruto,
         venc: '', status: 'aberto', membro_id: id, categoria: 'cachê', rubrica: p.rubrica,
         nf_status: p.tipo === 'pj' ? 'a_receber' : 'na',
         obs: `Coluna NEGOCIADO da planilha: ${p.diarias} × R$ ${(p.cache_cents / 100).toLocaleString('pt-BR')}.`
       });
     }
+
     if (p.perdiem_cents) {
-      await store.insert('contas', {
-        projeto_id: P, tipo: 'pagar', descricao: `Per diem — ${p.nome}`,
-        contraparte: p.nome, valor_cents: p.perdiem_cents, venc: '', status: 'aberto',
+      await ins('contas', 'perdiem:' + p.email, {
+        tipo: 'pagar', descricao: `Per diem — ${p.nome}`,
+        contraparte: p.nome, valor_cents: p.perdiem_cents, venc: vencLeva, status: 'aberto',
         membro_id: id, categoria: 'per diem', rubrica: 'Per diem da equipe', nf_status: 'na',
-        obs: '35 dias × R$ 200 (negociado). Orçado era R$ 220/dia.'
+        obs: '35 dias × R$ 200 (negociado). Combinado: 100% pago 3 dias úteis depois de a 1ª parcela cair.'
       });
     }
   }
@@ -2173,8 +2351,10 @@ async function criarProjetoBradesco() {
   /* etapas */
   let ordem = 0;
   for (const [fase, nome, status, prazo] of ETAPAS) {
-    await store.insert('etapas', {
-      projeto_id: P, fase, nome, status, prazo, responsavel_id: null,
+    const m = METAS[nome];
+    await ins('etapas', 'etapa:' + nome, {
+      fase, nome, status, prazo, responsavel_id: null,
+      meta: m?.meta || 0, feitos: m?.feitos || 0, unidade: m?.unidade || '',
       depende_de: [], ordem: ordem++, obs: ''
     });
   }
@@ -2182,16 +2362,16 @@ async function criarProjetoBradesco() {
   /* tarefas em aberto */
   for (const [titulo, dono, prazo, etapaNome] of TAREFAS) {
     const etapa = etapaNome ? store.doProjeto('etapas').find((e) => e.nome === etapaNome) : null;
-    await store.insert('tarefas', {
-      projeto_id: P, titulo, responsavel_id: membros[dono] || null, prazo,
+    await ins('tarefas', 'tar:' + titulo, {
+      titulo, responsavel_id: membros[dono] || null, prazo,
       etapa_id: etapa?.id || null, status: 'aberta', feito: false, cobrado_em: '', descricao: ''
     });
   }
 
   /* entregas */
   for (const [titulo, prazo, formato] of ENTREGAS) {
-    await store.insert('entregas', {
-      projeto_id: P, titulo, prazo, formato, status: 'pendente',
+    await ins('entregas', 'entrega:' + titulo, {
+      titulo, prazo, formato, status: 'pendente',
       responsavel_id: membros['Maví Simões'], link: '', obs: ''
     });
   }
@@ -2199,8 +2379,8 @@ async function criarProjetoBradesco() {
   /* agenda */
   for (const [data, tipo, titulo, local, confirmado, obs] of AGENDA) {
     const participantes = (tipo === 'entrega' || tipo === 'outro') ? [membros['Maví Simões']] : viajantes;
-    await store.insert('eventos', {
-      projeto_id: P, data, tipo, titulo, local, obs, confirmado,
+    await ins('eventos', 'ev:' + data + ':' + titulo, {
+      data, tipo, titulo, local, obs, confirmado,
       hora_inicio: '', hora_fim: '', participantes, chamadas: [],
       endereco: '', mapa: '', contato_nome: '', contato_tel: '', levar: '', roteiro_dia: ''
     });
@@ -2210,7 +2390,7 @@ async function criarProjetoBradesco() {
   const eventos = store.doProjeto('eventos');
   const ida1 = eventos.find((e) => e.data === '2026-08-23');
   if (ida1) {
-    await store.update('eventos', ida1.id, {
+    await completar('eventos', ida1.id, {
       hora_inicio: '04:00', hora_fim: '10:05',
       endereco: 'Aeroporto de Congonhas (CGH) — GOL 1400',
       contato_nome: 'Tato Pessanha', contato_tel: '(11) 96340-1980',
@@ -2223,7 +2403,7 @@ async function criarProjetoBradesco() {
   }
   const ida2 = eventos.find((e) => e.data === '2026-08-30');
   if (ida2) {
-    await store.update('eventos', ida2.id, {
+    await completar('eventos', ida2.id, {
       hora_inicio: '03:00', hora_fim: '14:30',
       endereco: 'Aeroporto de Guarulhos (GRU) — Azul 4232',
       contato_nome: 'Tato Pessanha', contato_tel: '(11) 96340-1980',
@@ -2237,8 +2417,8 @@ async function criarProjetoBradesco() {
 
   /* gastos em dinheiro já feitos (aba "verba a vista") */
   for (const [data, descricao, valor, rubrica, quem] of GASTOS_CAIXA) {
-    await store.insert('lancamentos', {
-      projeto_id: P, tipo: 'saida', descricao, valor_cents: M(valor), rubrica, data,
+    await ins('lancamentos', 'caixa:' + descricao, {
+      tipo: 'saida', descricao, valor_cents: M(valor), rubrica, data,
       fornecedor: '', forma: 'dinheiro', membro_id: membros[quem] || null,
       evento_id: eventos.find((e) => e.data === data)?.id || null,
       fonte: 'empresa', reembolso: false, sem_comprovante: true,
@@ -2249,8 +2429,8 @@ async function criarProjetoBradesco() {
 
   /* fontes vivas do projeto */
   for (const [titulo, url, tipoF, frequencia, quem, obs] of FONTES) {
-    await store.insert('fontes', {
-      projeto_id: P, titulo, url, tipo: tipoF, frequencia,
+    await ins('fontes', 'fonte:' + titulo, {
+      titulo, url, tipo: tipoF, frequencia,
       responsavel_id: membros[quem] || null, conferido_em: '2026-08-28', obs
     });
   }
@@ -2258,8 +2438,8 @@ async function criarProjetoBradesco() {
   /* viagens */
   const viagens = {};
   for (const [numero, titulo, ida, volta, origem, destino, orcado, status, obs] of VIAGENS) {
-    const v = await store.insert('viagens', {
-      projeto_id: P, numero, titulo, ida, volta, origem, destino,
+    const v = await ins('viagens', 'viagem:' + numero, {
+      numero, titulo, ida, volta, origem, destino,
       orcado_cents: M(orcado), status, obs, participantes: viajantes
     });
     viagens[numero] = v.id;
@@ -2268,15 +2448,35 @@ async function criarProjetoBradesco() {
   const daData = (d) => VIAGENS.find(([, , ida, volta]) => d >= ida && d <= volta)?.[0];
   for (const e of store.doProjeto('eventos')) {
     const n = daData(e.data);
-    if (n) await store.update('eventos', e.id, { viagem_id: viagens[n] });
+    if (n && !e.viagem_id) await store.update('eventos', e.id, { viagem_id: viagens[n] });
   }
   for (const c of store.doProjeto('contas')) {
     const n = c.venc && daData(c.venc);
-    if (n && c.tipo === 'pagar') await store.update('contas', c.id, { viagem_id: viagens[n] });
+    if (n && !c.viagem_id && c.tipo === 'pagar') await store.update('contas', c.id, { viagem_id: viagens[n] });
   }
   for (const l of store.doProjeto('lancamentos')) {
     const n = daData(l.data);
-    if (n) await store.update('lancamentos', l.id, { viagem_id: viagens[n] });
+    if (n && !l.viagem_id) await store.update('lancamentos', l.id, { viagem_id: viagens[n] });
+  }
+
+  /* --------------------------------------------------------------------
+     Check-in de voo: toda viagem de avião abre 24h antes. Vira tarefa com
+     prazo na véspera e uma confirmação por pessoa, para ninguém embarcar
+     sem assento.
+     -------------------------------------------------------------------- */
+  // Só para voo que ainda vai acontecer — abrir check-in de viagem passada
+  // não serve para nada e só enche a lista.
+  const hj = hoje();
+  for (const ev of store.doProjeto('eventos').filter((e) => e.tipo === 'viagem' && e.data >= hj)) {
+    await ins('tarefas', 'checkin:' + ev.data, {
+      titulo: `Fazer check-in — ${ev.titulo}`,
+      responsavel_id: membros['Tato Pessanha'] || null,
+      prazo: somarDias(ev.data, -1),   // o check-in abre 24h antes do voo
+      etapa_id: null, status: 'aberta', feito: false, cobrado_em: '', remarcacoes: [],
+      evento_id: ev.id,
+      descricao: 'O check-in abre 24h antes do voo. Fazer para todo mundo que embarca e '
+        + 'guardar os cartões de embarque.'
+    });
   }
 
   /* confirmações de passagem das duas primeiras viagens */
@@ -2286,20 +2486,20 @@ async function criarProjetoBradesco() {
     [membros['Tato Pessanha']]: '1272310202945'
   };
   for (const id of viajantes) {
-    await store.insert('confirmacoes', {
-      projeto_id: P, membro_id: id, tipo: 'passagem', ref_id: ida1?.id || null,
+    await ins('confirmacoes', 'conf:passagem1:' + id, {
+      membro_id: id, tipo: 'passagem', ref_id: ida1?.id || null,
       titulo: 'Passagem SP → Palmas · 23/08 · embarque 06:00',
       status: 'pendente',
       obs: `Localizador WFNEWO · bilhete ${bilhetes[id]} · 2 voos · chegada ao aeroporto 04:00.`
     });
-    await store.insert('confirmacoes', {
-      projeto_id: P, membro_id: id, tipo: 'passagem', ref_id: ida2?.id || null,
+    await ins('confirmacoes', 'conf:passagem2:' + id, {
+      membro_id: id, tipo: 'passagem', ref_id: ida2?.id || null,
       titulo: 'Passagem SP → Recife · 30/08 · Azul 4232 05:00',
       status: 'pendente',
       obs: 'Localizador ZWQY3Q · voo direto GRU → REC · chegada ao aeroporto 03:00.'
     });
-    await store.insert('confirmacoes', {
-      projeto_id: P, membro_id: id, tipo: 'contrato',
+    await ins('confirmacoes', 'conf:contrato:' + id, {
+      membro_id: id, tipo: 'contrato',
       titulo: 'Contrato de prestação de serviço assinado', status: 'pendente', obs: ''
     });
   }
@@ -2311,10 +2511,39 @@ async function criarProjetoBradesco() {
 
 
 /**
- * Apaga tudo do projeto ativo e carrega de novo, já na versão mais recente.
- * Usado quando a base do aparelho ficou com uma carga antiga.
+ * Atualiza a carga do projeto SEM apagar nada. Roda a mesma semeadura, que só
+ * insere o que ainda não existe: tudo que você editou, criou ou marcou fica
+ * exatamente como está. Se a carga trouxer um evento, uma etapa ou uma conta
+ * nova, ela entra ao lado do que já havia.
+ */
+async function atualizarProjeto() {
+  const nomeAtual = store.user?.nome || null;
+  const atual = store.projeto;
+
+  store.ocupado = true;
+  try {
+    const antes = TABELAS.reduce((n, t) => n + store.doProjeto(t).length, 0);
+    const projeto = await criarProjetoBradesco(atual || null);
+    await store.update('projetos', projeto.id, { seed_versao: SEED_VERSAO });
+    const depois = TABELAS.reduce((n, t) => n + store.doProjeto(t).length, 0);
+
+    const eu = nomeAtual ? store.doProjeto('membros').find((m) => m.nome === nomeAtual) : null;
+    store.setUser(eu || store.user || null);
+    await store.log(`Carga atualizada para a versão ${SEED_VERSAO}: ${depois - antes} item(ns) novo(s), `
+      + 'nada apagado.', 'projeto');
+    return { projeto, novos: depois - antes };
+  } finally {
+    store.ocupado = false;
+  }
+}
+
+/**
+ * Zera o projeto e carrega tudo de novo. DESTRUTIVO: perde toda edição feita
+ * no app. Só existe para recomeçar do zero de propósito — a atualização normal
+ * é atualizarProjeto(), que não apaga nada.
  */
 async function recarregarProjeto() {
+
   const nomeAtual = store.user?.nome || null;
   const antigo = store.projetoId;
 
@@ -2350,7 +2579,7 @@ async function recarregarProjeto() {
   }
 }
 
-  return { SEED_VERSAO, criarProjetoBradesco, recarregarProjeto };
+  return { SEED_VERSAO, criarProjetoBradesco, atualizarProjeto, recarregarProjeto };
 };
 
 __defs["js/seed.js"] = function () {
@@ -2636,7 +2865,7 @@ function escuroAgora() {
 
 __defs["js/ui.js"] = function () {
 // Kit de interface: bottom-sheet, formulários gerados por spec, toast, confirmação.
-const { esc, moneyInput, parseMoney } = __req("js/utils.js");
+const { esc, moneyInput, mascaraMoeda, parseMoney } = __req("js/utils.js");
 function el(html) {
   const t = document.createElement('template');
   t.innerHTML = html.trim();
@@ -2749,11 +2978,16 @@ function campoHTML(c) {
         `<option value="${esc(o.v)}"${String(o.v) === String(v) ? ' selected' : ''}>${esc(o.t)}</option>`).join('')}</select>`;
       break;
     case 'multi': {
+      // Botão que resume a escolha e abre a lista, em vez de despejar 40
+      // caixinhas dentro do formulário.
       const sel = Array.isArray(v) ? v.map(String) : [];
-      inner = `<div data-multi="${c.k}" class="stack" style="max-height:210px;overflow:auto">${(c.opts || []).map((o) =>
-        `<label class="check" style="padding:7px 0;margin:0">
-          <input type="checkbox" value="${esc(o.v)}"${sel.includes(String(o.v)) ? ' checked' : ''}>
-          <span>${esc(o.t)}</span></label>`).join('')}</div>`;
+      const nomes = (c.opts || []).filter((o) => sel.includes(String(o.v))).map((o) => o.t);
+      inner = `<button type="button" class="multi-abre" data-multi-abre="${c.k}">
+          <span data-multi-txt>${esc(resumoMulti(nomes, c.ph))}</span>
+          <span class="multi-seta"></span>
+        </button>
+        <div data-multi="${c.k}" hidden>${(c.opts || []).map((o) =>
+          `<input type="checkbox" value="${esc(o.v)}"${sel.includes(String(o.v)) ? ' checked' : ''}>`).join('')}</div>`;
       break;
     }
     case 'check':
@@ -2815,6 +3049,23 @@ function abrirForm({ titulo, subtitulo, campos, onSave, onDelete, onArquivo, sal
     /** Abre o seletor de arquivo de um campo, como se a pessoa tivesse tocado nele. */
     escolherArquivo(k) { corpo.querySelector(`[data-k="${k}"]`)?.click(); }
   };
+
+  // Multiselect: o botão abre a lista numa folha, e o resumo volta para o botão.
+  corpo.querySelectorAll('[data-multi-abre]').forEach((btn) => {
+    const k = btn.dataset.multiAbre;
+    const guarda = corpo.querySelector(`[data-multi="${k}"]`);
+    const campo = campos.find((x) => x.k === k) || {};
+    btn.onclick = () => abrirMulti(campo, guarda, btn);
+  });
+
+  // Dinheiro: formata enquanto digita, com ponto de milhar e vírgula nos centavos.
+  corpo.querySelectorAll('[data-money]').forEach((inp) => {
+    inp.addEventListener('input', () => {
+      const fim = inp.selectionStart === inp.value.length;
+      inp.value = mascaraMoeda(inp.value);
+      if (fim) inp.setSelectionRange(inp.value.length, inp.value.length);
+    });
+  });
 
   // "— outra, digitar —" revela o campo de texto ao lado.
   corpo.querySelectorAll('[data-livre]').forEach((sel) => {
@@ -2929,7 +3180,55 @@ const ICO = {
   olhoOff: '<svg viewBox="0 0 24 24"><path d="M4 4l16 16"/><path d="M9.9 5.7A10.6 10.6 0 0 1 12 5.5c6.4 0 10 6.5 10 6.5a17.6 17.6 0 0 1-3.4 4.2"/><path d="M6.5 7.8A17.4 17.4 0 0 0 2 12s3.6 6.5 10 6.5c1.5 0 2.8-.3 4-.8"/><path d="M9.6 9.9a2.8 2.8 0 0 0 3.9 3.9"/></svg>'
 };
 
-  return { el, toast, sheet, confirmar, escolher, abrirForm, btnOlho, MARCA, ICO };
+/* ------------------------------------------------------- multiselect ---
+   Um botão que resume a escolha e abre a lista em folha própria. Cabe em
+   qualquer formulário, mesmo com quarenta opções. */
+function resumoMulti(nomes, ph) {
+  if (!nomes.length) return ph || 'Ninguém selecionado';
+  if (nomes.length <= 2) return nomes.join(', ');
+  return `${nomes[0]}, ${nomes[1]} e mais ${nomes.length - 2}`;
+}
+
+function abrirMulti(campo, guarda, botao) {
+  const opts = campo.opts || [];
+  const marcados = () => new Set([...guarda.querySelectorAll('input:checked')].map((i) => i.value));
+  const sel = marcados();
+  const corpo = el(`<div>
+    ${opts.length > 8 ? '<input data-busca placeholder="Buscar" style="width:100%;background:var(--bg3);'
+      + 'border:1px solid var(--line);border-radius:11px;padding:11px;font-size:16px;margin-bottom:10px">' : ''}
+    <div class="card lista" data-lista>${opts.map((o) => `
+      <label class="row act sem-seta" data-op="${esc(String(o.t).toLowerCase())}" style="cursor:pointer">
+        <input type="checkbox" value="${esc(o.v)}"${sel.has(String(o.v)) ? ' checked' : ''}
+          style="width:22px;height:22px;flex:none">
+        <span class="g"><span class="t">${esc(o.t)}</span></span>
+      </label>`).join('')}</div>
+    <div class="btns"><button class="btn gho" data-nada>Limpar</button>
+      <button class="btn pri" style="flex:1" data-ok>Pronto</button></div>
+  </div>`);
+
+  const busca = corpo.querySelector('[data-busca]');
+  if (busca) {
+    busca.oninput = () => {
+      const q = busca.value.trim().toLowerCase();
+      corpo.querySelectorAll('[data-op]').forEach((n) => {
+        n.hidden = Boolean(q) && !n.dataset.op.includes(q);
+      });
+    };
+  }
+  corpo.querySelector('[data-nada]').onclick = () => {
+    corpo.querySelectorAll('input[type=checkbox]').forEach((i) => { i.checked = false; });
+  };
+  const sh = sheet({ titulo: campo.label || 'Escolher', corpo });
+  corpo.querySelector('[data-ok]').onclick = () => {
+    const escolhidos = new Set([...corpo.querySelectorAll('input:checked')].map((i) => i.value));
+    guarda.querySelectorAll('input').forEach((i) => { i.checked = escolhidos.has(i.value); });
+    const nomes = opts.filter((o) => escolhidos.has(String(o.v))).map((o) => o.t);
+    botao.querySelector('[data-multi-txt]').textContent = resumoMulti(nomes, campo.ph);
+    sh.close();
+  };
+}
+
+  return { el, toast, sheet, confirmar, escolher, abrirForm, btnOlho, MARCA, ICO, resumoMulti };
 };
 
 __defs["js/utils.js"] = function () {
@@ -2979,7 +3278,19 @@ const fmtMoneyShort = (cents) => {
   if (n >= 1000) return sig + 'R$ ' + (n / 1000).toFixed(1).replace('.', ',') + 'k';
   return fmtMoney(cents);
 };
-const moneyInput = (cents) => cents ? ((Number(cents) || 0) / 100).toFixed(2).replace('.', ',') : '';
+/** Valor para dentro do campo, já com ponto de milhar: 259499,43 → 259.499,43 */
+const moneyInput = (cents) => (cents
+  ? ((Number(cents) || 0) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  : '');
+
+/** Formata o que a pessoa está digitando, mantendo só dígitos e os centavos. */
+function mascaraMoeda(texto) {
+  const dig = String(texto).replace(/\D/g, '').replace(/^0+/, '');
+  if (!dig) return '';
+  const cents = dig.padStart(3, '0');
+  const reais = cents.slice(0, -2);
+  return Number(reais).toLocaleString('pt-BR') + ',' + cents.slice(-2);
+}
 const pct = (a, b) => (!b ? 0 : Math.round((a / b) * 100));
 
 /* ---------- datas (ISO yyyy-mm-dd) ---------- */
@@ -3055,7 +3366,7 @@ function somarDias(iso, n) {
   return d.toISOString().slice(0, 10);
 }
 
-  return { uid, esc, valoresOcultos, alternarValores, parseMoney, fmtMoney, fmtMoneyShort, moneyInput, pct, hoje, isoDia, fmtData, diasAte, prazoTxt, prazoTag, diaSemana, iniciais, soma, porId, groupBy, ordenar, bytes, somarDiasUteis, somarDias };
+  return { uid, esc, valoresOcultos, alternarValores, parseMoney, fmtMoney, fmtMoneyShort, moneyInput, mascaraMoeda, pct, hoje, isoDia, fmtData, diasAte, prazoTxt, prazoTag, diaSemana, iniciais, soma, porId, groupBy, ordenar, bytes, somarDiasUteis, somarDias };
 };
 
 __defs["js/views/agenda.js"] = function () {
@@ -3549,7 +3860,7 @@ const { can, PAPEIS } = __req("js/perms.js");
 const { el, abrirForm, toast, confirmar, escolher } = __req("js/ui.js");
 const { esc, iniciais, ordenar } = __req("js/utils.js");
 const { criarProjetoTeste } = __req("js/seed.js");
-const { recarregarProjeto, SEED_VERSAO } = __req("js/seed-bradesco.js");
+const { recarregarProjeto, atualizarProjeto, SEED_VERSAO } = __req("js/seed-bradesco.js");
 const { pedirPermissao } = __req("js/notify.js");
 const { trocarSenha, temSenha } = __req("js/pin.js");
 const { TEMAS, temaAtual, definirTema } = __req("js/tema.js");
@@ -3603,7 +3914,9 @@ function render() {
       ${p && p.seed_versao !== SEED_VERSAO && can(u, 'projeto.edit') ? `<div class="banner warn small" style="margin-top:10px">
         Os dados deste aparelho vieram de uma carga antiga do projeto. Recarregue para
         pegar a versão mais nova — equipe, orçamento negociado, contas e perfis.</div>` : ''}
-      ${can(u, 'projeto.edit') ? '<button class="btn wide gho sm" style="margin-top:10px" data-recarregar>Recarregar dados do projeto</button>' : ''}
+      ${can(u, 'projeto.edit') ? `<button class="btn wide gho sm" style="margin-top:10px" data-recarregar>Atualizar carga do projeto</button>
+      <div class="small muted" style="margin-top:6px">Só acrescenta o que falta. Nada que você editou é apagado.</div>
+      <button class="btn wide gho sm danger" style="margin-top:14px" data-zerar>Apagar e recarregar do zero</button>` : ''}
       ${projetos.length > 1 ? '<button class="btn wide gho sm" style="margin-top:10px" data-trocar-proj>Trocar de projeto</button>' : ''}
       ${can(u, 'projeto.edit') ? '<button class="btn wide gho sm" style="margin-top:8px" data-novo-proj>Novo projeto</button>' : ''}
     </div>
@@ -3653,21 +3966,28 @@ function render() {
   });
   node.querySelector('[data-edit-proj]')?.addEventListener('click', () => editarProjeto(p));
   node.querySelector('[data-recarregar]')?.addEventListener('click', async () => {
-    const ok = await confirmar(
-      'Isto apaga o projeto deste aparelho e carrega tudo de novo, na versão mais recente. '
-      + 'O que você editou aqui dentro se perde. Baixe um backup antes se quiser guardar.',
-      { ok: 'Recarregar', perigo: true }
-    );
-    if (!ok) return;
     try {
-      await recarregarProjeto();
-      toast('Projeto recarregado. Escolha quem você é.');
-      location.hash = '#/';
-      location.reload();
+      const r = await atualizarProjeto();
+      toast(r.novos ? `${r.novos} item(ns) novo(s). Nada foi apagado.` : 'Já estava em dia.');
+      store.emit();
     } catch (e) {
       console.error(e);
       toast('Falhou: ' + e.message);
     }
+  });
+  node.querySelector('[data-zerar]')?.addEventListener('click', async () => {
+    const ok = await confirmar(
+      'Isto APAGA o projeto deste aparelho e carrega tudo do zero. Todo trabalho feito aqui '
+      + 'dentro se perde — gastos, notas, confirmações, datas alteradas. Baixe um backup antes.',
+      { ok: 'Apagar e recarregar', perigo: true }
+    );
+    if (!ok) return;
+    try {
+      await recarregarProjeto();
+      toast('Projeto recarregado do zero.');
+      location.hash = '#/';
+      location.reload();
+    } catch (e) { console.error(e); toast('Falhou: ' + e.message); }
   });
   node.querySelector('[data-novo-proj]')?.addEventListener('click', () => novoProjeto());
   node.querySelector('[data-trocar-proj]')?.addEventListener('click', async () => {
@@ -4498,11 +4818,11 @@ __defs["js/views/dash.js"] = function () {
 // colunas, como um quadro de produção.
 const { store } = __req("js/store.js");
 const { can } = __req("js/perms.js");
-const { el, btnOlho } = __req("js/ui.js");
+const { el, btnOlho, toast } = __req("js/ui.js");
 const { esc, fmtMoneyShort, pct, fmtData, prazoTxt, prazoTag, diasAte, valoresOcultos } = __req("js/utils.js");
 const { financeiro } = __req("js/calc.js");
 const { FASES, statusEtapa, faseSimbolo } = __req("js/seed.js");
-const { alertas } = __req("js/notify.js");
+const { alertas, perguntas } = __req("js/notify.js");
 const PERIODOS = [
   { v: 1, t: '24h' }, { v: 3, t: '3 dias' }, { v: 7, t: 'Semana' }, { v: 30, t: 'Mês' }
 ];
@@ -4521,6 +4841,7 @@ function render() {
   const feitas = etapas.filter((e) => e.status === 'feito').length;
   const f = financeiro();
   const al = alertas();
+  const qs = perguntas();
   const verGrana = can(u, 'orcamento.ver');
   const verLucro = can(u, 'lucro.ver') || can(u, 'contratos.valores');
 
@@ -4533,6 +4854,24 @@ function render() {
       </div>
       <span class="tag ${feitas === etapas.length && etapas.length ? 'ok' : 'info'}">${pct(feitas, etapas.length || 1)}%</span>
     </div>
+  </section>`;
+
+  /* ---- decisões rápidas: no máximo três, resolvidas no toque ---- */
+  const perguntasHTML = !qs.length ? '' : `<section class="bloco largo perguntas">
+    <div class="sec"><div class="sec-t">Resolve agora</div>
+      <span class="small muted">${qs.length === 1 ? '1 pergunta' : qs.length + ' perguntas'}</span></div>
+    <div class="grid3">${qs.map((q) => `
+      <div class="pergunta" data-q="${q.id}">
+        <div class="p-cab">
+          <span class="ico ${q.urg >= 3 ? 'urg' : 'med'}">${q.icone}</span>
+          <span class="p-txt">${esc(q.pergunta)}</span>
+        </div>
+        <div class="p-ctx">${esc(q.contexto || '')}</div>
+        <div class="btns" style="margin-top:auto;padding-top:var(--s3)">
+          <button class="btn sm pri" style="flex:1" data-sim>${esc(q.sim || 'Sim')}</button>
+          <button class="btn sm gho" data-nao>${esc(q.nao || 'Agora não')}</button>
+        </div>
+      </div>`).join('')}</div>
   </section>`;
 
   /* ---- alertas ---- */
@@ -4660,7 +4999,21 @@ function render() {
       </div>`).join('') : '<div class="empty">Marque prazos nas etapas para aparecerem aqui.</div>'}</div>
   </section>`;
 
-  node.innerHTML = cabecalho + alertaHTML + fasesHTML + granaHTML + agendaHTML + travadoHTML + proximasHTML;
+  node.innerHTML = cabecalho + perguntasHTML + alertaHTML + fasesHTML + granaHTML
+    + agendaHTML + travadoHTML + proximasHTML;
+
+  // Responder uma pergunta grava e some com o cartão, sem trocar de tela.
+  node.querySelectorAll('[data-q]').forEach((n) => {
+    const q = qs.find((x) => x.id === n.dataset.q);
+    if (!q) return;
+    const responder = async (fn) => {
+      n.classList.add('indo');
+      try { if (fn) await fn(); } catch (e) { console.error(e); toast('Não consegui salvar: ' + e.message); }
+      setTimeout(() => store.emit(), 180);
+    };
+    n.querySelector('[data-sim]').onclick = () => responder(q.aoSim);
+    n.querySelector('[data-nao]').onclick = () => responder(q.aoNao);
+  });
   node.querySelectorAll('[data-periodo]').forEach((b) => {
     b.onclick = () => { periodo = Number(b.dataset.periodo); store.emit(); };
   });
@@ -4690,6 +5043,7 @@ const TIPOS_CONF = [
   { v: 'presenca', t: 'Presença em diária' },
   { v: 'passagem', t: 'Recebimento de passagem' },
   { v: 'hospedagem', t: 'Hospedagem confirmada' },
+  { v: 'checkin', t: 'Check-in de voo feito' },
   { v: 'contrato', t: 'Contrato assinado' },
   { v: 'pagamento', t: 'Recebimento do pagamento' },
   { v: 'outro', t: 'Outro' }
@@ -5035,17 +5389,26 @@ function nodeEtapa(e, todas) {
   const cls = e.status === 'feito' ? 'done' : e.status === 'fazendo' ? 'doing' : e.status === 'travado' ? 'block' : '';
   const tarefas = store.doProjeto('tarefas').filter((t) => t.etapa_id === e.id);
   const tOk = tarefas.filter((t) => t.feito).length;
-  return `<div class="n ${cls}"><div class="row act" data-etapa="${e.id}">
+  // Etapa que é feita em partes mostra quantas já saíram, não só "fazendo".
+  const meta = Number(e.meta || 0);
+  const feitos = Math.min(Number(e.feitos || 0), meta || Infinity);
+  const p100 = meta ? Math.round((feitos / meta) * 100) : 0;
+  return `<div class="n ${cls}"><div class="row act alto" data-etapa="${e.id}">
       <span class="g">
-        <span class="t" style="white-space:normal;${e.status === 'feito' ? 'opacity:.6' : ''}">${esc(e.nome)}</span>
+        <span class="t" style="${e.status === 'feito' ? 'opacity:.6' : ''}">${esc(e.nome)}</span>
         <span class="s">${[
           e.responsavel_id ? nomeMembro(e.responsavel_id) : '',
           e.prazo ? fmtData(e.prazo) + ' · ' + prazoTxt(e.prazo) : '',
           tarefas.length ? `checklist ${tOk}/${tarefas.length}` : '',
           travando.length ? '⛔ aguarda: ' + travando.map((d) => d.nome).join(', ') : ''
         ].filter(Boolean).join(' · ') || 'sem responsável'}</span>
+        ${meta ? `<span class="bar" style="margin-top:6px;max-width:180px">
+          <i class="${p100 === 100 ? 'ok' : ''}" style="width:${p100}%"></i></span>` : ''}
       </span>
-      <span class="r"><span class="tag ${e.prazo && e.status !== 'feito' ? prazoTag(e.prazo) : st.tag}">${esc(st.t)}</span></span>
+      <span class="r">${meta
+        ? `<span class="v mono">${feitos}/${meta}</span>
+           <div class="small muted">${esc(e.unidade || 'partes')}</div>`
+        : `<span class="tag ${e.prazo && e.status !== 'feito' ? prazoTag(e.prazo) : st.tag}">${esc(st.t)}</span>`}</span>
     </div></div>`;
 }
 
@@ -5061,6 +5424,19 @@ function abrirEtapa(e, editar) {
       <div class="small muted" style="margin-bottom:10px">${esc(faseNome(e.fase))}</div>
       <div class="seg" style="margin-bottom:14px">${STATUS_ETAPA.map((s) =>
         `<button data-st="${s.v}" class="${e.status === s.v ? 'on' : ''}">${esc(s.t)}</button>`).join('')}</div>
+      ${Number(e.meta || 0) ? `<div class="card">
+        <div class="row" style="border:0;padding:0">
+          <span class="g"><span class="s">Já saíram</span>
+            <span class="t" style="font-size:22px;font-family:var(--titulo)">${e.feitos || 0} de ${e.meta}
+              <span class="small muted" style="font-weight:400">${esc(e.unidade || 'partes')}</span></span></span>
+          ${editar ? `<span class="r" style="display:flex;gap:6px">
+            <button class="btn sm gho" data-menos ${(e.feitos || 0) <= 0 ? 'disabled' : ''}>−</button>
+            <button class="btn sm pri" data-mais ${(e.feitos || 0) >= e.meta ? 'disabled' : ''}>+1</button>
+          </span>` : ''}
+        </div>
+        <div class="bar"><i class="${(e.feitos || 0) >= e.meta ? 'ok' : ''}"
+          style="width:${Math.round(((e.feitos || 0) / e.meta) * 100)}%"></i></div>
+      </div>` : ''}
       <div class="card tight">
         <div class="row"><span class="g"><span class="s">Responsável</span>
           <span class="t">${esc(e.responsavel_id ? nomeMembro(e.responsavel_id) : '—')}</span></span></div>
@@ -5084,6 +5460,17 @@ function abrirEtapa(e, editar) {
           ${editar ? `<button class="btn sm gho" data-del-tar="${t.id}">×</button>` : ''}
         </label>`).join('') : '<div class="empty">Sem itens.</div>'}</div>
       ${editar ? '<button class="btn wide gho" data-edit>Editar etapa</button>' : ''}`;
+
+    const mexer = async (delta) => {
+      const novo = Math.max(0, Math.min(Number(e.meta || 0), (Number(e.feitos) || 0) + delta));
+      // Chegar na meta fecha a etapa; sair dela reabre.
+      const status = novo >= Number(e.meta) ? 'feito' : novo > 0 ? 'fazendo' : e.status;
+      await store.update('etapas', e.id, { feitos: novo, status });
+      Object.assign(e, { feitos: novo, status });
+      pintar(); store.emit();
+    };
+    corpo.querySelector('[data-mais]')?.addEventListener('click', () => mexer(1));
+    corpo.querySelector('[data-menos]')?.addEventListener('click', () => mexer(-1));
 
     corpo.querySelectorAll('[data-st]').forEach((b) => {
       b.onclick = async () => {
@@ -5136,6 +5523,10 @@ function camposEtapa(e = {}) {
       opts: [{ v: '', t: '— ninguém —' }, ...membros().map((m) => ({ v: m.id, t: m.nome }))]
     },
     { k: 'prazo', label: 'Prazo', type: 'data', valor: e.prazo },
+    { k: 'meta', label: 'Feita em quantas partes', type: 'numero', valor: e.meta || 0, meia: true,
+      hint: 'Ex.: 6 escolas. Deixe 0 se for uma coisa só.' },
+    { k: 'unidade', label: 'Nome das partes', type: 'texto', valor: e.unidade || '', meia: true,
+      ph: 'escolas, viagens, peças…' },
     {
       k: 'depende_de', label: 'Depende de', type: 'multi', valor: e.depende_de || [],
       opts: outras.map((x) => ({ v: x.id, t: `${faseNome(x.fase)} · ${x.nome}` })),

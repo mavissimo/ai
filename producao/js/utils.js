@@ -44,7 +44,19 @@ export const fmtMoneyShort = (cents) => {
   if (n >= 1000) return sig + 'R$ ' + (n / 1000).toFixed(1).replace('.', ',') + 'k';
   return fmtMoney(cents);
 };
-export const moneyInput = (cents) => cents ? ((Number(cents) || 0) / 100).toFixed(2).replace('.', ',') : '';
+/** Valor para dentro do campo, já com ponto de milhar: 259499,43 → 259.499,43 */
+export const moneyInput = (cents) => (cents
+  ? ((Number(cents) || 0) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  : '');
+
+/** Formata o que a pessoa está digitando, mantendo só dígitos e os centavos. */
+export function mascaraMoeda(texto) {
+  const dig = String(texto).replace(/\D/g, '').replace(/^0+/, '');
+  if (!dig) return '';
+  const cents = dig.padStart(3, '0');
+  const reais = cents.slice(0, -2);
+  return Number(reais).toLocaleString('pt-BR') + ',' + cents.slice(-2);
+}
 export const pct = (a, b) => (!b ? 0 : Math.round((a / b) * 100));
 
 /* ---------- datas (ISO yyyy-mm-dd) ---------- */

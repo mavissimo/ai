@@ -8,13 +8,13 @@
 //   4. Google Agenda "Fundação Bradesco" — logística viva (voos, carros, hotéis).
 // Onde as fontes divergem, vale o contrato e a divergência fica na observação.
 import { store, TABELAS } from './store.js';
-import { uid, parseMoney } from './utils.js';
+import { uid, parseMoney, somarDiasUteis, somarDias, hoje } from './utils.js';
 
 const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-export const SEED_VERSAO = 7;
+export const SEED_VERSAO = 8;
 
 const PESSOAS = [
   {
@@ -309,6 +309,20 @@ const FONTES = [
     'Voos, locação de carro e hotéis. Cada viagem precisa do seu antes do embarque.']
 ];
 
+// Quantas partes cada etapa tem de verdade. O progresso sai daqui, não de um
+// "feito / não feito" que esconde 5 escolas ainda por rodar.
+const METAS = {
+  'Rodar as 6 escolas': { meta: 6, unidade: 'escolas', feitos: 2 },
+  'Rodar as 5 entrevistas de fotógrafo em estúdio': { meta: 5, unidade: 'entrevistas', feitos: 0 },
+  'Backup duplo criptografado em locais separados': { meta: 6, unidade: 'escolas', feitos: 2 },
+  'Fechar os voos das viagens 3 a 11': { meta: 9, unidade: 'viagens', feitos: 0 },
+  'Contratos da equipe (PF e PJ) assinados': { meta: 4, unidade: 'contratos', feitos: 0 },
+  'Autorizações de imagem, nome e voz (Anexo II, com termo para menores)': { meta: 6, unidade: 'escolas', feitos: 0 },
+  'Certidões de antecedentes de quem entra nas escolas': { meta: 3, unidade: 'certidões', feitos: 0 },
+  'Confirmar datas de Bodoquena, Canuanã e Osasco': { meta: 3, unidade: 'escolas', feitos: 0 },
+  'Entrega final das 40 peças': { meta: 40, unidade: 'peças', feitos: 0 }
+};
+
 const ETAPAS = [
   ['negociacao', 'Carta-Orçamento V2 e Cronograma V2 aprovados', 'feito', '2026-08-14'],
   ['negociacao', 'Cadastro de fornecedor no Bradesco', 'feito', '2026-07-31'],
@@ -327,7 +341,14 @@ const ETAPAS = [
   ['producao', 'Rodar as 6 escolas', 'fazendo', '2026-10-08'],
   ['producao', 'Rodar as 5 entrevistas de fotógrafo em estúdio', 'nao', '2026-10-27'],
   ['producao', 'Backup duplo criptografado em locais separados', 'fazendo', '2026-10-27'],
-  ['pos', 'Fechar editores, trilha e color', 'fazendo', '2026-09-30'],
+  // A planilha tem uma linha por contratação — aqui também. "Fechar a pós" não
+  // é uma coisa só: são seis fornecedores diferentes, com valor e prazo próprios.
+  ['pos', 'Fechar montador do documentário (R$ 13.000 orçado / 5.000 negociado)', 'fazendo', '2026-09-15'],
+  ['pos', 'Fechar montador dos cortes de fotógrafo (R$ 13.000 / 5.000)', 'nao', '2026-09-15'],
+  ['pos', 'Fechar montador dos minidocs de escola (R$ 13.000 / 5.000)', 'nao', '2026-09-15'],
+  ['pos', 'Fechar quem faz as versões (R$ 8.000 / 5.000)', 'nao', '2026-09-30'],
+  ['pos', 'Fechar a trilha (R$ 12.000 / 5.000)', 'nao', '2026-09-30'],
+  ['pos', 'Fechar o color (R$ 10.000 / 12.000 — estourou)', 'fazendo', '2026-09-30'],
   ['pos', 'Montagem — primeiro corte', 'nao', '2026-11-13'],
   ['pos', 'Rodada 1 de aprovação com a Fundação (5 dias úteis)', 'nao', '2026-11-18'],
   ['pos', 'Versão 2', 'nao', '2026-11-19'],
@@ -361,7 +382,10 @@ const TAREFAS = [
   ['Levantar as autorizações de imagem das escolas', 'Patrick Bombassaro', '2026-08-31',
     'Autorizações de imagem, nome e voz (Anexo II, com termo para menores)'],
   ['Lançar o adiantamento da verba à vista para bater a caixinha', 'Tato Pessanha', '2026-08-31', ''],
-  ['Fechar os três editores, a trilha e o color', 'Maví Simões', '2026-09-30', 'Fechar editores, trilha e color']
+  ['Fechar o color com Vini, Jesus, Braiom ou Rafaim', 'Maví Simões', '2026-09-30',
+    'Fechar o color (R$ 10.000 / 12.000 — estourou)'],
+  ['Escolher e fechar o montador do documentário', 'Maví Simões', '2026-09-15',
+    'Fechar montador do documentário (R$ 13.000 orçado / 5.000 negociado)']
 ];
 
 const ENTREGAS = [
@@ -372,9 +396,37 @@ const ENTREGAS = [
   ['Masters, brutos e editáveis', '2026-12-08', 'Com relação dos arquivos e recibo. Backups por 90 dias.']
 ];
 
-export async function criarProjetoBradesco() {
-  const projeto = await store.insert('projetos', {
+/* Semeadura idempotente. Cada registro da carga ganha uma `chave` estável.
+   Semear de novo só insere o que ainda não existe — nunca sobrescreve, nunca
+   apaga. É o que garante que atualizar a carga não desfaça o trabalho de
+   ninguém. */
+let P = null;
+
+const achar = (tabela, chave) => store.doProjeto(tabela).find((r) => r.chave === chave);
+
+async function ins(tabela, chave, dados) {
+  const existe = achar(tabela, chave);
+  if (existe) return existe;
+  return store.insert(tabela, { ...dados, projeto_id: P, chave });
+}
+
+/** Só preenche campo que ainda está vazio — não pisa no que já foi escrito. */
+async function completar(tabela, id, dados) {
+  const r = store.get(tabela, id);
+  if (!r) return;
+  const falta = {};
+  for (const [k, v] of Object.entries(dados)) {
+    const atual = r[k];
+    if (atual === undefined || atual === null || atual === ''
+      || (Array.isArray(atual) && !atual.length)) falta[k] = v;
+  }
+  if (Object.keys(falta).length) await store.update(tabela, id, falta);
+}
+
+export async function criarProjetoBradesco(existente = null) {
+  const projeto = existente || await store.insert('projetos', {
     id: uid('proj'),
+    chave: 'proj:bradesco70',
     nome: 'Doc Fundação Bradesco 70 Anos',
     cliente: 'Fundação Bradesco',
     agencia: 'Têmpora (marca e crédito)',
@@ -392,33 +444,32 @@ export async function criarProjetoBradesco() {
       + 'A alíquota de 12% é a que a planilha usa para chegar no valor de NF.'
   });
   store.setProjeto(projeto.id);
-  const P = projeto.id;
+  P = projeto.id;
 
   /* equipe */
   const membros = {};
   for (const p of PESSOAS) {
-    const m = await store.insert('membros', { projeto_id: P, ativo: true, ...p });
+    const m = await ins('membros', 'membro:' + p.email, { ativo: true, ...p });
     membros[p.nome] = m.id;
   }
   const viajantes = [membros['Maví Simões'], membros['Julio Becker'], membros['Tato Pessanha']];
 
   /* contatos */
   for (const [nome, papel, empresa, email, tipo, obs] of CONTATOS) {
-    await store.insert('contatos', { projeto_id: P, nome, papel, empresa, email, tipo, telefone: '', obs });
+    await ins('contatos', 'contato:' + nome, { nome, papel, empresa, email, tipo, telefone: '', obs });
   }
 
   /* locações */
   for (const [nome, cidade, uf, obs] of LOCACOES) {
-    await store.insert('locacoes', {
-      projeto_id: P, nome, cidade, uf, endereco: '', contato: '', telefone: '',
+    await ins('locacoes', 'loc:' + cidade, {
+      nome, cidade, uf, endereco: '', contato: '', telefone: '',
       valor_cents: 0, autorizacao: 'pendente', horario: '', obs
     });
   }
 
   /* contrato + parcelas */
   const parcela1 = uid('parc'), parcela2 = uid('parc');
-  const contrato = await store.insert('contratos', {
-    projeto_id: P,
+  const contrato = await ins('contratos', 'contrato:4600001793', {
     titulo: 'Fundação Bradesco — Making of 70 Anos (nº 4600001793)',
     tipo: 'cliente',
     contratante: 'Fundação Bradesco (CNPJ 60.701.521/0001-06)',
@@ -460,16 +511,16 @@ export async function criarProjetoBradesco() {
     ]
   });
 
-  await store.insert('contas', {
-    projeto_id: P, tipo: 'receber', descricao: 'Fundação Bradesco — 1ª parcela (50%)',
+  await ins('contas', 'conta:parcela1', {
+    tipo: 'receber', descricao: 'Fundação Bradesco — 1ª parcela (50%)',
     contraparte: 'Fundação Bradesco', valor_cents: M('259499,43'), venc: '2026-08-27',
     status: 'aberto', contrato_id: contrato.id, parcela_id: parcela1, parcela: '1/2',
     categoria: 'contrato', nf_status: 'a_emitir',
     obs: 'Faturada na assinatura (22/08) e paga em até 3 dias úteis. Não depende de aceite. '
       + 'O cronograma da planilha marcava 18/08.'
   });
-  await store.insert('contas', {
-    projeto_id: P, tipo: 'receber', descricao: 'Fundação Bradesco — 2ª parcela (50%)',
+  await ins('contas', 'conta:parcela2', {
+    tipo: 'receber', descricao: 'Fundação Bradesco — 2ª parcela (50%)',
     contraparte: 'Fundação Bradesco', valor_cents: M('259499,43'), venc: '2027-01-07',
     status: 'aberto', contrato_id: contrato.id, parcela_id: parcela2, parcela: '2/2',
     categoria: 'contrato', nf_status: 'a_emitir',
@@ -479,22 +530,22 @@ export async function criarProjetoBradesco() {
 
   /* orçamento */
   for (const [rubrica, orcado, negociado, obs] of ORCAMENTO) {
-    await store.insert('orcamento', {
-      projeto_id: P, rubrica, descricao: '',
+    await ins('orcamento', 'rub:' + rubrica, {
+      rubrica, descricao: '',
       previsto_cents: M(orcado), negociado_cents: M(negociado), obs
     });
   }
 
   /* pagamentos já fechados viram contas a pagar */
   for (const [descricao, contraparte, valor, categoria, rubrica, venc, status, obs] of PAGAVEIS) {
-    await store.insert('contas', {
-      projeto_id: P, tipo: 'pagar', descricao, contraparte, valor_cents: M(valor),
+    await ins('contas', 'pag:' + descricao, {
+      tipo: 'pagar', descricao, contraparte, valor_cents: M(valor),
       venc, status, categoria, rubrica, nf_status: 'a_receber', obs
     });
     // O que já saiu também entra como gasto realizado, para o dinheiro bater.
     if (status === 'quitado') {
-      await store.insert('lancamentos', {
-        projeto_id: P, tipo: 'saida', descricao, valor_cents: M(valor), rubrica,
+      await ins('lancamentos', 'lanc:' + descricao, {
+        tipo: 'saida', descricao, valor_cents: M(valor), rubrica,
         data: venc || '2026-08-22', fornecedor: contraparte, forma: 'crédito',
         membro_id: null, evento_id: null, fonte: 'empresa', reembolso: false,
         sem_comprovante: true, status: 'pago', aprovado_por: null, obs
@@ -502,25 +553,57 @@ export async function criarProjetoBradesco() {
     }
   }
 
+  /* --------------------------------------------------------------------
+     1ª leva de pagamentos: 3 dias úteis depois de a 1ª parcela cair.
+     Combinado: 100% dos per diems, 100% do Tato, 60% do Becker e 50% do Maví.
+     -------------------------------------------------------------------- */
+  const parc1 = achar('contas', 'conta:parcela1');
+  const baseLeva = parc1?.quitado_em || parc1?.venc || '2026-08-27';
+  const vencLeva = somarDiasUteis(baseLeva, 3);
+  const FATIA = { 'mavi@tempora': 0.5, 'tato@tempora': 1, 'becker@tempora': 0.6 };
+
   /* cachês e per diems fechados */
   for (const p of PESSOAS) {
     const id = membros[p.nome];
     const bruto = (p.cache_cents || 0) * (p.diarias || 0);
-    if (bruto) {
-      await store.insert('contas', {
-        projeto_id: P, tipo: 'pagar', descricao: `Cachê — ${p.nome} (${p.funcao})`,
+    const fatia = FATIA[p.email] || 0;
+
+    if (bruto && fatia) {
+      // Parte combinada para a 1ª leva, e o resto fica em aberto sem data.
+      const agora = Math.round(bruto * fatia);
+      await ins('contas', 'cache1:' + p.email, {
+        tipo: 'pagar', descricao: `Cachê — ${p.nome} (${Math.round(fatia * 100)}%)`,
+        contraparte: p.nome, valor_cents: agora, venc: vencLeva, status: 'aberto',
+        membro_id: id, categoria: 'cachê', rubrica: p.rubrica, parcela: '1/2',
+        nf_status: p.tipo === 'pj' ? 'a_receber' : 'na',
+        obs: `${Math.round(fatia * 100)}% de ${(bruto / 100).toLocaleString('pt-BR',
+          { style: 'currency', currency: 'BRL' })}. Combinado: 3 dias úteis depois de a 1ª parcela cair.`
+      });
+      if (bruto - agora > 0) {
+        await ins('contas', 'cache2:' + p.email, {
+          tipo: 'pagar', descricao: `Cachê — ${p.nome} (saldo)`,
+          contraparte: p.nome, valor_cents: bruto - agora, venc: '', status: 'aberto',
+          membro_id: id, categoria: 'cachê', rubrica: p.rubrica, parcela: '2/2',
+          nf_status: p.tipo === 'pj' ? 'a_receber' : 'na',
+          obs: 'Saldo do cachê. Data a combinar.'
+        });
+      }
+    } else if (bruto) {
+      await ins('contas', 'cache:' + p.email, {
+        tipo: 'pagar', descricao: `Cachê — ${p.nome} (${p.funcao})`,
         contraparte: p.nome, valor_cents: bruto,
         venc: '', status: 'aberto', membro_id: id, categoria: 'cachê', rubrica: p.rubrica,
         nf_status: p.tipo === 'pj' ? 'a_receber' : 'na',
         obs: `Coluna NEGOCIADO da planilha: ${p.diarias} × R$ ${(p.cache_cents / 100).toLocaleString('pt-BR')}.`
       });
     }
+
     if (p.perdiem_cents) {
-      await store.insert('contas', {
-        projeto_id: P, tipo: 'pagar', descricao: `Per diem — ${p.nome}`,
-        contraparte: p.nome, valor_cents: p.perdiem_cents, venc: '', status: 'aberto',
+      await ins('contas', 'perdiem:' + p.email, {
+        tipo: 'pagar', descricao: `Per diem — ${p.nome}`,
+        contraparte: p.nome, valor_cents: p.perdiem_cents, venc: vencLeva, status: 'aberto',
         membro_id: id, categoria: 'per diem', rubrica: 'Per diem da equipe', nf_status: 'na',
-        obs: '35 dias × R$ 200 (negociado). Orçado era R$ 220/dia.'
+        obs: '35 dias × R$ 200 (negociado). Combinado: 100% pago 3 dias úteis depois de a 1ª parcela cair.'
       });
     }
   }
@@ -528,8 +611,10 @@ export async function criarProjetoBradesco() {
   /* etapas */
   let ordem = 0;
   for (const [fase, nome, status, prazo] of ETAPAS) {
-    await store.insert('etapas', {
-      projeto_id: P, fase, nome, status, prazo, responsavel_id: null,
+    const m = METAS[nome];
+    await ins('etapas', 'etapa:' + nome, {
+      fase, nome, status, prazo, responsavel_id: null,
+      meta: m?.meta || 0, feitos: m?.feitos || 0, unidade: m?.unidade || '',
       depende_de: [], ordem: ordem++, obs: ''
     });
   }
@@ -537,16 +622,16 @@ export async function criarProjetoBradesco() {
   /* tarefas em aberto */
   for (const [titulo, dono, prazo, etapaNome] of TAREFAS) {
     const etapa = etapaNome ? store.doProjeto('etapas').find((e) => e.nome === etapaNome) : null;
-    await store.insert('tarefas', {
-      projeto_id: P, titulo, responsavel_id: membros[dono] || null, prazo,
+    await ins('tarefas', 'tar:' + titulo, {
+      titulo, responsavel_id: membros[dono] || null, prazo,
       etapa_id: etapa?.id || null, status: 'aberta', feito: false, cobrado_em: '', descricao: ''
     });
   }
 
   /* entregas */
   for (const [titulo, prazo, formato] of ENTREGAS) {
-    await store.insert('entregas', {
-      projeto_id: P, titulo, prazo, formato, status: 'pendente',
+    await ins('entregas', 'entrega:' + titulo, {
+      titulo, prazo, formato, status: 'pendente',
       responsavel_id: membros['Maví Simões'], link: '', obs: ''
     });
   }
@@ -554,8 +639,8 @@ export async function criarProjetoBradesco() {
   /* agenda */
   for (const [data, tipo, titulo, local, confirmado, obs] of AGENDA) {
     const participantes = (tipo === 'entrega' || tipo === 'outro') ? [membros['Maví Simões']] : viajantes;
-    await store.insert('eventos', {
-      projeto_id: P, data, tipo, titulo, local, obs, confirmado,
+    await ins('eventos', 'ev:' + data + ':' + titulo, {
+      data, tipo, titulo, local, obs, confirmado,
       hora_inicio: '', hora_fim: '', participantes, chamadas: [],
       endereco: '', mapa: '', contato_nome: '', contato_tel: '', levar: '', roteiro_dia: ''
     });
@@ -565,7 +650,7 @@ export async function criarProjetoBradesco() {
   const eventos = store.doProjeto('eventos');
   const ida1 = eventos.find((e) => e.data === '2026-08-23');
   if (ida1) {
-    await store.update('eventos', ida1.id, {
+    await completar('eventos', ida1.id, {
       hora_inicio: '04:00', hora_fim: '10:05',
       endereco: 'Aeroporto de Congonhas (CGH) — GOL 1400',
       contato_nome: 'Tato Pessanha', contato_tel: '(11) 96340-1980',
@@ -578,7 +663,7 @@ export async function criarProjetoBradesco() {
   }
   const ida2 = eventos.find((e) => e.data === '2026-08-30');
   if (ida2) {
-    await store.update('eventos', ida2.id, {
+    await completar('eventos', ida2.id, {
       hora_inicio: '03:00', hora_fim: '14:30',
       endereco: 'Aeroporto de Guarulhos (GRU) — Azul 4232',
       contato_nome: 'Tato Pessanha', contato_tel: '(11) 96340-1980',
@@ -592,8 +677,8 @@ export async function criarProjetoBradesco() {
 
   /* gastos em dinheiro já feitos (aba "verba a vista") */
   for (const [data, descricao, valor, rubrica, quem] of GASTOS_CAIXA) {
-    await store.insert('lancamentos', {
-      projeto_id: P, tipo: 'saida', descricao, valor_cents: M(valor), rubrica, data,
+    await ins('lancamentos', 'caixa:' + descricao, {
+      tipo: 'saida', descricao, valor_cents: M(valor), rubrica, data,
       fornecedor: '', forma: 'dinheiro', membro_id: membros[quem] || null,
       evento_id: eventos.find((e) => e.data === data)?.id || null,
       fonte: 'empresa', reembolso: false, sem_comprovante: true,
@@ -604,8 +689,8 @@ export async function criarProjetoBradesco() {
 
   /* fontes vivas do projeto */
   for (const [titulo, url, tipoF, frequencia, quem, obs] of FONTES) {
-    await store.insert('fontes', {
-      projeto_id: P, titulo, url, tipo: tipoF, frequencia,
+    await ins('fontes', 'fonte:' + titulo, {
+      titulo, url, tipo: tipoF, frequencia,
       responsavel_id: membros[quem] || null, conferido_em: '2026-08-28', obs
     });
   }
@@ -613,8 +698,8 @@ export async function criarProjetoBradesco() {
   /* viagens */
   const viagens = {};
   for (const [numero, titulo, ida, volta, origem, destino, orcado, status, obs] of VIAGENS) {
-    const v = await store.insert('viagens', {
-      projeto_id: P, numero, titulo, ida, volta, origem, destino,
+    const v = await ins('viagens', 'viagem:' + numero, {
+      numero, titulo, ida, volta, origem, destino,
       orcado_cents: M(orcado), status, obs, participantes: viajantes
     });
     viagens[numero] = v.id;
@@ -623,15 +708,35 @@ export async function criarProjetoBradesco() {
   const daData = (d) => VIAGENS.find(([, , ida, volta]) => d >= ida && d <= volta)?.[0];
   for (const e of store.doProjeto('eventos')) {
     const n = daData(e.data);
-    if (n) await store.update('eventos', e.id, { viagem_id: viagens[n] });
+    if (n && !e.viagem_id) await store.update('eventos', e.id, { viagem_id: viagens[n] });
   }
   for (const c of store.doProjeto('contas')) {
     const n = c.venc && daData(c.venc);
-    if (n && c.tipo === 'pagar') await store.update('contas', c.id, { viagem_id: viagens[n] });
+    if (n && !c.viagem_id && c.tipo === 'pagar') await store.update('contas', c.id, { viagem_id: viagens[n] });
   }
   for (const l of store.doProjeto('lancamentos')) {
     const n = daData(l.data);
-    if (n) await store.update('lancamentos', l.id, { viagem_id: viagens[n] });
+    if (n && !l.viagem_id) await store.update('lancamentos', l.id, { viagem_id: viagens[n] });
+  }
+
+  /* --------------------------------------------------------------------
+     Check-in de voo: toda viagem de avião abre 24h antes. Vira tarefa com
+     prazo na véspera e uma confirmação por pessoa, para ninguém embarcar
+     sem assento.
+     -------------------------------------------------------------------- */
+  // Só para voo que ainda vai acontecer — abrir check-in de viagem passada
+  // não serve para nada e só enche a lista.
+  const hj = hoje();
+  for (const ev of store.doProjeto('eventos').filter((e) => e.tipo === 'viagem' && e.data >= hj)) {
+    await ins('tarefas', 'checkin:' + ev.data, {
+      titulo: `Fazer check-in — ${ev.titulo}`,
+      responsavel_id: membros['Tato Pessanha'] || null,
+      prazo: somarDias(ev.data, -1),   // o check-in abre 24h antes do voo
+      etapa_id: null, status: 'aberta', feito: false, cobrado_em: '', remarcacoes: [],
+      evento_id: ev.id,
+      descricao: 'O check-in abre 24h antes do voo. Fazer para todo mundo que embarca e '
+        + 'guardar os cartões de embarque.'
+    });
   }
 
   /* confirmações de passagem das duas primeiras viagens */
@@ -641,20 +746,20 @@ export async function criarProjetoBradesco() {
     [membros['Tato Pessanha']]: '1272310202945'
   };
   for (const id of viajantes) {
-    await store.insert('confirmacoes', {
-      projeto_id: P, membro_id: id, tipo: 'passagem', ref_id: ida1?.id || null,
+    await ins('confirmacoes', 'conf:passagem1:' + id, {
+      membro_id: id, tipo: 'passagem', ref_id: ida1?.id || null,
       titulo: 'Passagem SP → Palmas · 23/08 · embarque 06:00',
       status: 'pendente',
       obs: `Localizador WFNEWO · bilhete ${bilhetes[id]} · 2 voos · chegada ao aeroporto 04:00.`
     });
-    await store.insert('confirmacoes', {
-      projeto_id: P, membro_id: id, tipo: 'passagem', ref_id: ida2?.id || null,
+    await ins('confirmacoes', 'conf:passagem2:' + id, {
+      membro_id: id, tipo: 'passagem', ref_id: ida2?.id || null,
       titulo: 'Passagem SP → Recife · 30/08 · Azul 4232 05:00',
       status: 'pendente',
       obs: 'Localizador ZWQY3Q · voo direto GRU → REC · chegada ao aeroporto 03:00.'
     });
-    await store.insert('confirmacoes', {
-      projeto_id: P, membro_id: id, tipo: 'contrato',
+    await ins('confirmacoes', 'conf:contrato:' + id, {
+      membro_id: id, tipo: 'contrato',
       titulo: 'Contrato de prestação de serviço assinado', status: 'pendente', obs: ''
     });
   }
@@ -666,10 +771,39 @@ export async function criarProjetoBradesco() {
 
 
 /**
- * Apaga tudo do projeto ativo e carrega de novo, já na versão mais recente.
- * Usado quando a base do aparelho ficou com uma carga antiga.
+ * Atualiza a carga do projeto SEM apagar nada. Roda a mesma semeadura, que só
+ * insere o que ainda não existe: tudo que você editou, criou ou marcou fica
+ * exatamente como está. Se a carga trouxer um evento, uma etapa ou uma conta
+ * nova, ela entra ao lado do que já havia.
+ */
+export async function atualizarProjeto() {
+  const nomeAtual = store.user?.nome || null;
+  const atual = store.projeto;
+
+  store.ocupado = true;
+  try {
+    const antes = TABELAS.reduce((n, t) => n + store.doProjeto(t).length, 0);
+    const projeto = await criarProjetoBradesco(atual || null);
+    await store.update('projetos', projeto.id, { seed_versao: SEED_VERSAO });
+    const depois = TABELAS.reduce((n, t) => n + store.doProjeto(t).length, 0);
+
+    const eu = nomeAtual ? store.doProjeto('membros').find((m) => m.nome === nomeAtual) : null;
+    store.setUser(eu || store.user || null);
+    await store.log(`Carga atualizada para a versão ${SEED_VERSAO}: ${depois - antes} item(ns) novo(s), `
+      + 'nada apagado.', 'projeto');
+    return { projeto, novos: depois - antes };
+  } finally {
+    store.ocupado = false;
+  }
+}
+
+/**
+ * Zera o projeto e carrega tudo de novo. DESTRUTIVO: perde toda edição feita
+ * no app. Só existe para recomeçar do zero de propósito — a atualização normal
+ * é atualizarProjeto(), que não apaga nada.
  */
 export async function recarregarProjeto() {
+
   const nomeAtual = store.user?.nome || null;
   const antigo = store.projetoId;
 
