@@ -71,8 +71,9 @@ create table if not exists eventos (
   hora_inicio text, hora_fim text, "local" text,
   participantes jsonb default '[]'::jsonb,
   chamadas jsonb default '[]'::jsonb,         -- [{membro_id, hora, obs}] — ordem do dia
-  locacao_id text, endereco text, mapa text,
+  locacao_id text, viagem_id text, endereco text, mapa text,
   contato_nome text, contato_tel text, levar text, roteiro_dia text,
+  confirmado boolean default true,            -- false = data ainda não confirmada
   obs text
 );
 
@@ -99,7 +100,9 @@ create table if not exists lancamentos (
   descricao text not null, valor_cents bigint default 0, rubrica text,
   data text, fornecedor text, forma text,
   membro_id text, evento_id text,             -- a qual diária o gasto pertence
+  viagem_id text,                             -- a qual viagem o gasto pertence
   reembolso boolean default false,
+  sem_comprovante boolean default false,
   fonte text default 'empresa',               -- empresa | caixinha | proprio
   status text default 'pendente', aprovado_por text, conta_id text, obs text
 );
@@ -112,7 +115,7 @@ create table if not exists contas (
   venc text, status text default 'aberto', quitado_em text,
   nf_status text default 'na', nf_numero text, nf_data text,
   membro_id text, lancamento_id text, contrato_id text, parcela_id text,
-  parcela text, categoria text, obs text
+  viagem_id text, parcela text, categoria text, rubrica text, obs text
 );
 
 create table if not exists contratos (
@@ -183,6 +186,18 @@ create table if not exists aprovacoes (
   feedback text, respondido_em text, obs text
 );
 
+
+-- Viagens do projeto: cada ida e volta com orçado próprio.
+create table if not exists viagens (
+  id text primary key, criado_em timestamptz default now(), criado_por text,
+  projeto_id text references projetos(id) on delete cascade,
+  numero text, titulo text not null, ida text, volta text,
+  origem text, destino text, cidade text, uf text,
+  participantes jsonb default '[]'::jsonb,
+  status text default 'prevista',             -- prevista | confirmada | feita
+  orcado_cents bigint default 0, negociado_cents bigint default 0, obs text
+);
+
 -- ------------------------------------------------------- quem sou eu aqui ---
 create or replace function public.membro_atual() returns text
 language sql stable security definer set search_path = public as $$
@@ -218,7 +233,8 @@ declare t text;
 begin
   foreach t in array array['projetos','membros','etapas','tarefas','eventos','entregas',
                            'orcamento','lancamentos','contas','contratos','documentos',
-                           'confirmacoes','atividades','locacoes','caixa','aprovacoes','contatos']
+                           'confirmacoes','atividades','locacoes','caixa','aprovacoes','contatos',
+                           'viagens']
   loop
     execute format('alter table %I enable row level security', t);
     execute format('drop policy if exists p_sel on %I', t);
@@ -306,6 +322,11 @@ create policy p_del on confirmacoes for delete using (public.eh_producao());
 
 -- Locações e contatos: todo mundo do projeto lê (a equipe precisa do endereço
 -- e do telefone no dia); produção escreve.
+create policy p_sel on viagens for select using (public.eh_membro());
+create policy p_ins on viagens for insert with check (public.eh_producao());
+create policy p_upd on viagens for update using (public.eh_producao());
+create policy p_del on viagens for delete using (public.eh_producao());
+
 create policy p_sel on locacoes for select using (public.eh_membro());
 create policy p_ins on locacoes for insert with check (public.eh_producao());
 create policy p_upd on locacoes for update using (public.eh_producao());
