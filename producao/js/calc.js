@@ -61,7 +61,9 @@ export function financeiro() {
     aPagar, aReceber, impostoPrevisto, impostoRealizado,
     custoPrevistoTotal, lucroPrevisto, lucroRealizado, caixa, comprometido,
     saldoOrcamento: orcado - comprometido,
-    estouro: orcado - contratado,
+    // O orçamento é líquido e o contrato é bruto: só dá para comparar depois
+    // de somar o imposto, senão parece haver folga que não existe.
+    estouro: custoPrevistoTotal - contratado,
     margemPrevista: contratado ? Math.round((lucroPrevisto / contratado) * 100) : 0,
     aliquota: Number(p.imposto_aliquota || 0)
   };

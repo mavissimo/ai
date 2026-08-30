@@ -14,7 +14,7 @@ const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-export const SEED_VERSAO = 8;
+export const SEED_VERSAO = 10;
 
 const PESSOAS = [
   {
@@ -329,7 +329,7 @@ const ETAPAS = [
   ['negociacao', 'Homologação e certidões entregues', 'feito', '2026-08-17'],
   ['negociacao', 'Contrato 4600001793 rev 04 assinado (Docusign)', 'feito', '2026-08-22'],
   ['negociacao', 'Emitir NF da 1ª parcela', 'fazendo', '2026-08-22'],
-  ['negociacao', 'Receber 1ª parcela (50%)', 'fazendo', '2026-08-27'],
+  ['negociacao', 'Receber 1ª parcela (50%)', 'fazendo', '2026-08-26'],
   ['pre', 'Confirmar datas de Bodoquena, Canuanã e Osasco', 'fazendo', '2026-09-03'],
   ['pre', 'Contratos da equipe (PF e PJ) assinados', 'nao', '2026-08-31'],
   ['pre', 'Apólice GBI emitida (equipe + equipamento)', 'fazendo', '2026-08-31'],
@@ -410,6 +410,17 @@ async function ins(tabela, chave, dados) {
   return store.insert(tabela, { ...dados, projeto_id: P, chave });
 }
 
+/** Corrige um campo da carga — mas só se ninguém tiver editado o registro. */
+async function corrigir(tabela, chave, dados) {
+  const r = achar(tabela, chave);
+  if (!r || r.editado_em) return false;
+  const muda = {};
+  for (const [k, v] of Object.entries(dados)) if (r[k] !== v) muda[k] = v;
+  if (!Object.keys(muda).length) return false;
+  await store.update(tabela, r.id, muda);
+  return true;
+}
+
 /** Só preenche campo que ainda está vazio — não pisa no que já foi escrito. */
 async function completar(tabela, id, dados) {
   const r = store.get(tabela, id);
@@ -422,6 +433,12 @@ async function completar(tabela, id, dados) {
   }
   if (Object.keys(falta).length) await store.update(tabela, id, falta);
 }
+
+// Datas que saem do contrato, calculadas — não digitadas.
+const ASSINATURA = '2026-08-22';                       // sábado
+const ENTREGA_FINAL = '2026-12-08';
+const VENC_PARCELA1 = somarDiasUteis(ASSINATURA, 3);   // 3 dias úteis (cláusula 6.1.I) = 26/08
+const VENC_PARCELA2 = somarDias(ENTREGA_FINAL, 30);    // 30 dias corridos (6.1.II) = 07/01/2027
 
 export async function criarProjetoBradesco(existente = null) {
   const projeto = existente || await store.insert('projetos', {
@@ -506,22 +523,23 @@ export async function criarProjetoBradesco(existente = null) {
       + 'Weather day segue a diária extra. Anexos: I Cronograma · II Autorizações de imagem · III Requisitos '
       + 'de segurança · IV Termo de responsabilidade · V Código de conduta · VI Carta-Orçamento V2.',
     parcelas: [
-      { id: parcela1, condicao: '50% na assinatura, pago em até 3 dias úteis', valor_cents: M('259499,43'), venc: '2026-08-27', status: 'aberto' },
-      { id: parcela2, condicao: '50% em até 30 dias corridos da entrega final', valor_cents: M('259499,43'), venc: '2027-01-07', status: 'aberto' }
+      { id: parcela1, condicao: '50% na assinatura, pago em até 3 dias úteis', valor_cents: M('259499,43'), venc: VENC_PARCELA1, status: 'aberto' },
+      { id: parcela2, condicao: '50% em até 30 dias corridos da entrega final', valor_cents: M('259499,43'), venc: VENC_PARCELA2, status: 'aberto' }
     ]
   });
 
   await ins('contas', 'conta:parcela1', {
     tipo: 'receber', descricao: 'Fundação Bradesco — 1ª parcela (50%)',
-    contraparte: 'Fundação Bradesco', valor_cents: M('259499,43'), venc: '2026-08-27',
+    contraparte: 'Fundação Bradesco', valor_cents: M('259499,43'), venc: VENC_PARCELA1,
     status: 'aberto', contrato_id: contrato.id, parcela_id: parcela1, parcela: '1/2',
     categoria: 'contrato', nf_status: 'a_emitir',
-    obs: 'Faturada na assinatura (22/08) e paga em até 3 dias úteis. Não depende de aceite. '
+    obs: `Faturada na assinatura (22/08, sábado) e paga em até 3 dias úteis: vence ${VENC_PARCELA1}. `
+      + 'Não depende de aceite. '
       + 'O cronograma da planilha marcava 18/08.'
   });
   await ins('contas', 'conta:parcela2', {
     tipo: 'receber', descricao: 'Fundação Bradesco — 2ª parcela (50%)',
-    contraparte: 'Fundação Bradesco', valor_cents: M('259499,43'), venc: '2027-01-07',
+    contraparte: 'Fundação Bradesco', valor_cents: M('259499,43'), venc: VENC_PARCELA2,
     status: 'aberto', contrato_id: contrato.id, parcela_id: parcela2, parcela: '2/2',
     categoria: 'contrato', nf_status: 'a_emitir',
     obs: '30 dias corridos após a entrega final de 08/12 (cláusula 6.1.II). A planilha e a agenda marcam '
@@ -553,14 +571,23 @@ export async function criarProjetoBradesco(existente = null) {
     }
   }
 
+  /* Correções desta carga. Cada uma só entra se o registro ainda estiver
+     como veio — se você mudou a data da parcela, ela fica com a sua. */
+  await corrigir('contas', 'conta:parcela1', { venc: VENC_PARCELA1 });
+  await corrigir('contas', 'conta:parcela2', { venc: VENC_PARCELA2 });
+
   /* --------------------------------------------------------------------
      1ª leva de pagamentos: 3 dias úteis depois de a 1ª parcela cair.
      Combinado: 100% dos per diems, 100% do Tato, 60% do Becker e 50% do Maví.
      -------------------------------------------------------------------- */
   const parc1 = achar('contas', 'conta:parcela1');
-  const baseLeva = parc1?.quitado_em || parc1?.venc || '2026-08-27';
+  const baseLeva = parc1?.quitado_em || parc1?.venc || VENC_PARCELA1;
   const vencLeva = somarDiasUteis(baseLeva, 3);
   const FATIA = { 'mavi@tempora': 0.5, 'tato@tempora': 1, 'becker@tempora': 0.6 };
+  for (const em of Object.keys(FATIA)) {
+    await corrigir('contas', 'cache1:' + em, { venc: vencLeva });
+    await corrigir('contas', 'perdiem:' + em, { venc: vencLeva });
+  }
 
   /* cachês e per diems fechados */
   for (const p of PESSOAS) {
@@ -746,19 +773,20 @@ export async function criarProjetoBradesco(existente = null) {
     [membros['Tato Pessanha']]: '1272310202945'
   };
   for (const id of viajantes) {
-    await ins('confirmacoes', 'conf:passagem1:' + id, {
+    const em = store.get('membros', id)?.email || id;
+    await ins('confirmacoes', 'conf:passagem1:' + em, {
       membro_id: id, tipo: 'passagem', ref_id: ida1?.id || null,
       titulo: 'Passagem SP → Palmas · 23/08 · embarque 06:00',
       status: 'pendente',
       obs: `Localizador WFNEWO · bilhete ${bilhetes[id]} · 2 voos · chegada ao aeroporto 04:00.`
     });
-    await ins('confirmacoes', 'conf:passagem2:' + id, {
+    await ins('confirmacoes', 'conf:passagem2:' + em, {
       membro_id: id, tipo: 'passagem', ref_id: ida2?.id || null,
       titulo: 'Passagem SP → Recife · 30/08 · Azul 4232 05:00',
       status: 'pendente',
       obs: 'Localizador ZWQY3Q · voo direto GRU → REC · chegada ao aeroporto 03:00.'
     });
-    await ins('confirmacoes', 'conf:contrato:' + id, {
+    await ins('confirmacoes', 'conf:contrato:' + em, {
       membro_id: id, tipo: 'contrato',
       titulo: 'Contrato de prestação de serviço assinado', status: 'pendente', obs: ''
     });
@@ -776,22 +804,131 @@ export async function criarProjetoBradesco(existente = null) {
  * exatamente como está. Se a carga trouxer um evento, uma etapa ou uma conta
  * nova, ela entra ao lado do que já havia.
  */
+/* ---------------------------------------------------------------------------
+   Adoção da carga antiga. As primeiras versões gravavam sem `chave`, então uma
+   semeadura nova não reconhecia nada e duplicava tudo. Aqui o registro velho é
+   reconhecido pelo que ele é (nome, título, data) e recebe a chave que teria
+   se tivesse nascido agora. Só depois disso a semeadura roda.
+   --------------------------------------------------------------------------- */
+const chaveDe = {
+  membros: (r) => (r.email ? 'membro:' + r.email : null),
+  contatos: (r) => (r.nome ? 'contato:' + r.nome : null),
+  locacoes: (r) => (r.cidade ? 'loc:' + r.cidade : null),
+  contratos: (r) => (r.tipo === 'cliente' ? 'contrato:4600001793' : null),
+  orcamento: (r) => (r.rubrica ? 'rub:' + r.rubrica : null),
+  etapas: (r) => (r.nome ? 'etapa:' + r.nome : null),
+  entregas: (r) => (r.titulo ? 'entrega:' + r.titulo : null),
+  eventos: (r) => (r.data && r.titulo ? `ev:${r.data}:${r.titulo}` : null),
+  fontes: (r) => (r.titulo ? 'fonte:' + r.titulo : null),
+  viagens: (r) => (r.numero ? 'viagem:' + r.numero : null),
+  tarefas: (r) => {
+    if (!r.titulo) return null;
+    const m = /^Fazer check-in — /.test(r.titulo);
+    if (m) {
+      const ev = r.evento_id ? store.get('eventos', r.evento_id) : null;
+      return ev ? 'checkin:' + ev.data : null;
+    }
+    return 'tar:' + r.titulo;
+  },
+  contas: (r) => {
+    if (r.parcela === '1/2' && r.tipo === 'receber') return 'conta:parcela1';
+    if (r.parcela === '2/2' && r.tipo === 'receber') return 'conta:parcela2';
+    if (r.membro_id) {
+      const m = store.get('membros', r.membro_id);
+      if (m?.email) {
+        if (r.categoria === 'per diem') return 'perdiem:' + m.email;
+        if (r.categoria === 'cachê') {
+          if (/\(\d+%\)/.test(r.descricao || '')) return 'cache1:' + m.email;
+          if (/saldo/i.test(r.descricao || '')) return 'cache2:' + m.email;
+          return 'cache:' + m.email;
+        }
+      }
+    }
+    return r.descricao ? 'pag:' + r.descricao : null;
+  },
+  lancamentos: (r) => {
+    if (!r.descricao) return null;
+    return r.forma === 'dinheiro' ? 'caixa:' + r.descricao : 'lanc:' + r.descricao;
+  },
+  confirmacoes: (r) => {
+    const em = r.membro_id ? store.get('membros', r.membro_id)?.email : null;
+    if (!em) return null;
+    if (r.tipo === 'contrato') return 'conf:contrato:' + em;
+    if (r.tipo === 'passagem') {
+      if (/Palmas/.test(r.titulo || '')) return 'conf:passagem1:' + em;
+      if (/Recife/.test(r.titulo || '')) return 'conf:passagem2:' + em;
+    }
+    return null;
+  }
+};
+
+/** Dá chave a quem ainda não tem, para a semeadura reconhecer o que já existe. */
+async function adotarCargaAntiga() {
+  let n = 0;
+  for (const [tabela, fn] of Object.entries(chaveDe)) {
+    for (const r of store.doProjeto(tabela)) {
+      if (r.chave) continue;
+      const k = fn(r);
+      if (!k) continue;
+      await store.update(tabela, r.id, { chave: k });
+      n += 1;
+    }
+  }
+  const proj = store.projeto;
+  if (proj && !proj.chave) await store.update('projetos', proj.id, { chave: 'proj:bradesco70' });
+  return n;
+}
+
+/** Some com cópias da mesma chave, guardando sempre a mais antiga — que é a
+    que a pessoa vinha usando e pode ter editado. */
+async function removerDuplicados() {
+  let n = 0;
+  for (const tabela of Object.keys(chaveDe)) {
+    const porChave = new Map();
+    for (const r of store.doProjeto(tabela)) {
+      if (!r.chave) continue;
+      const lista = porChave.get(r.chave) || [];
+      lista.push(r);
+      porChave.set(r.chave, lista);
+    }
+    for (const lista of porChave.values()) {
+      if (lista.length < 2) continue;
+      lista.sort((a, b) => String(a.criado_em || '').localeCompare(String(b.criado_em || '')));
+      for (const extra of lista.slice(1)) {
+        // store.remove tira da lista em memória e persiste; adapter.remove só grava.
+        await store.remove(tabela, extra.id);
+        n += 1;
+      }
+    }
+  }
+  return n;
+}
+
+/**
+ * Atualiza a carga do projeto SEM apagar trabalho. Antes de semear, adota o que
+ * já existe (dando chave a quem não tem) e limpa cópias repetidas. Depois roda
+ * a semeadura, que só insere o que ainda falta.
+ */
 export async function atualizarProjeto() {
   const nomeAtual = store.user?.nome || null;
   const atual = store.projeto;
 
   store.ocupado = true;
   try {
+    const adotados = await adotarCargaAntiga();
+    const removidos = await removerDuplicados();
+
     const antes = TABELAS.reduce((n, t) => n + store.doProjeto(t).length, 0);
-    const projeto = await criarProjetoBradesco(atual || null);
+    const projeto = await criarProjetoBradesco(store.projeto || atual || null);
     await store.update('projetos', projeto.id, { seed_versao: SEED_VERSAO });
     const depois = TABELAS.reduce((n, t) => n + store.doProjeto(t).length, 0);
 
     const eu = nomeAtual ? store.doProjeto('membros').find((m) => m.nome === nomeAtual) : null;
     store.setUser(eu || store.user || null);
     await store.log(`Carga atualizada para a versão ${SEED_VERSAO}: ${depois - antes} item(ns) novo(s), `
-      + 'nada apagado.', 'projeto');
-    return { projeto, novos: depois - antes };
+      + `${removidos} duplicado(s) removido(s), ${adotados} registro(s) reconhecido(s) da carga antiga.`,
+    'projeto');
+    return { projeto, novos: depois - antes, removidos, adotados };
   } finally {
     store.ocupado = false;
   }

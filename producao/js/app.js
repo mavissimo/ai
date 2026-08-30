@@ -220,7 +220,8 @@ export function render() {
     aviso.querySelector('[data-recarregar]').onclick = async () => {
       try {
         const r = await atualizarProjeto();
-        toast(r.novos ? `${r.novos} item(ns) novo(s). Nada foi apagado.` : 'Já estava em dia.');
+        toast([r.novos ? `${r.novos} novo(s)` : '', r.removidos ? `${r.removidos} duplicado(s) removido(s)` : '']
+          .filter(Boolean).join(' · ') || 'Já estava em dia.');
         store.emit();
       } catch (e) { console.error(e); toast('Falhou: ' + e.message); }
     };

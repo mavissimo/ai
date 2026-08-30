@@ -61,7 +61,10 @@ class Store {
   async update(tabela, id, patch) {
     const rec = this.get(tabela, id);
     if (!rec) throw new Error('Registro não encontrado.');
-    Object.assign(rec, patch);
+    // Marca o que foi mexido por gente. A carga inicial roda com ocupado=true e
+    // não marca — é o que deixa a atualização corrigir um valor errado da carga
+    // sem nunca encostar no que alguém editou à mão.
+    Object.assign(rec, patch, this.ocupado ? {} : { editado_em: new Date().toISOString() });
     await this._persist('update', tabela, id, patch);
     this.emit();
     return rec;
