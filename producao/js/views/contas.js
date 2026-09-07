@@ -2,9 +2,10 @@
 import { store, membros, nomeMembro } from '../store.js';
 import { can } from '../perms.js';
 import { el, abrirForm, sheet, toast, btnOlho } from '../ui.js';
-import { esc, fmtMoney, fmtMoneyShort, fmtData, prazoTxt, prazoTag, hoje, ordenar, soma, diasAte, valoresOcultos } from '../utils.js';
+import { esc, fmtMoney, fmtMoneyShort, fmtData, prazoTxt, prazoTag, hoje, somarDias, ordenar, soma, diasAte, valoresOcultos } from '../utils.js';
 import { ST_CONTA } from '../calc.js';
 import { salvarArquivo, abrirArquivo } from '../files.js';
+import { textoPedido, linkEmail, linkWhats } from '../nf.js';
 
 let aba = 'receber';
 
@@ -134,6 +135,12 @@ export function abrirConta(c, editar) {
         Marcar como ${c.tipo === 'pagar' ? 'pago' : 'recebido'}</button>` : ''}
       ${!podePagar && c.status === 'aberto' ? `<div class="banner small">Quem dá baixa no pagamento é
         a direção. Você monta e negocia a conta; a baixa fica com quem paga.</div>` : ''}
+      ${c.tipo === 'pagar' && c.nf_status === 'a_receber' && c.status === 'aberto' ? `
+        <button class="btn wide" style="margin-top:8px" data-pedir-nf>Pedir a nota fiscal</button>` : ''}
+      ${editar && c.status === 'aberto' && !c.grupo_id ? `<button class="btn wide gho" style="margin-top:8px"
+        data-parcelar>Dividir em parcelas</button>` : ''}
+      ${c.grupo_id ? `<div class="banner small">Parte de um parcelamento${c.parcela ? ` — ${esc(c.parcela)}` : ''}.
+        ${irmas(c).length} parcela(s) no total.</div>` : ''}
       ${editar ? '<button class="btn wide gho" style="margin-top:8px" data-edit>Editar</button>' : ''}`;
 
     corpo.querySelector('[data-ver]')?.addEventListener('click', async () => {
@@ -166,6 +173,8 @@ export function abrirConta(c, editar) {
         toast('Nota registrada.'); pintar(); store.emit();
       }
     }));
+    corpo.querySelector('[data-pedir-nf]')?.addEventListener('click', () => { sh.close(); pedirNF(c); });
+    corpo.querySelector('[data-parcelar]')?.addEventListener('click', () => { sh.close(); parcelar(c); });
     corpo.querySelector('[data-quitar]')?.addEventListener('click', async () => {
       await store.update('contas', c.id, { status: 'quitado', quitado_em: hoje() });
       c.status = 'quitado';
@@ -190,4 +199,115 @@ export function abrirConta(c, editar) {
   };
   pintar();
   const sh = sheet({ titulo: c.descricao, corpo });
+}
+
+/* ------------------------------------------------------- parcelamento ---
+   Dividir uma conta é o que a produção faz o tempo todo: 60% agora, o resto
+   na entrega. Cada parcela vira uma conta própria, com vencimento e baixa
+   independentes — é o que faz o fluxo de caixa ficar certo. As parcelas se
+   reconhecem pelo grupo_id, que é o id da conta original. */
+export const irmas = (c) => store.doProjeto('contas')
+  .filter((x) => c.grupo_id && x.grupo_id === c.grupo_id)
+  .sort((a, b) => String(a.venc || '9999').localeCompare(String(b.venc || '9999')));
+
+function parcelar(c) {
+  if (!c) return;
+  abrirForm({
+    titulo: 'Dividir em parcelas',
+    subtitulo: `${c.descricao} — ${fmtMoney(c.valor_cents)}`,
+    campos: [
+      { k: 'n', label: 'Quantas parcelas', type: 'numero', valor: 2, req: true, meia: true, step: '1' },
+      {
+        k: 'intervalo', label: 'De quanto em quanto', type: 'select', meia: true, valor: '30',
+        opts: [
+          { v: '30', t: 'Todo mês' }, { v: '15', t: 'A cada 15 dias' },
+          { v: '7', t: 'Toda semana' }, { v: '0', t: 'Sem data — eu marco depois' }
+        ]
+      },
+      { k: 'venc', label: 'Vencimento da primeira', type: 'data', valor: c.venc || hoje() },
+      {
+        k: 'primeira_cents', label: 'Valor da primeira', type: 'dinheiro',
+        valor: Math.round(c.valor_cents / 2),
+        hint: 'Deixe como está para dividir por igual. Mudando, o resto se divide entre as outras.'
+      }
+    ],
+    onSave: async (v) => {
+      const n = Math.max(2, Math.min(36, Number(v.n) || 2));
+      const total = c.valor_cents;
+      const primeira = Math.min(Number(v.primeira_cents) || Math.round(total / n), total);
+      const resto = total - primeira;
+      // O que sobra da divisão vai para a última, para a soma bater ao centavo.
+      const base = Math.floor(resto / (n - 1));
+      const valores = [primeira, ...Array.from({ length: n - 1 }, () => base)];
+      valores[n - 1] += resto - base * (n - 1);
+
+      const passo = Number(v.intervalo);
+      for (let i = 0; i < n; i++) {
+        await store.insert('contas', {
+          projeto_id: c.projeto_id, tipo: c.tipo,
+          descricao: `${c.descricao} (${i + 1}/${n})`,
+          contraparte: c.contraparte, valor_cents: valores[i],
+          venc: passo && v.venc ? somarDias(v.venc, passo * i) : (i === 0 ? v.venc || '' : ''),
+          status: 'aberto', membro_id: c.membro_id || null, categoria: c.categoria,
+          rubrica: c.rubrica || '', viagem_id: c.viagem_id || null,
+          contrato_id: c.contrato_id || null, nf_status: c.nf_status || 'na',
+          grupo_id: c.id, parcela: `${i + 1}/${n}`,
+          obs: `Parcela ${i + 1} de ${n} de ${fmtMoney(total)}.${c.obs ? ' ' + c.obs : ''}`
+        });
+      }
+      // A conta original vira só o registro do acordo, para não contar duas vezes.
+      await store.update('contas', c.id, {
+        status: 'cancelado',
+        obs: `Dividida em ${n} parcelas.${c.obs ? ' ' + c.obs : ''}`
+      });
+      toast(`Dividida em ${n} parcelas.`);
+    }
+  });
+}
+
+/* --------------------------------------------------------- pedido de NF ---
+   O texto sai pronto do cadastro: job, função, vencimento, valor e os dados
+   de faturamento. Dá para copiar, mandar por e-mail ou por WhatsApp. */
+function pedirNF(c) {
+  if (!c) return;
+  const texto = textoPedido(c);
+  const corpo = el(`<div>
+    <div class="banner small">Confira antes de mandar. Sai do cadastro da pessoa e da conta —
+      se algo estiver errado aqui, está errado lá também.</div>
+    <pre class="pedido">${esc(texto)}</pre>
+    <div class="btns" style="margin-top:12px">
+      <button class="btn pri" style="flex:1" data-copiar>Copiar texto</button>
+    </div>
+    <div class="btns" style="margin-top:8px">
+      <a class="btn gho" style="flex:1" href="${esc(linkEmail(c))}">E-mail</a>
+      <a class="btn gho" style="flex:1" href="${esc(linkWhats(c))}" target="_blank" rel="noopener">WhatsApp</a>
+    </div>
+    <button class="btn wide gho" style="margin-top:12px" data-marcar>Marquei como pedida</button>
+  </div>`);
+
+  const sh = sheet({ titulo: 'Pedido de nota fiscal', corpo });
+  corpo.querySelector('[data-copiar]').onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(texto);
+      toast('Copiado. É só colar.');
+    } catch {
+      // Sem permissão de área de transferência: seleciona para copiar na mão.
+      const pre = corpo.querySelector('.pedido');
+      const r = document.createRange();
+      r.selectNodeContents(pre);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+      toast('Selecionei o texto — copie com o toque longo.');
+    }
+  };
+  corpo.querySelector('[data-marcar]').onclick = async () => {
+    await store.update('contas', c.id, {
+      nf_status: 'a_receber',
+      obs: `${c.obs ? c.obs + ' ' : ''}Pedido de NF enviado em ${fmtData(hoje())}.`
+    });
+    await store.log(`Pedido de NF enviado: ${c.descricao}`, 'conta');
+    sh.close();
+    toast('Registrado no histórico.');
+  };
 }

@@ -326,6 +326,11 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .tabela tbody tr:active{background:var(--bg3)}
 .tabela tfoot td{border-bottom:0;border-top:1.5px solid var(--tx3);font-weight:700;background:var(--bg)}
 
+.pedido{background:var(--bg3);border:1px solid var(--line);border-radius:var(--r);
+  padding:var(--s3) var(--s4);font-size:12.5px;line-height:1.55;white-space:pre-wrap;
+  word-break:break-word;margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  max-height:46dvh;overflow:auto}
+
 /* ------------------------------------------------- perguntas rápidas ---
    Cartão de decisão: pergunta em cima, contexto embaixo, dois botões no pé.
    No celular vira uma coluna; a partir de 560px, três lado a lado. */

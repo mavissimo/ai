@@ -14,7 +14,7 @@ const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-export const SEED_VERSAO = 12;
+export const SEED_VERSAO = 13;
 
 const PESSOAS = [
   {
@@ -106,10 +106,10 @@ const LOCACOES = [
   ['Escola Fundação Bradesco — Bodoquena', 'Bodoquena', 'MS',
     'Rodovia BR-262, Estação Guaycurus — Fazenda Bodoquena, município de Miranda/MS. '
     + 'Fotógrafo: Pedro Kok. Aeroporto: Campo Grande (CGR), 250–265 km / 3h38. Taxista: Sr. Paulo. '
-    + 'Data ainda não confirmada pela Fundação.'],
+    + 'Datas confirmadas pela Fundação.'],
   ['Escola Fundação Bradesco — Fazenda Canuanã', 'Formoso do Araguaia', 'TO',
     'Fazenda Canuanã, s/n. Fotógrafa: Mariana Valente. Aeroporto: Palmas (PMW), 330 km / 4h16. '
-    + 'Apoio: Sr. Tucum. Data ainda não confirmada pela Fundação.'],
+    + 'Apoio: Sr. Tucum. Datas confirmadas. A equipe fica hospedada na própria Fundação, sem custo.'],
   ['Escola Fundação Bradesco — Osasco', 'Osasco', 'SP',
     'Núcleo Administrativo Cidade de Deus, sede da Fundação. Fotógrafo: Fábio Bartelt. '
     + 'Data ainda não confirmada pela Fundação.']
@@ -139,7 +139,8 @@ const ORCAMENTO = [
   /* --- viagens e logística (172.812 orçado / 47.973,69 negociado) --- */
   ['Passagens aéreas', '52800', '22697,07', 'Orçado a R$ 2.200 por pessoa em 8 das 11 viagens. '
     + 'Fechado: Palmas R$ 10.722,51, Recife R$ 6.894,27 e Porto Alegre R$ 5.080,29.'],
-  ['Hospedagem', '70200', '3293,07', 'Fechado: Conceição do Araguaia R$ 1.620,00 e Jaboatão R$ 1.673,07.'],
+  ['Hospedagem', '63900', '3293,07', 'Fechado: Conceição do Araguaia R$ 1.620,00 e Jaboatão R$ 1.673,07. '
+    + 'Canuanã saiu do orçado (R$ 6.300): a equipe fica na própria Fundação, sem custo.'],
   ['Locação de carro', '9676', '1411,73', 'Fechado: Conceição R$ 580,00 e Recife/Jaboatão R$ 831,73.'],
   ['Combustível e estacionamento', '6200', '560,11', 'Viagem 1 fechada em R$ 560,11 (aba "verba a vista").'],
   ['Per diem da equipe', '23100', '21000', 'Orçado R$ 220/dia, fechado R$ 200/dia × 35 dias para Maví, Tato e Julio.'],
@@ -231,22 +232,20 @@ const AGENDA = [
   ['2026-09-14', 'outro', 'Edição', 'São Paulo', true, ''],
   ['2026-09-15', 'viagem', 'SP → Campo Grande', 'Campo Grande (MS)', true, 'Voo ainda sem horário confirmado.'],
   ['2026-09-16', 'viagem', 'Campo Grande → Bodoquena + scout', 'Miranda (MS)', true, '3h38 · 250–265 km.'],
-  ['2026-09-17', 'diaria', 'Filmagem — Bodoquena', 'Miranda (MS)', false,
-    'Fotógrafo Pedro Kok. A carta-orçamento V2 marca esta escola como SEM DATA MARCADA — a agenda traz 17 e 18/09 como previsão.'],
-  ['2026-09-18', 'diaria', 'Filmagem — Bodoquena', 'Miranda (MS)', false, 'Data prevista, aguardando confirmação.'],
+  ['2026-09-17', 'diaria', 'Filmagem — Bodoquena', 'Miranda (MS)', true, 'Fotógrafo Pedro Kok. Data confirmada pela Fundação.'],
+  ['2026-09-18', 'diaria', 'Filmagem — Bodoquena', 'Miranda (MS)', true, 'Data confirmada pela Fundação.'],
   ['2026-09-19', 'viagem', 'Bodoquena → Campo Grande → SP', 'Miranda (MS)', true, '3h38 · 250–265 km.'],
   ['2026-09-21', 'viagem', 'SP → Palmas → Fazenda Canuanã', 'Palmas (TO)', true, '4h16 · 330 km de Palmas até a fazenda.'],
   ['2026-09-22', 'outro', 'Scout e visita — Canuanã', 'Formoso do Araguaia (TO)', true, ''],
-  ['2026-09-23', 'diaria', 'Filmagem — Canuanã', 'Formoso do Araguaia (TO)', false,
-    'Fotógrafa Mariana Valente. A carta-orçamento V2 marca esta escola como SEM DATA MARCADA — a agenda traz 23 e 24/09 como previsão.'],
-  ['2026-09-24', 'diaria', 'Filmagem — Canuanã', 'Formoso do Araguaia (TO)', false, 'Data prevista, aguardando confirmação.'],
+  ['2026-09-23', 'diaria', 'Filmagem — Canuanã', 'Formoso do Araguaia (TO)', true,
+    'Fotógrafa Mariana Valente. Data confirmada. Hospedagem na própria Fundação, sem custo.'],
+  ['2026-09-24', 'diaria', 'Filmagem — Canuanã', 'Formoso do Araguaia (TO)', true, 'Data confirmada pela Fundação.'],
   ['2026-09-25', 'viagem', 'Canuanã → Palmas → SP', 'Formoso do Araguaia (TO)', true, ''],
   ['2026-09-28', 'outro', 'Edição (28/09 a 02/10)', 'São Paulo', true, ''],
   ['2026-10-05', 'outro', 'Edição', 'São Paulo', true, ''],
   ['2026-10-06', 'outro', 'Scout e visita — Osasco', 'Osasco (SP)', true, 'Núcleo Cidade de Deus.'],
-  ['2026-10-07', 'diaria', 'Filmagem — Osasco', 'Osasco (SP)', false,
-    'Fotógrafo Fábio Bartelt. A carta-orçamento V2 marca esta escola como SEM DATA MARCADA — a agenda traz 07 e 08/10 como previsão.'],
-  ['2026-10-08', 'diaria', 'Filmagem — Osasco', 'Osasco (SP)', false, 'Data prevista, aguardando confirmação.'],
+  ['2026-10-07', 'diaria', 'Filmagem — Osasco', 'Osasco (SP)', true, 'Fotógrafo Fábio Bartelt. Data confirmada pela Fundação.'],
+  ['2026-10-08', 'diaria', 'Filmagem — Osasco', 'Osasco (SP)', true, 'Data confirmada pela Fundação.'],
   ['2026-10-09', 'outro', 'Edição', 'São Paulo', true, ''],
   ['2026-10-12', 'viagem', 'SP → Belém', 'Belém (PA)', false, 'Data prevista, aguardando confirmação.'],
   ['2026-10-13', 'diaria', 'Filmagem — Patricia Brasil', 'Belém (PA)', false, 'Entrevista de estúdio. Data prevista.'],
@@ -287,11 +286,12 @@ const VIAGENS = [
   ['3', 'SP → Porto Alegre → Gravataí', '2026-09-09', '2026-09-12', 'São Paulo', 'Gravataí (RS)',
     '14900', 'confirmada', 'Voo ainda não fechado. POA → Gravataí: 30 km.'],
   ['4', 'SP → Campo Grande → Bodoquena', '2026-09-15', '2026-09-19', 'São Paulo', 'Miranda (MS)',
-    '14900', 'prevista', 'Datas de filmagem ainda não confirmadas pela Fundação. 250–265 km / 3h38 do aeroporto.'],
+    '14900', 'confirmada', 'Datas confirmadas pela Fundação. 250–265 km / 3h38 do aeroporto.'],
   ['5', 'SP → Palmas → Canuanã', '2026-09-21', '2026-09-25', 'São Paulo', 'Formoso do Araguaia (TO)',
-    '14900', 'prevista', 'Datas de filmagem ainda não confirmadas pela Fundação. 330 km / 4h16 do aeroporto.'],
+    '8600', 'confirmada', 'Datas confirmadas. Hospedagem na própria Fundação, sem custo — '
+    + 'os R$ 6.300 de hotel saíram do orçado desta viagem. 330 km / 4h16 do aeroporto.'],
   ['6', 'SP → Osasco', '2026-10-06', '2026-10-08', 'São Paulo', 'Osasco (SP)',
-    '7300', 'prevista', 'Sem voo — só carro. Datas ainda não confirmadas.'],
+    '7300', 'confirmada', 'Sem voo — só carro. Datas confirmadas pela Fundação.'],
   ['7', 'SP → Belém (Patricia Brasil)', '2026-10-12', '2026-10-14', 'São Paulo', 'Belém (PA)',
     '13900', 'prevista', 'Entrevista de estúdio. Data prevista.'],
   ['8', 'São Paulo (Lalo de Almeida)', '2026-10-15', '2026-10-15', 'São Paulo', 'São Paulo (SP)',
@@ -345,7 +345,7 @@ const ETAPAS = [
   ['negociacao', 'Contrato 4600001793 rev 04 assinado (Docusign)', 'feito', '2026-08-22'],
   ['negociacao', 'Emitir NF da 1ª parcela', 'fazendo', '2026-08-22'],
   ['negociacao', 'Receber 1ª parcela (50%)', 'fazendo', '2026-08-26'],
-  ['pre', 'Confirmar datas de Bodoquena, Canuanã e Osasco', 'fazendo', '2026-09-03'],
+  ['pre', 'Confirmar datas de Bodoquena, Canuanã e Osasco', 'feito', '2026-09-03'],
   ['pre', 'Contratos da equipe (PF e PJ) assinados', 'nao', '2026-08-31'],
   ['pre', 'Apólice GBI emitida (equipe + equipamento)', 'fazendo', '2026-08-31'],
   ['pre', 'Certidões de antecedentes de quem entra nas escolas', 'nao', '2026-08-31'],
@@ -374,7 +374,6 @@ const ETAPAS = [
   ['entrega', 'Masters, brutos e editáveis + relação e recibo', 'nao', '2026-12-08'],
   ['entrega', 'Emitir NF da 2ª parcela (até o dia 22 do mês)', 'nao', '2026-12-22'],
   ['entrega', 'Receber 2ª parcela (50%)', 'nao', '2027-01-07'],
-  ['entrega', 'Cobrar a liberação da retenção de garantia, se aplicada', 'nao', '2027-01-07'],
   ['entrega', 'Guardar backups por 90 dias após a entrega', 'nao', '2027-03-08']
 ];
 
@@ -382,7 +381,6 @@ const ETAPAS = [
 const TAREFAS = [
   ['Confirmar com a Fundação as datas de Bodoquena, Canuanã e Osasco', 'Tato Pessanha', '2026-09-03',
     'Confirmar datas de Bodoquena, Canuanã e Osasco'],
-  ['Checar com o jurídico a retenção de garantia de 5% (cláusula 6.10 x Quadro Resumo VI)', 'Maví Simões', '2026-09-01', ''],
   ['Emitir a NF da 1ª parcela', 'Tato Pessanha', '2026-08-22', 'Emitir NF da 1ª parcela'],
   ['Fechar os contratos de PF e PJ da equipe', 'Tato Pessanha', '2026-08-31', 'Contratos da equipe (PF e PJ) assinados'],
   ['Juntar as certidões de antecedentes de quem entra nas escolas', 'Tato Pessanha', '2026-08-31',
@@ -469,6 +467,13 @@ export async function criarProjetoBradesco(existente = null) {
     valor_contrato_cents: M('518998,86'),
     imposto_regime: 'simples',
     imposto_aliquota: 12,
+    codigo_job: 'Job 008_F.BRADESCO 70 ANOS',
+    cnpj: '47.661.128/0001-60',
+    razao_social: 'MATHEUS SIMOES AVILA LTDA',
+    fantasia: 'MAVI',
+    endereco: 'R AROABA, 482',
+    cidade_uf: 'SAO PAULO SP 05.315-021',
+    email_nf: 'mavissimo1@gmail.com',
     seed_versao: SEED_VERSAO,
     obs: 'Contrato 4600001793 (PRC0045079), rev 04 assinada em 22/08/2026, vigência de 6 meses. '
       + 'Cada diária precisa ser confirmada pela Fundação com 10 dias úteis de antecedência (cláusula 4.3). '
@@ -529,10 +534,8 @@ export async function criarProjetoBradesco(existente = null) {
       + 'NF até o dia 22 de cada mês — emitida entre 23 e 31 tem de ser cancelada e reemitida no mês seguinte '
       + '(cláusula 6.4.1). A NF só é recebida com comprovação do aceite e certidões de regularidade fiscal, '
       + 'trabalhista e previdenciária.',
-    obs: 'ATENÇÃO — divergência interna do contrato: o Quadro Resumo VI diz "sem retenção de garantia", '
-      + 'mas a cláusula 6.10 manda deduzir 5% de cada pagamento (R$ 25.949,94), liberados no aceite final. '
-      + 'O próprio Quadro Resumo diz que, havendo divergência, prevalecem as cláusulas — ou seja, a retenção '
-      + 'vale. Vale confirmar com a Fundação antes de faturar. '
+    obs: 'Retenção de garantia: NÃO se aplica. A cláusula 6.10 previa 5%, mas a Fundação pagou a 1ª '
+      + 'parcela integral em 03/09 e nunca cogitou reter — vale o Quadro Resumo VI ("sem retenção"). '
       + 'Aceite: análise em 5 dias úteis, silêncio NÃO configura aceite (cláusula 5.8), até 3 rodadas de '
       + 'revisão por Obra. Diária extra de filmagem: R$ 18.977,00. Diária extra de deslocamento: R$ 9.488,00. '
       + 'Weather day segue a diária extra. Anexos: I Cronograma · II Autorizações de imagem · III Requisitos '
@@ -585,6 +588,26 @@ export async function criarProjetoBradesco(existente = null) {
       });
     }
   }
+
+  /* --------------------------------------------------------------------
+     O que já aconteceu de fato, conferido no e-mail da Fundação.
+     -------------------------------------------------------------------- */
+  await corrigir('contas', 'conta:parcela1', {
+    status: 'quitado', quitado_em: '2026-09-03', nf_status: 'emitida', nf_numero: '136',
+    obs: 'NF 136 emitida em 01/09 e paga pela Fundação em 03/09/2026. '
+      + 'Comprovante enviado pelo Caio Rossi em 04/09.'
+  });
+  await ins('lancamentos', 'lanc:parcela1', {
+    tipo: 'entrada', descricao: 'Fundação Bradesco — 1ª parcela (NF 136)',
+    valor_cents: M('259499,43'), data: '2026-09-03', rubrica: '', fornecedor: 'Fundação Bradesco',
+    forma: 'transferência', membro_id: null, evento_id: null, fonte: 'empresa',
+    status: 'recebido', conta_id: achar('contas', 'conta:parcela1')?.id || null,
+    obs: 'Comprovante Bradesco de 04/09.'
+  });
+  await corrigir('contas', 'cache1:becker@tempora', { nf_status: 'recebida' });
+  await corrigir('contas', 'cache1:tato@tempora', { nf_status: 'recebida' });
+  await corrigir('etapas', 'etapa:Receber 1ª parcela (50%)', { status: 'feito' });
+  await corrigir('etapas', 'etapa:Emitir NF da 1ª parcela', { status: 'feito' });
 
   /* Correções desta carga. Cada uma só entra se o registro ainda estiver
      como veio — se você mudou a data da parcela, ela fica com a sua. */
@@ -659,26 +682,6 @@ export async function criarProjetoBradesco(existente = null) {
       });
     }
   }
-
-  /* --------------------------------------------------------------------
-     O que já aconteceu de fato, conferido no e-mail da Fundação.
-     -------------------------------------------------------------------- */
-  await corrigir('contas', 'conta:parcela1', {
-    status: 'quitado', quitado_em: '2026-09-03', nf_status: 'emitida', nf_numero: '136',
-    obs: 'NF 136 emitida em 01/09 e paga pela Fundação em 03/09/2026. '
-      + 'Comprovante enviado pelo Caio Rossi em 04/09.'
-  });
-  await ins('lancamentos', 'lanc:parcela1', {
-    tipo: 'entrada', descricao: 'Fundação Bradesco — 1ª parcela (NF 136)',
-    valor_cents: M('259499,43'), data: '2026-09-03', rubrica: '', fornecedor: 'Fundação Bradesco',
-    forma: 'transferência', membro_id: null, evento_id: null, fonte: 'empresa',
-    status: 'recebido', conta_id: achar('contas', 'conta:parcela1')?.id || null,
-    obs: 'Comprovante Bradesco de 04/09.'
-  });
-  await corrigir('contas', 'cache1:becker@tempora', { nf_status: 'recebida' });
-  await corrigir('contas', 'cache1:tato@tempora', { nf_status: 'recebida' });
-  await corrigir('etapas', 'etapa:Receber 1ª parcela (50%)', { status: 'feito' });
-  await corrigir('etapas', 'etapa:Emitir NF da 1ª parcela', { status: 'feito' });
 
   // Per diems do Tato e do Julio pagos em 07/09. O do Maví segue em aberto.
   for (const em of ['tato@tempora', 'becker@tempora']) {
