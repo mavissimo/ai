@@ -1757,7 +1757,7 @@ const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-const SEED_VERSAO = 10;
+const SEED_VERSAO = 11;
 
 const PESSOAS = [
   {
@@ -1778,9 +1778,12 @@ const PESSOAS = [
       + 'anterior estava zerada). Per diem: R$ 7.000 (35 × R$ 200).'
   },
   {
-    nome: 'Tato Pessanha', funcao: 'Produção executiva', papel: 'coord', tipo: 'pf', rubrica: 'Produção executiva',
+    nome: 'Tato Pessanha', funcao: 'Produção executiva', papel: 'coord', tipo: 'pj', rubrica: 'Produção executiva',
     email: 'tato@tempora', telefone: '(11) 96340-1980',
-    doc: '083.240.687-24', rg: '633482316', nascimento: '1980-06-04',
+    doc: '33.232.591/0001-81', rg: '633482316', nascimento: '1980-06-04',
+    titular: 'Narrativa Filmes (Tathiano Pessanha dos Santos)',
+    banco: 'Nu Pagamentos S.A. (0260)', agencia: '0001', conta_banco: '253294284-0',
+    chave_pix: '33232591000181',
     cache_cents: M('1600'), cache_orcado_cents: M('1600'), diarias: 26, perdiem_cents: M('7000'),
     contrato_status: 'pendente',
     obs: 'Cachê fechado em R$ 41.600 (total job: executivo + produtor de viagem + som), igual ao orçado. '
@@ -1795,6 +1798,14 @@ const PESSOAS = [
     contrato_status: 'pendente',
     obs: 'Cachê fechado em R$ 1.100 × 26 = R$ 28.600 (coluna NEGOCIADO). Orçado era R$ 1.300 × 26 = '
       + 'R$ 33.800, sobrando R$ 5.200. Per diem: R$ 7.000 (35 × R$ 200).'
+  },
+  {
+    nome: 'Petrus Pitt', funcao: 'Piloto de drone', papel: 'equipe', tipo: 'pj', rubrica: 'Drone',
+    email: 'petrus.pitt@gmail.com', telefone: '',
+    cache_cents: M('1300'), cache_orcado_cents: 0, diarias: 1, perdiem_cents: 0,
+    contrato_status: 'na',
+    obs: 'Diária de drone em Recife/Jaboatão. R$ 1.300, vencimento 08/09/2026 (pedido de NF de 04/09). '
+      + 'Não estava no orçamento — entrou como extra.'
   },
   {
     nome: 'Patrick Bombassaro', funcao: 'Pesquisa de imagens', papel: 'equipe', tipo: 'pf', rubrica: 'Assistente criativo',
@@ -1876,7 +1887,9 @@ const ORCAMENTO = [
   ['Combustível e estacionamento', '6200', '560,11', 'Viagem 1 fechada em R$ 560,11 (aba "verba a vista").'],
   ['Per diem da equipe', '23100', '21000', 'Orçado R$ 220/dia, fechado R$ 200/dia × 35 dias para Maví, Tato e Julio.'],
   ['Verba de produção (caixinha)', '8536', '0', 'Petty cash das viagens. Ainda sem adiantamento lançado.'],
-  ['Seguro (GBI)', '2300', '4092', 'Apólice equipe + equipamentos. Estourou o orçado em R$ 1.792.']
+  ['Seguro (GBI)', '2300', '4092', 'Apólice equipe + equipamentos. Estourou o orçado em R$ 1.792.'],
+  ['Drone', '0', '1300', 'Petrus Pitt, diária em Recife/Jaboatão. Não existe na planilha — '
+    + 'entrou depois do orçamento fechado. Vale criar a linha lá.']
 ];
 
 // Pagamentos já fechados (coluna NEGOCIADO), que viram contas a pagar.
@@ -2320,15 +2333,26 @@ async function criarProjetoBradesco(existente = null) {
   await corrigir('contas', 'conta:parcela2', { venc: VENC_PARCELA2 });
 
   /* --------------------------------------------------------------------
-     1ª leva de pagamentos: 3 dias úteis depois de a 1ª parcela cair.
-     Combinado: 100% dos per diems, 100% do Tato, 60% do Becker e 50% do Maví.
+     1ª leva de pagamentos, conferida com os pedidos de NF que o Tato enviou
+     em 04/09 e com o comprovante da Fundação (1ª parcela paga em 03/09).
+     Valor de cada um, não porcentagem: o Tato emitiu 32.000 dos 41.600 e
+     deixou 9.600 para dezembro, o que nenhuma fração redonda descreveria.
      -------------------------------------------------------------------- */
   const parc1 = achar('contas', 'conta:parcela1');
   const baseLeva = parc1?.quitado_em || parc1?.venc || VENC_PARCELA1;
   const vencLeva = somarDiasUteis(baseLeva, 3);
-  const FATIA = { 'mavi@tempora': 0.5, 'tato@tempora': 1, 'becker@tempora': 0.6 };
-  for (const em of Object.keys(FATIA)) {
-    await corrigir('contas', 'cache1:' + em, { venc: vencLeva });
+
+  // [primeira parcela, vencimento, observação do saldo]
+  const LEVA = {
+    'mavi@tempora': [M('39000'), vencLeva, '50% do cachê. Saldo sem data combinada.'],
+    'tato@tempora': [M('32000'), '2026-09-04', 'NF de R$ 32.000 emitida em 06/09. '
+      + 'Saldo de R$ 9.600 combinado para dezembro.'],
+    'becker@tempora': [M('17160'), '2026-09-04', '60% do cachê, parcela 1 de 2 '
+      + '(pedido de NF de 04/09). NF recebida em 05/09.'],
+    'petrus.pitt@gmail.com': [M('1300'), '2026-09-08', 'Diária única. Pedido de NF de 04/09.']
+  };
+  for (const [em, [, venc]] of Object.entries(LEVA)) {
+    await corrigir('contas', 'cache1:' + em, { venc });
     await corrigir('contas', 'perdiem:' + em, { venc: vencLeva });
   }
 
@@ -2336,18 +2360,17 @@ async function criarProjetoBradesco(existente = null) {
   for (const p of PESSOAS) {
     const id = membros[p.nome];
     const bruto = (p.cache_cents || 0) * (p.diarias || 0);
-    const fatia = FATIA[p.email] || 0;
+    const [agora, venc, obsSaldo] = LEVA[p.email] || [];
 
-    if (bruto && fatia) {
-      // Parte combinada para a 1ª leva, e o resto fica em aberto sem data.
-      const agora = Math.round(bruto * fatia);
+    if (bruto && agora) {
+      const pct = Math.round((agora / bruto) * 100);
       await ins('contas', 'cache1:' + p.email, {
-        tipo: 'pagar', descricao: `Cachê — ${p.nome} (${Math.round(fatia * 100)}%)`,
-        contraparte: p.nome, valor_cents: agora, venc: vencLeva, status: 'aberto',
-        membro_id: id, categoria: 'cachê', rubrica: p.rubrica, parcela: '1/2',
+        tipo: 'pagar', descricao: `Cachê — ${p.nome}${pct < 100 ? ` (${pct}%)` : ''}`,
+        contraparte: p.nome, valor_cents: agora, venc, status: 'aberto',
+        membro_id: id, categoria: 'cachê', rubrica: p.rubrica,
+        parcela: agora < bruto ? '1/2' : '',
         nf_status: p.tipo === 'pj' ? 'a_receber' : 'na',
-        obs: `${Math.round(fatia * 100)}% de ${(bruto / 100).toLocaleString('pt-BR',
-          { style: 'currency', currency: 'BRL' })}. Combinado: 3 dias úteis depois de a 1ª parcela cair.`
+        obs: obsSaldo || ''
       });
       if (bruto - agora > 0) {
         await ins('contas', 'cache2:' + p.email, {
@@ -2355,7 +2378,7 @@ async function criarProjetoBradesco(existente = null) {
           contraparte: p.nome, valor_cents: bruto - agora, venc: '', status: 'aberto',
           membro_id: id, categoria: 'cachê', rubrica: p.rubrica, parcela: '2/2',
           nf_status: p.tipo === 'pj' ? 'a_receber' : 'na',
-          obs: 'Saldo do cachê. Data a combinar.'
+          obs: obsSaldo || 'Saldo do cachê. Data a combinar.'
         });
       }
     } else if (bruto) {
@@ -2377,6 +2400,26 @@ async function criarProjetoBradesco(existente = null) {
       });
     }
   }
+
+  /* --------------------------------------------------------------------
+     O que já aconteceu de fato, conferido no e-mail da Fundação.
+     -------------------------------------------------------------------- */
+  await corrigir('contas', 'conta:parcela1', {
+    status: 'quitado', quitado_em: '2026-09-03', nf_status: 'emitida', nf_numero: '136',
+    obs: 'NF 136 emitida em 01/09 e paga pela Fundação em 03/09/2026. '
+      + 'Comprovante enviado pelo Caio Rossi em 04/09.'
+  });
+  await ins('lancamentos', 'lanc:parcela1', {
+    tipo: 'entrada', descricao: 'Fundação Bradesco — 1ª parcela (NF 136)',
+    valor_cents: M('259499,43'), data: '2026-09-03', rubrica: '', fornecedor: 'Fundação Bradesco',
+    forma: 'transferência', membro_id: null, evento_id: null, fonte: 'empresa',
+    status: 'recebido', conta_id: achar('contas', 'conta:parcela1')?.id || null,
+    obs: 'Comprovante Bradesco de 04/09.'
+  });
+  await corrigir('contas', 'cache1:becker@tempora', { nf_status: 'recebida' });
+  await corrigir('contas', 'cache1:tato@tempora', { nf_status: 'recebida' });
+  await corrigir('etapas', 'etapa:Receber 1ª parcela (50%)', { status: 'feito' });
+  await corrigir('etapas', 'etapa:Emitir NF da 1ª parcela', { status: 'feito' });
 
   /* etapas */
   let ordem = 0;
