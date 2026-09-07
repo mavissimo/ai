@@ -18,17 +18,44 @@ export function faturamento() {
   };
 }
 
-/** O texto do pedido, pronto para colar no e-mail ou no WhatsApp. */
-export function textoPedido(conta) {
+/** Todas as contas em aberto da mesma pessoa que ainda esperam nota fiscal.
+    O montador que faz quatro linhas do orçamento emite uma NF só — o pedido
+    precisa saber juntar. */
+export function irmasSemNF(conta) {
+  if (!conta) return [];
+  const quem = conta.membro_id || conta.contraparte;
+  if (!quem) return [];
+  return store.doProjeto('contas').filter((c) => c.id !== conta.id
+    && c.tipo === 'pagar' && c.status === 'aberto' && c.nf_status === 'a_receber'
+    && (conta.membro_id ? c.membro_id === conta.membro_id : c.contraparte === conta.contraparte));
+}
+
+/** O texto do pedido, pronto para colar no e-mail ou no WhatsApp.
+    Com mais de uma conta, discrimina linha a linha e fecha com o total. */
+export function textoPedido(conta, extras = []) {
   if (!conta) return '';
   const f = faturamento();
   const m = conta.membro_id ? store.get('membros', conta.membro_id) : null;
   const p = store.projeto || {};
   // O código do job já carrega o nome do projeto; sem ele, usa o nome puro.
   const titulo = f.job || (p.nome || '').toUpperCase();
-  const linha = m ? [m.funcao, nomeMembro(conta.membro_id)].filter(Boolean).join(' ')
-    : conta.descricao;
+  // Com várias linhas, o cabeçalho é quem recebe; com uma só, é o serviço.
+  const quem = m ? [m.funcao, nomeMembro(conta.membro_id)].filter(Boolean).join(' ')
+    : (conta.contraparte || conta.descricao);
+  const linha = extras.length ? quem : (m ? quem : conta.descricao);
   const detalhe = conta.parcela ? ` (parcela ${conta.parcela})` : '';
+  const todas = [conta, ...extras];
+  const total = todas.reduce((n, c) => n + (c.valor_cents || 0), 0);
+
+  // Uma conta só: o formato curto de sempre. Várias: discrimina e soma.
+  const corpo = todas.length === 1
+    ? [`${linha}${detalhe}`, ``,
+      `Data de vencimento: ${conta.venc ? fmtData(conta.venc) : 'a combinar'}`, ``,
+      fmtMoney(conta.valor_cents)]
+    : [linha, ``,
+      ...todas.map((c) => `· ${c.descricao} — ${fmtMoney(c.valor_cents)}`), ``,
+      `Data de vencimento: ${conta.venc ? fmtData(conta.venc) : 'a combinar'}`, ``,
+      `TOTAL: ${fmtMoney(total)}`];
 
   return [
     `Segue pedido de NF para o pagamento.`,
@@ -37,11 +64,7 @@ export function textoPedido(conta) {
     ``,
     titulo,
     ``,
-    `${linha}${detalhe}`,
-    ``,
-    `Data de vencimento: ${conta.venc ? fmtData(conta.venc) : 'a combinar'}`,
-    ``,
-    fmtMoney(conta.valor_cents),
+    ...corpo,
     ``,
     `— Dados de faturamento —`,
     `CNPJ: ${f.cnpj}`,
@@ -64,16 +87,16 @@ export function assuntoPedido(conta) {
 }
 
 /** Link de e-mail já preenchido. */
-export function linkEmail(conta) {
+export function linkEmail(conta, extras = []) {
   const m = conta?.membro_id ? store.get('membros', conta.membro_id) : null;
   const para = m?.email && m.email.includes('@') && !m.email.endsWith('@tempora') ? m.email : '';
   return `mailto:${encodeURIComponent(para)}?subject=${encodeURIComponent(assuntoPedido(conta))}`
-    + `&body=${encodeURIComponent(textoPedido(conta))}`;
+    + `&body=${encodeURIComponent(textoPedido(conta, extras))}`;
 }
 
-export function linkWhats(conta) {
+export function linkWhats(conta, extras = []) {
   const m = conta?.membro_id ? store.get('membros', conta.membro_id) : null;
   const tel = String(m?.telefone || '').replace(/\D/g, '');
   const num = tel.length >= 10 ? (tel.length <= 11 ? '55' + tel : tel) : '';
-  return `https://wa.me/${num}?text=${encodeURIComponent(textoPedido(conta))}`;
+  return `https://wa.me/${num}?text=${encodeURIComponent(textoPedido(conta, extras))}`;
 }

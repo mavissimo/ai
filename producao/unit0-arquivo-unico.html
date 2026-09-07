@@ -1092,17 +1092,44 @@ function faturamento() {
   };
 }
 
-/** O texto do pedido, pronto para colar no e-mail ou no WhatsApp. */
-function textoPedido(conta) {
+/** Todas as contas em aberto da mesma pessoa que ainda esperam nota fiscal.
+    O montador que faz quatro linhas do orçamento emite uma NF só — o pedido
+    precisa saber juntar. */
+function irmasSemNF(conta) {
+  if (!conta) return [];
+  const quem = conta.membro_id || conta.contraparte;
+  if (!quem) return [];
+  return store.doProjeto('contas').filter((c) => c.id !== conta.id
+    && c.tipo === 'pagar' && c.status === 'aberto' && c.nf_status === 'a_receber'
+    && (conta.membro_id ? c.membro_id === conta.membro_id : c.contraparte === conta.contraparte));
+}
+
+/** O texto do pedido, pronto para colar no e-mail ou no WhatsApp.
+    Com mais de uma conta, discrimina linha a linha e fecha com o total. */
+function textoPedido(conta, extras = []) {
   if (!conta) return '';
   const f = faturamento();
   const m = conta.membro_id ? store.get('membros', conta.membro_id) : null;
   const p = store.projeto || {};
   // O código do job já carrega o nome do projeto; sem ele, usa o nome puro.
   const titulo = f.job || (p.nome || '').toUpperCase();
-  const linha = m ? [m.funcao, nomeMembro(conta.membro_id)].filter(Boolean).join(' ')
-    : conta.descricao;
+  // Com várias linhas, o cabeçalho é quem recebe; com uma só, é o serviço.
+  const quem = m ? [m.funcao, nomeMembro(conta.membro_id)].filter(Boolean).join(' ')
+    : (conta.contraparte || conta.descricao);
+  const linha = extras.length ? quem : (m ? quem : conta.descricao);
   const detalhe = conta.parcela ? ` (parcela ${conta.parcela})` : '';
+  const todas = [conta, ...extras];
+  const total = todas.reduce((n, c) => n + (c.valor_cents || 0), 0);
+
+  // Uma conta só: o formato curto de sempre. Várias: discrimina e soma.
+  const corpo = todas.length === 1
+    ? [`${linha}${detalhe}`, ``,
+      `Data de vencimento: ${conta.venc ? fmtData(conta.venc) : 'a combinar'}`, ``,
+      fmtMoney(conta.valor_cents)]
+    : [linha, ``,
+      ...todas.map((c) => `· ${c.descricao} — ${fmtMoney(c.valor_cents)}`), ``,
+      `Data de vencimento: ${conta.venc ? fmtData(conta.venc) : 'a combinar'}`, ``,
+      `TOTAL: ${fmtMoney(total)}`];
 
   return [
     `Segue pedido de NF para o pagamento.`,
@@ -1111,11 +1138,7 @@ function textoPedido(conta) {
     ``,
     titulo,
     ``,
-    `${linha}${detalhe}`,
-    ``,
-    `Data de vencimento: ${conta.venc ? fmtData(conta.venc) : 'a combinar'}`,
-    ``,
-    fmtMoney(conta.valor_cents),
+    ...corpo,
     ``,
     `— Dados de faturamento —`,
     `CNPJ: ${f.cnpj}`,
@@ -1138,21 +1161,21 @@ function assuntoPedido(conta) {
 }
 
 /** Link de e-mail já preenchido. */
-function linkEmail(conta) {
+function linkEmail(conta, extras = []) {
   const m = conta?.membro_id ? store.get('membros', conta.membro_id) : null;
   const para = m?.email && m.email.includes('@') && !m.email.endsWith('@tempora') ? m.email : '';
   return `mailto:${encodeURIComponent(para)}?subject=${encodeURIComponent(assuntoPedido(conta))}`
-    + `&body=${encodeURIComponent(textoPedido(conta))}`;
+    + `&body=${encodeURIComponent(textoPedido(conta, extras))}`;
 }
 
-function linkWhats(conta) {
+function linkWhats(conta, extras = []) {
   const m = conta?.membro_id ? store.get('membros', conta.membro_id) : null;
   const tel = String(m?.telefone || '').replace(/\D/g, '');
   const num = tel.length >= 10 ? (tel.length <= 11 ? '55' + tel : tel) : '';
-  return `https://wa.me/${num}?text=${encodeURIComponent(textoPedido(conta))}`;
+  return `https://wa.me/${num}?text=${encodeURIComponent(textoPedido(conta, extras))}`;
 }
 
-  return { faturamento, textoPedido, assuntoPedido, linkEmail, linkWhats };
+  return { faturamento, irmasSemNF, textoPedido, assuntoPedido, linkEmail, linkWhats };
 };
 
 __defs["js/nota.js"] = function () {
@@ -1845,7 +1868,7 @@ const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-const SEED_VERSAO = 13;
+const SEED_VERSAO = 15;
 
 const PESSOAS = [
   {
@@ -1916,6 +1939,10 @@ const CONTATOS = [
   ['Heloisa Aguiar', 'Gestão de fornecedores', 'Bradesco', 'heloisa.aguiar@bradesco.com.br', 'cliente', 'Cadastro de fornecedor CNPJ 47.661.128/0001-60.'],
   ['Kátia Pelaes', 'Corretora de seguros', 'GBI Seguros', 'katia.pelaes@gbiseguros.com', 'fornecedor', 'Apólice equipe + equipamento fechada em R$ 4.092,00. Tel (11) 99962-2312.'],
   ['Otávio Nazareth', 'Editora', 'Editora Olhares', '', 'outro', 'Indicou a produtora para a Fundação.'],
+  ['Mateus Guimarães', 'Montagem', 'Pós-produção', '', 'fornecedor',
+    'Faz TODA a edição: doc principal (8.000), cortes de fotógrafo (7.000), minidocs (5.000) e '
+    + 'versões (5.000) — R$ 25.000 no total. A NF dele vem sobre as quatro linhas de uma vez.'],
+  ['Rafaim', 'Color', 'Pós-produção', '', 'fornecedor', 'Correção de cor: R$ 12.000.'],
   ['Amauri — Coopertaxi', 'Taxista', 'Coopertaxi', '', 'fornecedor', 'Conceição do Araguaia (PA). Tel (63) 98406-2700.'],
   ['Sr. Edson', 'Apoio local', 'Escola Conceição do Araguaia', '', 'fornecedor', 'Tel (94) 99173-6700.'],
   ['Sr. Neto', 'Apoio local', 'Escola Conceição do Araguaia', '', 'fornecedor', 'Tel (94) 99191-6860.'],
@@ -1949,36 +1976,39 @@ const LOCACOES = [
 // Orçamento na estrutura da planilha (abas "mavi + profissionais" e "custo viagem ").
 // [rubrica, orçado, negociado, observação]
 const ORCAMENTO = [
-  /* --- equipe, equipamento e pós (283.891 orçado / 210.330 negociado) --- */
+  /* --- equipe, equipamento e pós (285.190 orçado / 231.310 negociado) --- */
   ['Roteiro', '15000', '15000', 'Total job. Fechado no valor orçado.'],
   ['Assistente criativo', '8000', '4000', 'Patrick Bombassaro. Orçado 8.000, fechado 4.000.'],
   ['Direção de cena', '78000', '78000', 'Maví — R$ 3.000 × 26 (pré + diárias + viagem).'],
   ['Produção executiva', '41600', '41600', 'Tato Pessanha — R$ 1.600 × 26. Executivo + produtor de viagem + som.'],
   ['Secretaria de produção / advogada', '7000', '0', 'Ainda não contratada.'],
   ['1º assistente de câmera', '33800', '28600', 'Julio Becker. Orçado 26 × 1.300, fechado 26 × 1.100.'],
-  ['Equipamento de câmera', '11700', '2770', 'Câmera, lentes e acessórios — orçado R$ 450 × 26. Pago no crédito C6 PF.'],
-  ['Luz e elétrica', '7800', '0', 'R$ 300 × 26. Ainda não fechado.'],
+  ['Drone', '1300', '1300', 'Petrus Pitt, diária em Recife/Jaboatão.'],
+  ['Equipamento de câmera', '11700', '2770', 'Câmera, lentes e acessórios. Pago no crédito C6 do Maví.'],
+  ['Luz e elétrica', '7800', '14680', 'Fechou R$ 6.880 acima do orçado — é o maior estouro do projeto.'],
   ['Material de produção e som', '5720', '0', 'R$ 220 × 26. Ainda não fechado.'],
-  ['HDs e armazenamento', '6270', '3360', '3 HDs de 4 TB (2 de filmagem + 1 de edição). Pago no crédito C6 PF.'],
-  ['Montagem — doc principal', '13000', '5000', 'Editor offline do documentário de ~15 min.'],
-  ['Montagem — cortes de fotógrafo', '13000', '5000', '33 cortes de até 1 min, 3 por fotógrafo(a).'],
-  ['Montagem — minidocs de escola', '13000', '5000', '6 minidocs de até 2 min, 1 por escola.'],
-  ['Versões', '8000', '5000', ''],
+  ['HDs e armazenamento', '6270', '3360', '3 HDs de 4 TB. Pago no crédito C6 do Maví.'],
+  ['Montagem — doc principal', '13000', '8000', 'Mateus Guimarães.'],
+  ['Montagem — cortes de fotógrafo', '13000', '7000', 'Mateus Guimarães. 33 cortes, 3 por fotógrafo(a).'],
+  ['Montagem — minidocs de escola', '13000', '5000', 'Mateus Guimarães. 6 minidocs, 1 por escola.'],
+  ['Versões', '8000', '5000', 'Mateus Guimarães.'],
   ['Trilha', '12000', '5000', 'Definir entre original e biblioteca.'],
-  ['Color', '10000', '12000', 'Vini Azevedo, Jesus Mendes, Braiom ou Rafaim. Fechou R$ 2.000 acima do orçado.'],
+  ['Color', '10000', '12000', 'Rafaim. Fechou R$ 2.000 acima do orçado.'],
 
-  /* --- viagens e logística (172.812 orçado / 47.973,69 negociado) --- */
-  ['Passagens aéreas', '52800', '22697,07', 'Orçado a R$ 2.200 por pessoa em 8 das 11 viagens. '
-    + 'Fechado: Palmas R$ 10.722,51, Recife R$ 6.894,27 e Porto Alegre R$ 5.080,29.'],
-  ['Hospedagem', '63900', '3293,07', 'Fechado: Conceição do Araguaia R$ 1.620,00 e Jaboatão R$ 1.673,07. '
-    + 'Canuanã saiu do orçado (R$ 6.300): a equipe fica na própria Fundação, sem custo.'],
-  ['Locação de carro', '9676', '1411,73', 'Fechado: Conceição R$ 580,00 e Recife/Jaboatão R$ 831,73.'],
-  ['Combustível e estacionamento', '6200', '560,11', 'Viagem 1 fechada em R$ 560,11 (aba "verba a vista").'],
-  ['Per diem da equipe', '23100', '21000', 'Orçado R$ 220/dia, fechado R$ 200/dia × 35 dias para Maví, Tato e Julio.'],
-  ['Verba de produção (caixinha)', '8536', '0', 'Petty cash das viagens. Ainda sem adiantamento lançado.'],
-  ['Seguro (GBI)', '2300', '4092', 'Apólice equipe + equipamentos. Estourou o orçado em R$ 1.792.'],
-  ['Drone', '0', '1300', 'Petrus Pitt, diária em Recife/Jaboatão. Não existe na planilha — '
-    + 'entrou depois do orçamento fechado. Vale criar a linha lá.']
+  /* --- viagens e logística (172.812 orçado / 56.726,19 negociado) --- */
+  ['Passagens aéreas', '52800', '22697,07', 'Fechado: Palmas R$ 10.722,51, Recife R$ 6.894,27 e '
+    + 'Porto Alegre R$ 5.080,29.'],
+  ['Hospedagem', '70200', '5408,07', 'Fechado: Conceição R$ 1.620,00, Jaboatão R$ 1.673,07 e '
+    + 'Gravataí R$ 2.115,00. Canuanã ainda está orçada em R$ 6.300 na planilha, mas a equipe fica '
+    + 'na própria Fundação, sem custo — vale zerar a linha lá.'],
+  ['Locação de carro', '9676', '2068,99', 'Fechado: Conceição R$ 580,00, Recife R$ 831,73 e '
+    + 'Porto Alegre R$ 657,26.'],
+  ['Combustível e estacionamento', '6200', '749,78', 'Viagem 1 R$ 560,11 e viagem 2 R$ 189,67.'],
+  ['Per diem da equipe', '23100', '21000', 'R$ 200/dia × 35 dias para Maví, Tato e Julio.'],
+  ['Verba de produção (caixinha)', '8536', '710,28', 'Gastos da aba "petty cach": ubers, água, café '
+    + 'da equipe e estacionamentos das viagens 1 e 2.'],
+  ['Seguro (GBI)', '2300', '4092', 'Apólice equipe + equipamentos, Tokio via Kátia Pelaes. '
+    + 'Estourou o orçado em R$ 1.792.']
 ];
 
 // Pagamentos já fechados (coluna NEGOCIADO), que viram contas a pagar.
@@ -2003,16 +2033,38 @@ const PAGAVEIS = [
     'Pago no crédito C6 PF. Orçado era R$ 11.700.'],
   ['3 HDs de 4 TB', 'A definir', '3360', 'equipamento', 'HDs e armazenamento', '', 'quitado',
     '2 para filmagem e 1 para edição. Pago no crédito C6 PF.'],
+  ['Luz, elétrica e maquinaria', 'A definir', '14680', 'equipamento', 'Luz e elétrica', '', 'aberto',
+    'Fechou R$ 6.880 acima do orçado (R$ 7.800) — o maior estouro do projeto.'],
+  ['Hospedagem em Gravataí', 'A definir', '2115', 'hospedagem', 'Hospedagem', '2026-09-09', 'aberto',
+    'Viagem 3. Orçado era R$ 6.300.'],
+  ['Aluguel de carro — Porto Alegre / Gravataí', 'A definir', '657,26', 'transporte', 'Locação de carro',
+    '2026-09-09', 'aberto', 'Viagem 3. Orçado era R$ 1.200.'],
   ['Seguro de equipe e equipamento', 'GBI Seguros', '4092', 'seguro', 'Seguro (GBI)', '', 'aberto',
     'Kátia Pelaes. Estourou o orçado (R$ 2.300) em R$ 1.792.'],
   ['Roteiro', 'A definir', '15000', 'cachê', 'Roteiro', '', 'aberto', 'Total job. Confirmar o favorecido.'],
-  ['Montagem — doc principal (offline)', 'A definir', '5000', 'pós', 'Montagem — doc principal', '', 'aberto', 'Orçado R$ 13.000.'],
-  ['Montagem — cortes de fotógrafo (offline)', 'A definir', '5000', 'pós', 'Montagem — cortes de fotógrafo', '', 'aberto', 'Orçado R$ 13.000.'],
-  ['Montagem — minidocs de escola (offline)', 'A definir', '5000', 'pós', 'Montagem — minidocs de escola', '', 'aberto', 'Orçado R$ 13.000.'],
-  ['Versões', 'A definir', '5000', 'pós', 'Versões', '', 'aberto', 'Orçado R$ 8.000.'],
+  ['Montagem — doc principal (offline)', 'Mateus Guimarães', '8000', 'pós', 'Montagem — doc principal', '', 'aberto', 'Orçado R$ 13.000.'],
+  ['Montagem — cortes de fotógrafo (offline)', 'Mateus Guimarães', '7000', 'pós', 'Montagem — cortes de fotógrafo', '', 'aberto', 'Orçado R$ 13.000.'],
+  ['Montagem — minidocs de escola (offline)', 'Mateus Guimarães', '5000', 'pós', 'Montagem — minidocs de escola', '', 'aberto', 'Orçado R$ 13.000.'],
+  ['Versões', 'Mateus Guimarães', '5000', 'pós', 'Versões', '', 'aberto', 'Orçado R$ 8.000.'],
   ['Trilha', 'A definir', '5000', 'pós', 'Trilha', '', 'aberto', 'Orçado R$ 12.000.'],
-  ['Color', 'Vini Azevedo / Jesus Mendes / Braiom / Rafaim', '12000', 'pós', 'Color', '', 'aberto',
+  ['Color', 'Rafaim', '12000', 'pós', 'Color', '', 'aberto',
     'Fechou R$ 2.000 acima do orçado (R$ 10.000).']
+];
+
+// Gastos da caixinha, um a um, como estão na aba "petty cach" da planilha.
+// [data, descrição, valor, rubrica, quem]
+const PETTY = [
+  ['2026-08-23', 'Uber — Conceição do Araguaia', '43,95', 'Verba de produção (caixinha)', 'Tato Pessanha'],
+  ['2026-08-25', 'Água — Conceição do Araguaia', '4', 'Verba de produção (caixinha)', 'Tato Pessanha'],
+  ['2026-08-26', 'Uber — Conceição do Araguaia', '115', 'Verba de produção (caixinha)', 'Tato Pessanha'],
+  ['2026-08-30', 'Uber — Jaboatão', '130,15', 'Verba de produção (caixinha)', 'Tato Pessanha'],
+  ['2026-09-01', 'Café da equipe — Jaboatão', '43,68', 'Verba de produção (caixinha)', 'Tato Pessanha'],
+  ['2026-09-01', 'Estacionamento — Jaboatão', '20', 'Verba de produção (caixinha)', 'Tato Pessanha'],
+  ['2026-09-02', 'Estacionamento do hotel — Jaboatão', '40', 'Verba de produção (caixinha)', 'Tato Pessanha'],
+  ['2026-09-03', 'Uber — Jaboatão', '114', 'Verba de produção (caixinha)', 'Tato Pessanha'],
+  ['2026-09-23', 'Uber CGH — Conceição do Araguaia', '68,05', 'Verba de produção (caixinha)', 'Maví Simões'],
+  ['2026-09-26', 'Uber casa — Conceição do Araguaia', '72,94', 'Verba de produção (caixinha)', 'Maví Simões'],
+  ['2026-09-02', 'Uber casa — Jaboatão', '58,51', 'Verba de produção (caixinha)', 'Maví Simões']
 ];
 
 // Gastos em dinheiro já realizados (aba "verba a vista" da planilha).
@@ -2189,12 +2241,9 @@ const ETAPAS = [
   ['producao', 'Backup duplo criptografado em locais separados', 'fazendo', '2026-10-27'],
   // A planilha tem uma linha por contratação — aqui também. "Fechar a pós" não
   // é uma coisa só: são seis fornecedores diferentes, com valor e prazo próprios.
-  ['pos', 'Fechar montador do documentário (R$ 13.000 orçado / 5.000 negociado)', 'fazendo', '2026-09-15'],
-  ['pos', 'Fechar montador dos cortes de fotógrafo (R$ 13.000 / 5.000)', 'nao', '2026-09-15'],
-  ['pos', 'Fechar montador dos minidocs de escola (R$ 13.000 / 5.000)', 'nao', '2026-09-15'],
-  ['pos', 'Fechar quem faz as versões (R$ 8.000 / 5.000)', 'nao', '2026-09-30'],
+  ['pos', 'Fechar Mateus Guimarães para toda a edição (R$ 25.000)', 'feito', '2026-09-15'],
   ['pos', 'Fechar a trilha (R$ 12.000 / 5.000)', 'nao', '2026-09-30'],
-  ['pos', 'Fechar o color (R$ 10.000 / 12.000 — estourou)', 'fazendo', '2026-09-30'],
+  ['pos', 'Fechar o color com o Rafaim (R$ 12.000)', 'feito', '2026-09-30'],
   ['pos', 'Montagem — primeiro corte', 'nao', '2026-11-13'],
   ['pos', 'Rodada 1 de aprovação com a Fundação (5 dias úteis)', 'nao', '2026-11-18'],
   ['pos', 'Versão 2', 'nao', '2026-11-19'],
@@ -2226,10 +2275,8 @@ const TAREFAS = [
   ['Levantar as autorizações de imagem das escolas', 'Patrick Bombassaro', '2026-08-31',
     'Autorizações de imagem, nome e voz (Anexo II, com termo para menores)'],
   ['Lançar o adiantamento da verba à vista para bater a caixinha', 'Tato Pessanha', '2026-08-31', ''],
-  ['Fechar o color com Vini, Jesus, Braiom ou Rafaim', 'Maví Simões', '2026-09-30',
-    'Fechar o color (R$ 10.000 / 12.000 — estourou)'],
-  ['Escolher e fechar o montador do documentário', 'Maví Simões', '2026-09-15',
-    'Fechar montador do documentário (R$ 13.000 orçado / 5.000 negociado)']
+  ['Pedir a NF do Mateus Guimarães, juntando as 4 linhas de edição', 'Tato Pessanha', '2026-09-30', ''],
+  ['Fechar quem faz a trilha', 'Maví Simões', '2026-09-30', 'Fechar a trilha (R$ 12.000 / 5.000)']
 ];
 
 const ENTREGAS = [
@@ -2514,6 +2561,26 @@ async function criarProjetoBradesco(existente = null) {
     }
   }
 
+  // Notas que já chegaram por e-mail. O PDF vive no Gmail — aqui fica o
+  // registro e o link para abrir a thread.
+  const NOTAS = [
+    ['NF 136 — Fundação Bradesco, 1ª parcela', 'conta:parcela1', '136', '2026-09-01',
+      'Fundação Bradesco', 'https://mail.google.com/mail/#all/1a0583e9627f095b'],
+    ['NF — Julio Becker, cachê 60%', 'cache1:becker@tempora', '', '2026-09-05',
+      'Julio Becker', 'https://mail.google.com/mail/#all/1a06c4c273505bd6'],
+    ['NF — Tato Pessanha, R$ 32.000', 'cache1:tato@tempora', '', '2026-09-06',
+      'Tato Pessanha', 'https://mail.google.com/mail/#all/1a06c3dc727c5693']
+  ];
+  for (const [titulo, chaveConta, numero, data, emissor, link] of NOTAS) {
+    const conta = achar('contas', chaveConta);
+    await ins('documentos', 'doc:' + titulo, {
+      tipo: 'nf', titulo, numero, data, emissor, link,
+      valor_cents: conta?.valor_cents || 0, conta_id: conta?.id || null,
+      membro_id: conta?.membro_id || null,
+      obs: 'PDF no e-mail. Toque em abrir para ir direto na conversa.'
+    });
+  }
+
   // Per diems do Tato e do Julio pagos em 07/09. O do Maví segue em aberto.
   for (const em of ['tato@tempora', 'becker@tempora']) {
     const c = achar('contas', 'perdiem:' + em);
@@ -2627,6 +2694,18 @@ async function criarProjetoBradesco(existente = null) {
         + '08:30 retirada do carro na Movida Recife Aeroporto\n'
         + '14:00 check-in no Rede Andrade LG Inn (Av. Domingos Ferreira, 3067 — Boa Viagem)',
       chamadas: viajantes.map((id) => ({ membro_id: id, hora: '03:00', obs: 'Chegada ao aeroporto' }))
+    });
+  }
+
+  /* gastos da caixinha, da aba "petty cach" */
+  for (const [data, descricao, valor, rubrica, quem] of PETTY) {
+    await ins('lancamentos', 'petty:' + data + ':' + descricao, {
+      tipo: 'saida', descricao, valor_cents: M(valor), rubrica, data,
+      fornecedor: '', forma: 'dinheiro', membro_id: membros[quem] || null,
+      evento_id: eventos.find((e) => e.data === data)?.id || null,
+      fonte: 'caixinha', reembolso: false, sem_comprovante: true,
+      status: 'aprovado', aprovado_por: membros['Maví Simões'] || null,
+      obs: 'Aba "petty cach" da planilha.'
     });
   }
 
@@ -2789,6 +2868,7 @@ const chaveDe = {
     if (!r.descricao) return null;
     return r.forma === 'dinheiro' ? 'caixa:' + r.descricao : 'lanc:' + r.descricao;
   },
+  documentos: (r) => (r.titulo ? 'doc:' + r.titulo : null),
   confirmacoes: (r) => {
     const em = r.membro_id ? store.get('membros', r.membro_id)?.email : null;
     if (!em) return null;
@@ -4749,7 +4829,7 @@ const { el, abrirForm, sheet, toast, btnOlho } = __req("js/ui.js");
 const { esc, fmtMoney, fmtMoneyShort, fmtData, prazoTxt, prazoTag, hoje, somarDias, ordenar, soma, diasAte, valoresOcultos } = __req("js/utils.js");
 const { ST_CONTA } = __req("js/calc.js");
 const { salvarArquivo, abrirArquivo } = __req("js/files.js");
-const { textoPedido, linkEmail, linkWhats } = __req("js/nf.js");
+const { textoPedido, linkEmail, linkWhats, irmasSemNF } = __req("js/nf.js");
 let aba = 'receber';
 
 const NF = [
@@ -4905,15 +4985,31 @@ function abrirConta(c, editar) {
     }));
     corpo.querySelector('[data-nf]')?.addEventListener('click', () => abrirForm({
       titulo: 'Nota fiscal',
+      subtitulo: c.nf_status === 'a_emitir'
+        ? 'A nota que a produtora emitiu.' : `A nota que ${c.contraparte || 'o fornecedor'} mandou.`,
       campos: [
         { k: 'nf_numero', label: 'Número da NF', type: 'texto', req: true, valor: c.nf_numero },
-        { k: 'nf_data', label: 'Data de emissão', type: 'data', valor: c.nf_data || hoje() }
+        { k: 'nf_data', label: 'Data de emissão', type: 'data', valor: c.nf_data || hoje() },
+        { k: 'arquivo', label: 'PDF da nota', type: 'arquivo',
+          hint: 'O que chegou por e-mail. Fica guardado em Notas e documentos.' }
       ],
       onSave: async (v) => {
+        const { arquivo, ...campos } = v;
         const novo = c.nf_status === 'a_emitir' ? 'emitida' : 'recebida';
-        await store.update('contas', c.id, { ...v, nf_status: novo });
-        Object.assign(c, v, { nf_status: novo });
-        toast('Nota registrada.'); pintar(); store.emit();
+        await store.update('contas', c.id, { ...campos, nf_status: novo });
+        Object.assign(c, campos, { nf_status: novo });
+        if (arquivo) {
+          const meta = await salvarArquivo(arquivo, { pasta: 'notas' });
+          await store.insert('documentos', {
+            tipo: 'nf', titulo: `NF ${campos.nf_numero} — ${c.descricao}`,
+            valor_cents: c.valor_cents, data: campos.nf_data || hoje(),
+            emissor: c.contraparte || '', numero: campos.nf_numero || '',
+            conta_id: c.id, membro_id: c.membro_id || null, ...meta
+          });
+        }
+        await store.log(`NF ${campos.nf_numero} ${novo} — ${c.descricao}`, 'conta');
+        toast(arquivo ? 'Nota registrada com o PDF.' : 'Nota registrada.');
+        pintar(); store.emit();
       }
     }));
     corpo.querySelector('[data-pedir-nf]')?.addEventListener('click', () => { sh.close(); pedirNF(c); });
@@ -5013,46 +5109,78 @@ function parcelar(c) {
    de faturamento. Dá para copiar, mandar por e-mail ou por WhatsApp. */
 function pedirNF(c) {
   if (!c) return;
-  const texto = textoPedido(c);
-  const corpo = el(`<div>
-    <div class="banner small">Confira antes de mandar. Sai do cadastro da pessoa e da conta —
-      se algo estiver errado aqui, está errado lá também.</div>
-    <pre class="pedido">${esc(texto)}</pre>
-    <div class="btns" style="margin-top:12px">
-      <button class="btn pri" style="flex:1" data-copiar>Copiar texto</button>
-    </div>
-    <div class="btns" style="margin-top:8px">
-      <a class="btn gho" style="flex:1" href="${esc(linkEmail(c))}">E-mail</a>
-      <a class="btn gho" style="flex:1" href="${esc(linkWhats(c))}" target="_blank" rel="noopener">WhatsApp</a>
-    </div>
-    <button class="btn wide gho" style="margin-top:12px" data-marcar>Marquei como pedida</button>
-  </div>`);
+  const outras = irmasSemNF(c);
+  const marcadas = new Set();
+  const corpo = el('<div></div>');
 
-  const sh = sheet({ titulo: 'Pedido de nota fiscal', corpo });
-  corpo.querySelector('[data-copiar]').onclick = async () => {
-    try {
-      await navigator.clipboard.writeText(texto);
-      toast('Copiado. É só colar.');
-    } catch {
-      // Sem permissão de área de transferência: seleciona para copiar na mão.
-      const pre = corpo.querySelector('.pedido');
-      const r = document.createRange();
-      r.selectNodeContents(pre);
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(r);
-      toast('Selecionei o texto — copie com o toque longo.');
-    }
-  };
-  corpo.querySelector('[data-marcar]').onclick = async () => {
-    await store.update('contas', c.id, {
-      nf_status: 'a_receber',
-      obs: `${c.obs ? c.obs + ' ' : ''}Pedido de NF enviado em ${fmtData(hoje())}.`
+  const pintar = () => {
+    const extras = outras.filter((x) => marcadas.has(x.id));
+    const texto = textoPedido(c, extras);
+    const total = c.valor_cents + extras.reduce((n, x) => n + x.valor_cents, 0);
+
+    corpo.innerHTML = `
+      ${outras.length ? `<div class="sec" style="margin-top:0"><div class="sec-t">Juntar no mesmo pedido</div>
+          <span class="small muted">${extras.length + 1} de ${outras.length + 1}</span></div>
+        <div class="card lista">${outras.map((x) => `
+          <label class="row act sem-seta" style="cursor:pointer">
+            <input type="checkbox" data-extra="${x.id}" ${marcadas.has(x.id) ? 'checked' : ''}
+              style="width:22px;height:22px;flex:none">
+            <span class="g"><span class="t">${esc(x.descricao)}</span>
+              <span class="s">${esc(x.rubrica || x.categoria || '')}</span></span>
+            <span class="r"><span class="v">${fmtMoney(x.valor_cents)}</span></span>
+          </label>`).join('')}</div>
+        <div class="banner small">Quem faz mais de uma linha do orçamento costuma emitir
+          <b>uma nota só</b>. Marque o que entra e o pedido sai discriminado, com o total no fim.</div>`
+    : ''}
+      <pre class="pedido">${esc(texto)}</pre>
+      <div class="btns" style="margin-top:12px">
+        <button class="btn pri" style="flex:1" data-copiar>Copiar${extras.length
+          ? ` — ${fmtMoney(total)}` : ''}</button>
+      </div>
+      <div class="btns" style="margin-top:8px">
+        <a class="btn gho" style="flex:1" href="${esc(linkEmail(c, extras))}">E-mail</a>
+        <a class="btn gho" style="flex:1" href="${esc(linkWhats(c, extras))}" target="_blank" rel="noopener">WhatsApp</a>
+      </div>
+      <button class="btn wide gho" style="margin-top:12px" data-marcar>Marquei como pedida</button>`;
+
+    corpo.querySelectorAll('[data-extra]').forEach((n) => {
+      n.onchange = () => {
+        if (n.checked) marcadas.add(n.dataset.extra); else marcadas.delete(n.dataset.extra);
+        pintar();
+      };
     });
-    await store.log(`Pedido de NF enviado: ${c.descricao}`, 'conta');
-    sh.close();
-    toast('Registrado no histórico.');
+    corpo.querySelector('[data-copiar]').onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(texto);
+        toast('Copiado. É só colar.');
+      } catch {
+        const pre = corpo.querySelector('.pedido');
+        const r = document.createRange();
+        r.selectNodeContents(pre);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(r);
+        toast('Selecionei o texto — copie com o toque longo.');
+      }
+    };
+    corpo.querySelector('[data-marcar]').onclick = async () => {
+      // Todas as contas do pedido ficam marcadas, para a cobrança valer por todas.
+      for (const x of [c, ...extras]) {
+        await store.update('contas', x.id, {
+          nf_status: 'a_receber',
+          obs: `${x.obs ? x.obs + ' ' : ''}Pedido de NF enviado em ${fmtData(hoje())}`
+            + `${extras.length ? ` (junto com outras ${extras.length} linha(s), total ${fmtMoney(total)})` : ''}.`
+        });
+      }
+      await store.log(`Pedido de NF enviado: ${c.descricao}`
+        + (extras.length ? ` + ${extras.length} linha(s), total ${fmtMoney(total)}` : ''), 'conta');
+      sh.close();
+      toast('Registrado no histórico.');
+    };
   };
+
+  pintar();
+  const sh = sheet({ titulo: 'Pedido de nota fiscal', corpo });
 }
 
   return { render, campos, novaConta, abrirConta, irmas };

@@ -5,7 +5,7 @@ import { el, abrirForm, sheet, toast, btnOlho } from '../ui.js';
 import { esc, fmtMoney, fmtMoneyShort, fmtData, prazoTxt, prazoTag, hoje, somarDias, ordenar, soma, diasAte, valoresOcultos } from '../utils.js';
 import { ST_CONTA } from '../calc.js';
 import { salvarArquivo, abrirArquivo } from '../files.js';
-import { textoPedido, linkEmail, linkWhats } from '../nf.js';
+import { textoPedido, linkEmail, linkWhats, irmasSemNF } from '../nf.js';
 
 let aba = 'receber';
 
@@ -162,15 +162,31 @@ export function abrirConta(c, editar) {
     }));
     corpo.querySelector('[data-nf]')?.addEventListener('click', () => abrirForm({
       titulo: 'Nota fiscal',
+      subtitulo: c.nf_status === 'a_emitir'
+        ? 'A nota que a produtora emitiu.' : `A nota que ${c.contraparte || 'o fornecedor'} mandou.`,
       campos: [
         { k: 'nf_numero', label: 'Número da NF', type: 'texto', req: true, valor: c.nf_numero },
-        { k: 'nf_data', label: 'Data de emissão', type: 'data', valor: c.nf_data || hoje() }
+        { k: 'nf_data', label: 'Data de emissão', type: 'data', valor: c.nf_data || hoje() },
+        { k: 'arquivo', label: 'PDF da nota', type: 'arquivo',
+          hint: 'O que chegou por e-mail. Fica guardado em Notas e documentos.' }
       ],
       onSave: async (v) => {
+        const { arquivo, ...campos } = v;
         const novo = c.nf_status === 'a_emitir' ? 'emitida' : 'recebida';
-        await store.update('contas', c.id, { ...v, nf_status: novo });
-        Object.assign(c, v, { nf_status: novo });
-        toast('Nota registrada.'); pintar(); store.emit();
+        await store.update('contas', c.id, { ...campos, nf_status: novo });
+        Object.assign(c, campos, { nf_status: novo });
+        if (arquivo) {
+          const meta = await salvarArquivo(arquivo, { pasta: 'notas' });
+          await store.insert('documentos', {
+            tipo: 'nf', titulo: `NF ${campos.nf_numero} — ${c.descricao}`,
+            valor_cents: c.valor_cents, data: campos.nf_data || hoje(),
+            emissor: c.contraparte || '', numero: campos.nf_numero || '',
+            conta_id: c.id, membro_id: c.membro_id || null, ...meta
+          });
+        }
+        await store.log(`NF ${campos.nf_numero} ${novo} — ${c.descricao}`, 'conta');
+        toast(arquivo ? 'Nota registrada com o PDF.' : 'Nota registrada.');
+        pintar(); store.emit();
       }
     }));
     corpo.querySelector('[data-pedir-nf]')?.addEventListener('click', () => { sh.close(); pedirNF(c); });
@@ -270,44 +286,76 @@ function parcelar(c) {
    de faturamento. Dá para copiar, mandar por e-mail ou por WhatsApp. */
 function pedirNF(c) {
   if (!c) return;
-  const texto = textoPedido(c);
-  const corpo = el(`<div>
-    <div class="banner small">Confira antes de mandar. Sai do cadastro da pessoa e da conta —
-      se algo estiver errado aqui, está errado lá também.</div>
-    <pre class="pedido">${esc(texto)}</pre>
-    <div class="btns" style="margin-top:12px">
-      <button class="btn pri" style="flex:1" data-copiar>Copiar texto</button>
-    </div>
-    <div class="btns" style="margin-top:8px">
-      <a class="btn gho" style="flex:1" href="${esc(linkEmail(c))}">E-mail</a>
-      <a class="btn gho" style="flex:1" href="${esc(linkWhats(c))}" target="_blank" rel="noopener">WhatsApp</a>
-    </div>
-    <button class="btn wide gho" style="margin-top:12px" data-marcar>Marquei como pedida</button>
-  </div>`);
+  const outras = irmasSemNF(c);
+  const marcadas = new Set();
+  const corpo = el('<div></div>');
 
-  const sh = sheet({ titulo: 'Pedido de nota fiscal', corpo });
-  corpo.querySelector('[data-copiar]').onclick = async () => {
-    try {
-      await navigator.clipboard.writeText(texto);
-      toast('Copiado. É só colar.');
-    } catch {
-      // Sem permissão de área de transferência: seleciona para copiar na mão.
-      const pre = corpo.querySelector('.pedido');
-      const r = document.createRange();
-      r.selectNodeContents(pre);
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(r);
-      toast('Selecionei o texto — copie com o toque longo.');
-    }
-  };
-  corpo.querySelector('[data-marcar]').onclick = async () => {
-    await store.update('contas', c.id, {
-      nf_status: 'a_receber',
-      obs: `${c.obs ? c.obs + ' ' : ''}Pedido de NF enviado em ${fmtData(hoje())}.`
+  const pintar = () => {
+    const extras = outras.filter((x) => marcadas.has(x.id));
+    const texto = textoPedido(c, extras);
+    const total = c.valor_cents + extras.reduce((n, x) => n + x.valor_cents, 0);
+
+    corpo.innerHTML = `
+      ${outras.length ? `<div class="sec" style="margin-top:0"><div class="sec-t">Juntar no mesmo pedido</div>
+          <span class="small muted">${extras.length + 1} de ${outras.length + 1}</span></div>
+        <div class="card lista">${outras.map((x) => `
+          <label class="row act sem-seta" style="cursor:pointer">
+            <input type="checkbox" data-extra="${x.id}" ${marcadas.has(x.id) ? 'checked' : ''}
+              style="width:22px;height:22px;flex:none">
+            <span class="g"><span class="t">${esc(x.descricao)}</span>
+              <span class="s">${esc(x.rubrica || x.categoria || '')}</span></span>
+            <span class="r"><span class="v">${fmtMoney(x.valor_cents)}</span></span>
+          </label>`).join('')}</div>
+        <div class="banner small">Quem faz mais de uma linha do orçamento costuma emitir
+          <b>uma nota só</b>. Marque o que entra e o pedido sai discriminado, com o total no fim.</div>`
+    : ''}
+      <pre class="pedido">${esc(texto)}</pre>
+      <div class="btns" style="margin-top:12px">
+        <button class="btn pri" style="flex:1" data-copiar>Copiar${extras.length
+          ? ` — ${fmtMoney(total)}` : ''}</button>
+      </div>
+      <div class="btns" style="margin-top:8px">
+        <a class="btn gho" style="flex:1" href="${esc(linkEmail(c, extras))}">E-mail</a>
+        <a class="btn gho" style="flex:1" href="${esc(linkWhats(c, extras))}" target="_blank" rel="noopener">WhatsApp</a>
+      </div>
+      <button class="btn wide gho" style="margin-top:12px" data-marcar>Marquei como pedida</button>`;
+
+    corpo.querySelectorAll('[data-extra]').forEach((n) => {
+      n.onchange = () => {
+        if (n.checked) marcadas.add(n.dataset.extra); else marcadas.delete(n.dataset.extra);
+        pintar();
+      };
     });
-    await store.log(`Pedido de NF enviado: ${c.descricao}`, 'conta');
-    sh.close();
-    toast('Registrado no histórico.');
+    corpo.querySelector('[data-copiar]').onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(texto);
+        toast('Copiado. É só colar.');
+      } catch {
+        const pre = corpo.querySelector('.pedido');
+        const r = document.createRange();
+        r.selectNodeContents(pre);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(r);
+        toast('Selecionei o texto — copie com o toque longo.');
+      }
+    };
+    corpo.querySelector('[data-marcar]').onclick = async () => {
+      // Todas as contas do pedido ficam marcadas, para a cobrança valer por todas.
+      for (const x of [c, ...extras]) {
+        await store.update('contas', x.id, {
+          nf_status: 'a_receber',
+          obs: `${x.obs ? x.obs + ' ' : ''}Pedido de NF enviado em ${fmtData(hoje())}`
+            + `${extras.length ? ` (junto com outras ${extras.length} linha(s), total ${fmtMoney(total)})` : ''}.`
+        });
+      }
+      await store.log(`Pedido de NF enviado: ${c.descricao}`
+        + (extras.length ? ` + ${extras.length} linha(s), total ${fmtMoney(total)}` : ''), 'conta');
+      sh.close();
+      toast('Registrado no histórico.');
+    };
   };
+
+  pintar();
+  const sh = sheet({ titulo: 'Pedido de nota fiscal', corpo });
 }
