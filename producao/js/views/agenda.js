@@ -254,7 +254,7 @@ function textoOrdemDoDia(e) {
 }
 
 /* ---------------- detalhe do compromisso ---------------- */
-function abrirEvento(e) {
+export function abrirEvento(e) {
   if (!e) return;
   const u = store.user;
   const editar = can(u, 'agenda.edit');

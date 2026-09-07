@@ -362,6 +362,119 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
   place-items:center;font-size:15px;line-height:1}
 .ico.urg{background:var(--bad-bg)}
 .ico.med{background:var(--warn-bg)}
+
+/* ============================================================================
+   Mapa do job. As diárias como corpos num campo navegável: o tempo corre para a
+   direita, cada viagem tem sua faixa. O movimento aqui tem função — o que é hoje
+   pulsa, o que tem pendência ganha anel, o que já passou perde cor — e some
+   inteiro quando o sistema pede menos movimento.
+   ========================================================================= */
+.mapa-tela{margin:calc(var(--s4) * -1);display:flex;flex-direction:column;
+  height:calc(100dvh - 118px - var(--safe-b))}
+.mapa-topo{display:flex;align-items:flex-end;gap:var(--s3);padding:var(--s4) var(--s4) var(--s3)}
+.mapa-t{font-family:var(--titulo);font-size:24px;font-weight:700;letter-spacing:-.7px;line-height:1.1}
+.mapa-s{font-size:12.5px;color:var(--tx3);margin-top:2px}
+.mapa-topo .btn{margin-left:auto}
+
+.mapa-campo{flex:1;overflow:auto;position:relative;cursor:grab;display:flex;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;
+  background:
+    radial-gradient(circle at 18% 30%, var(--ac-soft), transparent 42%),
+    radial-gradient(circle at 78% 68%, var(--info-bg), transparent 46%),
+    var(--bg)}
+.mapa-campo::-webkit-scrollbar{display:none}
+.mapa-campo.arrastando{cursor:grabbing}
+.mapa-mundo{position:relative;margin:auto;flex:none}
+.mapa-linhas{position:absolute;inset:0;pointer-events:none}
+.mapa-eixo{stroke:var(--line);stroke-width:2;stroke-linecap:round}
+.mapa-eixo.passou{stroke-dasharray:2 7}
+.mapa-rot{fill:var(--tx3);font-size:11px;font-weight:700;letter-spacing:.5px}
+.mapa-hoje{position:absolute;top:0;width:2px;background:linear-gradient(var(--ac),transparent);
+  opacity:.5;pointer-events:none}
+
+.corpo{position:absolute;transform:translate(-50%,-50%);
+  width:calc(var(--r) * 2);height:calc(var(--r) * 2);min-width:calc(var(--r) * 2);flex:none;
+  box-sizing:border-box;overflow:hidden;
+  border-radius:50%;border:1.5px solid var(--line);background:var(--bg2);color:var(--tx);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  padding:0 6px;cursor:pointer;
+  box-shadow:0 6px 18px rgba(20,26,40,.10);
+  transition:transform .32s cubic-bezier(.16,1,.3,1),box-shadow .32s,border-color .2s;
+  animation:flutua 7s ease-in-out infinite;animation-delay:calc(var(--seed) * -.02s)}
+.corpo:hover,.corpo:focus-visible{transform:translate(-50%,-50%) scale(1.09);
+  box-shadow:0 12px 28px rgba(20,26,40,.18);outline:none;
+  /* parado embaixo do dedo: alvo que balança é alvo que se erra */
+  animation-play-state:paused}
+.corpo.aceso{border-color:var(--ac);box-shadow:0 0 0 3px var(--ac-soft),0 12px 28px rgba(20,26,40,.18)}
+.corpo-n{font-family:var(--titulo);font-size:13px;font-weight:700;letter-spacing:-.3px;line-height:1}
+.corpo-l{font-size:9px;color:var(--tx3);width:100%;text-align:center;line-height:1.15;
+  overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+
+.corpo.hoje{border-color:var(--ac);background:var(--ac);color:var(--ac-tx)}
+.corpo.hoje .corpo-l{color:var(--ac-tx);opacity:.8}
+.corpo.futuro{border-color:var(--ok)}
+.corpo.previsto{border-style:dashed;border-color:var(--warn)}
+.corpo.passou{opacity:.5;border-color:var(--line);animation:none}
+.corpo.passou .corpo-n{color:var(--tx3)}
+
+/* O anel diz "tem coisa em aberto aqui" sem precisar de número. */
+.corpo .anel{position:absolute;inset:-7px;border-radius:50%;border:1.5px solid var(--warn);
+  opacity:.55;animation:respira 3.4s ease-in-out infinite;
+  animation-delay:calc(var(--seed) * -.01s)}
+
+@keyframes flutua{
+  0%,100%{translate:0 0}
+  50%{translate:0 -7px}
+}
+@keyframes respira{
+  0%,100%{transform:scale(1);opacity:.5}
+  50%{transform:scale(1.09);opacity:.22}
+}
+
+.mapa-legenda{display:flex;gap:var(--s3);flex-wrap:wrap;align-items:center;
+  padding:var(--s3) var(--s4) 0;font-size:11px;color:var(--tx3)}
+.mapa-legenda span{display:inline-flex;align-items:center;gap:5px}
+.mapa-legenda i{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--line);display:block}
+.mapa-legenda .p-hoje{background:var(--ac);border-color:var(--ac)}
+.mapa-legenda .p-futuro{border-color:var(--ok)}
+.mapa-legenda .p-previsto{border-color:var(--warn);border-style:dashed}
+.mapa-legenda .p-passou{opacity:.45}
+.mapa-dica{margin-left:auto}
+
+/* painel em camadas */
+.orb-cab{padding:0 0 var(--s3);border-bottom:1px solid var(--line);margin-bottom:var(--s3)}
+.orb-data{font-size:11.5px;color:var(--tx3);font-weight:650;text-transform:uppercase;letter-spacing:.5px}
+.orb-tit{font-family:var(--titulo);font-size:21px;font-weight:700;letter-spacing:-.5px;
+  line-height:1.15;margin-top:var(--s1)}
+.orb-sub{font-size:12.5px;color:var(--tx3);margin-top:var(--s1)}
+.orb-vert{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s2)}
+.vert{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:var(--s3) var(--s2);border:1px solid var(--line);border-radius:var(--r);
+  background:var(--bg2);color:var(--tx);cursor:pointer;min-height:66px;justify-content:center;
+  transition:background .18s,border-color .18s,transform .18s cubic-bezier(.16,1,.3,1)}
+.vert:active{transform:scale(.97)}
+.vert.on{background:var(--tx);color:var(--bg);border-color:var(--tx)}
+.vert-i{font-size:17px;line-height:1}
+.vert-t{font-size:11px;font-weight:650}
+.vert-n{position:absolute;top:5px;right:7px;min-width:16px;height:16px;border-radius:9px;
+  background:var(--warn);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;padding:0 4px}
+.orb-conteudo{margin-top:var(--s4);min-height:80px;
+  animation:sobe .28s cubic-bezier(.16,1,.3,1)}
+.orb-vazio{text-align:center;color:var(--tx3);font-size:13px;padding:var(--s5) var(--s4)}
+.orb-grande{font-family:var(--titulo);font-size:30px;font-weight:700;letter-spacing:-.9px;
+  margin-bottom:var(--s3);line-height:1.1}
+.orb-grande span{font-size:13px;font-weight:500;color:var(--tx3);display:block;letter-spacing:0;margin-top:2px}
+
+@keyframes sobe{from{opacity:0;translate:0 8px}to{opacity:1;translate:0 0}}
+
+@media (prefers-reduced-motion: reduce){
+  .corpo,.corpo .anel,.orb-conteudo{animation:none !important}
+  .corpo,.vert{transition:none}
+}
+@media (min-width:900px){
+  .mapa-tela{height:calc(100dvh - 130px)}
+  .mapa-t{font-size:30px}
+}
 </style>
 <div id="app" class="app"><div class="boot">Carregando…</div></div>
 <script type="module">
@@ -512,6 +625,7 @@ const vLocacoes = __req("js/views/locacoes.js");
 const vFontes = __req("js/views/fontes.js");
 const vPedidosNF = __req("js/views/pedidosnf.js");
 const vVersoes = __req("js/views/versoes.js");
+const vMapa = __req("js/views/mapa.js");
 const vFixas = __req("js/views/fixas.js");
 const vAprov = __req("js/views/aprovacoes.js");
 const ROTAS = {
@@ -535,6 +649,7 @@ const ROTAS = {
   '/fontes': () => vFontes.render(),
   '/pedidos-nf': () => vPedidosNF.render(),
   '/versoes': () => vVersoes.render(),
+  '/mapa': () => vMapa.render(),
   '/fixas': () => vFixas.render(),
   '/aprovacoes': () => vAprov.render(),
   '/historico': () => vAjustes.renderHistorico()
@@ -648,12 +763,14 @@ function tabs() {
   const nTarefas = minhasTarefas(u?.id).filter((t) => (t.prazo && (diasAte(t.prazo) ?? 9) <= 0) || t.cobrado_em).length;
   const itens = equipe ? [
     { r: '#/', i: ICO.eu, t: 'Meu', dot: nAlertas },
+    { r: '#/mapa', i: ICO.mapa, t: 'Mapa' },
     { r: '#/agenda', i: ICO.agenda, t: 'Agenda' },
     { r: '#/etapas', i: ICO.etapas, t: 'Trabalho', dot: nTarefas },
     { r: '#/notas', i: ICO.nota, t: 'Notas' },
     { r: '#/mais', i: ICO.mais, t: 'Mais' }
   ] : [
     { r: '#/', i: ICO.casa, t: 'Painel', dot: nAlertas },
+    { r: '#/mapa', i: ICO.mapa, t: 'Mapa' },
     { r: '#/etapas', i: ICO.etapas, t: 'Trabalho', dot: nTarefas },
     { r: '#/agenda', i: ICO.agenda, t: 'Agenda' },
     { r: '#/financeiro', i: ICO.grana, t: 'Dinheiro' },
@@ -3748,6 +3865,8 @@ const MARCA = '<span class="marca-txt">unit</span><svg viewBox="0 0 41.00 41.00"
 
 /* ---------------- ícones ---------------- */
 const ICO = {
+  mapa: '<svg viewBox="0 0 24 24"><circle cx="6.5" cy="8" r="2.6"/><circle cx="17" cy="6.5" r="2"/>'
+    + '<circle cx="12.5" cy="16.5" r="2.3"/><path d="M8.9 9.2 10.9 14.7M8.6 7.2 15 6.6M14.8 8.2 13.4 14.3"/></svg>',
   casa: '<svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/></svg>',
   etapas: '<svg viewBox="0 0 24 24"><path d="M4 6h10M4 12h16M4 18h7"/><circle cx="18" cy="6" r="2"/><circle cx="14" cy="18" r="2"/></svg>',
   agenda: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
@@ -4429,7 +4548,7 @@ function abrirEntrega(e, editar) {
   });
 }
 
-  return { irPara, stEntrega, render, ordemDoDia };
+  return { irPara, stEntrega, render, ordemDoDia, abrirEvento };
 };
 
 __defs["js/views/ajustes.js"] = function () {
@@ -7264,6 +7383,367 @@ function abrirContato(c, editar) {
     });
   });
 }
+
+  return { render };
+};
+
+__defs["js/views/mapa.js"] = function () {
+// Mapa do job. As diárias flutuam num espaço navegável em vez de ficarem numa
+// lista: o tempo corre da esquerda para a direita, cada viagem tem sua faixa, e
+// o tamanho de cada corpo é o peso dele no projeto. Tocar num deles abre as
+// vertentes ali mesmo — equipe, chamada, dinheiro, pendências — em vez de
+// empilhar telas. Cada movimento diz uma coisa: o que é hoje pulsa, o que tem
+// pendência tem anel, o que já passou perde cor.
+const { store, nomeMembro } = __req("js/store.js");
+const { can } = __req("js/perms.js");
+const { el, sheet, toast } = __req("js/ui.js");
+const { esc, fmtMoney, fmtData, diaSemana, hoje, diasAte, iniciais, soma } = __req("js/utils.js");
+const { custoDoEvento } = __req("js/calc.js");
+const { pendencias, contaDaViagem } = __req("js/views/viagens.js");
+const { abrirEvento } = __req("js/views/agenda.js");
+const DIA_MS = 86400000;
+const parse = (d) => new Date(`${d}T12:00:00`).getTime();
+const suave = (t) => 1 - Math.pow(1 - t, 3);
+
+/* Um corpo por diária, mais um por marco de entrega: são as duas coisas que
+   têm data marcada e consequência. */
+function corpos() {
+  const evs = store.doProjeto('eventos')
+    .filter((e) => e.tipo === 'diaria' || e.tipo === 'entrega')
+    .sort((a, b) => String(a.data).localeCompare(String(b.data)));
+  if (!evs.length) return { lista: [], t0: 0, t1: 1, faixas: [] };
+
+  const t0 = parse(evs[0].data);
+  const t1 = parse(evs[evs.length - 1].data);
+  const viagens = store.doProjeto('viagens');
+
+  // Cada viagem ganha uma faixa horizontal; entregas ficam na faixa de baixo.
+  const faixas = [...viagens].sort((a, b) => String(a.ida).localeCompare(String(b.ida)));
+  const faixaDe = (e) => {
+    if (e.tipo === 'entrega') return faixas.length;
+    const i = faixas.findIndex((v) => e.data >= v.ida && e.data <= (v.volta || v.ida));
+    return i >= 0 ? i : faixas.length;
+  };
+
+  // O eixo é a ordem, não o calendário: duas diárias seguidas ficariam coladas
+  // e um mês parado abriria um deserto. A data continua legível no corpo.
+  let x = 0, faixaAnt = -1;
+  const lista = evs.map((e, i) => {
+    const custo = Number(custoDoEvento(e.id)) || 0;
+    const v = faixas[faixaDe(e)];
+    const pend = v ? pendencias(v).filter((p) => !p.quem || true).length : 0;
+    const d = diasAte(e.data);
+    const f = faixaDe(e);
+    // Espaço maior quando muda de viagem: o intervalo vira respiro visual.
+    x += (i === 0 ? 0 : (f !== faixaAnt ? 1.7 : 1));
+    faixaAnt = f;
+    return {
+      id: e.id, ev: e, viagem: v || null,
+      faixa: f, ordem: x,
+      raio: e.tipo === 'entrega' ? 27 : 23 + Math.min(13, Math.sqrt(custo / 100000) * 3),
+      custo, pend,
+      dias: d,
+      estado: d < 0 ? 'passou' : d === 0 ? 'hoje' : e.confirmado === false ? 'previsto' : 'futuro',
+      // A semente dá a cada corpo uma respiração própria, para o campo não
+      // pulsar em bloco como um letreiro.
+      semente: (i * 137.508) % 360
+    };
+  });
+  // Três faixas em rodízio, não uma por viagem: onze corredores não cabem numa
+  // tela de celular. A linha que liga os corpos é o que agrupa a viagem, e o
+  // zigue-zague dá o movimento que uma fileira reta não teria.
+  const usadas = [...new Set(lista.map((c) => c.faixa))].sort((a, b) => a - b);
+  const mapaFaixa = new Map(usadas.map((f, i) => [f, i % 3]));
+  for (const c of lista) c.faixa = mapaFaixa.get(c.faixa);
+  return { lista, t0, t1, faixas, largura: x, nFaixas: Math.min(3, usadas.length) };
+}
+
+let camera = { x: 0, y: 0, z: 1 };
+let aberto = null;      // id do corpo expandido
+let camada = null;      // vertente aberta dentro dele
+
+function render() {
+  const u = store.user;
+  const node = el('<div class="mapa-tela"></div>');
+  const { lista, faixas, nFaixas } = corpos();
+
+  if (!lista.length) {
+    node.innerHTML = '<div class="empty">Sem diárias para desenhar ainda.</div>';
+    return { titulo: 'Mapa', node };
+  }
+
+  const PASSO = 76, ALTURA_FAIXA = 98;
+  const largura = lista[lista.length - 1].ordem;
+  const LARG = 200 + largura * PASSO;
+  const ALT = 70 + nFaixas * ALTURA_FAIXA;
+
+  node.innerHTML = `
+    <div class="mapa-topo">
+      <div>
+        <div class="mapa-t">Mapa do job</div>
+        <div class="mapa-s">${lista.filter((c) => c.estado !== 'passou').length} pela frente ·
+          ${lista.filter((c) => c.estado === 'passou').length} já rodadas</div>
+      </div>
+      <button class="btn sm gho" data-centrar>Hoje</button>
+    </div>
+    <div class="mapa-campo" data-campo>
+      <div class="mapa-mundo" data-mundo style="width:${LARG}px;height:${ALT}px">
+        <svg class="mapa-linhas" width="${LARG}" height="${ALT}" aria-hidden="true"></svg>
+        <div class="mapa-hoje" data-hoje></div>
+      </div>
+    </div>
+    <div class="mapa-legenda">
+      <span><i class="p-hoje"></i>hoje</span>
+      <span><i class="p-futuro"></i>confirmado</span>
+      <span><i class="p-previsto"></i>a confirmar</span>
+      <span><i class="p-passou"></i>já rodou</span>
+      <span class="mapa-dica">arraste para navegar · toque para abrir</span>
+    </div>`;
+
+  const mundo = node.querySelector('[data-mundo]');
+  const campo = node.querySelector('[data-campo]');
+  const svg = node.querySelector('.mapa-linhas');
+
+  const px = (c) => 100 + c.ordem * PASSO;
+  const py = (c) => 82 + c.faixa * ALTURA_FAIXA;
+
+  // A linha de cada viagem: mostra que aquelas diárias são a mesma ida.
+  const porFaixa = new Map();
+  for (const c of lista) {
+    const k = c.viagem?.id || 'solto';
+    porFaixa.set(k, [...(porFaixa.get(k) || []), c]);
+  }
+  svg.innerHTML = [...porFaixa.values()].map((cs) => {
+    if (cs.length < 2) return '';
+    const a = cs[0], b = cs[cs.length - 1];
+    return `<line x1="${px(a)}" y1="${py(a)}" x2="${px(b)}" y2="${py(b)}"
+      class="mapa-eixo ${a.estado === 'passou' ? 'passou' : ''}" />`;
+  }).join('') + lista.filter((c, i) => i === 0 || lista[i - 1].viagem?.id !== c.viagem?.id)
+    .map((c) => (c.viagem
+      ? `<text x="${px(c)}" y="${py(c) - 46}" class="mapa-rot" text-anchor="middle">${
+        esc(c.viagem.destino || c.viagem.titulo).slice(0, 18)}</text>`
+      : '')).join('');
+
+  // Marca de hoje, para o olho achar o presente sem procurar.
+  const hj = hoje();
+  const passados = lista.filter((c) => c.ev.data < hj);
+  const antes = passados[passados.length - 1];
+  const depois = lista.find((c) => c.ev.data >= hj);
+  const xHoje = antes && depois ? (px(antes) + px(depois)) / 2
+    : depois ? px(depois) - PASSO / 2 : px(lista[lista.length - 1]) + PASSO / 2;
+  const marca = node.querySelector('[data-hoje]');
+  marca.style.left = `${xHoje}px`;
+  marca.style.height = `${ALT}px`;
+
+  for (const c of lista) {
+    const n = el(`<button class="corpo ${c.estado}" data-corpo="${c.id}"
+      style="left:${px(c)}px;top:${py(c)}px;--r:${c.raio}px;--seed:${c.semente}deg">
+      ${c.pend && c.estado !== 'passou' ? `<i class="anel"></i>` : ''}
+      <span class="corpo-n">${esc(fmtData(c.ev.data).slice(0, 5))}</span>
+      <span class="corpo-l">${esc(rotulo(c))}</span>
+    </button>`);
+    n.onclick = () => abrirCorpo(c, n, node);
+    mundo.append(n);
+  }
+
+  ligarNavegacao(campo, mundo);
+  node.querySelector('[data-centrar]').onclick = () => centrarEm(campo, xHoje);
+  requestAnimationFrame(() => centrarEm(campo, xHoje, false));
+
+  return { titulo: 'Mapa', node };
+}
+
+function rotulo(c) {
+  const t = c.ev.titulo || '';
+  return t.replace(/^Filmagem — /, '').replace(/^Entrega d[aeo] /i, '').slice(0, 22);
+}
+
+/* Arrastar o campo com o dedo ou o mouse. Sem biblioteca: o campo é um
+   contêiner com rolagem, e o arraste move a rolagem. */
+function ligarNavegacao(campo, mundo) {
+  let arrastando = false, x0 = 0, y0 = 0, sx = 0, sy = 0, moveu = 0;
+  const inicio = (e) => {
+    const p = e.touches ? e.touches[0] : e;
+    arrastando = true; moveu = 0;
+    x0 = p.clientX; y0 = p.clientY; sx = campo.scrollLeft; sy = campo.scrollTop;
+    campo.classList.add('arrastando');
+  };
+  const move = (e) => {
+    if (!arrastando) return;
+    const p = e.touches ? e.touches[0] : e;
+    const dx = p.clientX - x0, dy = p.clientY - y0;
+    moveu = Math.max(moveu, Math.abs(dx) + Math.abs(dy));
+    campo.scrollLeft = sx - dx;
+    campo.scrollTop = sy - dy;
+    if (e.cancelable && moveu > 8) e.preventDefault();
+  };
+  const fim = () => { arrastando = false; campo.classList.remove('arrastando'); };
+  campo.addEventListener('mousedown', inicio);
+  window.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', fim);
+  campo.addEventListener('touchstart', inicio, { passive: true });
+  campo.addEventListener('touchmove', move, { passive: false });
+  campo.addEventListener('touchend', fim);
+  // Um arraste não deve virar um toque no corpo que estava embaixo do dedo.
+  campo.addEventListener('click', (e) => { if (moveu > 8) { e.stopPropagation(); e.preventDefault(); } }, true);
+}
+
+function centrarEm(campo, x, animado = true) {
+  const alvo = Math.max(0, x - campo.clientWidth / 2);
+  if (!animado || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    campo.scrollLeft = alvo;
+    return;
+  }
+  const de = campo.scrollLeft, t0 = performance.now();
+  const passo = (t) => {
+    const k = Math.min(1, (t - t0) / 520);
+    campo.scrollLeft = de + (alvo - de) * suave(k);
+    if (k < 1) requestAnimationFrame(passo);
+  };
+  requestAnimationFrame(passo);
+}
+
+/* ------------------------------------------------------------- camadas ---
+   Tocar num corpo abre as vertentes dele em órbita. Tocar numa vertente abre o
+   conteúdo dela dentro do mesmo painel, sem trocar de tela — é o "cada coisa
+   dentro da coisa" sem virar uma pilha de modais. */
+const VERTENTES = [
+  { k: 'equipe', icone: '👥', t: 'Quem vai' },
+  { k: 'chamada', icone: '⏰', t: 'Chamada' },
+  { k: 'dinheiro', icone: '💸', t: 'Dinheiro' },
+  { k: 'pendencias', icone: '⚠️', t: 'Pendências' },
+  { k: 'local', icone: '📍', t: 'Onde' },
+  { k: 'viagem', icone: '✈️', t: 'A viagem' }
+];
+
+function abrirCorpo(c, node, raiz) {
+  const u = store.user;
+  const e = c.ev;
+  const corpo = el('<div class="orb"></div>');
+  let atual = null;
+
+  const pintar = () => {
+    const conf = store.doProjeto('confirmacoes').filter((x) => x.ref_id === e.id);
+    const pend = c.viagem ? pendencias(c.viagem) : [];
+    corpo.innerHTML = `
+      <div class="orb-cab ${c.estado}">
+        <div class="orb-data">${esc(diaSemana(e.data))} · ${esc(fmtData(e.data, { longo: true }))}</div>
+        <div class="orb-tit">${esc(e.titulo)}</div>
+        <div class="orb-sub">${esc([e.local, c.dias === 0 ? 'é hoje'
+          : c.dias > 0 ? `em ${c.dias} dias` : `${Math.abs(c.dias)} dias atrás`,
+          e.confirmado === false ? 'data a confirmar' : ''].filter(Boolean).join(' · '))}</div>
+      </div>
+
+      <div class="orb-vert">${VERTENTES.map((v) => `
+        <button class="vert ${atual === v.k ? 'on' : ''}" data-v="${v.k}">
+          <span class="vert-i">${v.icone}</span><span class="vert-t">${v.t}</span>
+          ${v.k === 'pendencias' && pend.length ? `<span class="vert-n">${pend.length}</span>` : ''}
+        </button>`).join('')}</div>
+
+      <div class="orb-conteudo">${atual ? conteudo(atual, c, conf, pend, u) : `
+        <div class="orb-vazio">Toque numa das vertentes para abrir.</div>`}</div>
+
+      <button class="btn wide gho" data-abrir-classico>Abrir na agenda clássica</button>`;
+
+    corpo.querySelectorAll('[data-v]').forEach((b) => {
+      b.onclick = () => { atual = atual === b.dataset.v ? null : b.dataset.v; pintar(); };
+    });
+    corpo.querySelector('[data-abrir-classico]').onclick = () => { sh.close(); abrirEvento(e); };
+    corpo.querySelectorAll('[data-ok]').forEach((n) => {
+      n.onclick = async () => {
+        const p = pend.find((x) => x.id === n.dataset.ok);
+        if (!p?.resolver) return;
+        await p.resolver();
+        toast('Feito.');
+        pintar(); store.emit();
+      };
+    });
+  };
+
+  node.classList.add('aceso');
+  pintar();
+  const sh = sheet({ titulo: rotulo(c), corpo, aoFechar: () => node.classList.remove('aceso') });
+}
+
+function conteudo(k, c, conf, pend, u) {
+  const e = c.ev;
+  if (k === 'equipe') {
+    const gente = e.participantes || [];
+    return !gente.length ? vazio('Ninguém marcado nesta diária.') : `
+      <div class="card lista">${gente.map((id) => {
+        const cf = conf.find((x) => x.membro_id === id && x.tipo === 'presenca');
+        return `<div class="row">
+          <span class="avatar">${esc(iniciais(nomeMembro(id)))}</span>
+          <span class="g"><span class="t">${esc(nomeMembro(id))}</span>
+            <span class="s">${esc(store.get('membros', id)?.funcao || '')}</span></span>
+          ${cf ? `<span class="r"><span class="tag ${cf.status === 'confirmado' ? 'ok' : 'warn'}">
+            ${cf.status === 'confirmado' ? 'confirmou' : 'pendente'}</span></span>` : ''}
+        </div>`;
+      }).join('')}</div>`;
+  }
+  if (k === 'chamada') {
+    const ch = e.chamadas || [];
+    const linhas = String(e.roteiro_dia || '').split('\n').filter((l) => l.trim());
+    return `${e.hora_inicio ? `<div class="orb-grande">${esc(e.hora_inicio)}${e.hora_fim
+      ? ` <span>→ ${esc(e.hora_fim)}</span>` : ''}</div>` : ''}
+      ${ch.length ? `<div class="card lista">${ch.map((x) => `<div class="row">
+        <span class="g"><span class="t">${esc(nomeMembro(x.membro_id))}</span>
+          <span class="s">${esc(x.obs || '')}</span></span>
+        <span class="r"><span class="v">${esc(x.hora)}</span></span></div>`).join('')}</div>` : ''}
+      ${linhas.length ? `<div class="card"><div class="tl">${linhas.map((l) => `
+        <div class="n"><div class="row"><span class="g"><span class="t"
+          style="white-space:normal;font-weight:500">${esc(l)}</span></span></div></div>`).join('')}</div></div>` : ''}
+      ${!e.hora_inicio && !ch.length && !linhas.length ? vazio('Sem ordem do dia ainda.') : ''}`;
+  }
+  if (k === 'dinheiro') {
+    if (!can(u, 'orcamento.ver')) return vazio('Sem acesso aos valores.');
+    const lan = store.doProjeto('lancamentos').filter((l) => l.evento_id === e.id);
+    return `<div class="orb-grande">${fmtMoney(c.custo)}<span>gasto neste dia</span></div>
+      ${lan.length ? `<div class="card lista">${lan.map((l) => `<div class="row">
+        <span class="g"><span class="t">${esc(l.descricao)}</span>
+          <span class="s">${esc([l.rubrica, l.membro_id ? nomeMembro(l.membro_id) : ''].filter(Boolean).join(' · '))}</span></span>
+        <span class="r"><span class="v">${fmtMoney(l.valor_cents)}</span></span></div>`).join('')}</div>`
+      : vazio('Nenhum gasto lançado neste dia.')}`;
+  }
+  if (k === 'pendencias') {
+    if (!pend.length) return vazio('Nada pendente nesta viagem.');
+    return `<div class="card lista">${pend.map((p) => `
+      <div class="row ${p.resolver ? 'act sem-seta' : ''}" ${p.resolver ? `data-ok="${p.id}"` : ''}>
+        <span class="g"><span class="t" style="white-space:normal">${esc(p.texto)}</span>
+          <span class="s">${esc(p.quem ? nomeMembro(p.quem) : 'sem dono')}</span></span>
+        ${p.resolver ? '<span class="r"><span class="tag ok">feito?</span></span>' : ''}
+      </div>`).join('')}</div>`;
+  }
+  if (k === 'local') {
+    const loc = store.doProjeto('locacoes').find((l) => e.local && e.local.includes(l.cidade));
+    const end = e.endereco || loc?.obs || '';
+    return `${e.local ? `<div class="orb-grande" style="font-size:22px">${esc(e.local)}</div>` : ''}
+      ${end ? `<div class="card tight"><div class="row"><span class="g">
+        <span class="t" style="white-space:normal;font-weight:400">${esc(end)}</span></span></div></div>` : ''}
+      ${e.levar ? `<div class="sec"><div class="sec-t">Levar</div></div>
+        <div class="card tight"><div class="row"><span class="g"><span class="t"
+          style="white-space:normal;font-weight:400">${esc(e.levar)}</span></span></div></div>` : ''}
+      ${!e.local && !end ? vazio('Sem local definido.') : ''}`;
+  }
+  if (k === 'viagem') {
+    if (!c.viagem) return vazio('Esta data não pertence a nenhuma viagem.');
+    const cv = contaDaViagem(c.viagem);
+    return `<div class="orb-grande" style="font-size:19px">${esc(c.viagem.titulo)}</div>
+      <div class="card tight">
+        <div class="row"><span class="g"><span class="s">Quando</span>
+          <span class="t">${esc(fmtData(c.viagem.ida))} → ${esc(fmtData(c.viagem.volta))}</span></span></div>
+        <div class="row"><span class="g"><span class="s">Orçado</span>
+          <span class="t">${fmtMoney(cv.orcado)}</span></span>
+          <span class="r"><span class="v">${fmtMoney(cv.fechado)}</span>
+            <div class="small muted">fechado</div></span></div>
+        ${cv.faltando.length ? `<div class="row"><span class="g"><span class="s">Falta fechar</span>
+          <span class="t">${cv.faltando.map((i) => i.t).join(', ')}</span></span></div>` : ''}
+      </div>`;
+  }
+  return '';
+}
+
+const vazio = (t) => `<div class="orb-vazio">${esc(t)}</div>`;
 
   return { render };
 };

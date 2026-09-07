@@ -304,6 +304,8 @@ export const MARCA = '<span class="marca-txt">unit</span><svg viewBox="0 0 41.00
 
 /* ---------------- ícones ---------------- */
 export const ICO = {
+  mapa: '<svg viewBox="0 0 24 24"><circle cx="6.5" cy="8" r="2.6"/><circle cx="17" cy="6.5" r="2"/>'
+    + '<circle cx="12.5" cy="16.5" r="2.3"/><path d="M8.9 9.2 10.9 14.7M8.6 7.2 15 6.6M14.8 8.2 13.4 14.3"/></svg>',
   casa: '<svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/></svg>',
   etapas: '<svg viewBox="0 0 24 24"><path d="M4 6h10M4 12h16M4 18h7"/><circle cx="18" cy="6" r="2"/><circle cx="14" cy="18" r="2"/></svg>',
   agenda: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',

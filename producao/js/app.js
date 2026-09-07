@@ -23,6 +23,7 @@ import * as vLocacoes from './views/locacoes.js';
 import * as vFontes from './views/fontes.js';
 import * as vPedidosNF from './views/pedidosnf.js';
 import * as vVersoes from './views/versoes.js';
+import * as vMapa from './views/mapa.js';
 import * as vFixas from './views/fixas.js';
 import * as vAprov from './views/aprovacoes.js';
 
@@ -47,6 +48,7 @@ const ROTAS = {
   '/fontes': () => vFontes.render(),
   '/pedidos-nf': () => vPedidosNF.render(),
   '/versoes': () => vVersoes.render(),
+  '/mapa': () => vMapa.render(),
   '/fixas': () => vFixas.render(),
   '/aprovacoes': () => vAprov.render(),
   '/historico': () => vAjustes.renderHistorico()
@@ -160,12 +162,14 @@ function tabs() {
   const nTarefas = minhasTarefas(u?.id).filter((t) => (t.prazo && (diasAte(t.prazo) ?? 9) <= 0) || t.cobrado_em).length;
   const itens = equipe ? [
     { r: '#/', i: ICO.eu, t: 'Meu', dot: nAlertas },
+    { r: '#/mapa', i: ICO.mapa, t: 'Mapa' },
     { r: '#/agenda', i: ICO.agenda, t: 'Agenda' },
     { r: '#/etapas', i: ICO.etapas, t: 'Trabalho', dot: nTarefas },
     { r: '#/notas', i: ICO.nota, t: 'Notas' },
     { r: '#/mais', i: ICO.mais, t: 'Mais' }
   ] : [
     { r: '#/', i: ICO.casa, t: 'Painel', dot: nAlertas },
+    { r: '#/mapa', i: ICO.mapa, t: 'Mapa' },
     { r: '#/etapas', i: ICO.etapas, t: 'Trabalho', dot: nTarefas },
     { r: '#/agenda', i: ICO.agenda, t: 'Agenda' },
     { r: '#/financeiro', i: ICO.grana, t: 'Dinheiro' },
