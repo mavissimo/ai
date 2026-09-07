@@ -380,7 +380,7 @@ const KEY = 'unit0:db:v1';
 const TABELAS = [
   'projetos', 'membros', 'etapas', 'tarefas', 'eventos', 'entregas',
   'orcamento', 'lancamentos', 'contas', 'contratos', 'documentos',
-  'confirmacoes', 'atividades', 'locacoes', 'caixa', 'aprovacoes', 'contatos', 'viagens', 'fontes'
+  'confirmacoes', 'atividades', 'locacoes', 'caixa', 'aprovacoes', 'contatos', 'viagens', 'fontes', 'versoes', 'fixas'
 ];
 
 const vazio = () => {
@@ -511,6 +511,8 @@ const vAjustes = __req("js/views/ajustes.js");
 const vLocacoes = __req("js/views/locacoes.js");
 const vFontes = __req("js/views/fontes.js");
 const vPedidosNF = __req("js/views/pedidosnf.js");
+const vVersoes = __req("js/views/versoes.js");
+const vFixas = __req("js/views/fixas.js");
 const vAprov = __req("js/views/aprovacoes.js");
 const ROTAS = {
   '': () => (ehEquipe(store.user) ? vMeu.render() : vDash.render()),
@@ -532,6 +534,8 @@ const ROTAS = {
   '/locacoes': () => vLocacoes.render(),
   '/fontes': () => vFontes.render(),
   '/pedidos-nf': () => vPedidosNF.render(),
+  '/versoes': () => vVersoes.render(),
+  '/fixas': () => vFixas.render(),
   '/aprovacoes': () => vAprov.render(),
   '/historico': () => vAjustes.renderHistorico()
 };
@@ -821,7 +825,21 @@ function financeiro() {
   const impostoPrevisto = Math.round(contratado * aliq);
   const impostoRealizado = Math.round(recebido * aliq);
 
-  const custoPrevistoTotal = orcado + impostoPrevisto;
+  // Taxa da produtora e bônus de venda saem do contrato, como o imposto: são
+  // custo do job antes de sobrar qualquer coisa.
+  const taxaPct = Number(p.taxa_producao_pct || 0) / 100;
+  const bonusPct = Number(p.bonus_venda_pct || 0) / 100;
+  const taxaProducao = Math.round(contratado * taxaPct);
+  const bonusVenda = Math.round(contratado * bonusPct);
+
+  // Custo fixo da produtora rateado neste projeto, quando marcado para ratear.
+  const fixasRateadas = soma(
+    store.doProjeto('fixas').filter((f) => f.rateia),
+    (f) => (f.periodo === 'anual' ? Math.round(f.valor_cents / 12) : f.valor_cents)
+      * Math.max(1, Number(p.meses_projeto || 1))
+  );
+
+  const custoPrevistoTotal = orcado + impostoPrevisto + taxaProducao + bonusVenda + fixasRateadas;
   const lucroPrevisto = contratado - custoPrevistoTotal;
   const lucroRealizado = recebido - realizado - impostoRealizado;
   const caixa = recebido - pago;
@@ -829,9 +847,11 @@ function financeiro() {
 
   return {
     contratado, orcado, negociado, realizado, pendente, pago, recebido, economia, aReembolsar,
+    taxaProducao, bonusVenda, fixasRateadas,
     aNegociar: orcado - negociado,
     // Lucro se tudo o que falta fechar sair pelo valor orçado.
-    lucroSeFechar: contratado - (orcado - economia) - Math.round(contratado * aliq),
+    lucroSeFechar: contratado - (orcado - economia) - impostoPrevisto - taxaProducao
+      - bonusVenda - fixasRateadas,
     aPagar, aReceber, impostoPrevisto, impostoRealizado,
     custoPrevistoTotal, lucroPrevisto, lucroRealizado, caixa, comprometido,
     saldoOrcamento: orcado - comprometido,
@@ -1903,7 +1923,7 @@ const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-const SEED_VERSAO = 16;
+const SEED_VERSAO = 17;
 
 const PESSOAS = [
   {
@@ -2407,6 +2427,10 @@ async function criarProjetoBradesco(existente = null) {
     imposto_regime: 'simples',
     imposto_aliquota: 12,
     codigo_job: 'Job 008_F.BRADESCO 70 ANOS',
+    meses_projeto: 5,
+    taxa_producao_pct: 0,
+    bonus_venda_pct: 0,
+    bonus_venda_para: 'Otávio Nazareth (Editora Olhares) — indicou o job',
     cnpj: '47.661.128/0001-60',
     razao_social: 'MATHEUS SIMOES AVILA LTDA',
     fantasia: 'MAVI',
@@ -2808,6 +2832,31 @@ async function criarProjetoBradesco(existente = null) {
     });
   }
 
+  /* A V2 do orçamento é a que virou contrato — a foto dela é o orçamento de
+     hoje, porque nada mudou de lá para cá do lado do orçado. */
+  const linhasV2 = store.doProjeto('orcamento').map((o) => ({
+    rubrica: o.rubrica, previsto_cents: o.previsto_cents || 0, negociado_cents: 0
+  }));
+  await ins('versoes', 'versao:V2', {
+    nome: 'V2', status: 'aprovada',
+    nota: 'Carta-Orçamento V2, anexa ao contrato 4600001793. É a versão que a Fundação aprovou '
+      + 'em 14/08 e que virou o contrato de R$ 518.998,86.',
+    enviada_em: '2026-08-11', respondida_em: '2026-08-14',
+    previsto_cents: linhasV2.reduce((n, l) => n + l.previsto_cents, 0),
+    negociado_cents: 0, linhas: linhasV2
+  });
+
+  /* Custo fixo da produtora. Sem valor: quem sabe o número é o Maví. */
+  for (const [nome, categoria] of [
+    ['Contabilidade', 'Contabilidade'], ['Adobe Creative Cloud', 'Software'],
+    ['Armazenamento em nuvem', 'Software'], ['Telefonia e internet', 'Telefonia e internet']
+  ]) {
+    await ins('fixas', 'fixa:' + nome, {
+      nome, categoria, valor_cents: 0, periodo: 'mensal', rateia: false,
+      obs: 'Preencha o valor para entrar no cálculo da margem.'
+    });
+  }
+
   /* fontes vivas do projeto */
   for (const [titulo, url, tipoF, frequencia, quem, obs] of FONTES) {
     await ins('fontes', 'fonte:' + titulo, {
@@ -2978,6 +3027,8 @@ const chaveDe = {
     return r.forma === 'dinheiro' ? 'caixa:' + r.descricao : 'lanc:' + r.descricao;
   },
   documentos: (r) => (r.titulo ? 'doc:' + r.titulo : null),
+  versoes: (r) => (r.nome ? 'versao:' + r.nome : null),
+  fixas: (r) => (r.nome ? 'fixa:' + r.nome : null),
   confirmacoes: (r) => {
     const em = r.membro_id ? store.get('membros', r.membro_id)?.email : null;
     if (!em) return null;
@@ -4427,6 +4478,8 @@ function render() {
       ${can(u, 'contas.ver') ? atalho('#/contas', 'A receber', 'Parcelas do cliente') : ''}
       ${can(u, 'contas.ver') ? atalho('#/pedidos-nf', 'Pedidos de NF', 'Quem já foi cobrado e quem falta') : ''}
       ${atalho('#/caixa', 'Caixinha', 'Adiantamentos e prestação de contas')}
+      ${can(u, 'orcamento.ver') ? atalho('#/versoes', 'Versões do orçamento', 'V1, V2, V3 e o que mudou entre elas') : ''}
+      ${can(u, 'lucro.ver') ? atalho('#/fixas', 'Despesas fixas', 'Custo da produtora que existe com ou sem projeto') : ''}
       ${atalho('#/fontes', 'Fontes do projeto', 'Planilha, agenda e contrato — o que precisa ser reconferido')}
       ${atalho('#/locacoes', 'Locações e contatos', 'Escolas, endereços, cliente e fornecedores')}
       ${atalho('#/aprovacoes', 'Aprovações do cliente', 'Rodadas, prazo de aceite e feedback')}
@@ -4583,6 +4636,16 @@ function camposProjeto(p = {}) {
     { k: 'entrega', label: 'Entrega final', type: 'data', valor: p.entrega },
     { k: 'valor_contrato_cents', label: 'Valor contratado', type: 'dinheiro', valor: p.valor_contrato_cents },
     { k: 'imposto_aliquota', label: 'Imposto (%)', type: 'numero', step: '0.01', valor: p.imposto_aliquota },
+    { type: 'titulo', label: 'O que a produtora tira do job', k: '_t_taxa' },
+    { k: 'taxa_producao_pct', label: 'Taxa da produtora (%)', type: 'numero', step: '0.01',
+      valor: p.taxa_producao_pct ?? 0, meia: true,
+      hint: 'Sobre o valor contratado. Entra no custo, junto com o imposto.' },
+    { k: 'bonus_venda_pct', label: 'Bônus de venda (%)', type: 'numero', step: '0.01',
+      valor: p.bonus_venda_pct ?? 0, meia: true, hint: 'Para quem trouxe o job.' },
+    { k: 'bonus_venda_para', label: 'Bônus vai para', type: 'texto', valor: p.bonus_venda_para || '',
+      ph: 'Nome de quem indicou' },
+    { k: 'meses_projeto', label: 'Duração do projeto (meses)', type: 'numero', valor: p.meses_projeto ?? 1,
+      hint: 'Usado para ratear a despesa fixa da produtora neste job.' },
     { k: 'aceite_dias', label: 'Prazo de aceite do cliente (dias)', type: 'numero', valor: p.aceite_dias ?? 5, meia: true },
     { k: 'rodadas_max', label: 'Rodadas de ajuste', type: 'numero', valor: p.rodadas_max ?? 3, meia: true },
     { k: 'aceite_uteis', label: 'Contar o aceite em dias úteis', type: 'check', valor: p.aceite_uteis !== false },
@@ -5854,6 +5917,9 @@ function campos(m = {}) {
     { k: 'agencia', label: 'Agência', type: 'texto', valor: m.agencia, meia: true },
     { k: 'conta_banco', label: 'Conta', type: 'texto', valor: m.conta_banco, meia: true },
     { k: 'titular', label: 'Titular, se for outro nome', type: 'texto', valor: m.titular },
+    { k: 'acordos', label: 'O que foi combinado fora do cachê', type: 'area', valor: m.acordos || '',
+      hint: 'Carona, equipamento próprio, diária extra, hospedagem por conta dela — o que costuma '
+        + 'virar discussão depois se ninguém escreveu.' },
     { k: 'obs', label: 'Observações', type: 'area', valor: m.obs }
   ];
 }
@@ -5900,6 +5966,8 @@ function abrirMembro(m, editar, verGrana) {
         <div class="row"><span class="g"><span class="s">Senha de acesso</span>
           <span class="t">${temSenha(m) ? 'criada' : 'ainda não criada'}</span></span>
           ${editar && temSenha(m) ? '<span class="r"><button class="btn sm gho" data-zerar-senha>zerar</button></span>' : ''}</div>
+        ${m.acordos ? `<div class="row"><span class="g"><span class="s">Combinado fora do cachê</span>
+          <span class="t" style="white-space:normal;font-weight:400">${esc(m.acordos)}</span></span></div>` : ''}
         <div class="row"><span class="g"><span class="s">Contrato</span>
           <span class="t">${esc(ST_CONTRATO.find((s) => s.v === (m.contrato_status || 'na'))?.t)}</span></span></div>
         ${verGrana && m.chave_pix ? `<div class="row"><span class="g"><span class="s">Pix</span><span class="t">${esc(m.chave_pix)}</span></span></div>` : ''}
@@ -6412,8 +6480,18 @@ function blocoResumo(f, verLucro, u) {
       <div class="row"><span class="g"><span class="t">Imposto sobre o já recebido</span>
         <span class="s">provisionar</span></span>
         <span class="r"><span class="v">${fmtMoney(f.impostoRealizado)}</span></span></div>
+      ${f.taxaProducao ? `<div class="row"><span class="g"><span class="t">Taxa da produtora</span>
+        <span class="s">${f.aliquota ? '' : ''}sobre o contratado</span></span>
+        <span class="r"><span class="v">${fmtMoney(f.taxaProducao)}</span></span></div>` : ''}
+      ${f.bonusVenda ? `<div class="row"><span class="g"><span class="t">Bônus de venda</span>
+        <span class="s">${esc(store.projeto?.bonus_venda_para || 'quem trouxe o job')}</span></span>
+        <span class="r"><span class="v">${fmtMoney(f.bonusVenda)}</span></span></div>` : ''}
+      ${f.fixasRateadas ? `<div class="row"><span class="g"><span class="t">Custo fixo rateado</span>
+        <span class="s">despesa da produtora que cabe a este projeto</span></span>
+        <span class="r"><span class="v">${fmtMoney(f.fixasRateadas)}</span></span></div>` : ''}
       <div class="row"><span class="g"><span class="t">Custo total previsto</span>
-        <span class="s">orçamento + imposto</span></span>
+        <span class="s">orçamento + imposto${f.taxaProducao || f.bonusVenda || f.fixasRateadas
+    ? ' + taxa, bônus e fixo' : ''}</span></span>
         <span class="r"><span class="v">${fmtMoney(f.custoPrevistoTotal)}</span></span></div>
       ${f.aReembolsar ? `<div class="row"><span class="g"><span class="t">Acerto com o sócio</span>
         <span class="s">o que o Maví pôs no cartão pessoal e a empresa deve devolver</span></span>
@@ -6807,6 +6885,103 @@ function abrirLancamento(l) {
 }
 
   return { rubricasPara, irPara, render, camposLancamento, conferirComprovante, lerNotaNoForm, salvarLancamento, abrirLancamento };
+};
+
+__defs["js/views/fixas.js"] = function () {
+// Custo fixo da produtora: o que existe com ou sem projeto — contador, software,
+// aluguel, seguro anual. Marcando "ratear", ele entra no cálculo de quanto o
+// projeto realmente custa, em vez de sumir no meio do mês.
+const { store } = __req("js/store.js");
+const { can } = __req("js/perms.js");
+const { el, abrirForm, sheet, toast, btnOlho } = __req("js/ui.js");
+const { esc, fmtMoney, ordenar, soma, valoresOcultos } = __req("js/utils.js");
+const PERIODOS = [{ v: 'mensal', t: 'Por mês' }, { v: 'anual', t: 'Por ano' }];
+const porMes = (f) => (f.periodo === 'anual' ? Math.round(f.valor_cents / 12) : f.valor_cents);
+
+function render() {
+  const u = store.user;
+  const node = el('<div></div>');
+  if (!can(u, 'lucro.ver')) {
+    node.innerHTML = '<div class="empty">Só quem vê a margem enxerga o custo fixo da produtora.</div>';
+    return { titulo: 'Despesas fixas', node };
+  }
+  const editar = can(u, 'orcamento.edit');
+  const lista = ordenar(store.doProjeto('fixas'), (f) => f.nome);
+  const mes = soma(lista, porMes);
+  const rateado = soma(lista.filter((f) => f.rateia), porMes);
+  const meses = Math.max(1, Number(store.projeto?.meses_projeto || 1));
+
+  node.innerHTML = `
+    <div class="grid">
+      <div class="kpi"><div class="l">Por mês</div><div class="v">${fmtMoney(mes)}</div>
+        <div class="h">${lista.length} despesa(s)</div></div>
+      <div class="kpi ${rateado ? 'warn' : ''}"><div class="l">Entra neste projeto</div>
+        <div class="v">${fmtMoney(rateado * meses)}</div>
+        <div class="h">${fmtMoney(rateado)} × ${meses} ${meses === 1 ? 'mês' : 'meses'}</div></div>
+    </div>
+    <div class="card lista">${lista.length ? lista.map((f) => `<div class="row act" data-fixa="${f.id}">
+      <span class="g"><span class="t">${esc(f.nome)}</span>
+        <span class="s">${esc([f.categoria, PERIODOS.find((p) => p.v === f.periodo)?.t,
+    f.rateia ? 'entra no projeto' : 'fora do projeto'].filter(Boolean).join(' · '))}</span></span>
+      <span class="r"><span class="v">${fmtMoney(f.valor_cents)}</span>
+        ${f.periodo === 'anual' ? `<div class="small muted">${fmtMoney(porMes(f))}/mês</div>` : ''}</span>
+    </div>`).join('') : '<div class="empty">Nenhuma despesa fixa cadastrada.</div>'}</div>
+    <div class="banner small">Só o que estiver marcado como <b>ratear</b> entra na conta do projeto.
+      O resto fica aqui como memória do custo da produtora.</div>`;
+
+  node.querySelectorAll('[data-fixa]').forEach((n) => {
+    n.onclick = () => abrir(store.get('fixas', n.dataset.fixa), editar);
+  });
+  return { titulo: 'Despesas fixas', node, fab: editar ? { label: '+', onClick: () => editarFixa({}) } : null };
+}
+
+function abrir(f, editar) {
+  if (!f) return;
+  const corpo = el(`<div>
+    <div class="card tight">
+      <div class="row"><span class="g"><span class="s">Valor</span>
+        <span class="t">${fmtMoney(f.valor_cents)} ${esc(PERIODOS.find((p) => p.v === f.periodo)?.t.toLowerCase() || '')}</span></span></div>
+      ${f.categoria ? `<div class="row"><span class="g"><span class="s">Categoria</span>
+        <span class="t">${esc(f.categoria)}</span></span></div>` : ''}
+      <div class="row"><span class="g"><span class="s">No custo do projeto</span>
+        <span class="t">${f.rateia ? 'sim, rateado' : 'não'}</span></span></div>
+      ${f.obs ? `<div class="row"><span class="g"><span class="s">Observação</span>
+        <span class="t" style="white-space:normal;font-weight:400">${esc(f.obs)}</span></span></div>` : ''}
+    </div>
+    ${editar ? '<button class="btn wide gho" data-edit>Editar</button>' : ''}
+  </div>`);
+  const sh = sheet({ titulo: f.nome, corpo });
+  corpo.querySelector('[data-edit]')?.addEventListener('click', () => { sh.close(); editarFixa(f); });
+}
+
+function editarFixa(f) {
+  const nova = !f.id;
+  abrirForm({
+    titulo: nova ? 'Nova despesa fixa' : 'Editar despesa',
+    campos: [
+      { k: 'nome', label: 'O que é', type: 'texto', req: true, valor: f.nome || '' },
+      { k: 'valor_cents', label: 'Valor', type: 'dinheiro', req: true, valor: f.valor_cents, meia: true },
+      { k: 'periodo', label: 'A cada', type: 'select', valor: f.periodo || 'mensal', meia: true, opts: PERIODOS },
+      {
+        k: 'categoria', label: 'Categoria', type: 'livre', valor: f.categoria || '',
+        opts: ['Contabilidade', 'Software', 'Aluguel', 'Seguro', 'Telefonia e internet',
+          'Equipamento próprio', 'Impostos fixos', 'Outros'].map((v) => ({ v, t: v })),
+        ph: 'Escreva a categoria'
+      },
+      { k: 'rateia', label: 'Entra no custo deste projeto', type: 'check', valor: f.rateia !== false,
+        hint: 'Marcado, o valor mensal × a duração do projeto entra no cálculo da margem.' },
+      { k: 'obs', label: 'Observação', type: 'area', valor: f.obs || '' }
+    ],
+    onSave: async (v) => {
+      if (nova) await store.insert('fixas', v);
+      else await store.update('fixas', f.id, v);
+      toast(nova ? 'Despesa cadastrada.' : 'Atualizada.');
+    },
+    onDelete: nova ? null : async () => { await store.remove('fixas', f.id); toast('Removida.'); }
+  });
+}
+
+  return { porMes, render };
 };
 
 __defs["js/views/fontes.js"] = function () {
@@ -8063,6 +8238,207 @@ function abrir(t) {
 }
 
   return { ST_TAREFA, statusDe, emAberto, atrasadas, minhasTarefas, render, nova, remarcar };
+};
+
+__defs["js/views/versoes.js"] = function () {
+// Versões do orçamento. Toda proposta que vai para o cliente é uma foto das
+// rubricas no dia em que foi fechada — e é o que permite responder "o que mudou
+// da V1 para a V2?" seis meses depois, sem depender de memória.
+const { store } = __req("js/store.js");
+const { can } = __req("js/perms.js");
+const { el, abrirForm, sheet, toast, confirmar, btnOlho } = __req("js/ui.js");
+const { esc, fmtMoney, fmtMoneyShort, fmtData, hoje, ordenar, soma, valoresOcultos } = __req("js/utils.js");
+const ST_VERSAO = {
+  rascunho: { t: 'Rascunho', tag: 'mut' },
+  enviada: { t: 'Com o cliente', tag: 'warn' },
+  aprovada: { t: 'Aprovada', tag: 'ok' },
+  recusada: { t: 'Recusada', tag: 'bad' }
+};
+const st = (v) => ST_VERSAO[v] || ST_VERSAO.rascunho;
+
+/** A foto do orçamento como ele está agora. */
+function fotoAtual() {
+  const linhas = store.doProjeto('orcamento').map((o) => ({
+    rubrica: o.rubrica,
+    previsto_cents: o.previsto_cents || 0,
+    negociado_cents: o.negociado_cents || 0
+  }));
+  return {
+    linhas,
+    previsto_cents: soma(linhas, (l) => l.previsto_cents),
+    negociado_cents: soma(linhas, (l) => l.negociado_cents)
+  };
+}
+
+/** O que mudou de uma versão para outra, rubrica a rubrica. */
+function comparar(a, b) {
+  const mapa = new Map();
+  for (const l of (a?.linhas || [])) mapa.set(l.rubrica, { rubrica: l.rubrica, de: l.previsto_cents, para: 0 });
+  for (const l of (b?.linhas || [])) {
+    const x = mapa.get(l.rubrica) || { rubrica: l.rubrica, de: 0, para: 0 };
+    x.para = l.previsto_cents;
+    mapa.set(l.rubrica, x);
+  }
+  return [...mapa.values()]
+    .map((x) => ({ ...x, delta: x.para - x.de }))
+    .filter((x) => x.delta !== 0)
+    .sort((x, y) => Math.abs(y.delta) - Math.abs(x.delta));
+}
+
+function render() {
+  const u = store.user;
+  const node = el('<div></div>');
+  if (!can(u, 'orcamento.ver')) {
+    node.innerHTML = '<div class="empty">Sem acesso ao orçamento.</div>';
+    return { titulo: 'Versões', node };
+  }
+  const editar = can(u, 'orcamento.edit');
+  const lista = ordenar(store.doProjeto('versoes'), (v) => v.criado_em || '', -1);
+  const agora = fotoAtual();
+  const ultima = lista[0];
+  // A versão registra a proposta, então o que conta para "mudou" é o orçado.
+  const mudou = ultima && ultima.previsto_cents !== agora.previsto_cents;
+
+  node.innerHTML = `
+    <div class="sec" style="margin-top:0"><div class="sec-t">Orçamento de hoje</div>
+      ${btnOlho(valoresOcultos())}</div>
+    <div class="grid">
+      <div class="kpi"><div class="l">Orçado</div><div class="v">${fmtMoneyShort(agora.previsto_cents)}</div>
+        <div class="h">${agora.linhas.length} rubricas</div></div>
+      <div class="kpi"><div class="l">Negociado</div><div class="v">${fmtMoneyShort(agora.negociado_cents)}</div>
+        <div class="h">o que já fechou</div></div>
+    </div>
+    ${editar ? `<button class="btn wide ${mudou || !lista.length ? 'pri' : 'gho'}" data-salvar>
+      Salvar como ${proximoNome(lista)}</button>
+      <div class="small muted" style="margin-top:6px;text-align:center">${mudou
+    ? `Mudou ${fmtMoney(Math.abs(agora.previsto_cents - ultima.previsto_cents))} desde a ${esc(ultima.nome)}.`
+    : ultima ? `Igual à ${esc(ultima.nome)} — salve só se quiser marcar um novo envio.`
+      : 'Primeira versão do projeto.'}</div>` : ''}
+
+    <div class="sec"><div class="sec-t">Versões salvas</div>
+      <span class="small muted">${lista.length}</span></div>
+    <div class="card lista">${lista.length ? lista.map((v, i) => {
+    const s = st(v.status);
+    const ant = lista[i + 1];
+    const d = ant ? v.previsto_cents - ant.previsto_cents : 0;
+    return `<div class="row act alto" data-versao="${v.id}">
+        <span class="ico">${v.status === 'aprovada' ? '✅' : v.status === 'recusada' ? '❌' : '📄'}</span>
+        <span class="g"><span class="t">${esc(v.nome)}</span>
+          <span class="s">${esc([fmtData(v.respondida_em || v.enviada_em || v.criado_em),
+    v.nota].filter(Boolean).join(' · '))}</span>
+          ${d ? `<span class="s" style="color:${d > 0 ? 'var(--bad)' : 'var(--ok)'}">
+            ${d > 0 ? '+' : '−'}${fmtMoney(Math.abs(d))} em relação à ${esc(ant.nome)}</span>` : ''}</span>
+        <span class="r"><span class="v">${fmtMoney(v.previsto_cents)}</span>
+          <div class="small"><span class="tag ${s.tag}">${esc(s.t)}</span></div></span>
+      </div>`;
+  }).join('') : '<div class="empty">Nenhuma versão salva ainda.</div>'}</div>
+
+    <div class="banner small">Salve uma versão toda vez que mandar orçamento para o cliente. Ela guarda
+      as rubricas como estavam naquele dia — depois dá para ver exatamente o que mudou entre uma e outra.</div>`;
+
+  node.querySelector('[data-salvar]')?.addEventListener('click', () => salvar(lista));
+  node.querySelectorAll('[data-versao]').forEach((n) => {
+    n.onclick = () => abrir(store.get('versoes', n.dataset.versao), lista, editar);
+  });
+  return { titulo: 'Versões do orçamento', node };
+}
+
+/** V4 depois de V3, mesmo que alguma tenha sido apagada no caminho. */
+const proximoNome = (lista) => {
+  const maior = lista.reduce((n, v) => {
+    const m = /^V(\d+)$/i.exec(String(v.nome || '').trim());
+    return m ? Math.max(n, Number(m[1])) : n;
+  }, 0);
+  return `V${maior + 1}`;
+};
+
+function salvar(lista) {
+  const foto = fotoAtual();
+  abrirForm({
+    titulo: 'Salvar versão do orçamento',
+    subtitulo: `${fmtMoney(foto.previsto_cents)} orçado · ${foto.linhas.length} rubricas`,
+    campos: [
+      { k: 'nome', label: 'Nome', type: 'texto', req: true, valor: proximoNome(lista), meia: true },
+      {
+        k: 'status', label: 'Situação', type: 'select', meia: true, valor: 'rascunho',
+        opts: Object.entries(ST_VERSAO).map(([v, o]) => ({ v, t: o.t }))
+      },
+      { k: 'nota', label: 'O que mudou nesta versão', type: 'area', valor: '',
+        ph: 'Ex.: tirei a escola de Santo André e cortei uma diária de luz' }
+    ],
+    onSave: async (v) => {
+      await store.insert('versoes', { ...v, ...foto, enviada_em: v.status === 'enviada' ? hoje() : '' });
+      await store.log(`Orçamento ${v.nome} salvo: ${fmtMoney(foto.previsto_cents)}`, 'orcamento');
+      toast(`${v.nome} salva.`);
+    }
+  });
+}
+
+function abrir(v, lista, editar) {
+  if (!v) return;
+  const i = lista.findIndex((x) => x.id === v.id);
+  const ant = lista[i + 1];
+  const dif = ant ? comparar(ant, v) : [];
+  const s = st(v.status);
+  const corpo = el(`<div>
+    <div class="card tight">
+      <div class="row"><span class="g"><span class="s">${v.respondida_em ? 'Respondida em'
+    : v.enviada_em ? 'Enviada em' : 'Salva em'}</span>
+        <span class="t">${esc(fmtData(v.respondida_em || v.enviada_em || v.criado_em, { longo: true }))}</span></span>
+        <span class="r"><span class="tag ${s.tag}">${esc(s.t)}</span></span></div>
+      <div class="row"><span class="g"><span class="s">Orçado</span>
+        <span class="t">${fmtMoney(v.previsto_cents)}</span></span></div>
+      <div class="row"><span class="g"><span class="s">Negociado na época</span>
+        <span class="t">${fmtMoney(v.negociado_cents)}</span></span></div>
+      ${v.nota ? `<div class="row"><span class="g"><span class="s">O que mudou</span>
+        <span class="t" style="white-space:normal;font-weight:400">${esc(v.nota)}</span></span></div>` : ''}
+    </div>
+
+    ${dif.length ? `<div class="sec"><div class="sec-t">Diferença para a ${esc(ant.nome)}</div>
+        <span class="small muted">${dif.length} rubrica(s)</span></div>
+      <div class="card lista">${dif.map((d) => `<div class="row">
+        <span class="g"><span class="t">${esc(d.rubrica)}</span>
+          <span class="s">${d.de ? fmtMoney(d.de) : 'não existia'} → ${d.para ? fmtMoney(d.para) : 'saiu'}</span></span>
+        <span class="r"><span class="v" style="color:${d.delta > 0 ? 'var(--bad)' : 'var(--ok)'}">
+          ${d.delta > 0 ? '+' : '−'}${fmtMoney(Math.abs(d.delta))}</span></span></div>`).join('')}</div>`
+    : ant ? '<div class="banner small">Nenhuma rubrica mudou de valor em relação à versão anterior.</div>' : ''}
+
+    <div class="sec"><div class="sec-t">Rubricas desta versão</div></div>
+    <div class="card lista">${(v.linhas || []).map((l) => `<div class="row">
+      <span class="g"><span class="t">${esc(l.rubrica)}</span></span>
+      <span class="r"><span class="v">${fmtMoney(l.previsto_cents)}</span></span></div>`).join('')}</div>
+
+    ${editar ? '<button class="btn wide gho" data-status>Mudar situação</button>' : ''}
+    ${editar ? '<button class="btn wide gho danger" style="margin-top:8px" data-apagar>Apagar versão</button>' : ''}
+  </div>`);
+
+  const sh = sheet({ titulo: v.nome, corpo });
+  corpo.querySelector('[data-status]')?.addEventListener('click', () => {
+    sh.close();
+    abrirForm({
+      titulo: 'Situação da versão',
+      campos: [{
+        k: 'status', label: 'Situação', type: 'select', valor: v.status,
+        opts: Object.entries(ST_VERSAO).map(([x, o]) => ({ v: x, t: o.t }))
+      }],
+      onSave: async (d) => {
+        await store.update('versoes', v.id, {
+          ...d,
+          enviada_em: d.status === 'enviada' && !v.enviada_em ? hoje() : v.enviada_em,
+          respondida_em: ['aprovada', 'recusada'].includes(d.status) ? hoje() : v.respondida_em
+        });
+        toast('Atualizada.');
+      }
+    });
+  });
+  corpo.querySelector('[data-apagar]')?.addEventListener('click', async () => {
+    if (!await confirmar(`Apagar a ${v.nome}? A foto do orçamento daquele dia some.`, { perigo: true, ok: 'Apagar' })) return;
+    await store.remove('versoes', v.id);
+    sh.close(); toast('Versão apagada.');
+  });
+}
+
+  return { ST_VERSAO, fotoAtual, comparar, render };
 };
 
 __defs["js/views/viagens.js"] = function () {

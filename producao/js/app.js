@@ -22,6 +22,8 @@ import * as vAjustes from './views/ajustes.js';
 import * as vLocacoes from './views/locacoes.js';
 import * as vFontes from './views/fontes.js';
 import * as vPedidosNF from './views/pedidosnf.js';
+import * as vVersoes from './views/versoes.js';
+import * as vFixas from './views/fixas.js';
 import * as vAprov from './views/aprovacoes.js';
 
 const ROTAS = {
@@ -44,6 +46,8 @@ const ROTAS = {
   '/locacoes': () => vLocacoes.render(),
   '/fontes': () => vFontes.render(),
   '/pedidos-nf': () => vPedidosNF.render(),
+  '/versoes': () => vVersoes.render(),
+  '/fixas': () => vFixas.render(),
   '/aprovacoes': () => vAprov.render(),
   '/historico': () => vAjustes.renderHistorico()
 };

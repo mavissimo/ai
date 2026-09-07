@@ -221,6 +221,29 @@ create table if not exists fontes (
   conferido_em text, obs text
 );
 
+-- Versões do orçamento. Cada uma é uma foto das rubricas no dia em que foi
+-- fechada, para dar para comparar o que mudou entre a V1 e a V3.
+create table if not exists versoes (
+  id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,
+  projeto_id text references projetos(id) on delete cascade,
+  nome text not null, nota text,
+  status text default 'rascunho',             -- rascunho | enviada | aprovada | recusada
+  enviada_em text, respondida_em text,
+  previsto_cents bigint default 0, negociado_cents bigint default 0,
+  linhas jsonb default '[]'::jsonb            -- [{rubrica, previsto_cents, negociado_cents}]
+);
+
+-- Custo fixo da produtora, que existe com ou sem projeto.
+create table if not exists fixas (
+  id text primary key, criado_em timestamptz default now(), criado_por text,
+  chave text,
+  projeto_id text references projetos(id) on delete cascade,
+  nome text not null, valor_cents bigint default 0,
+  periodo text default 'mensal',              -- mensal | anual
+  categoria text, rateia boolean default false, obs text
+);
+
 -- Viagens do projeto: cada ida e volta com orçado próprio.
 create table if not exists viagens (
   id text primary key, criado_em timestamptz default now(), criado_por text,
@@ -269,7 +292,7 @@ begin
   foreach t in array array['projetos','membros','etapas','tarefas','eventos','entregas',
                            'orcamento','lancamentos','contas','contratos','documentos',
                            'confirmacoes','atividades','locacoes','caixa','aprovacoes','contatos',
-                           'viagens','fontes']
+                           'viagens','fontes','versoes','fixas']
   loop
     execute format('alter table %I enable row level security', t);
     execute format('drop policy if exists p_sel on %I', t);
@@ -357,6 +380,16 @@ create policy p_del on confirmacoes for delete using (public.eh_producao());
 
 -- Locações e contatos: todo mundo do projeto lê (a equipe precisa do endereço
 -- e do telefone no dia); produção escreve.
+create policy p_sel on versoes for select using (public.eh_gestao());
+create policy p_ins on versoes for insert with check (public.eh_gestao());
+create policy p_upd on versoes for update using (public.eh_gestao());
+create policy p_del on versoes for delete using (public.eh_gestao());
+
+create policy p_sel on fixas for select using (public.eh_gestao());
+create policy p_ins on fixas for insert with check (public.eh_gestao());
+create policy p_upd on fixas for update using (public.eh_gestao());
+create policy p_del on fixas for delete using (public.eh_gestao());
+
 create policy p_sel on fontes for select using (public.eh_membro());
 create policy p_ins on fontes for insert with check (public.eh_producao());
 create policy p_upd on fontes for update using (public.eh_producao());

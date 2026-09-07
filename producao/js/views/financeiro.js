@@ -152,8 +152,18 @@ function blocoResumo(f, verLucro, u) {
       <div class="row"><span class="g"><span class="t">Imposto sobre o já recebido</span>
         <span class="s">provisionar</span></span>
         <span class="r"><span class="v">${fmtMoney(f.impostoRealizado)}</span></span></div>
+      ${f.taxaProducao ? `<div class="row"><span class="g"><span class="t">Taxa da produtora</span>
+        <span class="s">${f.aliquota ? '' : ''}sobre o contratado</span></span>
+        <span class="r"><span class="v">${fmtMoney(f.taxaProducao)}</span></span></div>` : ''}
+      ${f.bonusVenda ? `<div class="row"><span class="g"><span class="t">Bônus de venda</span>
+        <span class="s">${esc(store.projeto?.bonus_venda_para || 'quem trouxe o job')}</span></span>
+        <span class="r"><span class="v">${fmtMoney(f.bonusVenda)}</span></span></div>` : ''}
+      ${f.fixasRateadas ? `<div class="row"><span class="g"><span class="t">Custo fixo rateado</span>
+        <span class="s">despesa da produtora que cabe a este projeto</span></span>
+        <span class="r"><span class="v">${fmtMoney(f.fixasRateadas)}</span></span></div>` : ''}
       <div class="row"><span class="g"><span class="t">Custo total previsto</span>
-        <span class="s">orçamento + imposto</span></span>
+        <span class="s">orçamento + imposto${f.taxaProducao || f.bonusVenda || f.fixasRateadas
+    ? ' + taxa, bônus e fixo' : ''}</span></span>
         <span class="r"><span class="v">${fmtMoney(f.custoPrevistoTotal)}</span></span></div>
       ${f.aReembolsar ? `<div class="row"><span class="g"><span class="t">Acerto com o sócio</span>
         <span class="s">o que o Maví pôs no cartão pessoal e a empresa deve devolver</span></span>

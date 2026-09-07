@@ -44,6 +44,8 @@ export function render() {
       ${can(u, 'contas.ver') ? atalho('#/contas', 'A receber', 'Parcelas do cliente') : ''}
       ${can(u, 'contas.ver') ? atalho('#/pedidos-nf', 'Pedidos de NF', 'Quem já foi cobrado e quem falta') : ''}
       ${atalho('#/caixa', 'Caixinha', 'Adiantamentos e prestação de contas')}
+      ${can(u, 'orcamento.ver') ? atalho('#/versoes', 'Versões do orçamento', 'V1, V2, V3 e o que mudou entre elas') : ''}
+      ${can(u, 'lucro.ver') ? atalho('#/fixas', 'Despesas fixas', 'Custo da produtora que existe com ou sem projeto') : ''}
       ${atalho('#/fontes', 'Fontes do projeto', 'Planilha, agenda e contrato — o que precisa ser reconferido')}
       ${atalho('#/locacoes', 'Locações e contatos', 'Escolas, endereços, cliente e fornecedores')}
       ${atalho('#/aprovacoes', 'Aprovações do cliente', 'Rodadas, prazo de aceite e feedback')}
@@ -200,6 +202,16 @@ function camposProjeto(p = {}) {
     { k: 'entrega', label: 'Entrega final', type: 'data', valor: p.entrega },
     { k: 'valor_contrato_cents', label: 'Valor contratado', type: 'dinheiro', valor: p.valor_contrato_cents },
     { k: 'imposto_aliquota', label: 'Imposto (%)', type: 'numero', step: '0.01', valor: p.imposto_aliquota },
+    { type: 'titulo', label: 'O que a produtora tira do job', k: '_t_taxa' },
+    { k: 'taxa_producao_pct', label: 'Taxa da produtora (%)', type: 'numero', step: '0.01',
+      valor: p.taxa_producao_pct ?? 0, meia: true,
+      hint: 'Sobre o valor contratado. Entra no custo, junto com o imposto.' },
+    { k: 'bonus_venda_pct', label: 'Bônus de venda (%)', type: 'numero', step: '0.01',
+      valor: p.bonus_venda_pct ?? 0, meia: true, hint: 'Para quem trouxe o job.' },
+    { k: 'bonus_venda_para', label: 'Bônus vai para', type: 'texto', valor: p.bonus_venda_para || '',
+      ph: 'Nome de quem indicou' },
+    { k: 'meses_projeto', label: 'Duração do projeto (meses)', type: 'numero', valor: p.meses_projeto ?? 1,
+      hint: 'Usado para ratear a despesa fixa da produtora neste job.' },
     { k: 'aceite_dias', label: 'Prazo de aceite do cliente (dias)', type: 'numero', valor: p.aceite_dias ?? 5, meia: true },
     { k: 'rodadas_max', label: 'Rodadas de ajuste', type: 'numero', valor: p.rodadas_max ?? 3, meia: true },
     { k: 'aceite_uteis', label: 'Contar o aceite em dias úteis', type: 'check', valor: p.aceite_uteis !== false },

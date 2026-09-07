@@ -125,6 +125,9 @@ function campos(m = {}) {
     { k: 'agencia', label: 'Agência', type: 'texto', valor: m.agencia, meia: true },
     { k: 'conta_banco', label: 'Conta', type: 'texto', valor: m.conta_banco, meia: true },
     { k: 'titular', label: 'Titular, se for outro nome', type: 'texto', valor: m.titular },
+    { k: 'acordos', label: 'O que foi combinado fora do cachê', type: 'area', valor: m.acordos || '',
+      hint: 'Carona, equipamento próprio, diária extra, hospedagem por conta dela — o que costuma '
+        + 'virar discussão depois se ninguém escreveu.' },
     { k: 'obs', label: 'Observações', type: 'area', valor: m.obs }
   ];
 }
@@ -171,6 +174,8 @@ function abrirMembro(m, editar, verGrana) {
         <div class="row"><span class="g"><span class="s">Senha de acesso</span>
           <span class="t">${temSenha(m) ? 'criada' : 'ainda não criada'}</span></span>
           ${editar && temSenha(m) ? '<span class="r"><button class="btn sm gho" data-zerar-senha>zerar</button></span>' : ''}</div>
+        ${m.acordos ? `<div class="row"><span class="g"><span class="s">Combinado fora do cachê</span>
+          <span class="t" style="white-space:normal;font-weight:400">${esc(m.acordos)}</span></span></div>` : ''}
         <div class="row"><span class="g"><span class="s">Contrato</span>
           <span class="t">${esc(ST_CONTRATO.find((s) => s.v === (m.contrato_status || 'na'))?.t)}</span></span></div>
         ${verGrana && m.chave_pix ? `<div class="row"><span class="g"><span class="s">Pix</span><span class="t">${esc(m.chave_pix)}</span></span></div>` : ''}

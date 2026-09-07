@@ -51,7 +51,21 @@ export function financeiro() {
   const impostoPrevisto = Math.round(contratado * aliq);
   const impostoRealizado = Math.round(recebido * aliq);
 
-  const custoPrevistoTotal = orcado + impostoPrevisto;
+  // Taxa da produtora e bônus de venda saem do contrato, como o imposto: são
+  // custo do job antes de sobrar qualquer coisa.
+  const taxaPct = Number(p.taxa_producao_pct || 0) / 100;
+  const bonusPct = Number(p.bonus_venda_pct || 0) / 100;
+  const taxaProducao = Math.round(contratado * taxaPct);
+  const bonusVenda = Math.round(contratado * bonusPct);
+
+  // Custo fixo da produtora rateado neste projeto, quando marcado para ratear.
+  const fixasRateadas = soma(
+    store.doProjeto('fixas').filter((f) => f.rateia),
+    (f) => (f.periodo === 'anual' ? Math.round(f.valor_cents / 12) : f.valor_cents)
+      * Math.max(1, Number(p.meses_projeto || 1))
+  );
+
+  const custoPrevistoTotal = orcado + impostoPrevisto + taxaProducao + bonusVenda + fixasRateadas;
   const lucroPrevisto = contratado - custoPrevistoTotal;
   const lucroRealizado = recebido - realizado - impostoRealizado;
   const caixa = recebido - pago;
@@ -59,9 +73,11 @@ export function financeiro() {
 
   return {
     contratado, orcado, negociado, realizado, pendente, pago, recebido, economia, aReembolsar,
+    taxaProducao, bonusVenda, fixasRateadas,
     aNegociar: orcado - negociado,
     // Lucro se tudo o que falta fechar sair pelo valor orçado.
-    lucroSeFechar: contratado - (orcado - economia) - Math.round(contratado * aliq),
+    lucroSeFechar: contratado - (orcado - economia) - impostoPrevisto - taxaProducao
+      - bonusVenda - fixasRateadas,
     aPagar, aReceber, impostoPrevisto, impostoRealizado,
     custoPrevistoTotal, lucroPrevisto, lucroRealizado, caixa, comprometido,
     saldoOrcamento: orcado - comprometido,

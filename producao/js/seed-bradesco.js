@@ -14,7 +14,7 @@ const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-export const SEED_VERSAO = 16;
+export const SEED_VERSAO = 17;
 
 const PESSOAS = [
   {
@@ -518,6 +518,10 @@ export async function criarProjetoBradesco(existente = null) {
     imposto_regime: 'simples',
     imposto_aliquota: 12,
     codigo_job: 'Job 008_F.BRADESCO 70 ANOS',
+    meses_projeto: 5,
+    taxa_producao_pct: 0,
+    bonus_venda_pct: 0,
+    bonus_venda_para: 'Otávio Nazareth (Editora Olhares) — indicou o job',
     cnpj: '47.661.128/0001-60',
     razao_social: 'MATHEUS SIMOES AVILA LTDA',
     fantasia: 'MAVI',
@@ -919,6 +923,31 @@ export async function criarProjetoBradesco(existente = null) {
     });
   }
 
+  /* A V2 do orçamento é a que virou contrato — a foto dela é o orçamento de
+     hoje, porque nada mudou de lá para cá do lado do orçado. */
+  const linhasV2 = store.doProjeto('orcamento').map((o) => ({
+    rubrica: o.rubrica, previsto_cents: o.previsto_cents || 0, negociado_cents: 0
+  }));
+  await ins('versoes', 'versao:V2', {
+    nome: 'V2', status: 'aprovada',
+    nota: 'Carta-Orçamento V2, anexa ao contrato 4600001793. É a versão que a Fundação aprovou '
+      + 'em 14/08 e que virou o contrato de R$ 518.998,86.',
+    enviada_em: '2026-08-11', respondida_em: '2026-08-14',
+    previsto_cents: linhasV2.reduce((n, l) => n + l.previsto_cents, 0),
+    negociado_cents: 0, linhas: linhasV2
+  });
+
+  /* Custo fixo da produtora. Sem valor: quem sabe o número é o Maví. */
+  for (const [nome, categoria] of [
+    ['Contabilidade', 'Contabilidade'], ['Adobe Creative Cloud', 'Software'],
+    ['Armazenamento em nuvem', 'Software'], ['Telefonia e internet', 'Telefonia e internet']
+  ]) {
+    await ins('fixas', 'fixa:' + nome, {
+      nome, categoria, valor_cents: 0, periodo: 'mensal', rateia: false,
+      obs: 'Preencha o valor para entrar no cálculo da margem.'
+    });
+  }
+
   /* fontes vivas do projeto */
   for (const [titulo, url, tipoF, frequencia, quem, obs] of FONTES) {
     await ins('fontes', 'fonte:' + titulo, {
@@ -1089,6 +1118,8 @@ const chaveDe = {
     return r.forma === 'dinheiro' ? 'caixa:' + r.descricao : 'lanc:' + r.descricao;
   },
   documentos: (r) => (r.titulo ? 'doc:' + r.titulo : null),
+  versoes: (r) => (r.nome ? 'versao:' + r.nome : null),
+  fixas: (r) => (r.nome ? 'fixa:' + r.nome : null),
   confirmacoes: (r) => {
     const em = r.membro_id ? store.get('membros', r.membro_id)?.email : null;
     if (!em) return null;
