@@ -363,118 +363,195 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .ico.urg{background:var(--bad-bg)}
 .ico.med{background:var(--warn-bg)}
 
+
 /* ============================================================================
-   Mapa do job. As diárias como corpos num campo navegável: o tempo corre para a
-   direita, cada viagem tem sua faixa. O movimento aqui tem função — o que é hoje
-   pulsa, o que tem pendência ganha anel, o que já passou perde cor — e some
-   inteiro quando o sistema pede menos movimento.
+   Mapa do job. A tela inteira, uma viagem por página. Você desliza de lado
+   entre as estações; dentro de cada uma as diárias ficam soltas no espaço, do
+   tamanho do que custam. Tocar numa delas faz ela crescer até virar a tela e,
+   ao fechar, encolher de volta para o lugar de onde saiu — a mesma coisa se
+   abrindo, não uma tela nova por cima.
    ========================================================================= */
-.mapa-tela{margin:calc(var(--s4) * -1);display:flex;flex-direction:column;
-  height:calc(100dvh - 118px - var(--safe-b))}
-.mapa-topo{display:flex;align-items:flex-end;gap:var(--s3);padding:var(--s4) var(--s4) var(--s3)}
-.mapa-t{font-family:var(--titulo);font-size:24px;font-weight:700;letter-spacing:-.7px;line-height:1.1}
-.mapa-s{font-size:12.5px;color:var(--tx3);margin-top:2px}
-.mapa-topo .btn{margin-left:auto}
+.app.cheio{height:100dvh;overflow:hidden}
+.app.cheio main{padding:0;max-width:none;display:flex;flex-direction:column;
+  min-height:0;overflow:hidden}
 
-.mapa-campo{flex:1;overflow:auto;position:relative;cursor:grab;display:flex;
-  -webkit-overflow-scrolling:touch;scrollbar-width:none;
+.mapa{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;
+  padding-bottom:calc(64px + var(--safe-b))}
+
+/* A luz do fundo: duas manchas largas e de pouca cor que andam mais devagar que
+   o conteúdo. É o que dá profundidade sem desenhar nada. */
+.mapa-luz{position:absolute;inset:-12% -20% -12% -20%;pointer-events:none;z-index:0;
+  transition:transform .1s linear;
   background:
-    radial-gradient(circle at 18% 30%, var(--ac-soft), transparent 42%),
-    radial-gradient(circle at 78% 68%, var(--info-bg), transparent 46%),
-    var(--bg)}
-.mapa-campo::-webkit-scrollbar{display:none}
-.mapa-campo.arrastando{cursor:grabbing}
-.mapa-mundo{position:relative;margin:auto;flex:none}
-.mapa-linhas{position:absolute;inset:0;pointer-events:none}
-.mapa-eixo{stroke:var(--line);stroke-width:2;stroke-linecap:round}
-.mapa-eixo.passou{stroke-dasharray:2 7}
-.mapa-rot{fill:var(--tx3);font-size:11px;font-weight:700;letter-spacing:.5px}
-.mapa-hoje{position:absolute;top:0;width:2px;background:linear-gradient(var(--ac),transparent);
-  opacity:.5;pointer-events:none}
+    radial-gradient(58% 44% at 24% 22%, var(--ac-soft), transparent 70%),
+    radial-gradient(52% 40% at 82% 74%, var(--info-bg), transparent 72%);
+  filter:blur(6px)}
 
-.corpo{position:absolute;transform:translate(-50%,-50%);
-  width:calc(var(--r) * 2);height:calc(var(--r) * 2);min-width:calc(var(--r) * 2);flex:none;
-  box-sizing:border-box;overflow:hidden;
-  border-radius:50%;border:1.5px solid var(--line);background:var(--bg2);color:var(--tx);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
-  padding:0 6px;cursor:pointer;
-  box-shadow:0 6px 18px rgba(20,26,40,.10);
-  transition:transform .32s cubic-bezier(.16,1,.3,1),box-shadow .32s,border-color .2s;
-  animation:flutua 7s ease-in-out infinite;animation-delay:calc(var(--seed) * -.02s)}
-.corpo:hover,.corpo:focus-visible{transform:translate(-50%,-50%) scale(1.09);
-  box-shadow:0 12px 28px rgba(20,26,40,.18);outline:none;
-  /* parado embaixo do dedo: alvo que balança é alvo que se erra */
-  animation-play-state:paused}
-.corpo.aceso{border-color:var(--ac);box-shadow:0 0 0 3px var(--ac-soft),0 12px 28px rgba(20,26,40,.18)}
-.corpo-n{font-family:var(--titulo);font-size:13px;font-weight:700;letter-spacing:-.3px;line-height:1}
-.corpo-l{font-size:9px;color:var(--tx3);width:100%;text-align:center;line-height:1.15;
+.mapa-trilho{position:relative;z-index:1;flex:1;min-height:0;display:flex;
+  overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.mapa-trilho::-webkit-scrollbar{display:none}
+
+.estacao{flex:0 0 100%;width:100%;scroll-snap-align:center;scroll-snap-stop:always;
+  display:flex;flex-direction:column;min-height:0;overflow:hidden;
+  padding:var(--s5) var(--s5) var(--s3)}
+.estacao.passou{opacity:.78}
+
+.est-olho{font-size:11px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;
+  color:var(--tx3)}
+.est-tit{font-family:var(--titulo);font-size:clamp(28px,8.5vw,40px);font-weight:700;
+  letter-spacing:-1.2px;line-height:1.04;margin:var(--s2) 0 0;text-wrap:balance}
+.est-sub{font-size:13px;color:var(--tx2);margin-top:var(--s2);
+  display:flex;align-items:center;gap:var(--s2)}
+.est-sub .ponto{width:3px;height:3px;border-radius:50%;background:var(--tx3);flex:none}
+
+.est-campo{position:relative;flex:1;min-height:0;margin:var(--s4) 0 var(--s3)}
+
+/* Um corpo: a bolha com o dia dentro e o nome ao lado. A bolha é o alvo e é
+   também de onde o painel nasce. */
+/* `left`/`top` marcam o centro da bolha; o rótulo cresce para dentro da tela —
+   à direita de quem está na esquerda, à esquerda de quem está na direita. */
+.no{position:absolute;transform:translateY(-50%);display:flex;align-items:center;
+  gap:var(--s3);padding:0;border:0;background:none;color:inherit;cursor:pointer;text-align:left;
+  opacity:0;animation:no-entra .5s cubic-bezier(.32,.72,0,1) forwards;
+  animation-delay:calc(var(--i) * 60ms + 80ms)}
+.no.esq{transform:translate(calc(var(--d) / -2),-50%);max-width:calc(66% + var(--d) / 2)}
+.no.dir{flex-direction:row-reverse;text-align:right;
+  transform:translate(calc(var(--d) / 2),-50%);max-width:calc(66% + var(--d) / 2)}
+.no.dir .no-txt{align-items:flex-end}
+
+.est-rota{position:absolute;inset:0;pointer-events:none;z-index:0}
+.est-rota .rota{fill:none;stroke:var(--line);stroke-width:1.5;stroke-linecap:round}
+.est-rota .rota.passou{stroke-dasharray:1 6}
+.mapa:not(.pronto) .no{animation:none}
+.no-bolha{flex:none;width:var(--d);height:var(--d);border-radius:50%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;
+  background:var(--bg2);border:1px solid var(--line);color:var(--tx);
+  box-shadow:0 10px 30px -12px rgba(20,26,40,.35), 0 1px 2px rgba(20,26,40,.06);
+  transition:transform .34s cubic-bezier(.32,.72,0,1),box-shadow .34s,background .2s}
+.no-dia{font-family:var(--titulo);font-size:calc(var(--d) * .33);font-weight:700;letter-spacing:-1px}
+.no-mes{font-size:calc(var(--d) * .15);color:var(--tx3);text-transform:uppercase;
+  letter-spacing:.6px;font-weight:650;margin-top:2px}
+.no-txt{display:flex;flex-direction:column;gap:2px;min-width:0;position:relative;z-index:1}
+.no-bolha{position:relative;z-index:1}
+.no-t{font-size:14px;font-weight:650;letter-spacing:-.2px;line-height:1.2;
   overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.no-s{font-size:11.5px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.no:active .no-bolha{transform:scale(.94)}
+@media (hover:hover){.no:hover .no-bolha{transform:scale(1.06);
+  box-shadow:0 18px 40px -14px rgba(20,26,40,.45)}}
+.no:focus-visible{outline:none}
+.no:focus-visible .no-bolha{box-shadow:0 0 0 3px var(--ac-line)}
 
-.corpo.hoje{border-color:var(--ac);background:var(--ac);color:var(--ac-tx)}
-.corpo.hoje .corpo-l{color:var(--ac-tx);opacity:.8}
-.corpo.futuro{border-color:var(--ok)}
-.corpo.previsto{border-style:dashed;border-color:var(--warn)}
-.corpo.passou{opacity:.5;border-color:var(--line);animation:none}
-.corpo.passou .corpo-n{color:var(--tx3)}
+.no.hoje .no-bolha{background:var(--ac);border-color:var(--ac);color:var(--ac-tx)}
+.no.hoje .no-mes{color:var(--ac-tx);opacity:.75}
+.no.previsto .no-bolha{border-style:dashed;border-color:var(--warn)}
+/* O que já rodou não some: recua. Continua legível, só perde o relevo. */
+.no.passou .no-bolha{background:var(--bg3);border-color:transparent;box-shadow:none;color:var(--tx2)}
+.no.passou .no-t{color:var(--tx2);font-weight:600}
 
-/* O anel diz "tem coisa em aberto aqui" sem precisar de número. */
-.corpo .anel{position:absolute;inset:-7px;border-radius:50%;border:1.5px solid var(--warn);
-  opacity:.55;animation:respira 3.4s ease-in-out infinite;
-  animation-delay:calc(var(--seed) * -.01s)}
+/* A entrada mexe só na bolha e no texto: o `transform` do próprio nó é o que
+   ancora a bolha no ponto certo e não pode ser animado por cima. */
+@keyframes no-entra{from{opacity:0}to{opacity:1}}
+.no-bolha,.no-txt{animation:no-sobe .55s cubic-bezier(.32,.72,0,1) backwards;
+  animation-delay:calc(var(--i) * 60ms + 80ms)}
+@keyframes no-sobe{from{opacity:0;transform:translateY(10px) scale(.92)}
+  to{opacity:1;transform:none}}
 
-@keyframes flutua{
-  0%,100%{translate:0 0}
-  50%{translate:0 -7px}
-}
-@keyframes respira{
-  0%,100%{transform:scale(1);opacity:.5}
-  50%{transform:scale(1.09);opacity:.22}
-}
+/* rodapé da estação: quatro números, sem moldura */
+.est-pe{display:flex;gap:var(--s5);flex:none;padding-top:var(--s3);
+  border-top:1px solid var(--line)}
+.pe-item{display:flex;flex-direction:column;gap:1px;min-width:0}
+.pe-item b{font-family:var(--titulo);font-size:17px;font-weight:700;letter-spacing:-.5px}
+.pe-item span{font-size:10.5px;color:var(--tx3);letter-spacing:.2px}
+.pe-item.atencao b{color:var(--warn)}
 
-.mapa-legenda{display:flex;gap:var(--s3);flex-wrap:wrap;align-items:center;
-  padding:var(--s3) var(--s4) 0;font-size:11px;color:var(--tx3)}
-.mapa-legenda span{display:inline-flex;align-items:center;gap:5px}
-.mapa-legenda i{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--line);display:block}
-.mapa-legenda .p-hoje{background:var(--ac);border-color:var(--ac)}
-.mapa-legenda .p-futuro{border-color:var(--ok)}
-.mapa-legenda .p-previsto{border-color:var(--warn);border-style:dashed}
-.mapa-legenda .p-passou{opacity:.45}
-.mapa-dica{margin-left:auto}
+/* régua: uma marca por estação, a atual mais larga */
+.mapa-regua{position:relative;z-index:2;flex:none;display:flex;justify-content:center;
+  align-items:center;gap:6px;padding:var(--s2) var(--s4) var(--s3)}
+.tick{width:16px;height:22px;padding:0;border:0;background:none;cursor:pointer;
+  display:grid;place-items:center}
+.tick i{display:block;width:6px;height:6px;border-radius:3px;background:var(--tx3);opacity:.32;
+  transition:width .3s cubic-bezier(.32,.72,0,1),opacity .3s,background .3s}
+.tick.on i{width:16px;opacity:1;background:var(--tx2)}
+.tick.hoje i{background:var(--ac);opacity:.85}
+.tick.hoje.on i{background:var(--ac)}
 
-/* painel em camadas */
-.orb-cab{padding:0 0 var(--s3);border-bottom:1px solid var(--line);margin-bottom:var(--s3)}
-.orb-data{font-size:11.5px;color:var(--tx3);font-weight:650;text-transform:uppercase;letter-spacing:.5px}
-.orb-tit{font-family:var(--titulo);font-size:21px;font-weight:700;letter-spacing:-.5px;
-  line-height:1.15;margin-top:var(--s1)}
-.orb-sub{font-size:12.5px;color:var(--tx3);margin-top:var(--s1)}
-.orb-vert{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s2)}
-.vert{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;
-  padding:var(--s3) var(--s2);border:1px solid var(--line);border-radius:var(--r);
-  background:var(--bg2);color:var(--tx);cursor:pointer;min-height:66px;justify-content:center;
-  transition:background .18s,border-color .18s,transform .18s cubic-bezier(.16,1,.3,1)}
-.vert:active{transform:scale(.97)}
-.vert.on{background:var(--tx);color:var(--bg);border-color:var(--tx)}
-.vert-i{font-size:17px;line-height:1}
-.vert-t{font-size:11px;font-weight:650}
-.vert-n{position:absolute;top:5px;right:7px;min-width:16px;height:16px;border-radius:9px;
-  background:var(--warn);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;padding:0 4px}
-.orb-conteudo{margin-top:var(--s4);min-height:80px;
-  animation:sobe .28s cubic-bezier(.16,1,.3,1)}
-.orb-vazio{text-align:center;color:var(--tx3);font-size:13px;padding:var(--s5) var(--s4)}
-.orb-grande{font-family:var(--titulo);font-size:30px;font-weight:700;letter-spacing:-.9px;
-  margin-bottom:var(--s3);line-height:1.1}
-.orb-grande span{font-size:13px;font-weight:500;color:var(--tx3);display:block;letter-spacing:0;margin-top:2px}
+/* ---------------------------------------------------- o painel que cresce -- */
+.mapa.com-painel .mapa-trilho,
+.mapa.com-painel .mapa-regua,
+.mapa.com-painel .mapa-luz{transform:scale(.965);filter:blur(2px);opacity:.5;
+  transition:transform .46s cubic-bezier(.32,.72,0,1),filter .3s,opacity .3s;
+  pointer-events:none}
 
-@keyframes sobe{from{opacity:0;translate:0 8px}to{opacity:1;translate:0 0}}
+.painel{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;
+  background:var(--bg2);overflow:hidden;will-change:transform;
+  box-shadow:0 -1px 0 var(--line)}
+.pn-topo{flex:none;padding:var(--s5) var(--s5) var(--s4);position:relative;
+  border-bottom:1px solid var(--line)}
+.pn-x{position:absolute;top:var(--s4);right:var(--s4);width:32px;height:32px;border-radius:50%;
+  border:0;background:var(--bg3);color:var(--tx2);display:grid;place-items:center;cursor:pointer}
+.pn-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.pn-x:active{background:var(--line)}
+.pn-quando{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--ac)}
+.pn-tit{font-family:var(--titulo);font-size:clamp(24px,6.6vw,32px);font-weight:700;
+  letter-spacing:-1px;line-height:1.08;margin:var(--s2) 44px 0 0;text-wrap:balance}
+.pn-sub{font-size:13px;color:var(--tx2);margin-top:var(--s2)}
+
+.pn-rolo{flex:1;min-height:0;overflow-y:auto;padding:var(--s3) var(--s5) var(--s6);
+  -webkit-overflow-scrolling:touch}
+.pn-rolo > .btn{margin-top:var(--s5)}
+
+.assunto{border-bottom:1px solid var(--line)}
+.as-cab{width:100%;display:flex;align-items:center;gap:var(--s3);padding:var(--s4) 0;
+  border:0;background:none;color:var(--tx);cursor:pointer;text-align:left}
+.as-i{flex:none;width:26px;height:26px;display:grid;place-items:center;color:var(--tx2)}
+.as-i svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round}
+.as-t{flex:1;font-size:15px;font-weight:600;letter-spacing:-.2px}
+.as-n{font-size:12px;font-weight:650;color:var(--tx3);font-variant-numeric:tabular-nums}
+.as-n.alerta{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:1px 7px}
+.as-v{flex:none;display:grid;place-items:center;color:var(--tx3);
+  transition:transform .3s cubic-bezier(.32,.72,0,1)}
+.as-v svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.assunto.on .as-v{transform:rotate(90deg)}
+.assunto.on .as-i{color:var(--ac)}
+.as-corpo{padding:0 0 var(--s4);animation:as-abre .34s cubic-bezier(.32,.72,0,1)}
+@keyframes as-abre{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+.pn-numero{font-family:var(--titulo);font-size:34px;font-weight:700;letter-spacing:-1.4px;
+  line-height:1;margin-bottom:var(--s4)}
+.pn-numero span{display:block;font-family:inherit;font-size:12.5px;font-weight:500;
+  letter-spacing:0;color:var(--tx3);margin-top:var(--s1)}
+.pn-forte{font-size:19px;font-weight:650;letter-spacing:-.4px;margin-bottom:var(--s3)}
+.pn-p{font-size:14px;color:var(--tx2);line-height:1.5;margin:0 0 var(--s3)}
+.pn-vazio{font-size:13.5px;color:var(--tx3);margin:0;padding:var(--s2) 0 var(--s4)}
+.pn-lista{display:flex;flex-direction:column}
+.pn-l{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) 0;
+  border-top:1px solid var(--line)}
+.pn-l:first-child{border-top:0}
+.pn-l .g{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.pn-l .t{font-size:14px;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pn-l .t.solta{white-space:normal}
+.pn-l .s{font-size:11.5px;color:var(--tx3)}
+.pn-l .v{font-size:14px;font-weight:650;font-variant-numeric:tabular-nums;flex:none}
+.pn-roteiro{margin:0;padding-left:var(--s5);font-size:14px;color:var(--tx2);line-height:1.55}
+.pn-roteiro li{margin-bottom:var(--s1)}
 
 @media (prefers-reduced-motion: reduce){
-  .corpo,.corpo .anel,.orb-conteudo{animation:none !important}
-  .corpo,.vert{transition:none}
+  .no{animation:none;opacity:1}
+  .as-corpo,.painel{animation:none}
+  .no-bolha,.tick i,.as-v{transition:none}
 }
-@media (min-width:900px){
-  .mapa-tela{height:calc(100dvh - 130px)}
-  .mapa-t{font-size:30px}
+@media (min-width:760px){
+  .estacao{padding:var(--s6) var(--s6) var(--s4);align-items:center}
+  .est-cab,.est-pe{width:100%;max-width:620px}
+  .est-campo{width:100%;max-width:620px}
+  .pn-topo,.pn-rolo{width:100%;max-width:620px;margin:0 auto}
 }
+.app.cheio main > .banner{flex:none;margin:var(--s3) var(--s4) 0}
+.app.cheio main > .empty{margin:auto;padding:var(--s6)}
 </style>
 <div id="app" class="app"><div class="boot">Carregando…</div></div>
 <script type="module">
@@ -801,6 +878,10 @@ function render() {
     console.error(e);
     v = { titulo: 'Erro', node: el(`<div class="banner bad">Algo quebrou nesta tela: ${esc(e.message)}</div>`) };
   }
+
+  // Tela cheia: o mapa gerencia o próprio espaço, então o main perde o padding
+  // e a largura máxima e a página para de rolar por fora.
+  root.classList.toggle('cheio', Boolean(v.cheio));
 
   root.innerHTML = `
     <header class="topbar">
@@ -2040,7 +2121,7 @@ const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-const SEED_VERSAO = 17;
+const SEED_VERSAO = 18;
 
 const PESSOAS = [
   {
@@ -2675,24 +2756,6 @@ async function criarProjetoBradesco(existente = null) {
   }
 
   /* --------------------------------------------------------------------
-     Acerto com o sócio. Tudo que o Maví pôs no cartão pessoal já foi pago
-     ao fornecedor, mas a empresa deve isso a ele. Vira uma conta a pagar
-     só, somando os lançamentos marcados como reembolso.
-     -------------------------------------------------------------------- */
-  const doSocio = store.doProjeto('lancamentos').filter((l) => l.reembolso && l.fonte === 'proprio');
-  const totalSocio = doSocio.reduce((n, l) => n + (l.valor_cents || 0), 0);
-  if (totalSocio) {
-    await ins('contas', 'acerto:mavi@tempora', {
-      tipo: 'pagar', descricao: 'Acerto — Maví (cartão pessoal)',
-      contraparte: 'Maví Simões', valor_cents: totalSocio, venc: '', status: 'aberto',
-      membro_id: membros['Maví Simões'] || null, categoria: 'reembolso', rubrica: '',
-      nf_status: 'na',
-      obs: `${doSocio.length} compra(s) que o Maví pagou no cartão pessoal e a empresa deve devolver: `
-        + doSocio.map((l) => l.descricao).join('; ') + '.'
-    });
-  }
-
-  /* --------------------------------------------------------------------
      O que já aconteceu de fato, conferido no e-mail da Fundação.
      -------------------------------------------------------------------- */
   await corrigir('contas', 'conta:parcela1', {
@@ -2831,15 +2894,15 @@ async function criarProjetoBradesco(existente = null) {
     categoria: 'passagens', rubrica: 'Passagens aéreas', nf_status: 'a_receber',
     viagem_id: null,
     obs: 'Localizador TRZKMK. Ida 09/09 Azul 2622 (GRU 09:45 → POA 11:30), volta 12/09 Azul 2821 '
-      + '(POA 16:55 → GRU 18:40). Pago no MasterCard em 6 parcelas. Orçado era R$ 6.600 — '
-      + 'economia de R$ 1.519,71.'
+      + '(POA 16:55 → GRU 18:40). Pago no crédito C6 PF do Maví, em 6 parcelas — entra no acerto. '
+      + 'Orçado era R$ 6.600 — economia de R$ 1.519,71.'
   });
   await ins('lancamentos', 'lanc:Passagens SP → Porto Alegre (ida e volta, 3 pax)', {
     tipo: 'saida', descricao: 'Passagens SP → Porto Alegre (ida e volta, 3 pax)',
     valor_cents: M('5080,29'), rubrica: 'Passagens aéreas', data: '2026-09-03',
     fornecedor: 'Azul', forma: 'crédito', membro_id: null, evento_id: null,
-    fonte: 'empresa', reembolso: false, sem_comprovante: true, status: 'pago',
-    aprovado_por: null, obs: 'Localizador TRZKMK. Reserva de 03/09.'
+    fonte: 'proprio', reembolso: true, sem_comprovante: true, status: 'pago',
+    aprovado_por: null, obs: 'Localizador TRZKMK. Reserva de 03/09, no crédito C6 PF do Maví.'
   });
   await corrigir('eventos', 'ev:2026-09-09:SP → Porto Alegre → Gravataí + scout', {
     hora_inicio: '07:45', hora_fim: '11:30',
@@ -3080,6 +3143,29 @@ async function criarProjetoBradesco(existente = null) {
     });
   }
 
+  /* --------------------------------------------------------------------
+     Acerto com o sócio, fechado por último. Tudo que o Maví pôs no cartão
+     pessoal já foi pago ao fornecedor, mas a empresa deve isso a ele. Só dá
+     para somar depois que todo lançamento entrou — inclusive os que a carga
+     insere lá embaixo, como a passagem de Porto Alegre.
+     -------------------------------------------------------------------- */
+  const doSocio = store.doProjeto('lancamentos').filter((l) => l.reembolso && l.fonte === 'proprio');
+  const totalSocio = doSocio.reduce((n, l) => n + (l.valor_cents || 0), 0);
+  if (totalSocio) {
+    const dados = {
+      tipo: 'pagar', descricao: 'Acerto — Maví (cartão pessoal)',
+      contraparte: 'Maví Simões', valor_cents: totalSocio, venc: '', status: 'aberto',
+      membro_id: membros['Maví Simões'] || null, categoria: 'reembolso', rubrica: '',
+      nf_status: 'na',
+      obs: `${doSocio.length} compra(s) que o Maví pagou no cartão pessoal e a empresa deve devolver: `
+        + doSocio.map((l) => l.descricao).join('; ') + '.'
+    };
+    await ins('contas', 'acerto:mavi@tempora', dados);
+    // Se entrar compra nova no cartão pessoal, o acerto acompanha — desde que
+    // ninguém tenha mexido nele à mão.
+    await corrigir('contas', 'acerto:mavi@tempora', dados);
+  }
+
   await store.log('Projeto carregado do contrato rev 04, da Carta-Orçamento V2, da planilha do Drive '
     + '(28/08) e do Google Agenda do projeto.', 'projeto');
   return projeto;
@@ -3129,6 +3215,7 @@ const chaveDe = {
     if (r.membro_id) {
       const m = store.get('membros', r.membro_id);
       if (m?.email) {
+        if (r.categoria === 'reembolso') return 'acerto:' + m.email;
         if (r.categoria === 'per diem') return 'perdiem:' + m.email;
         if (r.categoria === 'cachê') {
           if (/\(\d+%\)/.test(r.descricao || '')) return 'cache1:' + m.email;
@@ -3141,6 +3228,14 @@ const chaveDe = {
   },
   lancamentos: (r) => {
     if (!r.descricao) return null;
+    if (r.tipo === 'entrada' && /1ª parcela/.test(r.descricao)) return 'lanc:parcela1';
+    // A caixinha se identifica pela fonte, não pela forma: gasto da empresa
+    // também sai em dinheiro e não pode cair na mesma chave.
+    if (r.fonte === 'caixinha') return 'petty:' + r.data + ':' + r.descricao;
+    if (r.rubrica === 'Per diem da equipe' && r.membro_id) {
+      const m = store.get('membros', r.membro_id);
+      if (m?.email) return 'lanc:perdiem:' + m.email;
+    }
     return r.forma === 'dinheiro' ? 'caixa:' + r.descricao : 'lanc:' + r.descricao;
   },
   documentos: (r) => (r.titulo ? 'doc:' + r.titulo : null),
@@ -7388,362 +7483,497 @@ function abrirContato(c, editar) {
 };
 
 __defs["js/views/mapa.js"] = function () {
-// Mapa do job. As diárias flutuam num espaço navegável em vez de ficarem numa
-// lista: o tempo corre da esquerda para a direita, cada viagem tem sua faixa, e
-// o tamanho de cada corpo é o peso dele no projeto. Tocar num deles abre as
-// vertentes ali mesmo — equipe, chamada, dinheiro, pendências — em vez de
-// empilhar telas. Cada movimento diz uma coisa: o que é hoje pulsa, o que tem
-// pendência tem anel, o que já passou perde cor.
+// Mapa do job — a tela inteira, uma viagem de cada vez.
+//
+// Cada viagem é uma estação que ocupa a tela toda e você desliza de lado para
+// ir de uma à outra. Dentro dela as diárias ficam soltas no espaço, do tamanho
+// do que custam. Tocar numa diária não abre outra tela: ela mesma cresce até
+// virar a tela, e volta a encolher para o lugar de onde saiu. Dentro dela, cada
+// assunto abre no próprio lugar — nada empilha, nada some.
 const { store, nomeMembro } = __req("js/store.js");
 const { can } = __req("js/perms.js");
-const { el, sheet, toast } = __req("js/ui.js");
-const { esc, fmtMoney, fmtData, diaSemana, hoje, diasAte, iniciais, soma } = __req("js/utils.js");
+const { el, toast } = __req("js/ui.js");
+const { esc, fmtMoney, fmtMoneyShort, fmtData, diaSemana, hoje, diasAte, iniciais, soma } = __req("js/utils.js");
 const { custoDoEvento } = __req("js/calc.js");
 const { pendencias, contaDaViagem } = __req("js/views/viagens.js");
 const { abrirEvento } = __req("js/views/agenda.js");
-const DIA_MS = 86400000;
-const parse = (d) => new Date(`${d}T12:00:00`).getTime();
-const suave = (t) => 1 - Math.pow(1 - t, 3);
+const CURVA = 'cubic-bezier(.32,.72,0,1)';   // a curva de folha do iOS
+const menosMovimento = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* Um corpo por diária, mais um por marco de entrega: são as duas coisas que
-   têm data marcada e consequência. */
-function corpos() {
+/* ------------------------------------------------------------- os dados ---
+   Uma estação por viagem, mais uma no fim para o que acontece na ilha da pós,
+   que não tem viagem nenhuma. Estação sem nada dentro não vira página. */
+function estacoes() {
   const evs = store.doProjeto('eventos')
     .filter((e) => e.tipo === 'diaria' || e.tipo === 'entrega')
     .sort((a, b) => String(a.data).localeCompare(String(b.data)));
-  if (!evs.length) return { lista: [], t0: 0, t1: 1, faixas: [] };
+  const viagens = [...store.doProjeto('viagens')]
+    .sort((a, b) => String(a.ida).localeCompare(String(b.ida)));
 
-  const t0 = parse(evs[0].data);
-  const t1 = parse(evs[evs.length - 1].data);
-  const viagens = store.doProjeto('viagens');
+  const daViagem = (e) => viagens.find((v) => e.tipo === 'diaria'
+    && e.data >= v.ida && e.data <= (v.volta || v.ida)) || null;
 
-  // Cada viagem ganha uma faixa horizontal; entregas ficam na faixa de baixo.
-  const faixas = [...viagens].sort((a, b) => String(a.ida).localeCompare(String(b.ida)));
-  const faixaDe = (e) => {
-    if (e.tipo === 'entrega') return faixas.length;
-    const i = faixas.findIndex((v) => e.data >= v.ida && e.data <= (v.volta || v.ida));
-    return i >= 0 ? i : faixas.length;
+  const corpo = (e) => {
+    const custo = Number(custoDoEvento(e.id)) || 0;
+    const d = diasAte(e.data);
+    return {
+      id: e.id, ev: e, custo, dias: d,
+      viagem: daViagem(e),
+      estado: d === 0 ? 'hoje' : d < 0 ? 'passou'
+        : e.confirmado === false ? 'previsto' : 'futuro'
+    };
   };
 
-  // O eixo é a ordem, não o calendário: duas diárias seguidas ficariam coladas
-  // e um mês parado abriria um deserto. A data continua legível no corpo.
-  let x = 0, faixaAnt = -1;
-  const lista = evs.map((e, i) => {
-    const custo = Number(custoDoEvento(e.id)) || 0;
-    const v = faixas[faixaDe(e)];
-    const pend = v ? pendencias(v).filter((p) => !p.quem || true).length : 0;
-    const d = diasAte(e.data);
-    const f = faixaDe(e);
-    // Espaço maior quando muda de viagem: o intervalo vira respiro visual.
-    x += (i === 0 ? 0 : (f !== faixaAnt ? 1.7 : 1));
-    faixaAnt = f;
+  const lista = viagens.map((v) => {
+    const meus = evs.filter((e) => daViagem(e) === v).map(corpo);
     return {
-      id: e.id, ev: e, viagem: v || null,
-      faixa: f, ordem: x,
-      raio: e.tipo === 'entrega' ? 27 : 23 + Math.min(13, Math.sqrt(custo / 100000) * 3),
-      custo, pend,
-      dias: d,
-      estado: d < 0 ? 'passou' : d === 0 ? 'hoje' : e.confirmado === false ? 'previsto' : 'futuro',
-      // A semente dá a cada corpo uma respiração própria, para o campo não
-      // pulsar em bloco como um letreiro.
-      semente: (i * 137.508) % 360
+      tipo: 'viagem', chave: 'v' + v.id, viagem: v, corpos: meus,
+      titulo: v.destino || v.titulo || 'Viagem',
+      periodo: [v.ida, v.volta || v.ida]
     };
-  });
-  // Três faixas em rodízio, não uma por viagem: onze corredores não cabem numa
-  // tela de celular. A linha que liga os corpos é o que agrupa a viagem, e o
-  // zigue-zague dá o movimento que uma fileira reta não teria.
-  const usadas = [...new Set(lista.map((c) => c.faixa))].sort((a, b) => a - b);
-  const mapaFaixa = new Map(usadas.map((f, i) => [f, i % 3]));
-  for (const c of lista) c.faixa = mapaFaixa.get(c.faixa);
-  return { lista, t0, t1, faixas, largura: x, nFaixas: Math.min(3, usadas.length) };
+  }).filter((s) => s.corpos.length);
+
+  const soltos = evs.filter((e) => !daViagem(e)).map(corpo);
+  if (soltos.length) {
+    lista.push({
+      tipo: 'pos', chave: 'pos', viagem: null, corpos: soltos,
+      titulo: 'Pós e entregas',
+      periodo: [soltos[0].ev.data, soltos[soltos.length - 1].ev.data]
+    });
+  }
+  for (const s of lista) {
+    const d = s.corpos.map((c) => c.dias);
+    s.dias = d.some((x) => x === 0) ? 0
+      : d.every((x) => x < 0) ? Math.max(...d) : Math.min(...d.filter((x) => x >= 0));
+    s.passou = s.corpos.every((c) => c.dias < 0);
+    s.pend = s.viagem ? pendencias(s.viagem).length : 0;
+  }
+  return lista;
 }
 
-let camera = { x: 0, y: 0, z: 1 };
-let aberto = null;      // id do corpo expandido
-let camada = null;      // vertente aberta dentro dele
-
+/* ------------------------------------------------------------- a tela ---- */
 function render() {
-  const u = store.user;
-  const node = el('<div class="mapa-tela"></div>');
-  const { lista, faixas, nFaixas } = corpos();
-
+  const lista = estacoes();
+  const node = el('<div class="mapa"></div>');
   if (!lista.length) {
     node.innerHTML = '<div class="empty">Sem diárias para desenhar ainda.</div>';
-    return { titulo: 'Mapa', node };
+    return { titulo: 'Mapa', node, cheio: true };
   }
 
-  const PASSO = 76, ALTURA_FAIXA = 98;
-  const largura = lista[lista.length - 1].ordem;
-  const LARG = 200 + largura * PASSO;
-  const ALT = 70 + nFaixas * ALTURA_FAIXA;
+  // Abre já na estação de hoje — ou na próxima que ainda vai acontecer.
+  let inicial = lista.findIndex((s) => s.dias === 0);
+  if (inicial < 0) inicial = lista.findIndex((s) => !s.passou);
+  if (inicial < 0) inicial = lista.length - 1;
 
+  const nViagens = lista.filter((s) => s.tipo === 'viagem').length;
   node.innerHTML = `
-    <div class="mapa-topo">
-      <div>
-        <div class="mapa-t">Mapa do job</div>
-        <div class="mapa-s">${lista.filter((c) => c.estado !== 'passou').length} pela frente ·
-          ${lista.filter((c) => c.estado === 'passou').length} já rodadas</div>
-      </div>
-      <button class="btn sm gho" data-centrar>Hoje</button>
+    <div class="mapa-luz" data-luz></div>
+    <div class="mapa-trilho" data-trilho>
+      ${lista.map((s, i) => estacaoHTML(s, i, nViagens)).join('')}
     </div>
-    <div class="mapa-campo" data-campo>
-      <div class="mapa-mundo" data-mundo style="width:${LARG}px;height:${ALT}px">
-        <svg class="mapa-linhas" width="${LARG}" height="${ALT}" aria-hidden="true"></svg>
-        <div class="mapa-hoje" data-hoje></div>
-      </div>
-    </div>
-    <div class="mapa-legenda">
-      <span><i class="p-hoje"></i>hoje</span>
-      <span><i class="p-futuro"></i>confirmado</span>
-      <span><i class="p-previsto"></i>a confirmar</span>
-      <span><i class="p-passou"></i>já rodou</span>
-      <span class="mapa-dica">arraste para navegar · toque para abrir</span>
+    <div class="mapa-regua" data-regua role="tablist" aria-label="Viagens">
+      ${lista.map((s, i) => `<button class="tick ${s.passou ? 'passou' : ''}
+        ${s.dias === 0 ? 'hoje' : ''}" data-ir="${i}" role="tab"
+        aria-label="${esc(s.titulo)}"><i></i></button>`).join('')}
     </div>`;
 
-  const mundo = node.querySelector('[data-mundo]');
-  const campo = node.querySelector('[data-campo]');
-  const svg = node.querySelector('.mapa-linhas');
+  const trilho = node.querySelector('[data-trilho]');
+  const luz = node.querySelector('[data-luz]');
+  const ticks = [...node.querySelectorAll('[data-ir]')];
 
-  const px = (c) => 100 + c.ordem * PASSO;
-  const py = (c) => 82 + c.faixa * ALTURA_FAIXA;
-
-  // A linha de cada viagem: mostra que aquelas diárias são a mesma ida.
-  const porFaixa = new Map();
-  for (const c of lista) {
-    const k = c.viagem?.id || 'solto';
-    porFaixa.set(k, [...(porFaixa.get(k) || []), c]);
-  }
-  svg.innerHTML = [...porFaixa.values()].map((cs) => {
-    if (cs.length < 2) return '';
-    const a = cs[0], b = cs[cs.length - 1];
-    return `<line x1="${px(a)}" y1="${py(a)}" x2="${px(b)}" y2="${py(b)}"
-      class="mapa-eixo ${a.estado === 'passou' ? 'passou' : ''}" />`;
-  }).join('') + lista.filter((c, i) => i === 0 || lista[i - 1].viagem?.id !== c.viagem?.id)
-    .map((c) => (c.viagem
-      ? `<text x="${px(c)}" y="${py(c) - 46}" class="mapa-rot" text-anchor="middle">${
-        esc(c.viagem.destino || c.viagem.titulo).slice(0, 18)}</text>`
-      : '')).join('');
-
-  // Marca de hoje, para o olho achar o presente sem procurar.
-  const hj = hoje();
-  const passados = lista.filter((c) => c.ev.data < hj);
-  const antes = passados[passados.length - 1];
-  const depois = lista.find((c) => c.ev.data >= hj);
-  const xHoje = antes && depois ? (px(antes) + px(depois)) / 2
-    : depois ? px(depois) - PASSO / 2 : px(lista[lista.length - 1]) + PASSO / 2;
-  const marca = node.querySelector('[data-hoje]');
-  marca.style.left = `${xHoje}px`;
-  marca.style.height = `${ALT}px`;
-
-  for (const c of lista) {
-    const n = el(`<button class="corpo ${c.estado}" data-corpo="${c.id}"
-      style="left:${px(c)}px;top:${py(c)}px;--r:${c.raio}px;--seed:${c.semente}deg">
-      ${c.pend && c.estado !== 'passou' ? `<i class="anel"></i>` : ''}
-      <span class="corpo-n">${esc(fmtData(c.ev.data).slice(0, 5))}</span>
-      <span class="corpo-l">${esc(rotulo(c))}</span>
-    </button>`);
-    n.onclick = () => abrirCorpo(c, n, node);
-    mundo.append(n);
-  }
-
-  ligarNavegacao(campo, mundo);
-  node.querySelector('[data-centrar]').onclick = () => centrarEm(campo, xHoje);
-  requestAnimationFrame(() => centrarEm(campo, xHoje, false));
-
-  return { titulo: 'Mapa', node };
-}
-
-function rotulo(c) {
-  const t = c.ev.titulo || '';
-  return t.replace(/^Filmagem — /, '').replace(/^Entrega d[aeo] /i, '').slice(0, 22);
-}
-
-/* Arrastar o campo com o dedo ou o mouse. Sem biblioteca: o campo é um
-   contêiner com rolagem, e o arraste move a rolagem. */
-function ligarNavegacao(campo, mundo) {
-  let arrastando = false, x0 = 0, y0 = 0, sx = 0, sy = 0, moveu = 0;
-  const inicio = (e) => {
-    const p = e.touches ? e.touches[0] : e;
-    arrastando = true; moveu = 0;
-    x0 = p.clientX; y0 = p.clientY; sx = campo.scrollLeft; sy = campo.scrollTop;
-    campo.classList.add('arrastando');
+  // Cada corpo ganha seu lugar no espaço da estação depois que a tela existe:
+  // a constelação é calculada com a altura real, não com um chute.
+  const pintarCorpos = () => {
+    node.querySelectorAll('.est-campo').forEach((campo) => {
+      const s = lista[Number(campo.dataset.est)];
+      const pos = constelacao(s.corpos, campo.clientWidth, campo.clientHeight);
+      campo.innerHTML = percursoSVG(pos, s.corpos, campo.clientWidth, campo.clientHeight);
+      s.corpos.forEach((c, i) => {
+        const p = pos[i];
+        const lado = p.lado > 0
+          ? `right:${campo.clientWidth - p.x}px`   // ancora pela direita: o
+          : `left:${p.x}px`;                        // rótulo ganha a tela toda
+        const n = el(`<button class="no ${c.estado} ${p.lado > 0 ? 'dir' : 'esq'}"
+          data-no="${c.id}" style="${lado};top:${p.y}px;--d:${p.d}px;--i:${i}">
+          <span class="no-bolha">
+            <span class="no-dia">${String(c.ev.data).slice(8, 10)}</span>
+            <span class="no-mes">${MES[Number(String(c.ev.data).slice(5, 7)) - 1]}</span>
+          </span>
+          <span class="no-txt">
+            <span class="no-t">${esc(titulo(c, s))}</span>
+            <span class="no-s">${esc(legenda(c, s))}</span>
+          </span>
+        </button>`);
+        n.onclick = () => abrirCorpo(c, n, node);
+        campo.append(n);
+      });
+    });
   };
-  const move = (e) => {
-    if (!arrastando) return;
-    const p = e.touches ? e.touches[0] : e;
-    const dx = p.clientX - x0, dy = p.clientY - y0;
-    moveu = Math.max(moveu, Math.abs(dx) + Math.abs(dy));
-    campo.scrollLeft = sx - dx;
-    campo.scrollTop = sy - dy;
-    if (e.cancelable && moveu > 8) e.preventDefault();
+
+  // Régua e luz de fundo acompanham o dedo: o fundo anda mais devagar que o
+  // conteúdo, e é isso que dá a sensação de profundidade.
+  const aoRolar = () => {
+    const k = trilho.scrollLeft / Math.max(1, trilho.clientWidth);
+    luz.style.transform = `translate3d(${-k * 42}px,0,0)`;
+    luz.style.setProperty('--tom', String(Math.round(k * 26)));
+    const at = Math.round(k);
+    ticks.forEach((t, i) => t.classList.toggle('on', i === at));
   };
-  const fim = () => { arrastando = false; campo.classList.remove('arrastando'); };
-  campo.addEventListener('mousedown', inicio);
-  window.addEventListener('mousemove', move);
-  window.addEventListener('mouseup', fim);
-  campo.addEventListener('touchstart', inicio, { passive: true });
-  campo.addEventListener('touchmove', move, { passive: false });
-  campo.addEventListener('touchend', fim);
-  // Um arraste não deve virar um toque no corpo que estava embaixo do dedo.
-  campo.addEventListener('click', (e) => { if (moveu > 8) { e.stopPropagation(); e.preventDefault(); } }, true);
+  trilho.addEventListener('scroll', aoRolar, { passive: true });
+  ticks.forEach((t, i) => {
+    t.onclick = () => trilho.scrollTo({ left: i * trilho.clientWidth,
+      behavior: menosMovimento() ? 'auto' : 'smooth' });
+  });
+
+  requestAnimationFrame(() => {
+    trilho.scrollLeft = inicial * trilho.clientWidth;
+    pintarCorpos();
+    aoRolar();
+    node.classList.add('pronto');
+  });
+  // Girar o aparelho não pode embaralhar a constelação.
+  const ro = new ResizeObserver(() => {
+    const at = Math.round(trilho.scrollLeft / Math.max(1, trilho.clientWidth));
+    pintarCorpos();
+    trilho.scrollLeft = at * trilho.clientWidth;
+  });
+  ro.observe(trilho);
+
+  return { titulo: 'Mapa', node, cheio: true };
 }
 
-function centrarEm(campo, x, animado = true) {
-  const alvo = Math.max(0, x - campo.clientWidth / 2);
-  if (!animado || matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    campo.scrollLeft = alvo;
-    return;
-  }
-  const de = campo.scrollLeft, t0 = performance.now();
-  const passo = (t) => {
-    const k = Math.min(1, (t - t0) / 520);
-    campo.scrollLeft = de + (alvo - de) * suave(k);
-    if (k < 1) requestAnimationFrame(passo);
-  };
-  requestAnimationFrame(passo);
-}
+const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
-/* ------------------------------------------------------------- camadas ---
-   Tocar num corpo abre as vertentes dele em órbita. Tocar numa vertente abre o
-   conteúdo dela dentro do mesmo painel, sem trocar de tela — é o "cada coisa
-   dentro da coisa" sem virar uma pilha de modais. */
-const VERTENTES = [
-  { k: 'equipe', icone: '👥', t: 'Quem vai' },
-  { k: 'chamada', icone: '⏰', t: 'Chamada' },
-  { k: 'dinheiro', icone: '💸', t: 'Dinheiro' },
-  { k: 'pendencias', icone: '⚠️', t: 'Pendências' },
-  { k: 'local', icone: '📍', t: 'Onde' },
-  { k: 'viagem', icone: '✈️', t: 'A viagem' }
-];
-
-function abrirCorpo(c, node, raiz) {
+function estacaoHTML(s, i, total) {
   const u = store.user;
-  const e = c.ev;
-  const corpo = el('<div class="orb"></div>');
-  let atual = null;
+  const c = s.viagem ? contaDaViagem(s.viagem) : null;
+  const quando = periodoTxt(s.periodo[0], s.periodo[1]);
+  const estado = s.dias === 0 ? 'é hoje'
+    : s.passou ? 'já rodou'
+      : s.dias === 1 ? 'amanhã' : `em ${s.dias} dias`;
+  return `<section class="estacao ${s.passou ? 'passou' : ''}" data-i="${i}">
+    <header class="est-cab">
+      <div class="est-olho">${s.tipo === 'viagem'
+        ? `Viagem ${esc(s.viagem.numero || i + 1)} de ${total}` : 'Depois das viagens'}</div>
+      <h2 class="est-tit">${esc(s.titulo)}</h2>
+      <div class="est-sub">${esc(quando)} <span class="ponto"></span> ${esc(estado)}</div>
+    </header>
+    <div class="est-campo" data-est="${i}"></div>
+    <footer class="est-pe">
+      ${c && can(u, 'orcamento.ver') ? `
+        <div class="pe-item"><b>${fmtMoneyShort(c.fechado)}</b><span>fechado</span></div>
+        <div class="pe-item"><b>${fmtMoneyShort(c.orcado)}</b><span>orçado</span></div>` : ''}
+      <div class="pe-item ${s.pend ? 'atencao' : ''}">
+        <b>${s.pend || '—'}</b><span>${s.pend === 1 ? 'pendência' : 'pendências'}</span></div>
+      <div class="pe-item"><b>${s.corpos.length}</b><span>${
+        s.corpos.every((x) => x.ev.tipo === 'entrega')
+          ? (s.corpos.length === 1 ? 'entrega' : 'entregas')
+          : (s.corpos.length === 1 ? 'diária' : 'diárias')}</span></div>
+    </footer>
+  </section>`;
+}
+
+/* Onde cada corpo cai dentro da estação. Não é fileira nem grade: os dias
+   descem alternando de lado, ligados por uma linha fina que é o percurso da
+   viagem. O grupo fica centrado na vertical — com dois dias eles ocupam o meio
+   da tela com folga, com seis eles se espalham até as bordas. O diâmetro vem
+   do custo: o dia caro é maior. */
+function constelacao(corpos, larg, alt) {
+  const n = corpos.length;
+  const custos = corpos.map((c) => c.custo);
+  const teto = Math.max(1, ...custos);
+  // Poucos dias, bolhas generosas; muitos dias, bolhas que ainda cabem.
+  const base = Math.max(46, Math.min(n <= 2 ? 140 : n === 3 ? 112 : 88,
+    (alt - 24) / (n * 1.35)));
+  const ds = custos.map((v) => Math.round(base * (0.74 + 0.26 * Math.sqrt(v / teto))));
+  const bolhas = ds.reduce((a, b) => a + b, 0);
+
+  // O vão respira até o grupo ocupar boa parte do campo — a tela é para usar —
+  // mas nunca tanto que os dias pareçam soltos um do outro.
+  let vao = n > 1
+    ? Math.min(base * 1.4, Math.max(base * 0.5, (alt * 0.68 - bolhas) / (n - 1)))
+    : 0;
+  let total = bolhas + vao * (n - 1);
+  // Se não couber, o vão cede antes do tamanho — encostar é pior que apertar.
+  if (total > alt - 8 && n > 1) {
+    vao = Math.max(10, vao - (total - (alt - 8)) / (n - 1));
+    total = bolhas + vao * (n - 1);
+  }
+
+  let y = (alt - total) / 2;
+  return ds.map((d, i) => {
+    const cy = y + d / 2;
+    y += d + vao;
+    const lado = n === 1 ? 0 : (i % 2 ? 1 : -1);
+    const x = n === 1 ? larg / 2 : larg * (lado > 0 ? 0.72 : 0.28);
+    return { x: Math.round(x), y: Math.round(cy), d, lado };
+  });
+}
+
+/* A linha do percurso: liga um dia ao outro na ordem em que acontecem. Fina,
+   da cor do separador, tracejada no que já passou. Não decora — diz que
+   aqueles dias são a mesma ida. */
+function percursoSVG(pos, corpos, larg, alt) {
+  if (pos.length < 2) return '';
+  const trechos = pos.slice(1).map((p, i) => {
+    const a = pos[i];
+    const mx = (a.x + p.x) / 2, my = (a.y + p.y) / 2;
+    const passou = corpos[i + 1].dias < 0;
+    return `<path d="M${a.x} ${a.y} Q${a.x} ${my} ${mx} ${my} T${p.x} ${p.y}"
+      class="rota ${passou ? 'passou' : ''}" />`;
+  }).join('');
+  return `<svg class="est-rota" width="${larg}" height="${alt}" aria-hidden="true">${trechos}</svg>`;
+}
+
+const capitalizar = (t) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
+
+const rotulo = (c) => capitalizar((c.ev.titulo || '')
+  .replace(/^Filmagem — /, '').replace(/^Entrega d[aeo] /i, '').trim());
+
+/* Se o título do dia só repete o nome da estação, ele não informa nada — e aí
+   o que vale mesmo é que dia da semana é, por extenso. */
+const SEMANA = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira',
+  'Quinta-feira', 'Sexta-feira', 'Sábado'];
+const semanaLonga = (iso) => SEMANA[new Date(`${String(iso).slice(0, 10)}T12:00:00`).getDay()];
+
+function titulo(c, est) {
+  const t = rotulo(c);
+  const igual = !t || est.titulo.includes(t) || t.includes(est.titulo);
+  return igual ? semanaLonga(c.ev.data) : t;
+}
+
+/* A segunda linha diz o que a bolha e o cabeçalho ainda não disseram: a hora da
+   chamada, o que o dia custa. Nunca repete o que já está na primeira. */
+function legenda(c, est) {
+  const p = [];
+  if (c.ev.hora_inicio) p.push(c.ev.hora_inicio);
+  const l = c.ev.local || '';
+  if (l && !est.titulo.includes(l) && !l.includes(est.titulo)) p.push(l);
+  if (c.custo && can(store.user, 'orcamento.ver')) p.push(fmtMoneyShort(c.custo));
+  if (c.ev.confirmado === false) p.push('a confirmar');
+  if (!p.length) p.push(c.ev.tipo === 'entrega' ? 'Entrega' : 'Diária de filmagem');
+  return p.join(' · ');
+}
+
+/* "9 a 12 de setembro" em vez de "09/09 a 12 set 2026". */
+const MESES_LONGOS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho',
+  'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+function periodoTxt(a, b) {
+  const [, ma, da] = String(a).slice(0, 10).split('-');
+  const [, mb, db] = String(b).slice(0, 10).split('-');
+  const dia = (d) => String(Number(d));
+  const mes = (m) => MESES_LONGOS[Number(m) - 1];
+  if (a === b) return `${dia(da)} de ${mes(ma)}`;
+  if (ma === mb) return `${dia(da)} a ${dia(db)} de ${mes(ma)}`;
+  return `${dia(da)} de ${mes(ma)} a ${dia(db)} de ${mes(mb)}`;
+}
+
+/* ------------------------------------------------------ o corpo que cresce --
+   O painel nasce exatamente em cima do corpo tocado, do tamanho dele, e cresce
+   até a tela. Ao fechar faz o caminho de volta. É a mesma coisa se abrindo, não
+   uma tela nova por cima — que é o que o usuário pediu. */
+function abrirCorpo(c, noEl, raiz) {
+  const painel = el(`<div class="painel" role="dialog" aria-modal="true"></div>`);
+  const de = noEl.querySelector('.no-bolha').getBoundingClientRect();
+  raiz.append(painel);
+
+  let camada = null;             // assunto aberto dentro do painel
+  const fechar = () => {
+    const alvo = noEl.querySelector('.no-bolha').getBoundingClientRect();
+    raiz.classList.remove('com-painel');
+    if (menosMovimento()) { painel.remove(); return; }
+    const p = painel.getBoundingClientRect();
+    painel.style.transition = `transform .34s ${CURVA}, opacity .28s ease, border-radius .34s ${CURVA}`;
+    painel.style.transformOrigin = 'top left';
+    painel.style.borderRadius = '50%';
+    painel.style.opacity = '0';
+    painel.style.transform = `translate(${alvo.left - p.left}px,${alvo.top - p.top}px)
+      scale(${alvo.width / p.width},${alvo.height / p.height})`;
+    setTimeout(() => painel.remove(), 340);
+  };
 
   const pintar = () => {
+    const u = store.user;
+    const e = c.ev;
     const conf = store.doProjeto('confirmacoes').filter((x) => x.ref_id === e.id);
     const pend = c.viagem ? pendencias(c.viagem) : [];
-    corpo.innerHTML = `
-      <div class="orb-cab ${c.estado}">
-        <div class="orb-data">${esc(diaSemana(e.data))} · ${esc(fmtData(e.data, { longo: true }))}</div>
-        <div class="orb-tit">${esc(e.titulo)}</div>
-        <div class="orb-sub">${esc([e.local, c.dias === 0 ? 'é hoje'
-          : c.dias > 0 ? `em ${c.dias} dias` : `${Math.abs(c.dias)} dias atrás`,
-          e.confirmado === false ? 'data a confirmar' : ''].filter(Boolean).join(' · '))}</div>
+    const abas = ASSUNTOS.filter((a) => a.vale(c, u));
+
+    painel.innerHTML = `
+      <div class="pn-topo">
+        <button class="pn-x" data-fechar aria-label="Fechar">${X}</button>
+        <div class="pn-quando">${esc(diaSemana(e.data))}, ${esc(fmtData(e.data, { longo: true }))}</div>
+        <h2 class="pn-tit">${esc(rotulo(c))}</h2>
+        <div class="pn-sub">${esc([
+          e.local, e.hora_inicio ? `chamada ${e.hora_inicio}` : '',
+          c.dias === 0 ? 'é hoje' : c.dias > 0 ? `em ${c.dias} dias` : `${-c.dias} dias atrás`,
+          e.confirmado === false ? 'data a confirmar' : ''
+        ].filter(Boolean).join(' · '))}</div>
       </div>
+      <div class="pn-rolo">
+        ${abas.map((a) => {
+          const n = a.contar ? a.contar(c, { conf, pend }) : 0;
+          const on = camada === a.k;
+          return `<section class="assunto ${on ? 'on' : ''}">
+            <button class="as-cab" data-a="${a.k}" aria-expanded="${on}">
+              <span class="as-i">${a.i}</span>
+              <span class="as-t">${a.t}</span>
+              ${n ? `<span class="as-n ${a.k === 'pendencias' ? 'alerta' : ''}">${n}</span>` : ''}
+              <span class="as-v">${CHEVRON}</span>
+            </button>
+            ${on ? `<div class="as-corpo">${conteudo(a.k, c, conf, pend, u)}</div>` : ''}
+          </section>`;
+        }).join('')}
+        <button class="btn wide gho" data-classico>Abrir na agenda</button>
+      </div>`;
 
-      <div class="orb-vert">${VERTENTES.map((v) => `
-        <button class="vert ${atual === v.k ? 'on' : ''}" data-v="${v.k}">
-          <span class="vert-i">${v.icone}</span><span class="vert-t">${v.t}</span>
-          ${v.k === 'pendencias' && pend.length ? `<span class="vert-n">${pend.length}</span>` : ''}
-        </button>`).join('')}</div>
-
-      <div class="orb-conteudo">${atual ? conteudo(atual, c, conf, pend, u) : `
-        <div class="orb-vazio">Toque numa das vertentes para abrir.</div>`}</div>
-
-      <button class="btn wide gho" data-abrir-classico>Abrir na agenda clássica</button>`;
-
-    corpo.querySelectorAll('[data-v]').forEach((b) => {
-      b.onclick = () => { atual = atual === b.dataset.v ? null : b.dataset.v; pintar(); };
+    painel.querySelector('[data-fechar]').onclick = fechar;
+    painel.querySelector('[data-classico]').onclick = () => { fechar(); abrirEvento(e); };
+    painel.querySelectorAll('[data-a]').forEach((b) => {
+      b.onclick = () => {
+        camada = camada === b.dataset.a ? null : b.dataset.a;
+        pintar();
+        if (camada) {
+          const alvo = painel.querySelector('.assunto.on');
+          alvo?.scrollIntoView({ block: 'nearest',
+            behavior: menosMovimento() ? 'auto' : 'smooth' });
+        }
+      };
     });
-    corpo.querySelector('[data-abrir-classico]').onclick = () => { sh.close(); abrirEvento(e); };
-    corpo.querySelectorAll('[data-ok]').forEach((n) => {
+    painel.querySelectorAll('[data-ok]').forEach((n) => {
       n.onclick = async () => {
         const p = pend.find((x) => x.id === n.dataset.ok);
         if (!p?.resolver) return;
         await p.resolver();
         toast('Feito.');
-        pintar(); store.emit();
+        pintar();
+        store.emit();
       };
     });
   };
 
-  node.classList.add('aceso');
   pintar();
-  const sh = sheet({ titulo: rotulo(c), corpo, aoFechar: () => node.classList.remove('aceso') });
+  raiz.classList.add('com-painel');
+
+  if (!menosMovimento()) {
+    const p = painel.getBoundingClientRect();
+    painel.style.transformOrigin = 'top left';
+    painel.style.borderRadius = '50%';
+    painel.style.opacity = '0';
+    painel.style.transform = `translate(${de.left - p.left}px,${de.top - p.top}px)
+      scale(${de.width / p.width},${de.height / p.height})`;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      painel.style.transition = `transform .46s ${CURVA}, opacity .2s ease, border-radius .46s ${CURVA}`;
+      painel.style.transform = 'none';
+      painel.style.borderRadius = '';
+      painel.style.opacity = '1';
+    }));
+  }
+  painel.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') fechar(); });
+  painel.tabIndex = -1;
+  painel.focus({ preventScroll: true });
 }
+
+/* Traços finos, do mesmo peso do resto do app — nada de emoji. */
+const sv = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+const X = sv('<path d="M6 6l12 12M18 6L6 18"/>');
+const CHEVRON = sv('<path d="M9 5l7 7-7 7"/>');
+
+const ASSUNTOS = [
+  { k: 'equipe', t: 'Quem vai', vale: () => true,
+    i: sv('<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3 2.8-4.6 5.5-4.6S14 16 14.6 19"/>'
+      + '<circle cx="17" cy="9" r="2.4"/><path d="M16 14.6c2.3.2 3.9 1.8 4.4 4.4"/>'),
+    contar: (c) => (c.ev.participantes || []).length },
+  { k: 'chamada', t: 'Ordem do dia', vale: () => true,
+    i: sv('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.2V12l3 1.8"/>') },
+  { k: 'local', t: 'Onde é', vale: (c) => Boolean(c.ev.local || c.ev.endereco),
+    i: sv('<path d="M12 21c4.2-4.4 6.3-7.7 6.3-10.3A6.3 6.3 0 0 0 5.7 10.7C5.7 13.3 7.8 16.6 12 21z"/>'
+      + '<circle cx="12" cy="10.5" r="2.3"/>') },
+  { k: 'dinheiro', t: 'Dinheiro do dia', vale: (c, u) => can(u, 'orcamento.ver'),
+    i: sv('<rect x="3" y="6" width="18" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/>'
+      + '<path d="M6.5 12h.01M17.5 12h.01"/>') },
+  { k: 'pendencias', t: 'O que falta', vale: (c) => Boolean(c.viagem),
+    i: sv('<path d="M12 4.5 21 19.5H3z"/><path d="M12 10v4M12 16.8h.01"/>'),
+    contar: (c, x) => x.pend.length },
+  { k: 'viagem', t: 'A viagem', vale: (c) => Boolean(c.viagem),
+    i: sv('<path d="M3 14.5 21 8l-2.4 6.6a3 3 0 0 1-1.9 1.8L10 18.5 8.5 21 7 16.5z"/>') }
+];
 
 function conteudo(k, c, conf, pend, u) {
   const e = c.ev;
   if (k === 'equipe') {
     const gente = e.participantes || [];
     return !gente.length ? vazio('Ninguém marcado nesta diária.') : `
-      <div class="card lista">${gente.map((id) => {
+      <div class="pn-lista">${gente.map((id) => {
         const cf = conf.find((x) => x.membro_id === id && x.tipo === 'presenca');
-        return `<div class="row">
-          <span class="avatar">${esc(iniciais(nomeMembro(id)))}</span>
+        return `<div class="pn-l">
+          <span class="avatar sm">${esc(iniciais(nomeMembro(id)))}</span>
           <span class="g"><span class="t">${esc(nomeMembro(id))}</span>
             <span class="s">${esc(store.get('membros', id)?.funcao || '')}</span></span>
-          ${cf ? `<span class="r"><span class="tag ${cf.status === 'confirmado' ? 'ok' : 'warn'}">
-            ${cf.status === 'confirmado' ? 'confirmou' : 'pendente'}</span></span>` : ''}
+          ${cf ? `<span class="tag ${cf.status === 'confirmado' ? 'ok' : 'warn'}">${
+            cf.status === 'confirmado' ? 'confirmou' : 'pendente'}</span>` : ''}
         </div>`;
       }).join('')}</div>`;
   }
   if (k === 'chamada') {
     const ch = e.chamadas || [];
     const linhas = String(e.roteiro_dia || '').split('\n').filter((l) => l.trim());
-    return `${e.hora_inicio ? `<div class="orb-grande">${esc(e.hora_inicio)}${e.hora_fim
-      ? ` <span>→ ${esc(e.hora_fim)}</span>` : ''}</div>` : ''}
-      ${ch.length ? `<div class="card lista">${ch.map((x) => `<div class="row">
+    if (!e.hora_inicio && !ch.length && !linhas.length) return vazio('Sem ordem do dia ainda.');
+    return `${e.hora_inicio ? `<div class="pn-numero">${esc(e.hora_inicio)}${
+      e.hora_fim ? `<span>até ${esc(e.hora_fim)}</span>` : ''}</div>` : ''}
+      ${ch.length ? `<div class="pn-lista">${ch.map((x) => `<div class="pn-l">
         <span class="g"><span class="t">${esc(nomeMembro(x.membro_id))}</span>
           <span class="s">${esc(x.obs || '')}</span></span>
-        <span class="r"><span class="v">${esc(x.hora)}</span></span></div>`).join('')}</div>` : ''}
-      ${linhas.length ? `<div class="card"><div class="tl">${linhas.map((l) => `
-        <div class="n"><div class="row"><span class="g"><span class="t"
-          style="white-space:normal;font-weight:500">${esc(l)}</span></span></div></div>`).join('')}</div></div>` : ''}
-      ${!e.hora_inicio && !ch.length && !linhas.length ? vazio('Sem ordem do dia ainda.') : ''}`;
-  }
-  if (k === 'dinheiro') {
-    if (!can(u, 'orcamento.ver')) return vazio('Sem acesso aos valores.');
-    const lan = store.doProjeto('lancamentos').filter((l) => l.evento_id === e.id);
-    return `<div class="orb-grande">${fmtMoney(c.custo)}<span>gasto neste dia</span></div>
-      ${lan.length ? `<div class="card lista">${lan.map((l) => `<div class="row">
-        <span class="g"><span class="t">${esc(l.descricao)}</span>
-          <span class="s">${esc([l.rubrica, l.membro_id ? nomeMembro(l.membro_id) : ''].filter(Boolean).join(' · '))}</span></span>
-        <span class="r"><span class="v">${fmtMoney(l.valor_cents)}</span></span></div>`).join('')}</div>`
-      : vazio('Nenhum gasto lançado neste dia.')}`;
-  }
-  if (k === 'pendencias') {
-    if (!pend.length) return vazio('Nada pendente nesta viagem.');
-    return `<div class="card lista">${pend.map((p) => `
-      <div class="row ${p.resolver ? 'act sem-seta' : ''}" ${p.resolver ? `data-ok="${p.id}"` : ''}>
-        <span class="g"><span class="t" style="white-space:normal">${esc(p.texto)}</span>
-          <span class="s">${esc(p.quem ? nomeMembro(p.quem) : 'sem dono')}</span></span>
-        ${p.resolver ? '<span class="r"><span class="tag ok">feito?</span></span>' : ''}
-      </div>`).join('')}</div>`;
+        <span class="v">${esc(x.hora)}</span></div>`).join('')}</div>` : ''}
+      ${linhas.length ? `<ol class="pn-roteiro">${linhas.map((l) => `<li>${esc(l)}</li>`).join('')}</ol>` : ''}`;
   }
   if (k === 'local') {
     const loc = store.doProjeto('locacoes').find((l) => e.local && e.local.includes(l.cidade));
     const end = e.endereco || loc?.obs || '';
-    return `${e.local ? `<div class="orb-grande" style="font-size:22px">${esc(e.local)}</div>` : ''}
-      ${end ? `<div class="card tight"><div class="row"><span class="g">
-        <span class="t" style="white-space:normal;font-weight:400">${esc(end)}</span></span></div></div>` : ''}
-      ${e.levar ? `<div class="sec"><div class="sec-t">Levar</div></div>
-        <div class="card tight"><div class="row"><span class="g"><span class="t"
-          style="white-space:normal;font-weight:400">${esc(e.levar)}</span></span></div></div>` : ''}
-      ${!e.local && !end ? vazio('Sem local definido.') : ''}`;
+    const mapa = end || e.local;
+    return `${e.local ? `<div class="pn-forte">${esc(e.local)}</div>` : ''}
+      ${end ? `<p class="pn-p">${esc(end)}</p>` : ''}
+      ${e.levar ? `<p class="pn-p"><b>Levar:</b> ${esc(e.levar)}</p>` : ''}
+      ${mapa ? `<a class="btn sm gho" target="_blank" rel="noopener"
+        href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapa)}">Ver no mapa</a>` : ''}`;
+  }
+  if (k === 'dinheiro') {
+    const lan = store.doProjeto('lancamentos').filter((l) => l.evento_id === e.id);
+    return `<div class="pn-numero">${fmtMoney(c.custo)}<span>gasto neste dia</span></div>
+      ${lan.length ? `<div class="pn-lista">${lan.map((l) => `<div class="pn-l">
+        <span class="g"><span class="t">${esc(l.descricao)}</span>
+          <span class="s">${esc([l.rubrica, l.membro_id ? nomeMembro(l.membro_id) : '']
+            .filter(Boolean).join(' · '))}</span></span>
+        <span class="v">${fmtMoney(l.valor_cents)}</span></div>`).join('')}</div>`
+      : vazio('Nenhum gasto lançado neste dia.')}`;
+  }
+  if (k === 'pendencias') {
+    if (!pend.length) return vazio('Nada pendente nesta viagem.');
+    return `<div class="pn-lista">${pend.map((p) => `
+      <div class="pn-l">
+        <span class="g"><span class="t solta">${esc(p.texto)}</span>
+          <span class="s">${esc(p.quem ? nomeMembro(p.quem) : 'sem dono')}</span></span>
+        ${p.resolver ? `<button class="btn sm" data-ok="${p.id}">feito</button>` : ''}
+      </div>`).join('')}</div>`;
   }
   if (k === 'viagem') {
-    if (!c.viagem) return vazio('Esta data não pertence a nenhuma viagem.');
     const cv = contaDaViagem(c.viagem);
-    return `<div class="orb-grande" style="font-size:19px">${esc(c.viagem.titulo)}</div>
-      <div class="card tight">
-        <div class="row"><span class="g"><span class="s">Quando</span>
+    return `<div class="pn-forte">${esc(c.viagem.titulo)}</div>
+      <div class="pn-lista">
+        <div class="pn-l"><span class="g"><span class="s">Quando</span>
           <span class="t">${esc(fmtData(c.viagem.ida))} → ${esc(fmtData(c.viagem.volta))}</span></span></div>
-        <div class="row"><span class="g"><span class="s">Orçado</span>
-          <span class="t">${fmtMoney(cv.orcado)}</span></span>
-          <span class="r"><span class="v">${fmtMoney(cv.fechado)}</span>
-            <div class="small muted">fechado</div></span></div>
-        ${cv.faltando.length ? `<div class="row"><span class="g"><span class="s">Falta fechar</span>
-          <span class="t">${cv.faltando.map((i) => i.t).join(', ')}</span></span></div>` : ''}
+        ${can(u, 'orcamento.ver') ? `
+        <div class="pn-l"><span class="g"><span class="s">Fechado</span>
+          <span class="t">${fmtMoney(cv.fechado)}</span></span>
+          <span class="v">${fmtMoney(cv.orcado)}</span></div>` : ''}
+        ${cv.faltando.length ? `<div class="pn-l"><span class="g"><span class="s">Falta fechar</span>
+          <span class="t solta">${esc(cv.faltando.map((i) => i.t).join(', '))}</span></span></div>` : ''}
       </div>`;
   }
   return '';
 }
 
-const vazio = (t) => `<div class="orb-vazio">${esc(t)}</div>`;
+const vazio = (t) => `<p class="pn-vazio">${esc(t)}</p>`;
 
   return { render };
 };

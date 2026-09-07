@@ -14,7 +14,7 @@ const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-export const SEED_VERSAO = 17;
+export const SEED_VERSAO = 18;
 
 const PESSOAS = [
   {
@@ -649,24 +649,6 @@ export async function criarProjetoBradesco(existente = null) {
   }
 
   /* --------------------------------------------------------------------
-     Acerto com o sócio. Tudo que o Maví pôs no cartão pessoal já foi pago
-     ao fornecedor, mas a empresa deve isso a ele. Vira uma conta a pagar
-     só, somando os lançamentos marcados como reembolso.
-     -------------------------------------------------------------------- */
-  const doSocio = store.doProjeto('lancamentos').filter((l) => l.reembolso && l.fonte === 'proprio');
-  const totalSocio = doSocio.reduce((n, l) => n + (l.valor_cents || 0), 0);
-  if (totalSocio) {
-    await ins('contas', 'acerto:mavi@tempora', {
-      tipo: 'pagar', descricao: 'Acerto — Maví (cartão pessoal)',
-      contraparte: 'Maví Simões', valor_cents: totalSocio, venc: '', status: 'aberto',
-      membro_id: membros['Maví Simões'] || null, categoria: 'reembolso', rubrica: '',
-      nf_status: 'na',
-      obs: `${doSocio.length} compra(s) que o Maví pagou no cartão pessoal e a empresa deve devolver: `
-        + doSocio.map((l) => l.descricao).join('; ') + '.'
-    });
-  }
-
-  /* --------------------------------------------------------------------
      O que já aconteceu de fato, conferido no e-mail da Fundação.
      -------------------------------------------------------------------- */
   await corrigir('contas', 'conta:parcela1', {
@@ -805,15 +787,15 @@ export async function criarProjetoBradesco(existente = null) {
     categoria: 'passagens', rubrica: 'Passagens aéreas', nf_status: 'a_receber',
     viagem_id: null,
     obs: 'Localizador TRZKMK. Ida 09/09 Azul 2622 (GRU 09:45 → POA 11:30), volta 12/09 Azul 2821 '
-      + '(POA 16:55 → GRU 18:40). Pago no MasterCard em 6 parcelas. Orçado era R$ 6.600 — '
-      + 'economia de R$ 1.519,71.'
+      + '(POA 16:55 → GRU 18:40). Pago no crédito C6 PF do Maví, em 6 parcelas — entra no acerto. '
+      + 'Orçado era R$ 6.600 — economia de R$ 1.519,71.'
   });
   await ins('lancamentos', 'lanc:Passagens SP → Porto Alegre (ida e volta, 3 pax)', {
     tipo: 'saida', descricao: 'Passagens SP → Porto Alegre (ida e volta, 3 pax)',
     valor_cents: M('5080,29'), rubrica: 'Passagens aéreas', data: '2026-09-03',
     fornecedor: 'Azul', forma: 'crédito', membro_id: null, evento_id: null,
-    fonte: 'empresa', reembolso: false, sem_comprovante: true, status: 'pago',
-    aprovado_por: null, obs: 'Localizador TRZKMK. Reserva de 03/09.'
+    fonte: 'proprio', reembolso: true, sem_comprovante: true, status: 'pago',
+    aprovado_por: null, obs: 'Localizador TRZKMK. Reserva de 03/09, no crédito C6 PF do Maví.'
   });
   await corrigir('eventos', 'ev:2026-09-09:SP → Porto Alegre → Gravataí + scout', {
     hora_inicio: '07:45', hora_fim: '11:30',
@@ -1054,6 +1036,29 @@ export async function criarProjetoBradesco(existente = null) {
     });
   }
 
+  /* --------------------------------------------------------------------
+     Acerto com o sócio, fechado por último. Tudo que o Maví pôs no cartão
+     pessoal já foi pago ao fornecedor, mas a empresa deve isso a ele. Só dá
+     para somar depois que todo lançamento entrou — inclusive os que a carga
+     insere lá embaixo, como a passagem de Porto Alegre.
+     -------------------------------------------------------------------- */
+  const doSocio = store.doProjeto('lancamentos').filter((l) => l.reembolso && l.fonte === 'proprio');
+  const totalSocio = doSocio.reduce((n, l) => n + (l.valor_cents || 0), 0);
+  if (totalSocio) {
+    const dados = {
+      tipo: 'pagar', descricao: 'Acerto — Maví (cartão pessoal)',
+      contraparte: 'Maví Simões', valor_cents: totalSocio, venc: '', status: 'aberto',
+      membro_id: membros['Maví Simões'] || null, categoria: 'reembolso', rubrica: '',
+      nf_status: 'na',
+      obs: `${doSocio.length} compra(s) que o Maví pagou no cartão pessoal e a empresa deve devolver: `
+        + doSocio.map((l) => l.descricao).join('; ') + '.'
+    };
+    await ins('contas', 'acerto:mavi@tempora', dados);
+    // Se entrar compra nova no cartão pessoal, o acerto acompanha — desde que
+    // ninguém tenha mexido nele à mão.
+    await corrigir('contas', 'acerto:mavi@tempora', dados);
+  }
+
   await store.log('Projeto carregado do contrato rev 04, da Carta-Orçamento V2, da planilha do Drive '
     + '(28/08) e do Google Agenda do projeto.', 'projeto');
   return projeto;
@@ -1103,6 +1108,7 @@ const chaveDe = {
     if (r.membro_id) {
       const m = store.get('membros', r.membro_id);
       if (m?.email) {
+        if (r.categoria === 'reembolso') return 'acerto:' + m.email;
         if (r.categoria === 'per diem') return 'perdiem:' + m.email;
         if (r.categoria === 'cachê') {
           if (/\(\d+%\)/.test(r.descricao || '')) return 'cache1:' + m.email;
@@ -1115,6 +1121,14 @@ const chaveDe = {
   },
   lancamentos: (r) => {
     if (!r.descricao) return null;
+    if (r.tipo === 'entrada' && /1ª parcela/.test(r.descricao)) return 'lanc:parcela1';
+    // A caixinha se identifica pela fonte, não pela forma: gasto da empresa
+    // também sai em dinheiro e não pode cair na mesma chave.
+    if (r.fonte === 'caixinha') return 'petty:' + r.data + ':' + r.descricao;
+    if (r.rubrica === 'Per diem da equipe' && r.membro_id) {
+      const m = store.get('membros', r.membro_id);
+      if (m?.email) return 'lanc:perdiem:' + m.email;
+    }
     return r.forma === 'dinheiro' ? 'caixa:' + r.descricao : 'lanc:' + r.descricao;
   },
   documentos: (r) => (r.titulo ? 'doc:' + r.titulo : null),

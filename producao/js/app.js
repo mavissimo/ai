@@ -201,6 +201,10 @@ export function render() {
     v = { titulo: 'Erro', node: el(`<div class="banner bad">Algo quebrou nesta tela: ${esc(e.message)}</div>`) };
   }
 
+  // Tela cheia: o mapa gerencia o próprio espaço, então o main perde o padding
+  // e a largura máxima e a página para de rolar por fora.
+  root.classList.toggle('cheio', Boolean(v.cheio));
+
   root.innerHTML = `
     <header class="topbar">
       <h1>${esc(v.titulo)}${v.sub ? `<span class="sub">${esc(v.sub)}</span>` : ''}</h1>

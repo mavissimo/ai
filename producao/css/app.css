@@ -357,115 +357,192 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .ico.urg{background:var(--bad-bg)}
 .ico.med{background:var(--warn-bg)}
 
+
 /* ============================================================================
-   Mapa do job. As diárias como corpos num campo navegável: o tempo corre para a
-   direita, cada viagem tem sua faixa. O movimento aqui tem função — o que é hoje
-   pulsa, o que tem pendência ganha anel, o que já passou perde cor — e some
-   inteiro quando o sistema pede menos movimento.
+   Mapa do job. A tela inteira, uma viagem por página. Você desliza de lado
+   entre as estações; dentro de cada uma as diárias ficam soltas no espaço, do
+   tamanho do que custam. Tocar numa delas faz ela crescer até virar a tela e,
+   ao fechar, encolher de volta para o lugar de onde saiu — a mesma coisa se
+   abrindo, não uma tela nova por cima.
    ========================================================================= */
-.mapa-tela{margin:calc(var(--s4) * -1);display:flex;flex-direction:column;
-  height:calc(100dvh - 118px - var(--safe-b))}
-.mapa-topo{display:flex;align-items:flex-end;gap:var(--s3);padding:var(--s4) var(--s4) var(--s3)}
-.mapa-t{font-family:var(--titulo);font-size:24px;font-weight:700;letter-spacing:-.7px;line-height:1.1}
-.mapa-s{font-size:12.5px;color:var(--tx3);margin-top:2px}
-.mapa-topo .btn{margin-left:auto}
+.app.cheio{height:100dvh;overflow:hidden}
+.app.cheio main{padding:0;max-width:none;display:flex;flex-direction:column;
+  min-height:0;overflow:hidden}
 
-.mapa-campo{flex:1;overflow:auto;position:relative;cursor:grab;display:flex;
-  -webkit-overflow-scrolling:touch;scrollbar-width:none;
+.mapa{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;
+  padding-bottom:calc(64px + var(--safe-b))}
+
+/* A luz do fundo: duas manchas largas e de pouca cor que andam mais devagar que
+   o conteúdo. É o que dá profundidade sem desenhar nada. */
+.mapa-luz{position:absolute;inset:-12% -20% -12% -20%;pointer-events:none;z-index:0;
+  transition:transform .1s linear;
   background:
-    radial-gradient(circle at 18% 30%, var(--ac-soft), transparent 42%),
-    radial-gradient(circle at 78% 68%, var(--info-bg), transparent 46%),
-    var(--bg)}
-.mapa-campo::-webkit-scrollbar{display:none}
-.mapa-campo.arrastando{cursor:grabbing}
-.mapa-mundo{position:relative;margin:auto;flex:none}
-.mapa-linhas{position:absolute;inset:0;pointer-events:none}
-.mapa-eixo{stroke:var(--line);stroke-width:2;stroke-linecap:round}
-.mapa-eixo.passou{stroke-dasharray:2 7}
-.mapa-rot{fill:var(--tx3);font-size:11px;font-weight:700;letter-spacing:.5px}
-.mapa-hoje{position:absolute;top:0;width:2px;background:linear-gradient(var(--ac),transparent);
-  opacity:.5;pointer-events:none}
+    radial-gradient(58% 44% at 24% 22%, var(--ac-soft), transparent 70%),
+    radial-gradient(52% 40% at 82% 74%, var(--info-bg), transparent 72%);
+  filter:blur(6px)}
 
-.corpo{position:absolute;transform:translate(-50%,-50%);
-  width:calc(var(--r) * 2);height:calc(var(--r) * 2);min-width:calc(var(--r) * 2);flex:none;
-  box-sizing:border-box;overflow:hidden;
-  border-radius:50%;border:1.5px solid var(--line);background:var(--bg2);color:var(--tx);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
-  padding:0 6px;cursor:pointer;
-  box-shadow:0 6px 18px rgba(20,26,40,.10);
-  transition:transform .32s cubic-bezier(.16,1,.3,1),box-shadow .32s,border-color .2s;
-  animation:flutua 7s ease-in-out infinite;animation-delay:calc(var(--seed) * -.02s)}
-.corpo:hover,.corpo:focus-visible{transform:translate(-50%,-50%) scale(1.09);
-  box-shadow:0 12px 28px rgba(20,26,40,.18);outline:none;
-  /* parado embaixo do dedo: alvo que balança é alvo que se erra */
-  animation-play-state:paused}
-.corpo.aceso{border-color:var(--ac);box-shadow:0 0 0 3px var(--ac-soft),0 12px 28px rgba(20,26,40,.18)}
-.corpo-n{font-family:var(--titulo);font-size:13px;font-weight:700;letter-spacing:-.3px;line-height:1}
-.corpo-l{font-size:9px;color:var(--tx3);width:100%;text-align:center;line-height:1.15;
+.mapa-trilho{position:relative;z-index:1;flex:1;min-height:0;display:flex;
+  overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.mapa-trilho::-webkit-scrollbar{display:none}
+
+.estacao{flex:0 0 100%;width:100%;scroll-snap-align:center;scroll-snap-stop:always;
+  display:flex;flex-direction:column;min-height:0;overflow:hidden;
+  padding:var(--s5) var(--s5) var(--s3)}
+.estacao.passou{opacity:.78}
+
+.est-olho{font-size:11px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;
+  color:var(--tx3)}
+.est-tit{font-family:var(--titulo);font-size:clamp(28px,8.5vw,40px);font-weight:700;
+  letter-spacing:-1.2px;line-height:1.04;margin:var(--s2) 0 0;text-wrap:balance}
+.est-sub{font-size:13px;color:var(--tx2);margin-top:var(--s2);
+  display:flex;align-items:center;gap:var(--s2)}
+.est-sub .ponto{width:3px;height:3px;border-radius:50%;background:var(--tx3);flex:none}
+
+.est-campo{position:relative;flex:1;min-height:0;margin:var(--s4) 0 var(--s3)}
+
+/* Um corpo: a bolha com o dia dentro e o nome ao lado. A bolha é o alvo e é
+   também de onde o painel nasce. */
+/* `left`/`top` marcam o centro da bolha; o rótulo cresce para dentro da tela —
+   à direita de quem está na esquerda, à esquerda de quem está na direita. */
+.no{position:absolute;transform:translateY(-50%);display:flex;align-items:center;
+  gap:var(--s3);padding:0;border:0;background:none;color:inherit;cursor:pointer;text-align:left;
+  opacity:0;animation:no-entra .5s cubic-bezier(.32,.72,0,1) forwards;
+  animation-delay:calc(var(--i) * 60ms + 80ms)}
+.no.esq{transform:translate(calc(var(--d) / -2),-50%);max-width:calc(66% + var(--d) / 2)}
+.no.dir{flex-direction:row-reverse;text-align:right;
+  transform:translate(calc(var(--d) / 2),-50%);max-width:calc(66% + var(--d) / 2)}
+.no.dir .no-txt{align-items:flex-end}
+
+.est-rota{position:absolute;inset:0;pointer-events:none;z-index:0}
+.est-rota .rota{fill:none;stroke:var(--line);stroke-width:1.5;stroke-linecap:round}
+.est-rota .rota.passou{stroke-dasharray:1 6}
+.mapa:not(.pronto) .no{animation:none}
+.no-bolha{flex:none;width:var(--d);height:var(--d);border-radius:50%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;
+  background:var(--bg2);border:1px solid var(--line);color:var(--tx);
+  box-shadow:0 10px 30px -12px rgba(20,26,40,.35), 0 1px 2px rgba(20,26,40,.06);
+  transition:transform .34s cubic-bezier(.32,.72,0,1),box-shadow .34s,background .2s}
+.no-dia{font-family:var(--titulo);font-size:calc(var(--d) * .33);font-weight:700;letter-spacing:-1px}
+.no-mes{font-size:calc(var(--d) * .15);color:var(--tx3);text-transform:uppercase;
+  letter-spacing:.6px;font-weight:650;margin-top:2px}
+.no-txt{display:flex;flex-direction:column;gap:2px;min-width:0;position:relative;z-index:1}
+.no-bolha{position:relative;z-index:1}
+.no-t{font-size:14px;font-weight:650;letter-spacing:-.2px;line-height:1.2;
   overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.no-s{font-size:11.5px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.no:active .no-bolha{transform:scale(.94)}
+@media (hover:hover){.no:hover .no-bolha{transform:scale(1.06);
+  box-shadow:0 18px 40px -14px rgba(20,26,40,.45)}}
+.no:focus-visible{outline:none}
+.no:focus-visible .no-bolha{box-shadow:0 0 0 3px var(--ac-line)}
 
-.corpo.hoje{border-color:var(--ac);background:var(--ac);color:var(--ac-tx)}
-.corpo.hoje .corpo-l{color:var(--ac-tx);opacity:.8}
-.corpo.futuro{border-color:var(--ok)}
-.corpo.previsto{border-style:dashed;border-color:var(--warn)}
-.corpo.passou{opacity:.5;border-color:var(--line);animation:none}
-.corpo.passou .corpo-n{color:var(--tx3)}
+.no.hoje .no-bolha{background:var(--ac);border-color:var(--ac);color:var(--ac-tx)}
+.no.hoje .no-mes{color:var(--ac-tx);opacity:.75}
+.no.previsto .no-bolha{border-style:dashed;border-color:var(--warn)}
+/* O que já rodou não some: recua. Continua legível, só perde o relevo. */
+.no.passou .no-bolha{background:var(--bg3);border-color:transparent;box-shadow:none;color:var(--tx2)}
+.no.passou .no-t{color:var(--tx2);font-weight:600}
 
-/* O anel diz "tem coisa em aberto aqui" sem precisar de número. */
-.corpo .anel{position:absolute;inset:-7px;border-radius:50%;border:1.5px solid var(--warn);
-  opacity:.55;animation:respira 3.4s ease-in-out infinite;
-  animation-delay:calc(var(--seed) * -.01s)}
+/* A entrada mexe só na bolha e no texto: o `transform` do próprio nó é o que
+   ancora a bolha no ponto certo e não pode ser animado por cima. */
+@keyframes no-entra{from{opacity:0}to{opacity:1}}
+.no-bolha,.no-txt{animation:no-sobe .55s cubic-bezier(.32,.72,0,1) backwards;
+  animation-delay:calc(var(--i) * 60ms + 80ms)}
+@keyframes no-sobe{from{opacity:0;transform:translateY(10px) scale(.92)}
+  to{opacity:1;transform:none}}
 
-@keyframes flutua{
-  0%,100%{translate:0 0}
-  50%{translate:0 -7px}
-}
-@keyframes respira{
-  0%,100%{transform:scale(1);opacity:.5}
-  50%{transform:scale(1.09);opacity:.22}
-}
+/* rodapé da estação: quatro números, sem moldura */
+.est-pe{display:flex;gap:var(--s5);flex:none;padding-top:var(--s3);
+  border-top:1px solid var(--line)}
+.pe-item{display:flex;flex-direction:column;gap:1px;min-width:0}
+.pe-item b{font-family:var(--titulo);font-size:17px;font-weight:700;letter-spacing:-.5px}
+.pe-item span{font-size:10.5px;color:var(--tx3);letter-spacing:.2px}
+.pe-item.atencao b{color:var(--warn)}
 
-.mapa-legenda{display:flex;gap:var(--s3);flex-wrap:wrap;align-items:center;
-  padding:var(--s3) var(--s4) 0;font-size:11px;color:var(--tx3)}
-.mapa-legenda span{display:inline-flex;align-items:center;gap:5px}
-.mapa-legenda i{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--line);display:block}
-.mapa-legenda .p-hoje{background:var(--ac);border-color:var(--ac)}
-.mapa-legenda .p-futuro{border-color:var(--ok)}
-.mapa-legenda .p-previsto{border-color:var(--warn);border-style:dashed}
-.mapa-legenda .p-passou{opacity:.45}
-.mapa-dica{margin-left:auto}
+/* régua: uma marca por estação, a atual mais larga */
+.mapa-regua{position:relative;z-index:2;flex:none;display:flex;justify-content:center;
+  align-items:center;gap:6px;padding:var(--s2) var(--s4) var(--s3)}
+.tick{width:16px;height:22px;padding:0;border:0;background:none;cursor:pointer;
+  display:grid;place-items:center}
+.tick i{display:block;width:6px;height:6px;border-radius:3px;background:var(--tx3);opacity:.32;
+  transition:width .3s cubic-bezier(.32,.72,0,1),opacity .3s,background .3s}
+.tick.on i{width:16px;opacity:1;background:var(--tx2)}
+.tick.hoje i{background:var(--ac);opacity:.85}
+.tick.hoje.on i{background:var(--ac)}
 
-/* painel em camadas */
-.orb-cab{padding:0 0 var(--s3);border-bottom:1px solid var(--line);margin-bottom:var(--s3)}
-.orb-data{font-size:11.5px;color:var(--tx3);font-weight:650;text-transform:uppercase;letter-spacing:.5px}
-.orb-tit{font-family:var(--titulo);font-size:21px;font-weight:700;letter-spacing:-.5px;
-  line-height:1.15;margin-top:var(--s1)}
-.orb-sub{font-size:12.5px;color:var(--tx3);margin-top:var(--s1)}
-.orb-vert{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s2)}
-.vert{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;
-  padding:var(--s3) var(--s2);border:1px solid var(--line);border-radius:var(--r);
-  background:var(--bg2);color:var(--tx);cursor:pointer;min-height:66px;justify-content:center;
-  transition:background .18s,border-color .18s,transform .18s cubic-bezier(.16,1,.3,1)}
-.vert:active{transform:scale(.97)}
-.vert.on{background:var(--tx);color:var(--bg);border-color:var(--tx)}
-.vert-i{font-size:17px;line-height:1}
-.vert-t{font-size:11px;font-weight:650}
-.vert-n{position:absolute;top:5px;right:7px;min-width:16px;height:16px;border-radius:9px;
-  background:var(--warn);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;padding:0 4px}
-.orb-conteudo{margin-top:var(--s4);min-height:80px;
-  animation:sobe .28s cubic-bezier(.16,1,.3,1)}
-.orb-vazio{text-align:center;color:var(--tx3);font-size:13px;padding:var(--s5) var(--s4)}
-.orb-grande{font-family:var(--titulo);font-size:30px;font-weight:700;letter-spacing:-.9px;
-  margin-bottom:var(--s3);line-height:1.1}
-.orb-grande span{font-size:13px;font-weight:500;color:var(--tx3);display:block;letter-spacing:0;margin-top:2px}
+/* ---------------------------------------------------- o painel que cresce -- */
+.mapa.com-painel .mapa-trilho,
+.mapa.com-painel .mapa-regua,
+.mapa.com-painel .mapa-luz{transform:scale(.965);filter:blur(2px);opacity:.5;
+  transition:transform .46s cubic-bezier(.32,.72,0,1),filter .3s,opacity .3s;
+  pointer-events:none}
 
-@keyframes sobe{from{opacity:0;translate:0 8px}to{opacity:1;translate:0 0}}
+.painel{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;
+  background:var(--bg2);overflow:hidden;will-change:transform;
+  box-shadow:0 -1px 0 var(--line)}
+.pn-topo{flex:none;padding:var(--s5) var(--s5) var(--s4);position:relative;
+  border-bottom:1px solid var(--line)}
+.pn-x{position:absolute;top:var(--s4);right:var(--s4);width:32px;height:32px;border-radius:50%;
+  border:0;background:var(--bg3);color:var(--tx2);display:grid;place-items:center;cursor:pointer}
+.pn-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.pn-x:active{background:var(--line)}
+.pn-quando{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--ac)}
+.pn-tit{font-family:var(--titulo);font-size:clamp(24px,6.6vw,32px);font-weight:700;
+  letter-spacing:-1px;line-height:1.08;margin:var(--s2) 44px 0 0;text-wrap:balance}
+.pn-sub{font-size:13px;color:var(--tx2);margin-top:var(--s2)}
+
+.pn-rolo{flex:1;min-height:0;overflow-y:auto;padding:var(--s3) var(--s5) var(--s6);
+  -webkit-overflow-scrolling:touch}
+.pn-rolo > .btn{margin-top:var(--s5)}
+
+.assunto{border-bottom:1px solid var(--line)}
+.as-cab{width:100%;display:flex;align-items:center;gap:var(--s3);padding:var(--s4) 0;
+  border:0;background:none;color:var(--tx);cursor:pointer;text-align:left}
+.as-i{flex:none;width:26px;height:26px;display:grid;place-items:center;color:var(--tx2)}
+.as-i svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round}
+.as-t{flex:1;font-size:15px;font-weight:600;letter-spacing:-.2px}
+.as-n{font-size:12px;font-weight:650;color:var(--tx3);font-variant-numeric:tabular-nums}
+.as-n.alerta{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:1px 7px}
+.as-v{flex:none;display:grid;place-items:center;color:var(--tx3);
+  transition:transform .3s cubic-bezier(.32,.72,0,1)}
+.as-v svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.assunto.on .as-v{transform:rotate(90deg)}
+.assunto.on .as-i{color:var(--ac)}
+.as-corpo{padding:0 0 var(--s4);animation:as-abre .34s cubic-bezier(.32,.72,0,1)}
+@keyframes as-abre{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+.pn-numero{font-family:var(--titulo);font-size:34px;font-weight:700;letter-spacing:-1.4px;
+  line-height:1;margin-bottom:var(--s4)}
+.pn-numero span{display:block;font-family:inherit;font-size:12.5px;font-weight:500;
+  letter-spacing:0;color:var(--tx3);margin-top:var(--s1)}
+.pn-forte{font-size:19px;font-weight:650;letter-spacing:-.4px;margin-bottom:var(--s3)}
+.pn-p{font-size:14px;color:var(--tx2);line-height:1.5;margin:0 0 var(--s3)}
+.pn-vazio{font-size:13.5px;color:var(--tx3);margin:0;padding:var(--s2) 0 var(--s4)}
+.pn-lista{display:flex;flex-direction:column}
+.pn-l{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) 0;
+  border-top:1px solid var(--line)}
+.pn-l:first-child{border-top:0}
+.pn-l .g{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.pn-l .t{font-size:14px;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pn-l .t.solta{white-space:normal}
+.pn-l .s{font-size:11.5px;color:var(--tx3)}
+.pn-l .v{font-size:14px;font-weight:650;font-variant-numeric:tabular-nums;flex:none}
+.pn-roteiro{margin:0;padding-left:var(--s5);font-size:14px;color:var(--tx2);line-height:1.55}
+.pn-roteiro li{margin-bottom:var(--s1)}
 
 @media (prefers-reduced-motion: reduce){
-  .corpo,.corpo .anel,.orb-conteudo{animation:none !important}
-  .corpo,.vert{transition:none}
+  .no{animation:none;opacity:1}
+  .as-corpo,.painel{animation:none}
+  .no-bolha,.tick i,.as-v{transition:none}
 }
-@media (min-width:900px){
-  .mapa-tela{height:calc(100dvh - 130px)}
-  .mapa-t{font-size:30px}
+@media (min-width:760px){
+  .estacao{padding:var(--s6) var(--s6) var(--s4);align-items:center}
+  .est-cab,.est-pe{width:100%;max-width:620px}
+  .est-campo{width:100%;max-width:620px}
+  .pn-topo,.pn-rolo{width:100%;max-width:620px;margin:0 auto}
 }
+.app.cheio main > .banner{flex:none;margin:var(--s3) var(--s4) 0}
+.app.cheio main > .empty{margin:auto;padding:var(--s6)}
