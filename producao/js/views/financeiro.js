@@ -155,6 +155,9 @@ function blocoResumo(f, verLucro, u) {
       <div class="row"><span class="g"><span class="t">Custo total previsto</span>
         <span class="s">orçamento + imposto</span></span>
         <span class="r"><span class="v">${fmtMoney(f.custoPrevistoTotal)}</span></span></div>
+      ${f.aReembolsar ? `<div class="row"><span class="g"><span class="t">Acerto com o sócio</span>
+        <span class="s">o que o Maví pôs no cartão pessoal e a empresa deve devolver</span></span>
+        <span class="r"><span class="v" style="color:var(--warn)">${fmtMoney(f.aReembolsar)}</span></span></div>` : ''}
       <div class="row"><span class="g"><span class="t">Economia já negociada</span>
         <span class="s">só nas rubricas fechadas: orçado − negociado</span></span>
         <span class="r"><span class="v" style="color:${f.economia < 0 ? 'var(--bad)' : 'var(--ok)'}">${fmtMoney(f.economia)}</span></span></div>

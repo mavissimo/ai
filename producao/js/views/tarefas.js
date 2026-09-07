@@ -47,11 +47,15 @@ export function render() {
   // uma tela vazia enquanto o projeto tem coisa atrasada.
   if (aba === 'minhas' && !minhasAbertas.length && gestor) aba = 'todas';
 
+  // As 88 tarefas de viagem vivem na página de cada viagem. Aqui elas só
+  // aparecem quando são suas ou quando você pede — senão afogam o resto.
+  const deViagem = (t) => Boolean(t.viagem_id);
   let lista;
   if (aba === 'minhas') lista = minhasAbertas;
   else if (aba === 'atrasadas') lista = atrasadas();
   else if (aba === 'feitas') lista = todas.filter((t) => !emAberto(t));
-  else lista = todas.filter(emAberto);
+  else if (aba === 'viagens') lista = todas.filter((t) => emAberto(t) && deViagem(t));
+  else lista = todas.filter((t) => emAberto(t) && !deViagem(t));
 
   const minhas = minhasAbertas.length;
   const atras = atrasadas().length;
@@ -61,8 +65,13 @@ export function render() {
       <button class="chip ${aba === 'minhas' ? 'on' : ''}" data-t="minhas">Minhas${minhas ? ' (' + minhas + ')' : ''}</button>
       ${gestor ? `<button class="chip ${aba === 'todas' ? 'on' : ''}" data-t="todas">Todas</button>` : ''}
       <button class="chip ${aba === 'atrasadas' ? 'on' : ''}" data-t="atrasadas">Atrasadas${atras ? ' (' + atras + ')' : ''}</button>
+      <button class="chip ${aba === 'viagens' ? 'on' : ''}" data-t="viagens">De viagem${
+        todas.filter((t) => emAberto(t) && t.viagem_id).length
+          ? ' (' + todas.filter((t) => emAberto(t) && t.viagem_id).length + ')' : ''}</button>
       <button class="chip ${aba === 'feitas' ? 'on' : ''}" data-t="feitas">Feitas</button>
     </div>
+    ${aba === 'viagens' ? '<div class="banner small">Cada uma tem uma página própria em '
+      + '<b>Agenda → Viagens</b>, com as pendências separadas por responsável.</div>' : ''}
     ${blocoLista(lista, u)}`;
 
   node.querySelectorAll('[data-t]').forEach((b) => { b.onclick = () => { aba = b.dataset.t; store.emit(); }; });

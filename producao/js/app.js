@@ -21,6 +21,7 @@ import * as vMeu from './views/meu.js';
 import * as vAjustes from './views/ajustes.js';
 import * as vLocacoes from './views/locacoes.js';
 import * as vFontes from './views/fontes.js';
+import * as vPedidosNF from './views/pedidosnf.js';
 import * as vAprov from './views/aprovacoes.js';
 
 const ROTAS = {
@@ -42,6 +43,7 @@ const ROTAS = {
   '/caixa': () => { vFin.irPara('caixa'); return vFin.render(); },
   '/locacoes': () => vLocacoes.render(),
   '/fontes': () => vFontes.render(),
+  '/pedidos-nf': () => vPedidosNF.render(),
   '/aprovacoes': () => vAprov.render(),
   '/historico': () => vAjustes.renderHistorico()
 };

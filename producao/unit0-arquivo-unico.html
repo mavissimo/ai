@@ -332,6 +332,10 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .tabela tbody tr:active{background:var(--bg3)}
 .tabela tfoot td{border-bottom:0;border-top:1.5px solid var(--tx3);font-weight:700;background:var(--bg)}
 
+.card.ativa{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac-line),0 1px 2px rgba(20,26,40,.04)}
+.faixa-ativa{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.4px;
+  text-transform:uppercase;color:var(--ac);margin-bottom:var(--s2)}
+
 .pedido{background:var(--bg3);border:1px solid var(--line);border-radius:var(--r);
   padding:var(--s3) var(--s4);font-size:12.5px;line-height:1.55;white-space:pre-wrap;
   word-break:break-word;margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -506,6 +510,7 @@ const vMeu = __req("js/views/meu.js");
 const vAjustes = __req("js/views/ajustes.js");
 const vLocacoes = __req("js/views/locacoes.js");
 const vFontes = __req("js/views/fontes.js");
+const vPedidosNF = __req("js/views/pedidosnf.js");
 const vAprov = __req("js/views/aprovacoes.js");
 const ROTAS = {
   '': () => (ehEquipe(store.user) ? vMeu.render() : vDash.render()),
@@ -526,6 +531,7 @@ const ROTAS = {
   '/caixa': () => { vFin.irPara('caixa'); return vFin.render(); },
   '/locacoes': () => vLocacoes.render(),
   '/fontes': () => vFontes.render(),
+  '/pedidos-nf': () => vPedidosNF.render(),
   '/aprovacoes': () => vAprov.render(),
   '/historico': () => vAjustes.renderHistorico()
 };
@@ -800,6 +806,10 @@ function financeiro() {
   const recebido = soma(entradas.filter((l) => l.status === 'recebido' || l.status === 'pago'), (l) => l.valor_cents);
 
   const aPagar = soma(con.filter((c) => c.tipo === 'pagar' && c.status === 'aberto'), (c) => c.valor_cents);
+  // Devolver ao sócio o que ele pôs no cartão é transferência, não custo: o
+  // gasto já está na rubrica. Entra no que a empresa deve, fora do orçamento.
+  const aReembolsar = soma(con.filter((c) => c.tipo === 'pagar' && c.status === 'aberto'
+    && c.categoria === 'reembolso'), (c) => c.valor_cents);
   const aReceber = soma(con.filter((c) => c.tipo === 'receber' && c.status === 'aberto'), (c) => c.valor_cents);
 
   const contratosCliente = ctr.filter((c) => c.tipo === 'cliente');
@@ -815,10 +825,10 @@ function financeiro() {
   const lucroPrevisto = contratado - custoPrevistoTotal;
   const lucroRealizado = recebido - realizado - impostoRealizado;
   const caixa = recebido - pago;
-  const comprometido = realizado + pendente + aPagar;
+  const comprometido = realizado + pendente + aPagar - aReembolsar;
 
   return {
-    contratado, orcado, negociado, realizado, pendente, pago, recebido, economia,
+    contratado, orcado, negociado, realizado, pendente, pago, recebido, economia, aReembolsar,
     aNegociar: orcado - negociado,
     // Lucro se tudo o que falta fechar sair pelo valor orçado.
     lucroSeFechar: contratado - (orcado - economia) - Math.round(contratado * aliq),
@@ -1322,6 +1332,7 @@ const { store } = __req("js/store.js");
 const { can } = __req("js/perms.js");
 const { diasAte, prazoTxt, fmtMoney, fmtData, hoje } = __req("js/utils.js");
 const { saldoCaixa, statusFonte } = __req("js/calc.js");
+const { paraCobrar, DIAS_FOLLOWUP } = __req("js/views/pedidosnf.js");
 const VISTOS = 'unit0:alertas-vistos';
 
 function alertas() {
@@ -1451,6 +1462,17 @@ function alertas() {
     });
   });
 
+  // Nota fiscal pedida e não entregue: passou de três dias, é hora de cobrar.
+  if (can(u, 'contas.ver')) {
+    for (const { conta, est } of paraCobrar()) {
+      add({
+        id: 'nfcob_' + conta.id, urg: 3, icone: '🧾',
+        texto: `Cobrar a NF de ${conta.contraparte || conta.descricao}`,
+        detalhe: `${fmtMoney(conta.valor_cents)} · ${est.t}`, rota: '#/pedidos-nf'
+      });
+    }
+  }
+
   // Fontes de fora (planilha, agenda) que ninguém reconfere há tempo demais.
   if (can(u, 'projeto.edit')) {
     store.doProjeto('fontes').forEach((f) => {
@@ -1539,6 +1561,19 @@ function perguntas() {
           });
         }
       }));
+  }
+
+  // Nota que não chegou: um toque cobra de novo ou marca como recebida.
+  if (can(u, 'contas.ver')) {
+    const atrasada = paraCobrar()[0];
+    if (atrasada) out.push({
+      id: 'q_nf_' + atrasada.conta.id, urg: 3, icone: '🧾',
+      pergunta: `A NF de ${atrasada.conta.contraparte || atrasada.conta.descricao} já chegou?`,
+      contexto: `${fmtMoney(atrasada.conta.valor_cents)} · ${atrasada.est.t}`,
+      sim: 'Chegou', nao: 'Vou cobrar',
+      async aoSim() { await store.update('contas', atrasada.conta.id, { nf_status: 'recebida' }); },
+      async aoNao() { await store.update('contas', atrasada.conta.id, { nf_cobrado_em: hoje() }); }
+    });
   }
 
   // Datas de filmagem ainda não confirmadas pela Fundação.
@@ -1868,7 +1903,7 @@ const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-const SEED_VERSAO = 15;
+const SEED_VERSAO = 16;
 
 const PESSOAS = [
   {
@@ -1983,7 +2018,7 @@ const ORCAMENTO = [
   ['Produção executiva', '41600', '41600', 'Tato Pessanha — R$ 1.600 × 26. Executivo + produtor de viagem + som.'],
   ['Secretaria de produção / advogada', '7000', '0', 'Ainda não contratada.'],
   ['1º assistente de câmera', '33800', '28600', 'Julio Becker. Orçado 26 × 1.300, fechado 26 × 1.100.'],
-  ['Drone', '1300', '1300', 'Petrus Pitt, diária em Recife/Jaboatão.'],
+  ['Drone', '0', '1300', 'Petrus Pitt, diária em Recife/Jaboatão. Entrou depois do orçamento fechado.'],
   ['Equipamento de câmera', '11700', '2770', 'Câmera, lentes e acessórios. Pago no crédito C6 do Maví.'],
   ['Luz e elétrica', '7800', '14680', 'Fechou R$ 6.880 acima do orçado — é o maior estouro do projeto.'],
   ['Material de produção e som', '5720', '0', 'R$ 220 × 26. Ainda não fechado.'],
@@ -2221,6 +2256,32 @@ const METAS = {
   'Entrega final das 40 peças': { meta: 40, unidade: 'peças', feitos: 0 }
 };
 
+// O que cada viagem precisa ter resolvido. É a lista que o Maví e o Tato abrem
+// antes de embarcar — e que, depois, mostra o que ficou para trás.
+// [nº da viagem, tarefa, quem faz, quantos dias antes do embarque]
+const TAREFAS_VIAGEM = [
+  ['*', 'Confirmar a diária com a Fundação (10 dias úteis antes)', 'Tato Pessanha', 14],
+  ['*', 'Fechar voo, hotel e carro', 'Tato Pessanha', 10],
+  ['*', 'Fazer o check-in (abre 24h antes)', 'Tato Pessanha', 1],
+  ['*', 'Conferir equipamento e cartões antes de sair', 'Julio Becker', 1],
+  ['*', 'Backup duplo do material no fim da viagem', 'Julio Becker', -1],
+  ['*', 'Juntar as notinhas do per diem na pasta do Drive', 'Tato Pessanha', -2],
+  ['*', 'Lançar os gastos da caixinha no app', 'Tato Pessanha', -2],
+
+  ['2', 'Contratar o piloto de drone em Recife', 'Tato Pessanha', 7],
+  ['2', 'Cobrar a NF do drone (Petrus, R$ 1.300)', 'Tato Pessanha', -1],
+  ['2', 'Pagar o drone', 'Maví Simões', -3],
+  ['2', 'Pagar o carro da Movida (R$ 831,73)', 'Maví Simões', -1],
+  ['2', 'Pagar a hospedagem do Rede Andrade (R$ 1.673,07)', 'Maví Simões', -1],
+
+  ['3', 'Pagar o hotel de Gravataí (R$ 2.115)', 'Maví Simões', -1],
+  ['3', 'Pagar o carro de Porto Alegre (R$ 657,26)', 'Maví Simões', -1],
+
+  ['4', 'Combinar o táxi do Sr. Paulo (Bodoquena)', 'Tato Pessanha', 5],
+  ['5', 'Confirmar a hospedagem na Fundação (sem custo)', 'Tato Pessanha', 7],
+  ['5', 'Combinar o apoio do Sr. Tucum (Canuanã)', 'Tato Pessanha', 5]
+];
+
 const ETAPAS = [
   ['negociacao', 'Carta-Orçamento V2 e Cronograma V2 aprovados', 'feito', '2026-08-14'],
   ['negociacao', 'Cadastro de fornecedor no Bradesco', 'feito', '2026-07-31'],
@@ -2457,14 +2518,37 @@ async function criarProjetoBradesco(existente = null) {
       venc, status, categoria, rubrica, nf_status: 'a_receber', obs
     });
     // O que já saiu também entra como gasto realizado, para o dinheiro bater.
+    // Quando saiu do cartão pessoal do sócio, o gasto nasce como reembolso:
+    // o fornecedor já recebeu, mas a empresa ainda deve para quem pagou.
     if (status === 'quitado') {
+      const doSocio = /C6/i.test(obs || '');
       await ins('lancamentos', 'lanc:' + descricao, {
         tipo: 'saida', descricao, valor_cents: M(valor), rubrica,
-        data: venc || '2026-08-22', fornecedor: contraparte, forma: 'crédito',
-        membro_id: null, evento_id: null, fonte: 'empresa', reembolso: false,
+        data: venc || '2026-08-22', fornecedor: contraparte,
+        forma: doSocio ? 'crédito pessoal' : 'crédito',
+        membro_id: doSocio ? membros['Maví Simões'] : null, evento_id: null,
+        fonte: doSocio ? 'proprio' : 'empresa', reembolso: doSocio,
         sem_comprovante: true, status: 'pago', aprovado_por: null, obs
       });
     }
+  }
+
+  /* --------------------------------------------------------------------
+     Acerto com o sócio. Tudo que o Maví pôs no cartão pessoal já foi pago
+     ao fornecedor, mas a empresa deve isso a ele. Vira uma conta a pagar
+     só, somando os lançamentos marcados como reembolso.
+     -------------------------------------------------------------------- */
+  const doSocio = store.doProjeto('lancamentos').filter((l) => l.reembolso && l.fonte === 'proprio');
+  const totalSocio = doSocio.reduce((n, l) => n + (l.valor_cents || 0), 0);
+  if (totalSocio) {
+    await ins('contas', 'acerto:mavi@tempora', {
+      tipo: 'pagar', descricao: 'Acerto — Maví (cartão pessoal)',
+      contraparte: 'Maví Simões', valor_cents: totalSocio, venc: '', status: 'aberto',
+      membro_id: membros['Maví Simões'] || null, categoria: 'reembolso', rubrica: '',
+      nf_status: 'na',
+      obs: `${doSocio.length} compra(s) que o Maví pagou no cartão pessoal e a empresa deve devolver: `
+        + doSocio.map((l) => l.descricao).join('; ') + '.'
+    });
   }
 
   /* --------------------------------------------------------------------
@@ -2482,8 +2566,6 @@ async function criarProjetoBradesco(existente = null) {
     status: 'recebido', conta_id: achar('contas', 'conta:parcela1')?.id || null,
     obs: 'Comprovante Bradesco de 04/09.'
   });
-  await corrigir('contas', 'cache1:becker@tempora', { nf_status: 'recebida' });
-  await corrigir('contas', 'cache1:tato@tempora', { nf_status: 'recebida' });
   await corrigir('etapas', 'etapa:Receber 1ª parcela (50%)', { status: 'feito' });
   await corrigir('etapas', 'etapa:Emitir NF da 1ª parcela', { status: 'feito' });
 
@@ -2580,6 +2662,11 @@ async function criarProjetoBradesco(existente = null) {
       obs: 'PDF no e-mail. Toque em abrir para ir direto na conversa.'
     });
   }
+
+  // Notas pedidas em 04/09: as do Tato e do Julio chegaram, a do drone não.
+  await corrigir('contas', 'cache1:becker@tempora', { nf_status: 'recebida', nf_pedido_em: '2026-09-04' });
+  await corrigir('contas', 'cache1:tato@tempora', { nf_status: 'recebida', nf_pedido_em: '2026-09-04' });
+  await corrigir('contas', 'cache1:petrus.pitt@gmail.com', { nf_pedido_em: '2026-09-04' });
 
   // Per diems do Tato e do Julio pagos em 07/09. O do Maví segue em aberto.
   for (const em of ['tato@tempora', 'becker@tempora']) {
@@ -2773,6 +2860,23 @@ async function criarProjetoBradesco(existente = null) {
     });
   }
 
+  /* Tarefas de cada viagem, com prazo contado do embarque. As que valem para
+     todas as viagens ('*') nascem em cada uma; as específicas, só na sua. */
+  for (const [num, titulo, dono, antes] of TAREFAS_VIAGEM) {
+    const alvos = num === '*' ? VIAGENS.map((v) => v[0]) : [num];
+    for (const n of alvos) {
+      const v = VIAGENS.find((x) => x[0] === n);
+      if (!v) continue;
+      const base = antes >= 0 ? v[2] : v[3];      // antes do embarque ou depois da volta
+      await ins('tarefas', `tv:${n}:${titulo}`, {
+        titulo, responsavel_id: membros[dono] || null,
+        prazo: somarDias(base, -antes), viagem_id: viagens[n],
+        etapa_id: null, status: 'aberta', feito: false, cobrado_em: '', remarcacoes: [],
+        descricao: `Viagem ${n} — ${v[1]}.`
+      });
+    }
+  }
+
   // A passagem de Porto Alegre foi comprada em 03/09, fora da janela da viagem 3,
   // então a amarração por data não pega — aqui ela é explícita.
   const poa = achar('contas', 'pag:Passagens SP → Porto Alegre (ida e volta, 3 pax)');
@@ -2841,10 +2945,15 @@ const chaveDe = {
   viagens: (r) => (r.numero ? 'viagem:' + r.numero : null),
   tarefas: (r) => {
     if (!r.titulo) return null;
-    const m = /^Fazer check-in — /.test(r.titulo);
-    if (m) {
+    if (/^Fazer check-in — /.test(r.titulo)) {
       const ev = r.evento_id ? store.get('eventos', r.evento_id) : null;
       return ev ? 'checkin:' + ev.data : null;
+    }
+    // Tarefa de viagem se identifica pela viagem, não pelo título: o mesmo
+    // texto ("Fazer o check-in") existe em todas as onze.
+    if (r.viagem_id) {
+      const v = store.get('viagens', r.viagem_id);
+      return v?.numero ? `tv:${v.numero}:${r.titulo}` : null;
     }
     return 'tar:' + r.titulo;
   },
@@ -4316,6 +4425,7 @@ function render() {
       ${atalho('#/tarefas', 'Tarefas', 'O que cada um precisa fazer')}
       ${can(u, 'contas.ver') ? atalho('#/pagamentos', 'Pagamentos', 'O que sai, por data e por pessoa') : ''}
       ${can(u, 'contas.ver') ? atalho('#/contas', 'A receber', 'Parcelas do cliente') : ''}
+      ${can(u, 'contas.ver') ? atalho('#/pedidos-nf', 'Pedidos de NF', 'Quem já foi cobrado e quem falta') : ''}
       ${atalho('#/caixa', 'Caixinha', 'Adiantamentos e prestação de contas')}
       ${atalho('#/fontes', 'Fontes do projeto', 'Planilha, agenda e contrato — o que precisa ser reconferido')}
       ${atalho('#/locacoes', 'Locações e contatos', 'Escolas, endereços, cliente e fornecedores')}
@@ -5167,7 +5277,7 @@ function pedirNF(c) {
       // Todas as contas do pedido ficam marcadas, para a cobrança valer por todas.
       for (const x of [c, ...extras]) {
         await store.update('contas', x.id, {
-          nf_status: 'a_receber',
+          nf_status: 'a_receber', nf_pedido_em: hoje(), nf_cobrado_em: '',
           obs: `${x.obs ? x.obs + ' ' : ''}Pedido de NF enviado em ${fmtData(hoje())}`
             + `${extras.length ? ` (junto com outras ${extras.length} linha(s), total ${fmtMoney(total)})` : ''}.`
         });
@@ -6305,6 +6415,9 @@ function blocoResumo(f, verLucro, u) {
       <div class="row"><span class="g"><span class="t">Custo total previsto</span>
         <span class="s">orçamento + imposto</span></span>
         <span class="r"><span class="v">${fmtMoney(f.custoPrevistoTotal)}</span></span></div>
+      ${f.aReembolsar ? `<div class="row"><span class="g"><span class="t">Acerto com o sócio</span>
+        <span class="s">o que o Maví pôs no cartão pessoal e a empresa deve devolver</span></span>
+        <span class="r"><span class="v" style="color:var(--warn)">${fmtMoney(f.aReembolsar)}</span></span></div>` : ''}
       <div class="row"><span class="g"><span class="t">Economia já negociada</span>
         <span class="s">só nas rubricas fechadas: orçado − negociado</span></span>
         <span class="r"><span class="v" style="color:${f.economia < 0 ? 'var(--bad)' : 'var(--ok)'}">${fmtMoney(f.economia)}</span></span></div>
@@ -7488,6 +7601,189 @@ function novaParcela(membroId, aoSalvar) {
   return { planoDe, render, abrirPlano, novaParcela };
 };
 
+__defs["js/views/pedidosnf.js"] = function () {
+// Pedidos de nota fiscal: quem já foi cobrado, há quantos dias, e quem precisa
+// ser cobrado de novo. O app não sabe se a pessoa abriu o e-mail — ninguém sabe
+// sem rastrear. O que ele sabe é quando você mandou, e cobra de volta em 3 dias.
+const { store, nomeMembro } = __req("js/store.js");
+const { can } = __req("js/perms.js");
+const { el, sheet, toast, confirmar } = __req("js/ui.js");
+const { esc, fmtMoney, fmtData, hoje, diasAte, ordenar, soma } = __req("js/utils.js");
+const { abrirConta } = __req("js/views/contas.js");
+const { textoPedido, linkEmail, linkWhats } = __req("js/nf.js");
+/** Depois de três dias sem a nota, é hora de cobrar de novo. */
+const DIAS_FOLLOWUP = 3;
+
+const diasDesde = (d) => (d ? Math.abs(diasAte(d) ?? 0) : null);
+
+/* Prestador que a produção contrata e de quem se cobra nota: pessoa da equipe,
+   cachê, pós, drone, reembolso. Passagem, hotel e locadora emitem a nota junto
+   com a compra — não faz sentido "pedir" nem cobrar follow-up. */
+const CATEGORIAS_PEDIDO = ['cachê', 'pós', 'reembolso'];
+const seCobra = (c) => Boolean(c.membro_id) || CATEGORIAS_PEDIDO.includes(c.categoria);
+
+function estadoPedido(c) {
+  if (c.nf_status !== 'a_receber') return null;
+  if (!c.nf_pedido_em) {
+    return seCobra(c) ? { k: 'a_pedir', t: 'Ainda não pedida', tag: 'mut', urg: 1 } : null;
+  }
+  const desde = diasDesde(c.nf_cobrado_em || c.nf_pedido_em);
+  if (desde >= DIAS_FOLLOWUP) {
+    return {
+      k: 'cobrar', tag: 'bad', urg: 3,
+      t: `Sem resposta há ${desde} dias`, desde
+    };
+  }
+  return {
+    k: 'esperando', tag: 'warn', urg: 2, desde,
+    t: desde === 0 ? 'Pedida hoje' : `Pedida há ${desde} dia${desde > 1 ? 's' : ''}`
+  };
+}
+
+/** As contas que estão esperando nota fiscal de alguém. */
+function pedidos() {
+  return store.doProjeto('contas')
+    .filter((c) => c.tipo === 'pagar' && c.status !== 'cancelado' && c.nf_status === 'a_receber')
+    .map((c) => ({ conta: c, est: estadoPedido(c) }))
+    .filter((x) => x.est)
+    .sort((a, b) => b.est.urg - a.est.urg || (b.est.desde || 0) - (a.est.desde || 0));
+}
+
+const paraCobrar = () => pedidos().filter((x) => x.est.k === 'cobrar');
+
+function render() {
+  const u = store.user;
+  const node = el('<div></div>');
+  if (!can(u, 'contas.ver')) {
+    node.innerHTML = '<div class="empty">Sem acesso aos pedidos de nota fiscal.</div>';
+    return { titulo: 'Pedidos de NF', node };
+  }
+  const lista = pedidos();
+  const cobrar = lista.filter((x) => x.est.k === 'cobrar');
+  const pedir = lista.filter((x) => x.est.k === 'a_pedir');
+
+  node.innerHTML = `
+    <div class="grid">
+      <div class="kpi ${cobrar.length ? 'bad' : 'ok'}"><div class="l">Para cobrar de novo</div>
+        <div class="v">${cobrar.length}</div>
+        <div class="h">sem resposta há ${DIAS_FOLLOWUP}+ dias</div></div>
+      <div class="kpi"><div class="l">Esperando nota</div>
+        <div class="v">${fmtMoneyCurto(soma(lista, (x) => x.conta.valor_cents))}</div>
+        <div class="h">${lista.length} pedido(s)</div></div>
+    </div>
+
+    ${cobrar.length ? `<div class="sec"><div class="sec-t">Cobrar de novo</div>
+        <span class="small muted">${cobrar.length}</span></div>
+      <div class="card lista">${cobrar.map(linha).join('')}</div>` : ''}
+
+    ${pedir.length ? `<div class="sec"><div class="sec-t">Ainda não pedidas</div>
+        <span class="small muted">${pedir.length}</span></div>
+      <div class="card lista">${pedir.map(linha).join('')}</div>` : ''}
+
+    ${lista.filter((x) => x.est.k === 'esperando').length ? `<div class="sec">
+        <div class="sec-t">No prazo</div></div>
+      <div class="card lista">${lista.filter((x) => x.est.k === 'esperando').map(linha).join('')}</div>` : ''}
+
+    ${!lista.length ? '<div class="empty">Nenhuma nota fiscal pendente.</div>' : ''}
+
+    <div class="banner small">O app não tem como saber se a pessoa abriu o e-mail — ninguém tem, sem
+      rastrear. O que ele guarda é <b>quando você mandou</b>, e depois de ${DIAS_FOLLOWUP} dias sem a
+      nota chegar ele te lembra de cobrar.</div>`;
+
+  node.querySelectorAll('[data-pedido]').forEach((n) => {
+    n.onclick = () => abrirPedido(store.get('contas', n.dataset.pedido));
+  });
+  return { titulo: 'Pedidos de NF', node };
+}
+
+const fmtMoneyCurto = (v) => fmtMoney(v);
+
+function linha({ conta: c, est }) {
+  return `<div class="row act alto" data-pedido="${c.id}">
+    <span class="ico ${est.k === 'cobrar' ? 'urg' : est.k === 'esperando' ? 'med' : ''}">🧾</span>
+    <span class="g"><span class="t">${esc(c.contraparte || c.descricao)}</span>
+      <span class="s">${esc(c.descricao)}</span>
+      <span class="s">${esc(est.t)}${c.nf_cobrado_em ? ` · já cobrado em ${fmtData(c.nf_cobrado_em)}` : ''}</span></span>
+    <span class="r"><span class="v">${fmtMoney(c.valor_cents)}</span>
+      <div class="small"><span class="tag ${est.tag}">${est.k === 'cobrar' ? 'cobrar'
+    : est.k === 'a_pedir' ? 'pedir' : 'no prazo'}</span></div></span>
+  </div>`;
+}
+
+function abrirPedido(c) {
+  if (!c) return;
+  const corpo = el('<div></div>');
+  let sh;
+  const pintar = () => {
+    const est = estadoPedido(c);
+    const texto = textoPedido(c);
+    const lembrete = `Oi! Passando para lembrar da nota fiscal de ${fmtMoney(c.valor_cents)} `
+      + `referente a ${c.descricao}. Pedimos em ${fmtData(c.nf_pedido_em)} e ainda não chegou. `
+      + 'Consegue mandar hoje? Obrigado!';
+    corpo.innerHTML = `
+      <div class="card tight">
+        <div class="row"><span class="g"><span class="s">De quem</span>
+          <span class="t">${esc(c.contraparte || nomeMembro(c.membro_id))}</span></span></div>
+        <div class="row"><span class="g"><span class="s">Valor</span>
+          <span class="t">${fmtMoney(c.valor_cents)}</span></span></div>
+        <div class="row"><span class="g"><span class="s">Situação</span>
+          <span class="t">${esc(est?.t || '—')}</span></span>
+          <span class="r"><span class="tag ${est?.tag || 'mut'}">${esc(est?.k || '')}</span></span></div>
+        ${c.nf_pedido_em ? `<div class="row"><span class="g"><span class="s">Pedida em</span>
+          <span class="t">${esc(fmtData(c.nf_pedido_em, { longo: true }))}</span></span></div>` : ''}
+        ${c.nf_cobrado_em ? `<div class="row"><span class="g"><span class="s">Cobrada de novo em</span>
+          <span class="t">${esc(fmtData(c.nf_cobrado_em, { longo: true }))}</span></span></div>` : ''}
+      </div>
+
+      ${est?.k === 'cobrar' ? `<div class="banner warn small">
+        Passou de ${DIAS_FOLLOWUP} dias. Mande o lembrete abaixo.</div>
+        <pre class="pedido">${esc(lembrete)}</pre>
+        <div class="btns" style="margin-top:10px">
+          <a class="btn pri" style="flex:1" href="${esc(linkEmail(c))}">Cobrar por e-mail</a>
+          <a class="btn gho" style="flex:1" href="${esc(linkWhats(c))}" target="_blank" rel="noopener">WhatsApp</a>
+        </div>
+        <button class="btn wide" style="margin-top:8px" data-cobrei>Cobrei agora</button>`
+    : `<pre class="pedido">${esc(texto)}</pre>
+        <div class="btns" style="margin-top:10px">
+          <a class="btn gho" style="flex:1" href="${esc(linkEmail(c))}">E-mail</a>
+          <a class="btn gho" style="flex:1" href="${esc(linkWhats(c))}" target="_blank" rel="noopener">WhatsApp</a>
+        </div>
+        ${!c.nf_pedido_em ? '<button class="btn wide pri" style="margin-top:8px" data-pedi>Marquei como pedida</button>' : ''}`}
+
+      <button class="btn wide" style="margin-top:8px" data-chegou>A nota chegou</button>
+      <button class="btn wide gho" style="margin-top:8px" data-conta>Abrir a conta</button>`;
+
+    corpo.querySelector('[data-pedi]')?.addEventListener('click', async () => {
+      await store.update('contas', c.id, { nf_pedido_em: hoje() });
+      c.nf_pedido_em = hoje();
+      await store.log(`Pedido de NF enviado: ${c.descricao}`, 'conta');
+      toast(`Registrado. Se não chegar em ${DIAS_FOLLOWUP} dias, eu te lembro.`);
+      pintar(); store.emit();
+    });
+    corpo.querySelector('[data-cobrei]')?.addEventListener('click', async () => {
+      await store.update('contas', c.id, { nf_cobrado_em: hoje() });
+      c.nf_cobrado_em = hoje();
+      await store.log(`Cobrança de NF: ${c.descricao}`, 'conta');
+      toast('Cobrança registrada. Novo lembrete em 3 dias.');
+      pintar(); store.emit();
+    });
+    corpo.querySelector('[data-chegou]')?.addEventListener('click', async () => {
+      const ok = await confirmar('Marcar a nota como recebida? Depois dá para anexar o PDF na conta.',
+        { ok: 'Chegou' });
+      if (!ok) return;
+      await store.update('contas', c.id, { nf_status: 'recebida' });
+      await store.log(`NF recebida: ${c.descricao}`, 'conta');
+      sh.close(); toast('Nota recebida.'); store.emit();
+    });
+    corpo.querySelector('[data-conta]').onclick = () => { sh.close(); abrirConta(c, true); };
+  };
+  pintar();
+  sh = sheet({ titulo: 'Pedido de nota fiscal', corpo });
+}
+
+  return { DIAS_FOLLOWUP, estadoPedido, pedidos, paraCobrar, render };
+};
+
 __defs["js/views/tarefas.js"] = function () {
 // Tarefas com dono e prazo, e a cobrança que faz a coisa andar.
 // Uma tarefa pode estar solta ou pendurada numa etapa — quando está, ela também
@@ -7537,11 +7833,15 @@ function render() {
   // uma tela vazia enquanto o projeto tem coisa atrasada.
   if (aba === 'minhas' && !minhasAbertas.length && gestor) aba = 'todas';
 
+  // As 88 tarefas de viagem vivem na página de cada viagem. Aqui elas só
+  // aparecem quando são suas ou quando você pede — senão afogam o resto.
+  const deViagem = (t) => Boolean(t.viagem_id);
   let lista;
   if (aba === 'minhas') lista = minhasAbertas;
   else if (aba === 'atrasadas') lista = atrasadas();
   else if (aba === 'feitas') lista = todas.filter((t) => !emAberto(t));
-  else lista = todas.filter(emAberto);
+  else if (aba === 'viagens') lista = todas.filter((t) => emAberto(t) && deViagem(t));
+  else lista = todas.filter((t) => emAberto(t) && !deViagem(t));
 
   const minhas = minhasAbertas.length;
   const atras = atrasadas().length;
@@ -7551,8 +7851,13 @@ function render() {
       <button class="chip ${aba === 'minhas' ? 'on' : ''}" data-t="minhas">Minhas${minhas ? ' (' + minhas + ')' : ''}</button>
       ${gestor ? `<button class="chip ${aba === 'todas' ? 'on' : ''}" data-t="todas">Todas</button>` : ''}
       <button class="chip ${aba === 'atrasadas' ? 'on' : ''}" data-t="atrasadas">Atrasadas${atras ? ' (' + atras + ')' : ''}</button>
+      <button class="chip ${aba === 'viagens' ? 'on' : ''}" data-t="viagens">De viagem${
+        todas.filter((t) => emAberto(t) && t.viagem_id).length
+          ? ' (' + todas.filter((t) => emAberto(t) && t.viagem_id).length + ')' : ''}</button>
       <button class="chip ${aba === 'feitas' ? 'on' : ''}" data-t="feitas">Feitas</button>
     </div>
+    ${aba === 'viagens' ? '<div class="banner small">Cada uma tem uma página própria em '
+      + '<b>Agenda → Viagens</b>, com as pendências separadas por responsável.</div>' : ''}
     ${blocoLista(lista, u)}`;
 
   node.querySelectorAll('[data-t]').forEach((b) => { b.onclick = () => { aba = b.dataset.t; store.emit(); }; });
@@ -7765,8 +8070,9 @@ __defs["js/views/viagens.js"] = function () {
 // fechado (voo, hotel, carro) e quanto custou de verdade contra o orçado.
 const { store, nomeMembro, membros } = __req("js/store.js");
 const { can } = __req("js/perms.js");
-const { el, abrirForm, sheet, toast, btnOlho } = __req("js/ui.js");
-const { esc, fmtMoney, fmtMoneyShort, fmtData, ordenar, soma, iniciais, diasAte, valoresOcultos } = __req("js/utils.js");
+const { estadoPedido } = __req("js/views/pedidosnf.js");
+const { el, abrirForm, sheet, toast, confirmar, btnOlho } = __req("js/ui.js");
+const { esc, fmtMoney, fmtMoneyShort, fmtData, ordenar, soma, iniciais, diasAte, prazoTxt, hoje, valoresOcultos } = __req("js/utils.js");
 const ST_VIAGEM = {
   prevista: { t: 'Data prevista', tag: 'warn' },
   confirmada: { t: 'Confirmada', tag: 'ok' },
@@ -7787,6 +8093,58 @@ const noPeriodo = (data, v) => Boolean(data) && data >= v.ida && data <= (v.volt
 function contasDaViagem(v) {
   return store.doProjeto('contas').filter((c) => c.tipo === 'pagar'
     && (c.viagem_id === v.id || (!c.viagem_id && noPeriodo(c.venc, v))));
+}
+
+/** Tarefas da viagem. Só o vínculo explícito conta: tarefa de projeto que por
+    acaso vence na semana da viagem não é pendência da viagem. */
+function tarefasDaViagem(v) {
+  return ordenar(store.doProjeto('tarefas').filter((t) => t.viagem_id === v.id),
+    (t) => t.prazo || '9999');
+}
+
+const aberta = (t) => (t.status || (t.feito ? 'feita' : 'aberta')) !== 'feita';
+
+/** Tudo que falta resolver nesta viagem, de onde quer que venha. */
+function pendencias(v) {
+  const c = contaDaViagem(v);
+  const out = [];
+
+  for (const t of tarefasDaViagem(v).filter(aberta)) {
+    out.push({
+      tipo: 'tarefa', id: t.id, texto: t.titulo,
+      quem: t.responsavel_id, prazo: t.prazo,
+      resolver: async () => { await store.update('tarefas', t.id, { status: 'feita', feito: true }); }
+    });
+  }
+  // Conta sem pessoa amarrada é pagamento da direção — quem aperta o botão.
+  const quemPaga = store.doProjeto('membros').find((m) => can(m, 'pagamento.executar'))?.id || null;
+  for (const x of c.contas.filter((y) => y.status === 'aberto')) {
+    out.push({
+      tipo: 'conta', id: x.id, texto: `Pagar ${fmtMoney(x.valor_cents)} — ${x.descricao}`,
+      quem: x.membro_id || quemPaga, prazo: x.venc, valor: x.valor_cents
+    });
+  }
+  // Só nota que a produção realmente cobra: passagem e hotel emitem sozinhos.
+  for (const x of c.contas.filter((y) => estadoPedido(y))) {
+    out.push({
+      tipo: 'nf', id: 'nf' + x.id, texto: `Cobrar a NF — ${x.contraparte || x.descricao}`,
+      quem: x.membro_id, prazo: x.venc
+    });
+  }
+  const evs = eventosDaViagem(v).map((e) => e.id);
+  for (const cf of store.doProjeto('confirmacoes').filter((x) => x.status === 'pendente'
+    && evs.includes(x.ref_id))) {
+    out.push({
+      tipo: 'confirmacao', id: cf.id, texto: cf.titulo, quem: cf.membro_id,
+      resolver: async () => {
+        await store.update('confirmacoes', cf.id, { status: 'confirmado', respondido_em: hoje() });
+      }
+    });
+  }
+  for (const i of c.faltando) {
+    out.push({ tipo: 'logistica', id: 'log' + i.k, texto: `${i.icone} ${i.t} ainda não fechado`, quem: null });
+  }
+  return out;
 }
 
 function eventosDaViagem(v) {
@@ -7845,12 +8203,16 @@ function cartao(v, u) {
   const s = st(v.status);
   const meu = (v.participantes || []).includes(u?.id);
   const dias = diasAte(v.ida);
+  const pend = pendencias(v);
+  const minhas = pend.filter((x) => x.quem === u?.id).length;
+  const emCurso = hoje() >= v.ida && hoje() <= (v.volta || v.ida);
   const quando = v.status === 'feita' ? 'já rodou'
     : dias === 0 ? 'é hoje' : dias > 0 ? `em ${dias} dia${dias > 1 ? 's' : ''}` : 'em curso';
 
-  return `<div class="card act" data-viagem="${v.id}" style="cursor:pointer">
+  return `<div class="card act ${emCurso ? 'ativa' : ''}" data-viagem="${v.id}" style="cursor:pointer">
+    ${emCurso ? '<div class="faixa-ativa">Em curso agora</div>' : ''}
     <div style="display:flex;gap:11px;align-items:flex-start">
-      <span class="ico ${dias === 0 ? 'urg' : ''}">${v.numero || '✈️'}</span>
+      <span class="ico ${dias === 0 || emCurso ? 'urg' : ''}">${v.numero || '✈️'}</span>
       <div style="flex:1;min-width:0">
         <div style="font-weight:650;font-size:15px">${esc(v.titulo)}</div>
         <div class="small muted" style="margin-top:2px">
@@ -7864,6 +8226,12 @@ function cartao(v, u) {
       ${c.aPagar ? `<span class="r"><span class="v" style="color:var(--warn)">${fmtMoney(c.aPagar)}</span>
         <div class="small muted">a pagar</div></span>` : ''}
     </div>
+    ${pend.length ? `<div class="row" style="border:0;padding:8px 0 0">
+      <span class="g"><span class="s">Falta resolver</span>
+        <span class="t">${pend.length} pendência${pend.length > 1 ? 's' : ''}${minhas
+          ? ` · <span style="color:var(--ac)">${minhas} sua${minhas > 1 ? 's' : ''}</span>` : ''}</span></span>
+    </div>` : `<div class="row" style="border:0;padding:8px 0 0">
+      <span class="g"><span class="t" style="color:var(--ok)">✓ Nada pendente</span></span></div>`}
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
       ${ITENS.map((i) => {
         const ok = !c.faltando.some((f) => f.k === i.k);
@@ -7877,59 +8245,122 @@ function cartao(v, u) {
 
 function abrir(v, editar) {
   if (!v) return;
-  const c = contaDaViagem(v);
-  const evs = eventosDaViagem(v);
-  const s = st(v.status);
-  const diff = c.orcado - c.fechado;
+  const u = store.user;
+  const corpo = el('<div></div>');
+  let sh;
 
-  const corpo = `
-    <div class="card tight">
-    <div class="row"><span class="g"><span class="s">Quando</span>
-      <span class="t">${esc(fmtData(v.ida))} → ${esc(fmtData(v.volta || v.ida))}</span></span>
-      <span class="r"><span class="tag ${s.tag}">${esc(s.t)}</span></span></div>
-    ${v.origem || v.destino ? `<div class="row"><span class="g"><span class="s">Trajeto</span>
-      <span class="t">${esc([v.origem, v.destino].filter(Boolean).join(' → '))}</span></span></div>` : ''}
-    ${(v.participantes || []).length ? `<div class="row"><span class="g"><span class="s">Quem vai</span>
-      <span class="t">${esc((v.participantes || []).map(nomeMembro).join(', '))}</span></span></div>` : ''}
-    ${v.obs ? `<div class="row"><span class="g"><span class="s">Observação</span>
-      <span class="t" style="white-space:normal">${esc(v.obs)}</span></span></div>` : ''}
-    </div>
+  const pintar = () => {
+    const c = contaDaViagem(v);
+    const evs = eventosDaViagem(v);
+    const s = st(v.status);
+    const diff = c.orcado - c.fechado;
+    const pend = pendencias(v);
+    const emCurso = hoje() >= v.ida && hoje() <= (v.volta || v.ida);
+    const passou = hoje() > (v.volta || v.ida);
+    // Cada um vê primeiro o que é dele; o resto vem depois, agrupado por dono.
+    const porDono = new Map();
+    for (const p of pend) {
+      const k = p.quem || '';
+      porDono.set(k, [...(porDono.get(k) || []), p]);
+    }
+    const ordemDonos = [...porDono.keys()].sort((a, b) => {
+      if (a === u?.id) return -1;
+      if (b === u?.id) return 1;
+      return String(nomeMembro(a)).localeCompare(String(nomeMembro(b)));
+    });
 
-    <div class="sec"><div class="sec-t">Dinheiro</div></div>
-    <div class="card">
-      <div class="row"><span class="g"><span class="t">Orçado</span></span>
-        <span class="r"><span class="v">${fmtMoney(c.orcado)}</span></span></div>
-      <div class="row"><span class="g"><span class="t">Já fechado</span>
-        <span class="s">${c.contas.length} compromisso(s)</span></span>
-        <span class="r"><span class="v">${fmtMoney(c.fechado)}</span></span></div>
-      <div class="row"><span class="g"><span class="t">${diff >= 0 ? 'Sobra do orçado' : 'Estouro'}</span>
-        <span class="s">orçado − fechado</span></span>
-        <span class="r"><span class="v" style="color:${diff < 0 ? 'var(--bad)' : 'var(--ok)'}">${fmtMoney(Math.abs(diff))}</span></span></div>
-      ${c.gasto ? `<div class="row"><span class="g"><span class="t">Já saiu do caixa</span>
-        <span class="s">inclui os compromissos pagos + notas e caixinha</span></span>
-        <span class="r"><span class="v">${fmtMoney(c.gasto)}</span></span></div>` : ''}
-    </div>
+    corpo.innerHTML = `
+      ${emCurso ? '<div class="banner warn small"><b>Esta viagem está acontecendo agora.</b></div>'
+    : passou && pend.length ? `<div class="banner warn small"><b>A viagem já voltou</b> e ainda tem
+        ${pend.length} coisa${pend.length > 1 ? 's' : ''} em aberto. Feche o que dá e marque o resto.</div>` : ''}
 
-    ${c.faltando.length ? `<div class="banner warn small">Falta fechar:
-      ${c.faltando.map((i) => `<b>${esc(i.t)}</b>`).join(' · ')}.</div>` : ''}
+      ${pend.length ? `<div class="sec" style="margin-top:0"><div class="sec-t">Pendências</div>
+          <span class="small muted">${pend.length}</span></div>
+        ${ordemDonos.map((dono) => `
+          <div class="small muted" style="margin:var(--s3) 0 var(--s2);font-weight:650">
+            ${dono === u?.id ? 'Você' : dono ? esc(nomeMembro(dono)) : 'Sem dono'}
+            <span style="font-weight:400">· ${porDono.get(dono).length}</span></div>
+          <div class="card lista">${porDono.get(dono).map((p) => `
+            <div class="row ${p.resolver ? 'act sem-seta' : ''}" ${p.resolver ? `data-ok="${p.id}"` : ''}>
+              <span class="ico">${p.tipo === 'tarefa' ? '☑️' : p.tipo === 'conta' ? '💸'
+    : p.tipo === 'nf' ? '🧾' : p.tipo === 'confirmacao' ? '🙋' : '⚠️'}</span>
+              <span class="g"><span class="t" style="white-space:normal">${esc(p.texto)}</span>
+                ${p.prazo ? `<span class="s">${esc(prazoTxt(p.prazo))}</span>` : ''}</span>
+              ${p.resolver ? '<span class="r"><span class="tag ok">feito?</span></span>' : ''}
+            </div>`).join('')}</div>`).join('')}
+        <button class="btn wide pri" data-tudo>Tudo perfeito — marcar ${pend.filter((p) => p.resolver).length} como resolvido</button>
+        <div class="small muted" style="margin-top:6px;text-align:center">
+          Pagamentos e notas fiscais não entram: eles se resolvem na conta.</div>`
+    : '<div class="banner small" style="border-color:var(--ok)"><b>Nada pendente nesta viagem.</b></div>'}
 
-    ${c.contas.length ? `<div class="sec"><div class="sec-t">Compromissos</div></div>
-      <div class="card lista">${c.contas.map((x) => `<div class="row">
-        <span class="tag ${x.status === 'quitado' ? 'ok' : 'warn'}">${x.status === 'quitado' ? 'pago' : 'aberto'}</span>
-        <span class="g"><span class="t">${esc(x.descricao)}</span>
-          <span class="s">${esc(x.contraparte || '')}</span></span>
-        <span class="r"><span class="v">${fmtMoney(x.valor_cents)}</span></span></div>`).join('')}</div>` : ''}
+      <div class="sec"><div class="sec-t">A viagem</div></div>
+      <div class="card tight">
+        <div class="row"><span class="g"><span class="s">Quando</span>
+          <span class="t">${esc(fmtData(v.ida))} → ${esc(fmtData(v.volta || v.ida))}</span></span>
+          <span class="r"><span class="tag ${s.tag}">${esc(s.t)}</span></span></div>
+        ${v.origem || v.destino ? `<div class="row"><span class="g"><span class="s">Trajeto</span>
+          <span class="t">${esc([v.origem, v.destino].filter(Boolean).join(' → '))}</span></span></div>` : ''}
+        ${(v.participantes || []).length ? `<div class="row"><span class="g"><span class="s">Quem vai</span>
+          <span class="t">${esc((v.participantes || []).map(nomeMembro).join(', '))}</span></span></div>` : ''}
+        ${v.obs ? `<div class="row"><span class="g"><span class="s">Observação</span>
+          <span class="t" style="white-space:normal">${esc(v.obs)}</span></span></div>` : ''}
+      </div>
 
-    ${evs.length ? `<div class="sec"><div class="sec-t">Na agenda</div></div>
-      <div class="card lista">${evs.map((e) => `<div class="row">
-        <span class="tag ${e.tipo === 'diaria' ? 'ok' : 'info'}">${esc(fmtData(e.data).slice(0, 5))}</span>
-        <span class="g"><span class="t">${esc(e.titulo)}</span>
-          <span class="s">${esc(e.local || '')}</span></span></div>`).join('')}</div>` : ''}`;
+      <div class="sec"><div class="sec-t">Dinheiro</div></div>
+      <div class="card tight">
+        <div class="row"><span class="g"><span class="t">Orçado</span></span>
+          <span class="r"><span class="v">${fmtMoney(c.orcado)}</span></span></div>
+        <div class="row"><span class="g"><span class="t">Já fechado</span>
+          <span class="s">${c.contas.length} compromisso(s)</span></span>
+          <span class="r"><span class="v">${fmtMoney(c.fechado)}</span></span></div>
+        <div class="row"><span class="g"><span class="t">${diff >= 0 ? 'Sobra do orçado' : 'Estouro'}</span></span>
+          <span class="r"><span class="v" style="color:${diff < 0 ? 'var(--bad)' : 'var(--ok)'}">${fmtMoney(Math.abs(diff))}</span></span></div>
+        ${c.gasto ? `<div class="row"><span class="g"><span class="t">Já saiu do caixa</span>
+          <span class="s">compromissos pagos + notas e caixinha</span></span>
+          <span class="r"><span class="v">${fmtMoney(c.gasto)}</span></span></div>` : ''}
+      </div>
 
-  const nodeCorpo = el(`<div>${corpo}
-    ${editar ? '<button class="btn wide gho" data-edit>Editar viagem</button>' : ''}</div>`);
-  const sh = sheet({ titulo: `${v.numero ? 'Viagem ' + v.numero + ' — ' : ''}${v.titulo}`, corpo: nodeCorpo });
-  nodeCorpo.querySelector('[data-edit]')?.addEventListener('click', () => { sh.close(); editarViagem(v); });
+      ${c.contas.length ? `<div class="sec"><div class="sec-t">Compromissos</div></div>
+        <div class="card lista">${c.contas.map((x) => `<div class="row">
+          <span class="tag ${x.status === 'quitado' ? 'ok' : 'warn'}">${x.status === 'quitado' ? 'pago' : 'aberto'}</span>
+          <span class="g"><span class="t">${esc(x.descricao)}</span>
+            <span class="s">${esc(x.contraparte || '')}</span></span>
+          <span class="r"><span class="v">${fmtMoney(x.valor_cents)}</span></span></div>`).join('')}</div>` : ''}
+
+      ${evs.length ? `<div class="sec"><div class="sec-t">Na agenda</div></div>
+        <div class="card lista">${evs.map((e) => `<div class="row">
+          <span class="tag ${e.tipo === 'diaria' ? 'ok' : 'info'}">${esc(fmtData(e.data).slice(0, 5))}</span>
+          <span class="g"><span class="t">${esc(e.titulo)}</span>
+            <span class="s">${esc(e.local || '')}</span></span></div>`).join('')}</div>` : ''}
+
+      ${editar ? '<button class="btn wide gho" data-edit>Editar viagem</button>' : ''}`;
+
+    corpo.querySelectorAll('[data-ok]').forEach((n) => {
+      n.onclick = async () => {
+        const p = pend.find((x) => x.id === n.dataset.ok);
+        if (!p?.resolver) return;
+        await p.resolver();
+        pintar(); store.emit();
+      };
+    });
+    corpo.querySelector('[data-tudo]')?.addEventListener('click', async () => {
+      const resolvíveis = pend.filter((p) => p.resolver);
+      const ok = await confirmar(
+        `Marcar ${resolvíveis.length} pendência(s) desta viagem como resolvidas? `
+        + 'Tarefas e confirmações fecham; contas a pagar e notas fiscais continuam como estão.',
+        { ok: 'Tudo perfeito' }
+      );
+      if (!ok) return;
+      for (const p of resolvíveis) await p.resolver();
+      await store.log(`Viagem ${v.numero} — ${resolvíveis.length} pendência(s) fechadas de uma vez.`, 'viagem');
+      toast('Viagem em dia.');
+      pintar(); store.emit();
+    });
+    corpo.querySelector('[data-edit]')?.addEventListener('click', () => { sh.close(); editarViagem(v); });
+  };
+
+  pintar();
+  sh = sheet({ titulo: `${v.numero ? 'Viagem ' + v.numero + ' — ' : ''}${v.titulo}`, corpo });
 }
 
 function editarViagem(v) {
@@ -7963,7 +8394,7 @@ function editarViagem(v) {
   });
 }
 
-  return { ST_VIAGEM, contasDaViagem, eventosDaViagem, contaDaViagem, render };
+  return { ST_VIAGEM, contasDaViagem, tarefasDaViagem, pendencias, eventosDaViagem, contaDaViagem, render };
 };
 __req('js/app.js');
 </script>

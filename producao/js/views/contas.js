@@ -344,7 +344,7 @@ function pedirNF(c) {
       // Todas as contas do pedido ficam marcadas, para a cobrança valer por todas.
       for (const x of [c, ...extras]) {
         await store.update('contas', x.id, {
-          nf_status: 'a_receber',
+          nf_status: 'a_receber', nf_pedido_em: hoje(), nf_cobrado_em: '',
           obs: `${x.obs ? x.obs + ' ' : ''}Pedido de NF enviado em ${fmtData(hoje())}`
             + `${extras.length ? ` (junto com outras ${extras.length} linha(s), total ${fmtMoney(total)})` : ''}.`
         });

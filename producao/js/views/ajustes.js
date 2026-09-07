@@ -42,6 +42,7 @@ export function render() {
       ${atalho('#/tarefas', 'Tarefas', 'O que cada um precisa fazer')}
       ${can(u, 'contas.ver') ? atalho('#/pagamentos', 'Pagamentos', 'O que sai, por data e por pessoa') : ''}
       ${can(u, 'contas.ver') ? atalho('#/contas', 'A receber', 'Parcelas do cliente') : ''}
+      ${can(u, 'contas.ver') ? atalho('#/pedidos-nf', 'Pedidos de NF', 'Quem já foi cobrado e quem falta') : ''}
       ${atalho('#/caixa', 'Caixinha', 'Adiantamentos e prestação de contas')}
       ${atalho('#/fontes', 'Fontes do projeto', 'Planilha, agenda e contrato — o que precisa ser reconferido')}
       ${atalho('#/locacoes', 'Locações e contatos', 'Escolas, endereços, cliente e fornecedores')}

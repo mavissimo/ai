@@ -36,6 +36,10 @@ export function financeiro() {
   const recebido = soma(entradas.filter((l) => l.status === 'recebido' || l.status === 'pago'), (l) => l.valor_cents);
 
   const aPagar = soma(con.filter((c) => c.tipo === 'pagar' && c.status === 'aberto'), (c) => c.valor_cents);
+  // Devolver ao sócio o que ele pôs no cartão é transferência, não custo: o
+  // gasto já está na rubrica. Entra no que a empresa deve, fora do orçamento.
+  const aReembolsar = soma(con.filter((c) => c.tipo === 'pagar' && c.status === 'aberto'
+    && c.categoria === 'reembolso'), (c) => c.valor_cents);
   const aReceber = soma(con.filter((c) => c.tipo === 'receber' && c.status === 'aberto'), (c) => c.valor_cents);
 
   const contratosCliente = ctr.filter((c) => c.tipo === 'cliente');
@@ -51,10 +55,10 @@ export function financeiro() {
   const lucroPrevisto = contratado - custoPrevistoTotal;
   const lucroRealizado = recebido - realizado - impostoRealizado;
   const caixa = recebido - pago;
-  const comprometido = realizado + pendente + aPagar;
+  const comprometido = realizado + pendente + aPagar - aReembolsar;
 
   return {
-    contratado, orcado, negociado, realizado, pendente, pago, recebido, economia,
+    contratado, orcado, negociado, realizado, pendente, pago, recebido, economia, aReembolsar,
     aNegociar: orcado - negociado,
     // Lucro se tudo o que falta fechar sair pelo valor orçado.
     lucroSeFechar: contratado - (orcado - economia) - Math.round(contratado * aliq),

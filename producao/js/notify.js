@@ -5,6 +5,7 @@ import { store } from './store.js';
 import { can } from './perms.js';
 import { diasAte, prazoTxt, fmtMoney, fmtData, hoje } from './utils.js';
 import { saldoCaixa, statusFonte } from './calc.js';
+import { paraCobrar, DIAS_FOLLOWUP } from './views/pedidosnf.js';
 
 const VISTOS = 'unit0:alertas-vistos';
 
@@ -135,6 +136,17 @@ export function alertas() {
     });
   });
 
+  // Nota fiscal pedida e não entregue: passou de três dias, é hora de cobrar.
+  if (can(u, 'contas.ver')) {
+    for (const { conta, est } of paraCobrar()) {
+      add({
+        id: 'nfcob_' + conta.id, urg: 3, icone: '🧾',
+        texto: `Cobrar a NF de ${conta.contraparte || conta.descricao}`,
+        detalhe: `${fmtMoney(conta.valor_cents)} · ${est.t}`, rota: '#/pedidos-nf'
+      });
+    }
+  }
+
   // Fontes de fora (planilha, agenda) que ninguém reconfere há tempo demais.
   if (can(u, 'projeto.edit')) {
     store.doProjeto('fontes').forEach((f) => {
@@ -223,6 +235,19 @@ export function perguntas() {
           });
         }
       }));
+  }
+
+  // Nota que não chegou: um toque cobra de novo ou marca como recebida.
+  if (can(u, 'contas.ver')) {
+    const atrasada = paraCobrar()[0];
+    if (atrasada) out.push({
+      id: 'q_nf_' + atrasada.conta.id, urg: 3, icone: '🧾',
+      pergunta: `A NF de ${atrasada.conta.contraparte || atrasada.conta.descricao} já chegou?`,
+      contexto: `${fmtMoney(atrasada.conta.valor_cents)} · ${atrasada.est.t}`,
+      sim: 'Chegou', nao: 'Vou cobrar',
+      async aoSim() { await store.update('contas', atrasada.conta.id, { nf_status: 'recebida' }); },
+      async aoNao() { await store.update('contas', atrasada.conta.id, { nf_cobrado_em: hoje() }); }
+    });
   }
 
   // Datas de filmagem ainda não confirmadas pela Fundação.

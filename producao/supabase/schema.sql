@@ -66,6 +66,7 @@ create table if not exists tarefas (
   status text default 'aberta',               -- aberta | fazendo | feita
   feito boolean default false,                -- espelho de status, para o checklist
   cobrado_em text,                            -- quando a produção cobrou
+  viagem_id text,                             -- pendência de uma viagem específica
   -- [{de, para, motivo, por, em}] — toda mudança de prazo fica registrada
   remarcacoes jsonb default '[]'::jsonb
 );
@@ -126,7 +127,10 @@ create table if not exists contas (
   venc text, status text default 'aberto', quitado_em text,
   nf_status text default 'na', nf_numero text, nf_data text,
   membro_id text, lancamento_id text, contrato_id text, parcela_id text,
-  viagem_id text, parcela text, categoria text, rubrica text, obs text
+  viagem_id text, parcela text, categoria text, rubrica text,
+  grupo_id text,                              -- id da conta original, quando é parcela
+  nf_pedido_em text, nf_cobrado_em text,      -- pedido de nota e follow-up
+  obs text
 );
 
 create table if not exists contratos (

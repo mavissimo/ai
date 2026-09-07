@@ -14,7 +14,7 @@ const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-export const SEED_VERSAO = 15;
+export const SEED_VERSAO = 16;
 
 const PESSOAS = [
   {
@@ -129,7 +129,7 @@ const ORCAMENTO = [
   ['Produção executiva', '41600', '41600', 'Tato Pessanha — R$ 1.600 × 26. Executivo + produtor de viagem + som.'],
   ['Secretaria de produção / advogada', '7000', '0', 'Ainda não contratada.'],
   ['1º assistente de câmera', '33800', '28600', 'Julio Becker. Orçado 26 × 1.300, fechado 26 × 1.100.'],
-  ['Drone', '1300', '1300', 'Petrus Pitt, diária em Recife/Jaboatão.'],
+  ['Drone', '0', '1300', 'Petrus Pitt, diária em Recife/Jaboatão. Entrou depois do orçamento fechado.'],
   ['Equipamento de câmera', '11700', '2770', 'Câmera, lentes e acessórios. Pago no crédito C6 do Maví.'],
   ['Luz e elétrica', '7800', '14680', 'Fechou R$ 6.880 acima do orçado — é o maior estouro do projeto.'],
   ['Material de produção e som', '5720', '0', 'R$ 220 × 26. Ainda não fechado.'],
@@ -367,6 +367,32 @@ const METAS = {
   'Entrega final das 40 peças': { meta: 40, unidade: 'peças', feitos: 0 }
 };
 
+// O que cada viagem precisa ter resolvido. É a lista que o Maví e o Tato abrem
+// antes de embarcar — e que, depois, mostra o que ficou para trás.
+// [nº da viagem, tarefa, quem faz, quantos dias antes do embarque]
+const TAREFAS_VIAGEM = [
+  ['*', 'Confirmar a diária com a Fundação (10 dias úteis antes)', 'Tato Pessanha', 14],
+  ['*', 'Fechar voo, hotel e carro', 'Tato Pessanha', 10],
+  ['*', 'Fazer o check-in (abre 24h antes)', 'Tato Pessanha', 1],
+  ['*', 'Conferir equipamento e cartões antes de sair', 'Julio Becker', 1],
+  ['*', 'Backup duplo do material no fim da viagem', 'Julio Becker', -1],
+  ['*', 'Juntar as notinhas do per diem na pasta do Drive', 'Tato Pessanha', -2],
+  ['*', 'Lançar os gastos da caixinha no app', 'Tato Pessanha', -2],
+
+  ['2', 'Contratar o piloto de drone em Recife', 'Tato Pessanha', 7],
+  ['2', 'Cobrar a NF do drone (Petrus, R$ 1.300)', 'Tato Pessanha', -1],
+  ['2', 'Pagar o drone', 'Maví Simões', -3],
+  ['2', 'Pagar o carro da Movida (R$ 831,73)', 'Maví Simões', -1],
+  ['2', 'Pagar a hospedagem do Rede Andrade (R$ 1.673,07)', 'Maví Simões', -1],
+
+  ['3', 'Pagar o hotel de Gravataí (R$ 2.115)', 'Maví Simões', -1],
+  ['3', 'Pagar o carro de Porto Alegre (R$ 657,26)', 'Maví Simões', -1],
+
+  ['4', 'Combinar o táxi do Sr. Paulo (Bodoquena)', 'Tato Pessanha', 5],
+  ['5', 'Confirmar a hospedagem na Fundação (sem custo)', 'Tato Pessanha', 7],
+  ['5', 'Combinar o apoio do Sr. Tucum (Canuanã)', 'Tato Pessanha', 5]
+];
+
 const ETAPAS = [
   ['negociacao', 'Carta-Orçamento V2 e Cronograma V2 aprovados', 'feito', '2026-08-14'],
   ['negociacao', 'Cadastro de fornecedor no Bradesco', 'feito', '2026-07-31'],
@@ -603,14 +629,37 @@ export async function criarProjetoBradesco(existente = null) {
       venc, status, categoria, rubrica, nf_status: 'a_receber', obs
     });
     // O que já saiu também entra como gasto realizado, para o dinheiro bater.
+    // Quando saiu do cartão pessoal do sócio, o gasto nasce como reembolso:
+    // o fornecedor já recebeu, mas a empresa ainda deve para quem pagou.
     if (status === 'quitado') {
+      const doSocio = /C6/i.test(obs || '');
       await ins('lancamentos', 'lanc:' + descricao, {
         tipo: 'saida', descricao, valor_cents: M(valor), rubrica,
-        data: venc || '2026-08-22', fornecedor: contraparte, forma: 'crédito',
-        membro_id: null, evento_id: null, fonte: 'empresa', reembolso: false,
+        data: venc || '2026-08-22', fornecedor: contraparte,
+        forma: doSocio ? 'crédito pessoal' : 'crédito',
+        membro_id: doSocio ? membros['Maví Simões'] : null, evento_id: null,
+        fonte: doSocio ? 'proprio' : 'empresa', reembolso: doSocio,
         sem_comprovante: true, status: 'pago', aprovado_por: null, obs
       });
     }
+  }
+
+  /* --------------------------------------------------------------------
+     Acerto com o sócio. Tudo que o Maví pôs no cartão pessoal já foi pago
+     ao fornecedor, mas a empresa deve isso a ele. Vira uma conta a pagar
+     só, somando os lançamentos marcados como reembolso.
+     -------------------------------------------------------------------- */
+  const doSocio = store.doProjeto('lancamentos').filter((l) => l.reembolso && l.fonte === 'proprio');
+  const totalSocio = doSocio.reduce((n, l) => n + (l.valor_cents || 0), 0);
+  if (totalSocio) {
+    await ins('contas', 'acerto:mavi@tempora', {
+      tipo: 'pagar', descricao: 'Acerto — Maví (cartão pessoal)',
+      contraparte: 'Maví Simões', valor_cents: totalSocio, venc: '', status: 'aberto',
+      membro_id: membros['Maví Simões'] || null, categoria: 'reembolso', rubrica: '',
+      nf_status: 'na',
+      obs: `${doSocio.length} compra(s) que o Maví pagou no cartão pessoal e a empresa deve devolver: `
+        + doSocio.map((l) => l.descricao).join('; ') + '.'
+    });
   }
 
   /* --------------------------------------------------------------------
@@ -628,8 +677,6 @@ export async function criarProjetoBradesco(existente = null) {
     status: 'recebido', conta_id: achar('contas', 'conta:parcela1')?.id || null,
     obs: 'Comprovante Bradesco de 04/09.'
   });
-  await corrigir('contas', 'cache1:becker@tempora', { nf_status: 'recebida' });
-  await corrigir('contas', 'cache1:tato@tempora', { nf_status: 'recebida' });
   await corrigir('etapas', 'etapa:Receber 1ª parcela (50%)', { status: 'feito' });
   await corrigir('etapas', 'etapa:Emitir NF da 1ª parcela', { status: 'feito' });
 
@@ -726,6 +773,11 @@ export async function criarProjetoBradesco(existente = null) {
       obs: 'PDF no e-mail. Toque em abrir para ir direto na conversa.'
     });
   }
+
+  // Notas pedidas em 04/09: as do Tato e do Julio chegaram, a do drone não.
+  await corrigir('contas', 'cache1:becker@tempora', { nf_status: 'recebida', nf_pedido_em: '2026-09-04' });
+  await corrigir('contas', 'cache1:tato@tempora', { nf_status: 'recebida', nf_pedido_em: '2026-09-04' });
+  await corrigir('contas', 'cache1:petrus.pitt@gmail.com', { nf_pedido_em: '2026-09-04' });
 
   // Per diems do Tato e do Julio pagos em 07/09. O do Maví segue em aberto.
   for (const em of ['tato@tempora', 'becker@tempora']) {
@@ -919,6 +971,23 @@ export async function criarProjetoBradesco(existente = null) {
     });
   }
 
+  /* Tarefas de cada viagem, com prazo contado do embarque. As que valem para
+     todas as viagens ('*') nascem em cada uma; as específicas, só na sua. */
+  for (const [num, titulo, dono, antes] of TAREFAS_VIAGEM) {
+    const alvos = num === '*' ? VIAGENS.map((v) => v[0]) : [num];
+    for (const n of alvos) {
+      const v = VIAGENS.find((x) => x[0] === n);
+      if (!v) continue;
+      const base = antes >= 0 ? v[2] : v[3];      // antes do embarque ou depois da volta
+      await ins('tarefas', `tv:${n}:${titulo}`, {
+        titulo, responsavel_id: membros[dono] || null,
+        prazo: somarDias(base, -antes), viagem_id: viagens[n],
+        etapa_id: null, status: 'aberta', feito: false, cobrado_em: '', remarcacoes: [],
+        descricao: `Viagem ${n} — ${v[1]}.`
+      });
+    }
+  }
+
   // A passagem de Porto Alegre foi comprada em 03/09, fora da janela da viagem 3,
   // então a amarração por data não pega — aqui ela é explícita.
   const poa = achar('contas', 'pag:Passagens SP → Porto Alegre (ida e volta, 3 pax)');
@@ -987,10 +1056,15 @@ const chaveDe = {
   viagens: (r) => (r.numero ? 'viagem:' + r.numero : null),
   tarefas: (r) => {
     if (!r.titulo) return null;
-    const m = /^Fazer check-in — /.test(r.titulo);
-    if (m) {
+    if (/^Fazer check-in — /.test(r.titulo)) {
       const ev = r.evento_id ? store.get('eventos', r.evento_id) : null;
       return ev ? 'checkin:' + ev.data : null;
+    }
+    // Tarefa de viagem se identifica pela viagem, não pelo título: o mesmo
+    // texto ("Fazer o check-in") existe em todas as onze.
+    if (r.viagem_id) {
+      const v = store.get('viagens', r.viagem_id);
+      return v?.numero ? `tv:${v.numero}:${r.titulo}` : null;
     }
     return 'tar:' + r.titulo;
   },
