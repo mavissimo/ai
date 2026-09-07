@@ -1757,7 +1757,7 @@ const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-const SEED_VERSAO = 11;
+const SEED_VERSAO = 12;
 
 const PESSOAS = [
   {
@@ -1880,8 +1880,8 @@ const ORCAMENTO = [
   ['Color', '10000', '12000', 'Vini Azevedo, Jesus Mendes, Braiom ou Rafaim. Fechou R$ 2.000 acima do orçado.'],
 
   /* --- viagens e logística (172.812 orçado / 47.973,69 negociado) --- */
-  ['Passagens aéreas', '52800', '17616,78', 'Orçado a R$ 2.200 por pessoa em 8 das 11 viagens. '
-    + 'Fechado: Palmas R$ 10.722,51 e Recife R$ 6.894,27.'],
+  ['Passagens aéreas', '52800', '22697,07', 'Orçado a R$ 2.200 por pessoa em 8 das 11 viagens. '
+    + 'Fechado: Palmas R$ 10.722,51, Recife R$ 6.894,27 e Porto Alegre R$ 5.080,29.'],
   ['Hospedagem', '70200', '3293,07', 'Fechado: Conceição do Araguaia R$ 1.620,00 e Jaboatão R$ 1.673,07.'],
   ['Locação de carro', '9676', '1411,73', 'Fechado: Conceição R$ 580,00 e Recife/Jaboatão R$ 831,73.'],
   ['Combustível e estacionamento', '6200', '560,11', 'Viagem 1 fechada em R$ 560,11 (aba "verba a vista").'],
@@ -2061,6 +2061,8 @@ const FONTES = [
     'contrato', 'quando_mudar', 'Tato Pessanha', 'Anexo I do contrato. Referência das diárias.'],
   ['Contrato 4600001793 rev 04', '', 'contrato', 'quando_mudar', 'Maví Simões',
     'Cláusula 6.10 (retenção de 5%) x Quadro Resumo VI (sem retenção). Prazo da 2ª parcela.'],
+  ['Notinha perdiem (pasta no Drive)', '', 'pasta', 'semanal', 'Tato Pessanha',
+    'Onde a equipe joga a nota de cada gasto de per diem. Compartilhada pelo Tato em 04/09.'],
   ['Vouchers e comprovantes de viagem', '', 'pasta', 'quando_mudar', 'Tato Pessanha',
     'Voos, locação de carro e hotéis. Cada viagem precisa do seu antes do embarque.']
 ];
@@ -2421,6 +2423,55 @@ async function criarProjetoBradesco(existente = null) {
   await corrigir('etapas', 'etapa:Receber 1ª parcela (50%)', { status: 'feito' });
   await corrigir('etapas', 'etapa:Emitir NF da 1ª parcela', { status: 'feito' });
 
+  // Per diems do Tato e do Julio pagos em 07/09. O do Maví segue em aberto.
+  for (const em of ['tato@tempora', 'becker@tempora']) {
+    const c = achar('contas', 'perdiem:' + em);
+    if (!c) continue;
+    await corrigir('contas', 'perdiem:' + em, { status: 'quitado', quitado_em: '2026-09-07' });
+    await ins('lancamentos', 'lanc:perdiem:' + em, {
+      tipo: 'saida', descricao: c.descricao, valor_cents: c.valor_cents,
+      data: '2026-09-07', rubrica: 'Per diem da equipe', fornecedor: c.contraparte,
+      forma: 'transferência', membro_id: c.membro_id, evento_id: null, viagem_id: null,
+      fonte: 'empresa', reembolso: false, sem_comprovante: true,
+      status: 'pago', aprovado_por: membros['Maví Simões'] || null,
+      obs: 'Notinhas na pasta "Notinha perdiem" que o Tato compartilhou no Drive em 04/09.'
+    });
+  }
+
+  // Viagem 3 (Porto Alegre / Gravataí): passagens fechadas em 03/09.
+  await ins('contas', 'pag:Passagens SP → Porto Alegre (ida e volta, 3 pax)', {
+    tipo: 'pagar', descricao: 'Passagens SP → Porto Alegre (ida e volta, 3 pax)',
+    contraparte: 'Azul', valor_cents: M('5080,29'), venc: '2026-09-03', status: 'quitado',
+    categoria: 'passagens', rubrica: 'Passagens aéreas', nf_status: 'a_receber',
+    viagem_id: null,
+    obs: 'Localizador TRZKMK. Ida 09/09 Azul 2622 (GRU 09:45 → POA 11:30), volta 12/09 Azul 2821 '
+      + '(POA 16:55 → GRU 18:40). Pago no MasterCard em 6 parcelas. Orçado era R$ 6.600 — '
+      + 'economia de R$ 1.519,71.'
+  });
+  await ins('lancamentos', 'lanc:Passagens SP → Porto Alegre (ida e volta, 3 pax)', {
+    tipo: 'saida', descricao: 'Passagens SP → Porto Alegre (ida e volta, 3 pax)',
+    valor_cents: M('5080,29'), rubrica: 'Passagens aéreas', data: '2026-09-03',
+    fornecedor: 'Azul', forma: 'crédito', membro_id: null, evento_id: null,
+    fonte: 'empresa', reembolso: false, sem_comprovante: true, status: 'pago',
+    aprovado_por: null, obs: 'Localizador TRZKMK. Reserva de 03/09.'
+  });
+  await corrigir('eventos', 'ev:2026-09-09:SP → Porto Alegre → Gravataí + scout', {
+    hora_inicio: '07:45', hora_fim: '11:30',
+    endereco: 'Aeroporto de Guarulhos (GRU) — Azul 2622',
+    contato_nome: 'Tato Pessanha', contato_tel: '(11) 96340-1980',
+    roteiro_dia: '07:45 chegada ao aeroporto (2h antes)\n09:45 Azul 2622 GRU → POA (11:30)\n'
+      + 'Assentos: Maví 7F · Tato 8F · Julio 9F\nPOA → Gravataí: 30 km\nScout e visita na escola',
+    obs: 'Localizador TRZKMK · identificação da central 0435.1621.2521. '
+      + 'Bagagem: Maví 2 despachadas, Tato e Julio 1 cada.'
+  });
+  await corrigir('eventos', 'ev:2026-09-12:Gravataí → Porto Alegre → SP', {
+    hora_inicio: '14:55', hora_fim: '18:40',
+    endereco: 'Aeroporto Salgado Filho (POA) — Azul 2821',
+    roteiro_dia: 'Gravataí → POA: 30 km\n14:55 chegada ao aeroporto (2h antes)\n'
+      + '16:55 Azul 2821 POA → GRU (18:40)\nAssentos: Maví 8F · Tato 9F · Julio 9D',
+    obs: 'Localizador TRZKMK.'
+  });
+
   /* etapas */
   let ordem = 0;
   for (const [fase, nome, status, prazo] of ETAPAS) {
@@ -2550,6 +2601,17 @@ async function criarProjetoBradesco(existente = null) {
       descricao: 'O check-in abre 24h antes do voo. Fazer para todo mundo que embarca e '
         + 'guardar os cartões de embarque.'
     });
+  }
+
+  // A passagem de Porto Alegre foi comprada em 03/09, fora da janela da viagem 3,
+  // então a amarração por data não pega — aqui ela é explícita.
+  const poa = achar('contas', 'pag:Passagens SP → Porto Alegre (ida e volta, 3 pax)');
+  if (poa && viagens['3'] && !poa.viagem_id) {
+    await store.update('contas', poa.id, { viagem_id: viagens['3'] });
+  }
+  const poaL = achar('lancamentos', 'lanc:Passagens SP → Porto Alegre (ida e volta, 3 pax)');
+  if (poaL && viagens['3'] && !poaL.viagem_id) {
+    await store.update('lancamentos', poaL.id, { viagem_id: viagens['3'] });
   }
 
   /* confirmações de passagem das duas primeiras viagens */
