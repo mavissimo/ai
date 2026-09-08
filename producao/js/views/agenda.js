@@ -14,6 +14,11 @@ import { podeVerTudo } from '../perms.js';
 
 let aba = 'proximos';
 let modo = 'detalhe';   // detalhe = cartão completo, lista = linha compacta
+// Quanto do futuro cabe na tela. "Tudo" é o padrão porque em produção o mês
+// que vem já importa; as janelas curtas servem para o dia de correria.
+let janela = 0;         // 0 = tudo · 1 · 3 · 7 · 30 dias
+const JANELAS = [{ v: 1, t: '24h' }, { v: 3, t: '3 dias' }, { v: 7, t: 'Semana' },
+  { v: 30, t: 'Mês' }, { v: 0, t: 'Tudo' }];
 let secao = 'agenda';   // agenda | viagens
 
 export const irPara = (s) => { secao = s; };
@@ -61,7 +66,9 @@ export function render() {
 
   const futuros = eventos.filter((e) => (diasAte(e.data) ?? 0) >= 0);
   const passados = eventos.filter((e) => (diasAte(e.data) ?? 0) < 0).reverse();
-  const mostrar = aba === 'passados' ? passados : futuros;
+  // A janela só corta o futuro: "24h" no passado não quer dizer nada.
+  const mostrar = aba === 'passados' ? passados
+    : (janela ? futuros.filter((e) => (diasAte(e.data) ?? 0) <= janela) : futuros);
   const entregas = ordenar(store.doProjeto('entregas'), (e) => e.prazo || '9999');
 
   const porDia = groupBy(mostrar, (e) => e.data || 'sem data');
@@ -81,6 +88,10 @@ export function render() {
       <button class="chip ${aba === 'passados' ? 'on' : ''}" data-aba="passados">Já passou</button>
       <button class="chip ${aba === 'entregas' ? 'on' : ''}" data-aba="entregas">Entregas</button>
     </div>
+    ${aba === 'entregas' || aba === 'passados' ? '' : `<div class="chips">
+      ${JANELAS.map((j) => `<button class="chip ${janela === j.v ? 'on' : ''}"
+        data-janela="${j.v}">${j.t}</button>`).join('')}
+    </div>`}
     ${aba === 'entregas' ? '' : `<div class="seg" style="margin-bottom:12px">
       <button data-modo="detalhe" class="${modo === 'detalhe' ? 'on' : ''}">Detalhes</button>
       <button data-modo="lista" class="${modo === 'lista' ? 'on' : ''}">Lista</button>
@@ -90,6 +101,9 @@ export function render() {
   ligarLog(node);
   node.querySelectorAll('[data-aba]').forEach((b) => { b.onclick = () => { aba = b.dataset.aba; store.emit(); }; });
   node.querySelectorAll('[data-modo]').forEach((b) => { b.onclick = () => { modo = b.dataset.modo; store.emit(); }; });
+  node.querySelectorAll('[data-janela]').forEach((b) => {
+    b.onclick = () => { janela = Number(b.dataset.janela); store.emit(); };
+  });
   node.querySelectorAll('[data-ev]').forEach((n) => { n.onclick = () => abrirEvento(store.get('eventos', n.dataset.ev)); });
   node.querySelectorAll('[data-entrega]').forEach((n) => {
     n.onclick = () => abrirEntrega(store.get('entregas', n.dataset.entrega), can(u, 'entregas.edit'));

@@ -193,8 +193,10 @@ function pintarMapa(node) {
     estado: (v.volta || v.ida) < hj ? 'passou' : 'futuro',
     rotulo: v === prox ? undefined : false        // só o próximo leva nome
   })).filter((x) => coord(x.cidade));
+  // No desktop a caixa é larga demais: sem teto, o país ocuparia uma tela
+  // inteira de altura. O desenho se centra sozinho na largura que sobra.
   caixa.innerHTML = brasilSVG({
-    larg, alt: Math.round(larg * 0.86), pinos,
+    larg, alt: Math.min(340, Math.round(larg * 0.86)), pinos,
     rota: 'São Paulo', aceso: limpo(prox) || prox?.destino
   }) + `<div class="pn-mapa-pe">
     <b>${esc(prox?.destino || '—')}</b>

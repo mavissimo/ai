@@ -10,6 +10,7 @@ import { minhasTarefas } from './views/tarefas.js';
 import { autenticar, temSenha } from './pin.js';
 import { aplicarTema } from './tema.js';
 import { revelar, topoVivo, trocarTela } from './motion.js';
+import { FUNCOES } from './views/equipe.js';
 
 import * as vDash from './views/dash.js';
 import * as vEtapas from './views/etapas.js';
@@ -136,7 +137,8 @@ function telaQuemEVoce() {
     subtitulo: 'Você entra como equipe: vê a própria agenda, lança os próprios gastos e confirma o que for seu.',
     campos: [
       { k: 'nome', label: 'Seu nome', type: 'texto', req: true },
-      { k: 'funcao', label: 'Sua função', type: 'texto', ph: 'Direção de fotografia' },
+      { k: 'funcao', label: 'Sua função', type: 'livre', ph: 'Escreva a função',
+        opts: FUNCOES.map((f) => ({ v: f, t: f })) },
       { k: 'telefone', label: 'Telefone', type: 'tel' }
     ],
     onSave: async (v) => {
@@ -228,6 +230,9 @@ export function render() {
   root.innerHTML = `
     <header class="topbar">
       <h1>${esc(v.titulo)}${v.sub ? `<span class="sub">${esc(v.sub)}</span>` : ''}</h1>
+      <!-- No desktop a coluna da esquerda já diz em que tela você está; o topo
+           passa a carregar o projeto, que é o que some da navegação. -->
+      <span class="topbar-proj">${esc(store.projeto?.nome || '')}</span>
       <a class="avatar" href="#/mais" aria-label="Perfil">${esc(iniciais(store.user.nome))}</a>
     </header>
     <main></main>

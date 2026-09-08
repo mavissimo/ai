@@ -72,6 +72,7 @@ button,input,select,textarea{font:inherit;color:inherit}
   display:flex;align-items:center;gap:10px}
 .topbar h1{font-family:var(--titulo);font-size:13px;margin:0;font-weight:700;letter-spacing:.12em;
   text-transform:uppercase;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-proj{display:none}
 .topbar .sub{display:block;font-family:var(--mono);font-size:9.5px;color:var(--tx3);
   font-weight:400;letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
 .olho{width:32px;height:32px;flex:none;border-radius:50%;background:transparent;border:1px solid var(--line);
@@ -304,8 +305,13 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
   .tabbar a.on{background:var(--bg3)}
   .tabbar a svg{width:20px;height:20px}
   .tabbar .dot{position:static;margin-left:auto;border-color:var(--bg2)}
+  /* A coluna da esquerda já marca em qual tela você está. Repetir o nome dela
+     no topo é ruído: aqui em cima fica o projeto, que é o que some na navegação. */
   .topbar{padding:18px 28px;border-bottom:1px solid var(--line)}
-  .topbar h1{font-size:20px}
+  .topbar h1{display:none}
+  .topbar-proj{display:block;flex:1;font-family:var(--titulo);font-size:15px;font-weight:700;
+    letter-spacing:.07em;text-transform:uppercase;color:var(--tx);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   main{padding:24px 28px 48px;max-width:1240px;margin:0}
   .fab{right:36px;bottom:36px;width:60px;height:60px}
   .grid{grid-template-columns:repeat(4,1fr)}
