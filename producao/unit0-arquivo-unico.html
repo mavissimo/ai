@@ -1038,6 +1038,75 @@ main{animation:tela var(--t-med) var(--e-entra)}
   text-transform:uppercase;color:var(--tx3);border:1px solid var(--line);border-radius:3px;
   padding:3px 6px}
 .ag-q-cab:active .ag-q-e{background:var(--bg3)}
+
+/* ============================================================================
+   A faixa do topo. Um letreiro de sala de cinema com o estado do job passando
+   de lado: o que é hoje, o que embarca, o que vence, o que falta. Só entra o
+   que muda sozinho com o tempo — número que não muda de um dia para o outro
+   não merece estar correndo.
+   ========================================================================= */
+.topbar{flex-direction:column;align-items:stretch;gap:0;padding-bottom:0}
+.topbar-l{display:flex;align-items:center;gap:10px;padding-bottom:8px}
+.topbar-l h1{flex:1}
+
+.faixa{position:relative;overflow:hidden;border-top:1px solid var(--line);
+  margin:0 -14px;padding:6px 0;-webkit-mask-image:linear-gradient(90deg,
+    transparent,#000 22px,#000 calc(100% - 22px),transparent)}
+.fx-trilho{display:flex;width:max-content}
+.faixa.correndo .fx-trilho{animation:fx var(--tempo,40s) linear infinite}
+.faixa.parada .fx-trilho{animation-play-state:paused}
+@keyframes fx{to{transform:translateX(var(--percurso,-100%))}}
+.fx-copia{display:flex;flex:none;align-items:center}
+.fx-i{display:inline-flex;align-items:baseline;gap:7px;padding:0 var(--s4);
+  font-size:11.5px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;color:var(--tx2);
+  border-right:1px solid var(--line)}
+.fx-o{font-family:var(--mono);font-size:8.5px;font-style:normal;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--cor,var(--tx3))}
+.fx-i.f1{--cor:var(--f1)} .fx-i.f2{--cor:var(--f2)} .fx-i.f3{--cor:var(--f3)}
+.fx-i.f4{--cor:var(--f4)} .fx-i.f5{--cor:var(--f5)}
+.fx-i.f3{color:var(--tx)}
+@media (prefers-reduced-motion: reduce){
+  /* Sem movimento a faixa vira uma tira que se rola com o dedo, e a segunda
+     cópia sai de cena — ela só existia para o laço não ter emenda. */
+  .faixa{overflow-x:auto;scrollbar-width:none}
+  .faixa::-webkit-scrollbar{display:none}
+  .faixa .fx-trilho{animation:none}
+  .faixa .fx-copia:last-child{display:none}
+}
+
+/* o seletor de cor, ao lado do avatar */
+.tema-sel{display:flex;flex:none;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.tema-b{width:28px;height:28px;display:grid;place-items:center;border:0;background:transparent;
+  color:var(--tx3);cursor:pointer;padding:0}
+.tema-b + .tema-b{border-left:1px solid var(--line)}
+.tema-b svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round}
+.tema-b.on{background:var(--bg3);color:var(--tx)}
+.tema-b:active{background:var(--line)}
+
+/* Ao rolar, o topo encolhe mas a faixa continua: ela é o que se quer ver. */
+.topbar.rolou .topbar-l{padding-bottom:5px}
+@media (min-width:900px){
+  .topbar{padding:14px 28px 0}
+  .topbar-l{padding-bottom:10px}
+  .faixa{margin:0 -28px}
+}
+
+/* de perto, o mapa mostra onde se pousa e quanta estrada falta */
+.geo-arred{opacity:0;transition:opacity var(--t-norm) var(--e-pad) .18s;pointer-events:none}
+.geo.perto .geo-arred{opacity:1}
+.geo-estrada{stroke:var(--tx3);stroke-width:1.2;stroke-dasharray:5 3;opacity:.7;
+  vector-effect:non-scaling-stroke}
+.geo-aero{fill:var(--tx2);stroke:none}
+.geo-n.aero{fill:var(--tx3)}
+.geo-km{fill:var(--tx2);font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;
+  text-transform:uppercase}
+.mesa-arred{padding:var(--s3) 0;border-bottom:1px solid var(--line)}
+.mesa-arred .olho-txt{margin-bottom:var(--s2)}
+.mesa-a{display:flex;gap:var(--s3);padding:3px 0;font-size:12.5px;line-height:1.45}
+.mesa-a-k{flex:none;width:82px;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--tx3);padding-top:3px}
+.mesa-a-v{flex:1;min-width:0;color:var(--tx2)}
 </style>
 <div id="app" class="app"><div class="boot">Carregando…</div></div>
 <script type="module">
@@ -1184,6 +1253,7 @@ const { minhasTarefas } = __req("js/views/tarefas.js");
 const { autenticar, temSenha } = __req("js/pin.js");
 const { aplicarTema, TEMAS, temaAtual, definirTema } = __req("js/tema.js");
 const { revelar, topoVivo, trocarTela } = __req("js/motion.js");
+const { faixaHTML, ligarFaixa } = __req("js/faixa.js");
 const { FUNCOES } = __req("js/views/equipe.js");
 const vDash = __req("js/views/dash.js");
 const vEtapas = __req("js/views/etapas.js");
@@ -1363,6 +1433,36 @@ function telaLoginRemoto() {
   return node;
 }
 
+/* ---------------------------------------------------------- cor no topo ---
+   Três glifos: automático, claro, escuro. Fica ao lado do avatar porque trocar
+   a cor é coisa que se faz uma vez e se quer achar na hora — e enterrado em
+   Mais, três telas adentro, ninguém achava. */
+const GL_TEMA = {
+  auto: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/>'
+    + '<path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor" stroke="none"/></svg>',
+  claro: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.4"/>'
+    + '<path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2'
+    + 'M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></svg>',
+  escuro: '<svg viewBox="0 0 24 24"><path d="M20 14.4A8.5 8.5 0 0 1 9.6 4 8.5 8.5 0 1 0 20 14.4z"/></svg>'
+};
+
+function seletorTemaHTML() {
+  const atual = temaAtual();
+  return `<div class="tema-sel" role="group" aria-label="Cor">
+    ${TEMAS.map((t) => `<button class="tema-b ${atual === t.v ? 'on' : ''}" data-cor="${t.v}"
+      title="${esc(t.t)}" aria-label="${esc(t.t)}">${GL_TEMA[t.v] || ''}</button>`).join('')}
+  </div>`;
+}
+
+function ligarSeletorTema(raiz) {
+  raiz.querySelectorAll('[data-cor]').forEach((b) => {
+    b.onclick = () => {
+      definirTema(b.dataset.cor);
+      raiz.querySelectorAll('[data-cor]').forEach((x) => x.classList.toggle('on', x === b));
+    };
+  });
+}
+
 /* ---------------- casca ---------------- */
 function tabs() {
   const u = store.user;
@@ -1416,11 +1516,15 @@ function render() {
 
   root.innerHTML = `
     <header class="topbar">
-      <h1>${esc(v.titulo)}${v.sub ? `<span class="sub">${esc(v.sub)}</span>` : ''}</h1>
-      <!-- No desktop a coluna da esquerda já diz em que tela você está; o topo
-           passa a carregar o projeto, que é o que some da navegação. -->
-      <span class="topbar-proj">${esc(store.projeto?.nome || '')}</span>
-      <a class="avatar" href="#/mais" aria-label="Perfil">${esc(iniciais(store.user.nome))}</a>
+      <div class="topbar-l">
+        <h1>${esc(v.titulo)}${v.sub ? `<span class="sub">${esc(v.sub)}</span>` : ''}</h1>
+        <!-- No desktop a coluna da esquerda já diz em que tela você está; o topo
+             passa a carregar o projeto, que é o que some da navegação. -->
+        <span class="topbar-proj">${esc(store.projeto?.nome || '')}</span>
+        ${seletorTemaHTML()}
+        <a class="avatar" href="#/mais" aria-label="Perfil">${esc(iniciais(store.user.nome))}</a>
+      </div>
+      ${faixaHTML(store.user)}
     </header>
     <main></main>
     ${tabs()}`;
@@ -1428,6 +1532,8 @@ function render() {
   // Os blocos aparecem conforme sobem, e o topo encolhe quando a página anda.
   revelar(v.node);
   topoVivo(root);
+  ligarFaixa(root);
+  ligarSeletorTema(root);
 
   if (v.fab) {
     const b = el(`<button class="fab" aria-label="Adicionar">${v.fab.label}</button>`);
@@ -1755,7 +1861,7 @@ const APP = {
      preso numa versão e quem abre não tem como saber se está vendo a de ontem.
      O empacotador troca isto pela data e pelo commit reais; no servidor de
      módulos fica "dev", que também é uma informação. */
-  build: "2026-09-08 · 1a79eba"
+  build: "2026-09-08 · 24b5295"
 };
 
 const isRemote = () => Boolean(SUPABASE.url && SUPABASE.anonKey);
@@ -1981,6 +2087,151 @@ function dossieDaTarefa(t) {
 }
 
   return { abrirDossie, dossieDaTarefa };
+};
+
+__defs["js/faixa.js"] = function () {
+// A faixa que corre no alto da tela.
+//
+// Um letreiro de sala de cinema: o estado do job passando de lado, sem que
+// ninguém precise abrir nada. Só entra o que muda sozinho com o tempo — o que
+// é hoje, o que embarca, o que vence, o que falta. Nada de número decorativo:
+// se a linha não muda de um dia para o outro, ela não merece estar correndo.
+const { store, nomeMembro } = __req("js/store.js");
+const { can } = __req("js/perms.js");
+const { esc, fmtMoneyShort, fmtData, diasAte, hoje } = __req("js/utils.js");
+const { financeiro } = __req("js/calc.js");
+const { alertas } = __req("js/notify.js");
+const { paraCobrar } = __req("js/views/pedidosnf.js");
+const emDias = (d) => (d === 0 ? 'hoje' : d === 1 ? 'amanhã' : `em ${d} dias`);
+
+/** O que a faixa tem a dizer, na ordem em que importa. */
+function itensDaFaixa(u = store.user) {
+  const out = [];
+  const hj = hoje();
+  const add = (cor, olho, txt) => txt && out.push({ cor, olho, txt });
+
+  // O dia de hoje, se ele for alguma coisa.
+  const deHoje = store.doProjeto('eventos').filter((e) => e.data === hj);
+  for (const e of deHoje.slice(0, 2)) {
+    add('f3', 'hoje', [e.titulo, e.hora_inicio].filter(Boolean).join(' · '));
+  }
+
+  // A próxima viagem — e a que estiver rodando agora.
+  const vs = [...store.doProjeto('viagens')].sort((a, b) => String(a.ida).localeCompare(String(b.ida)));
+  const curso = vs.find((v) => v.ida <= hj && (v.volta || v.ida) >= hj);
+  if (curso) add('f2', 'em curso', `${curso.destino} · volta ${fmtData(curso.volta, { ano: false })}`);
+  const prox = vs.find((v) => v.ida > hj);
+  if (prox) add('f1', 'próxima viagem', `${prox.destino} · embarca ${emDias(diasAte(prox.ida))}`);
+
+  // A próxima diária de filmagem, que é o que a equipe realmente conta.
+  const diaria = store.doProjeto('eventos')
+    .filter((e) => e.tipo === 'diaria' && e.data > hj)
+    .sort((a, b) => String(a.data).localeCompare(String(b.data)))[0];
+  if (diaria) {
+    add('f1', 'próxima diária', `${diaria.titulo} · ${fmtData(diaria.data, { ano: false })}`
+      + (diaria.confirmado === false ? ' · a confirmar' : ''));
+  }
+
+  // O que está pegando fogo agora.
+  const al = alertas();
+  const urgentes = al.filter((a) => a.urg >= 3).length;
+  if (urgentes) add('f3', 'urgente', `${urgentes} ${urgentes === 1 ? 'coisa' : 'coisas'} para resolver hoje`);
+
+  // Nota fiscal que não chega trava pagamento.
+  if (can(u, 'contas.ver')) {
+    const nf = paraCobrar().length;
+    if (nf) add('f3', 'nota fiscal', `${nf} ${nf === 1 ? 'nota atrasada' : 'notas atrasadas'} para cobrar`);
+    const vencidas = store.doProjeto('contas')
+      .filter((c) => c.status === 'aberto' && c.tipo === 'pagar' && (diasAte(c.venc) ?? 9) < 0);
+    if (vencidas.length) {
+      add('f3', 'vencido',
+        `${vencidas.length} ${vencidas.length === 1 ? 'conta vencida' : 'contas vencidas'}`);
+    }
+  }
+
+  // A próxima entrega ao cliente.
+  const ent = store.doProjeto('entregas')
+    .filter((e) => e.status !== 'entregue' && e.prazo)
+    .sort((a, b) => String(a.prazo).localeCompare(String(b.prazo)))[0];
+  if (ent) add('f4', 'próxima entrega', `${ent.titulo} · ${emDias(diasAte(ent.prazo))}`);
+
+  // Onde o contrato está no tempo.
+  const ctr = store.doProjeto('contratos').find((c) => c.tipo === 'cliente');
+  const p = store.projeto || {};
+  const de = ctr?.assinado_em || p.inicio;
+  const ate = ctr?.prazo_entrega || p.entrega;
+  if (de && ate) {
+    const total = Math.max(1, (new Date(ate) - new Date(de)) / 86400000);
+    const andado = Math.round(Math.max(0, Math.min(1, (new Date(hj) - new Date(de)) / 86400000 / total)) * 100);
+    add('f5', 'contrato', `${andado}% do prazo · entrega ${fmtData(ate, { ano: false })}`);
+  }
+
+  // O dinheiro entra por último e só para quem pode ver.
+  if (can(u, 'orcamento.ver')) {
+    const f = financeiro();
+    add('f5', 'orçamento', `${fmtMoneyShort(f.comprometido)} de ${fmtMoneyShort(f.orcado)} comprometidos`);
+  }
+
+  // Quem está de viagem marcada nos próximos dias.
+  const emBreve = vs.find((v) => (diasAte(v.ida) ?? 99) >= 0 && (diasAte(v.ida) ?? 99) <= 7);
+  if (emBreve && (emBreve.participantes || []).length) {
+    add('f4', 'quem vai', emBreve.participantes.map(nomeMembro).join(', '));
+  }
+
+  return out;
+}
+
+/* O trilho aparece duas vezes: quando a primeira cópia termina de sair pela
+   esquerda, a segunda já está no lugar dela e o laço não tem emenda. */
+function faixaHTML(u = store.user) {
+  const itens = itensDaFaixa(u);
+  if (!itens.length) return '';
+  const bloco = itens.map((i) => `<span class="fx-i ${i.cor}">
+    <i class="fx-o">${esc(i.olho)}</i>${esc(i.txt)}</span>`).join('');
+  return `<div class="faixa" data-faixa aria-label="Estado do projeto">
+    <div class="fx-trilho" data-fx-trilho>
+      <div class="fx-copia">${bloco}</div>
+      <div class="fx-copia" aria-hidden="true">${bloco}</div>
+    </div>
+  </div>`;
+}
+
+/**
+ * Põe a faixa para correr. A duração sai da largura real do conteúdo, para a
+ * velocidade ficar a mesma tenha ela três itens ou doze — senão, faixa curta
+ * dispara e faixa longa se arrasta.
+ */
+function ligarFaixa(raiz) {
+  const faixa = raiz.querySelector('[data-faixa]');
+  const trilho = raiz.querySelector('[data-fx-trilho]');
+  if (!faixa || !trilho) return;
+
+  const medir = () => {
+    const copia = trilho.querySelector('.fx-copia');
+    if (!copia) return;
+    const larg = copia.scrollWidth;
+    if (!larg) return;
+    const VELOCIDADE = 42;                       // pixels por segundo
+    trilho.style.setProperty('--percurso', `-${larg}px`);
+    trilho.style.setProperty('--tempo', `${Math.max(18, larg / VELOCIDADE)}s`);
+    faixa.classList.add('correndo');
+  };
+  requestAnimationFrame(medir);
+  new ResizeObserver(medir).observe(faixa);
+
+  // Segurar o dedo em cima para. É o único jeito de ler uma linha inteira num
+  // letreiro que anda.
+  const parar = () => faixa.classList.add('parada');
+  const seguir = () => faixa.classList.remove('parada');
+  faixa.addEventListener('pointerdown', parar);
+  faixa.addEventListener('pointerup', seguir);
+  faixa.addEventListener('pointercancel', seguir);
+  faixa.addEventListener('pointerleave', seguir);
+  faixa.addEventListener('mouseenter', parar);
+  faixa.addEventListener('mouseleave', seguir);
+}
+
+  return { itensDaFaixa, faixaHTML, ligarFaixa };
 };
 
 __defs["js/files.js"] = function () {
@@ -2351,11 +2602,60 @@ function zoomPara(svg, cidade, z = 2.8) {
   svg.classList.add('perto');
 }
 
+/* ---------------------------------------------------- os arredores ---------
+   De perto, o mapa passa a mostrar o que interessa a quem vai: onde se pousa,
+   quanto tem de estrada até a escola e quanto tempo. É desenhado só quando o
+   zoom entra, porque num país inteiro isso vira sujeira.
+
+   @param {SVGElement} svg
+   @param {object} d  { cidade, aeroporto, km, tempo } — vazio limpa a camada
+*/
+function detalharCidade(svg, d) {
+  if (!svg) return;
+  const mundo = svg.querySelector('[data-mundo]');
+  if (!mundo) return;
+  mundo.querySelector('.geo-arred')?.remove();
+  if (!d?.cidade || !d.aeroporto) return;
+
+  const larg = Number(svg.dataset.larg) || 0;
+  const alt = Number(svg.dataset.alt) || 0;
+  const a = coord(d.cidade), b = coord(d.aeroporto);
+  if (!a || !b) return;
+  const P = (c) => projetar(c[0], c[1], larg, alt);
+  const [x1, y1] = P(a);
+  const [x2, y2] = P(b);
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+  // Trinta quilômetros num mapa do Brasil são dois pixels: Porto Alegre cai em
+  // cima de Gravataí. Quando isso acontece, o rótulo do aeroporto desce e a
+  // distância sai do desenho — ela continua escrita ao lado, por extenso.
+  const perto = Math.hypot(x2 - x1, y2 - y1) < 42;
+  const rotulo = perto ? '' : [d.km ? `${d.km} km` : '', d.tempo].filter(Boolean).join(' · ');
+
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  g.setAttribute('class', 'geo-arred');
+  g.innerHTML = `
+    ${perto ? '' : `<line class="geo-estrada" x1="${x2.toFixed(1)}" y1="${y2.toFixed(1)}"
+      x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}"/>`}
+    <g class="geo-p aero" transform="translate(${x2.toFixed(1)} ${y2.toFixed(1)})">
+      <g class="geo-p-in">
+        <path class="geo-aero" d="M-5 1.5 L5.5 -2.5 L4 1.4 a1.7 1.7 0 0 1-1.1 1L-1 3.5 -2 4.9 -2.8 2.4z"/>
+        <text class="geo-n aero" x="${perto ? 0 : 8}" y="${perto ? 16 : 3.4}"
+          text-anchor="${perto ? 'middle' : 'start'}">${esc(curto(d.aeroporto))}${
+          d.sigla ? ' · ' + esc(d.sigla) : ''}${
+          perto && d.km ? ` · ${d.km} km` : ''}</text>
+      </g>
+    </g>
+    ${rotulo ? `<g class="geo-p" transform="translate(${mx.toFixed(1)} ${my.toFixed(1)})">
+      <g class="geo-p-in"><text class="geo-km" text-anchor="middle" y="-6">${esc(rotulo)}</text></g>
+    </g>` : ''}`;
+  mundo.appendChild(g);
+}
+
 /* Aspas dentro de um atributo quebram o SVG inteiro. */
 const esc = (t) => String(t == null ? '' : t)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 
-  return { CIDADES, coord, curto, brasilSVG, zoomPara };
+  return { CIDADES, coord, curto, brasilSVG, zoomPara, detalharCidade };
 };
 
 __defs["js/mapaviagens.js"] = function () {
@@ -2366,7 +2666,7 @@ __defs["js/mapaviagens.js"] = function () {
 // na viagem aproxima o mapa. Como isso vale no painel e na aba de viagens, mora
 // aqui em vez de existir duas vezes.
 const { store } = __req("js/store.js");
-const { brasilSVG, coord, zoomPara } = __req("js/geo.js");
+const { brasilSVG, coord, zoomPara, detalharCidade, curto } = __req("js/geo.js");
 const { hoje } = __req("js/utils.js");
 /* A cidade de uma viagem, com o estado no fim. O "(PA)" fica: é ele que salva
    quando a cidade não está no mapa de coordenadas — e era exatamente isso que
@@ -2418,7 +2718,10 @@ function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null, aoAcender = n
     // Aproximação de leve: 1,55× já separa Gravataí de Porto Alegre sem jogar o
     // contorno do país para fora da tela — que é o que faria o zoom deixar de
     // dizer onde a cidade fica.
-    zoomPara(svg(), acesa, 1.55);
+    // De perto o mapa mostra os arredores: onde se pousa e quanta estrada
+    // falta até a escola. Sai da locação, não de um palpite.
+    zoomPara(svg(), acesa, 2.1);
+    detalharCidade(svg(), acesa ? arredoresDe(acesa) : null);
     const b = botao();
     if (b) b.hidden = !acesa;
     node.querySelectorAll('[data-viagem]').forEach((n) => {
@@ -2436,6 +2739,15 @@ function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null, aoAcender = n
   };
 
   const idPorCidade = (c) => vs.find((v) => cidadeDaViagem(v) === c)?.id || null;
+
+  /* A locação daquela cidade, que é quem sabe o aeroporto e a distância. */
+  const arredoresDe = (cidade) => {
+    const nu = curto(cidade);
+    const l = store.doProjeto('locacoes')
+      .find((x) => curto(x.cidade) === nu || nu.includes(curto(x.cidade)));
+    if (!l?.aeroporto) return null;
+    return { cidade, aeroporto: l.aeroporto, sigla: l.aeroporto_sigla, km: l.km, tempo: l.tempo };
+  };
 
   function ligarPinos() {
     svg()?.querySelectorAll('.geo-p').forEach((g) => {
@@ -3579,7 +3891,7 @@ const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-const SEED_VERSAO = 18;
+const SEED_VERSAO = 19;
 
 const PESSOAS = [
   {
@@ -3661,27 +3973,38 @@ const CONTATOS = [
   ['Sr. Tucum', 'Apoio local', 'Fazenda Canuanã (TO)', '', 'fornecedor', 'Tel (63) 98445-9166.']
 ];
 
+/* As seis escolas. O que estava em texto corrido — aeroporto, distância, quem
+   recebe, onde se dorme — virou campo: é o que o mapa precisa para mostrar os
+   arredores de cada cidade sem alguém ter que ler um parágrafo.
+   [nome, cidade, uf, endereço, aeroporto, sigla, km, tempo, fotógrafo, apoio,
+    hospedagem, obs] */
 const LOCACOES = [
   ['Escola Fundação Bradesco — Conceição do Araguaia', 'Conceição do Araguaia', 'PA',
-    'Av. Couto Magalhães, 2165 — Setor Universitário. Fotógrafa: Elza Lima. '
-    + 'Aeroporto de referência: Palmas (PMW), 395 km / 5h07. Apoio: Sr. Edson e Sr. Neto.'],
+    'Av. Couto Magalhães, 2165 — Setor Universitário',
+    'Palmas', 'PMW', 395, '5h07', 'Elza Lima', 'Sr. Edson e Sr. Neto', '',
+    'Carro Movida retirado em Palmas.'],
   ['Escola Fundação Bradesco — Jaboatão', 'Jaboatão dos Guararapes', 'PE',
-    'Rua Manoel Carneiro Leão, 1457 — Dois Carneiros. Fotógrafo: Ntí Uirá. '
-    + 'Aeroporto: Recife (REC). Deslocamento por Uber/99 ou carro alugado.'],
+    'Rua Manoel Carneiro Leão, 1457 — Dois Carneiros',
+    'Recife', 'REC', 20, '35min', 'Ntí Uirá', '', 'Rede Andrade LG Inn — Boa Viagem',
+    'Deslocamento por Uber/99 ou carro alugado.'],
   ['Escola Fundação Bradesco — Gravataí', 'Gravataí', 'RS',
-    'Rua Aristides D’Avila, 390 — Parque dos Anjos. Fotógrafo: Renato Parada. '
-    + 'Aeroporto: Porto Alegre (POA), 30 km. A planilha e a carta-orçamento escrevem "Gravataí - PR"; '
-    + 'o contrato (cláusula 2.2) traz Gravataí/RS, que é o correto.'],
+    'Rua Aristides D\u2019Avila, 390 — Parque dos Anjos',
+    'Porto Alegre', 'POA', 30, '40min', 'Renato Parada', '', '',
+    'A planilha e a carta-orçamento escrevem "Gravataí - PR"; o contrato '
+    + '(cláusula 2.2) traz Gravataí/RS, que é o correto.'],
   ['Escola Fundação Bradesco — Bodoquena', 'Bodoquena', 'MS',
-    'Rodovia BR-262, Estação Guaycurus — Fazenda Bodoquena, município de Miranda/MS. '
-    + 'Fotógrafo: Pedro Kok. Aeroporto: Campo Grande (CGR), 250–265 km / 3h38. Taxista: Sr. Paulo. '
-    + 'Datas confirmadas pela Fundação.'],
+    'Rodovia BR-262, Estação Guaycurus — Fazenda Bodoquena, município de Miranda/MS',
+    'Campo Grande', 'CGR', 258, '3h38', 'Pedro Kok', 'Sr. Paulo (taxista)', '',
+    'Datas confirmadas pela Fundação.'],
   ['Escola Fundação Bradesco — Fazenda Canuanã', 'Formoso do Araguaia', 'TO',
-    'Fazenda Canuanã, s/n. Fotógrafa: Mariana Valente. Aeroporto: Palmas (PMW), 330 km / 4h16. '
-    + 'Apoio: Sr. Tucum. Datas confirmadas. A equipe fica hospedada na própria Fundação, sem custo.'],
+    'Fazenda Canuanã, s/n',
+    'Palmas', 'PMW', 330, '4h16', 'Mariana Valente', 'Sr. Tucum',
+    'Alojamento da própria Fundação — sem custo',
+    'Datas confirmadas.'],
   ['Escola Fundação Bradesco — Osasco', 'Osasco', 'SP',
-    'Núcleo Administrativo Cidade de Deus, sede da Fundação. Fotógrafo: Fábio Bartelt. '
-    + 'Data ainda não confirmada pela Fundação.']
+    'Núcleo Administrativo Cidade de Deus — sede da Fundação',
+    '', '', 0, '', 'Fábio Bartelt', '', '',
+    'Sem voo, só carro. Data ainda não confirmada pela Fundação.']
 ];
 
 // Orçamento na estrutura da planilha (abas "mavi + profissionais" e "custo viagem ").
@@ -4116,10 +4439,17 @@ async function criarProjetoBradesco(existente = null) {
   }
 
   /* locações */
-  for (const [nome, cidade, uf, obs] of LOCACOES) {
+  for (const [nome, cidade, uf, endereco, aeroporto, sigla, km, tempo,
+    fotografo, apoio, hospedagem, obs] of LOCACOES) {
     await ins('locacoes', 'loc:' + cidade, {
-      nome, cidade, uf, endereco: '', contato: '', telefone: '',
+      nome, cidade, uf, endereco, contato: fotografo, telefone: '',
+      aeroporto, aeroporto_sigla: sigla, km, tempo, apoio, hospedagem,
       valor_cents: 0, autorizacao: 'pendente', horario: '', obs
+    });
+    // Quem já tinha a locação de antes não perde nada, mas ganha os campos
+    // novos: eles não existiam quando o registro nasceu.
+    await corrigir('locacoes', 'loc:' + cidade, {
+      endereco, aeroporto, aeroporto_sigla: sigla, km, tempo, apoio, hospedagem
     });
   }
 
@@ -7738,6 +8068,30 @@ function etapasDaFase(k, etapas) {
   </div>`;
 }
 
+/* O que interessa a quem vai: onde pousa, quanta estrada, onde dorme, quem
+   recebe. Tudo isto já estava no cadastro da locação, preso em texto corrido. */
+function arredoresHTML(v) {
+  const alvo = cidadeDaViagem(v).replace(/\s*\([A-Z]{2}\)\s*$/, '').trim();
+  const l = store.doProjeto('locacoes')
+    .find((x) => x.cidade === alvo || alvo.includes(x.cidade) || x.cidade.includes(alvo));
+  if (!l) return '';
+  const linhas = [
+    l.aeroporto && ['Pousa em', `${l.aeroporto}${l.aeroporto_sigla ? ` (${l.aeroporto_sigla})` : ''}`
+      + (l.km ? ` · ${l.km} km` : '') + (l.tempo ? ` · ${l.tempo}` : '')],
+    l.hospedagem && ['Dorme em', l.hospedagem],
+    l.apoio && ['Quem recebe', l.apoio],
+    l.contato && ['Fotógrafo', l.contato],
+    l.endereco && ['Endereço', l.endereco]
+  ].filter(Boolean);
+  if (!linhas.length) return '';
+  return `<div class="mesa-arred">
+    <div class="olho-txt">Os arredores</div>
+    ${linhas.map(([k, t]) => `<div class="mesa-a">
+      <span class="mesa-a-k">${esc(k)}</span><span class="mesa-a-v">${esc(t)}</span>
+    </div>`).join('')}
+  </div>`;
+}
+
 /* ------------------------------------------------------------------ mapa ---
    O mapa e as viagens são a mesma coisa vista de dois jeitos: o desenho diz
    onde, a lista diz quando e com o quê. Por isso moram juntos e conversam —
@@ -7787,6 +8141,7 @@ function ladoHTML(v) {
       <div class="mesa-s">${esc(fmtData(v.ida, { ano: false }))} → ${esc(fmtData(v.volta || v.ida, { ano: false }))}
         <span class="ponto"></span> ${esc(emCurso ? 'em curso' : quandoTxt(v, hj))}</div>
     </div>
+    ${arredoresHTML(v)}
     ${pend.length ? `<div class="mesa-lista">
       ${pend.slice(0, 5).map((x) => `<div class="mesa-p">
         <span class="mesa-p-g">

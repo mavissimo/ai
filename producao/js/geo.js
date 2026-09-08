@@ -285,6 +285,55 @@ export function zoomPara(svg, cidade, z = 2.8) {
   svg.classList.add('perto');
 }
 
+/* ---------------------------------------------------- os arredores ---------
+   De perto, o mapa passa a mostrar o que interessa a quem vai: onde se pousa,
+   quanto tem de estrada até a escola e quanto tempo. É desenhado só quando o
+   zoom entra, porque num país inteiro isso vira sujeira.
+
+   @param {SVGElement} svg
+   @param {object} d  { cidade, aeroporto, km, tempo } — vazio limpa a camada
+*/
+export function detalharCidade(svg, d) {
+  if (!svg) return;
+  const mundo = svg.querySelector('[data-mundo]');
+  if (!mundo) return;
+  mundo.querySelector('.geo-arred')?.remove();
+  if (!d?.cidade || !d.aeroporto) return;
+
+  const larg = Number(svg.dataset.larg) || 0;
+  const alt = Number(svg.dataset.alt) || 0;
+  const a = coord(d.cidade), b = coord(d.aeroporto);
+  if (!a || !b) return;
+  const P = (c) => projetar(c[0], c[1], larg, alt);
+  const [x1, y1] = P(a);
+  const [x2, y2] = P(b);
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+  // Trinta quilômetros num mapa do Brasil são dois pixels: Porto Alegre cai em
+  // cima de Gravataí. Quando isso acontece, o rótulo do aeroporto desce e a
+  // distância sai do desenho — ela continua escrita ao lado, por extenso.
+  const perto = Math.hypot(x2 - x1, y2 - y1) < 42;
+  const rotulo = perto ? '' : [d.km ? `${d.km} km` : '', d.tempo].filter(Boolean).join(' · ');
+
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  g.setAttribute('class', 'geo-arred');
+  g.innerHTML = `
+    ${perto ? '' : `<line class="geo-estrada" x1="${x2.toFixed(1)}" y1="${y2.toFixed(1)}"
+      x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}"/>`}
+    <g class="geo-p aero" transform="translate(${x2.toFixed(1)} ${y2.toFixed(1)})">
+      <g class="geo-p-in">
+        <path class="geo-aero" d="M-5 1.5 L5.5 -2.5 L4 1.4 a1.7 1.7 0 0 1-1.1 1L-1 3.5 -2 4.9 -2.8 2.4z"/>
+        <text class="geo-n aero" x="${perto ? 0 : 8}" y="${perto ? 16 : 3.4}"
+          text-anchor="${perto ? 'middle' : 'start'}">${esc(curto(d.aeroporto))}${
+          d.sigla ? ' · ' + esc(d.sigla) : ''}${
+          perto && d.km ? ` · ${d.km} km` : ''}</text>
+      </g>
+    </g>
+    ${rotulo ? `<g class="geo-p" transform="translate(${mx.toFixed(1)} ${my.toFixed(1)})">
+      <g class="geo-p-in"><text class="geo-km" text-anchor="middle" y="-6">${esc(rotulo)}</text></g>
+    </g>` : ''}`;
+  mundo.appendChild(g);
+}
+
 /* Aspas dentro de um atributo quebram o SVG inteiro. */
 const esc = (t) => String(t == null ? '' : t)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');

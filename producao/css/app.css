@@ -1032,3 +1032,72 @@ main{animation:tela var(--t-med) var(--e-entra)}
   text-transform:uppercase;color:var(--tx3);border:1px solid var(--line);border-radius:3px;
   padding:3px 6px}
 .ag-q-cab:active .ag-q-e{background:var(--bg3)}
+
+/* ============================================================================
+   A faixa do topo. Um letreiro de sala de cinema com o estado do job passando
+   de lado: o que é hoje, o que embarca, o que vence, o que falta. Só entra o
+   que muda sozinho com o tempo — número que não muda de um dia para o outro
+   não merece estar correndo.
+   ========================================================================= */
+.topbar{flex-direction:column;align-items:stretch;gap:0;padding-bottom:0}
+.topbar-l{display:flex;align-items:center;gap:10px;padding-bottom:8px}
+.topbar-l h1{flex:1}
+
+.faixa{position:relative;overflow:hidden;border-top:1px solid var(--line);
+  margin:0 -14px;padding:6px 0;-webkit-mask-image:linear-gradient(90deg,
+    transparent,#000 22px,#000 calc(100% - 22px),transparent)}
+.fx-trilho{display:flex;width:max-content}
+.faixa.correndo .fx-trilho{animation:fx var(--tempo,40s) linear infinite}
+.faixa.parada .fx-trilho{animation-play-state:paused}
+@keyframes fx{to{transform:translateX(var(--percurso,-100%))}}
+.fx-copia{display:flex;flex:none;align-items:center}
+.fx-i{display:inline-flex;align-items:baseline;gap:7px;padding:0 var(--s4);
+  font-size:11.5px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;color:var(--tx2);
+  border-right:1px solid var(--line)}
+.fx-o{font-family:var(--mono);font-size:8.5px;font-style:normal;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--cor,var(--tx3))}
+.fx-i.f1{--cor:var(--f1)} .fx-i.f2{--cor:var(--f2)} .fx-i.f3{--cor:var(--f3)}
+.fx-i.f4{--cor:var(--f4)} .fx-i.f5{--cor:var(--f5)}
+.fx-i.f3{color:var(--tx)}
+@media (prefers-reduced-motion: reduce){
+  /* Sem movimento a faixa vira uma tira que se rola com o dedo, e a segunda
+     cópia sai de cena — ela só existia para o laço não ter emenda. */
+  .faixa{overflow-x:auto;scrollbar-width:none}
+  .faixa::-webkit-scrollbar{display:none}
+  .faixa .fx-trilho{animation:none}
+  .faixa .fx-copia:last-child{display:none}
+}
+
+/* o seletor de cor, ao lado do avatar */
+.tema-sel{display:flex;flex:none;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.tema-b{width:28px;height:28px;display:grid;place-items:center;border:0;background:transparent;
+  color:var(--tx3);cursor:pointer;padding:0}
+.tema-b + .tema-b{border-left:1px solid var(--line)}
+.tema-b svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round}
+.tema-b.on{background:var(--bg3);color:var(--tx)}
+.tema-b:active{background:var(--line)}
+
+/* Ao rolar, o topo encolhe mas a faixa continua: ela é o que se quer ver. */
+.topbar.rolou .topbar-l{padding-bottom:5px}
+@media (min-width:900px){
+  .topbar{padding:14px 28px 0}
+  .topbar-l{padding-bottom:10px}
+  .faixa{margin:0 -28px}
+}
+
+/* de perto, o mapa mostra onde se pousa e quanta estrada falta */
+.geo-arred{opacity:0;transition:opacity var(--t-norm) var(--e-pad) .18s;pointer-events:none}
+.geo.perto .geo-arred{opacity:1}
+.geo-estrada{stroke:var(--tx3);stroke-width:1.2;stroke-dasharray:5 3;opacity:.7;
+  vector-effect:non-scaling-stroke}
+.geo-aero{fill:var(--tx2);stroke:none}
+.geo-n.aero{fill:var(--tx3)}
+.geo-km{fill:var(--tx2);font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;
+  text-transform:uppercase}
+.mesa-arred{padding:var(--s3) 0;border-bottom:1px solid var(--line)}
+.mesa-arred .olho-txt{margin-bottom:var(--s2)}
+.mesa-a{display:flex;gap:var(--s3);padding:3px 0;font-size:12.5px;line-height:1.45}
+.mesa-a-k{flex:none;width:82px;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--tx3);padding-top:3px}
+.mesa-a-v{flex:1;min-width:0;color:var(--tx2)}

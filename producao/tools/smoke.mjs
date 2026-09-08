@@ -70,6 +70,12 @@ await passo('backup abre para copiar', async()=>{
   if(!await p.locator('.sheet [data-json]').count()) throw new Error('sem folha de backup'); });
 // o painel: capa, caminho das fases e mapa
 await p.evaluate(()=>location.hash='#/'); await p.waitForTimeout(1400);
+await passo('faixa do topo corre', async()=>{
+  const n = await p.locator('.fx-copia').first().locator('.fx-i').count();
+  if (n < 4) throw new Error('só '+n+' itens');
+  if (!await p.locator('.faixa.correndo').count()) throw new Error('parada'); });
+await passo('cor no topo', async()=>{
+  if (await p.locator('[data-cor]').count() !== 3) throw new Error('sem os três'); });
 await passo('painel: linha do contrato', async()=>{
   if(!await p.locator('.pl-hoje').count()) throw new Error('sem linha'); });
 await passo('painel: caminho das fases', async()=>{
@@ -165,6 +171,9 @@ await p.waitForTimeout(700);
 await passo('tocar na viagem aproxima o mapa', async()=>{
   if(!await p.locator('.geo.perto').count()) throw new Error('não aproximou');
   if(!await p.locator('[data-volta]:not([hidden])').count()) throw new Error('sem volta'); });
+await passo('de perto aparecem os arredores', async()=>{
+  if(!await p.locator('.geo-arred').count()) throw new Error('sem aeroporto no mapa');
+  if(!await p.locator('.mesa-arred').count()) throw new Error('sem arredores na coluna'); });
 await p.evaluate(()=>document.querySelector('[data-volta]').click()); await p.waitForTimeout(600);
 await passo('voltar ao país', async()=>{
   if(await p.locator('.geo.perto').count()) throw new Error('continuou perto'); });

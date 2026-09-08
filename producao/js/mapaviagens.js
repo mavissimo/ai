@@ -5,7 +5,7 @@
 // na viagem aproxima o mapa. Como isso vale no painel e na aba de viagens, mora
 // aqui em vez de existir duas vezes.
 import { store } from './store.js';
-import { brasilSVG, coord, zoomPara } from './geo.js';
+import { brasilSVG, coord, zoomPara, detalharCidade, curto } from './geo.js';
 import { hoje } from './utils.js';
 
 /* A cidade de uma viagem, com o estado no fim. O "(PA)" fica: é ele que salva
@@ -58,7 +58,10 @@ export function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null, aoAcen
     // Aproximação de leve: 1,55× já separa Gravataí de Porto Alegre sem jogar o
     // contorno do país para fora da tela — que é o que faria o zoom deixar de
     // dizer onde a cidade fica.
-    zoomPara(svg(), acesa, 1.55);
+    // De perto o mapa mostra os arredores: onde se pousa e quanta estrada
+    // falta até a escola. Sai da locação, não de um palpite.
+    zoomPara(svg(), acesa, 2.1);
+    detalharCidade(svg(), acesa ? arredoresDe(acesa) : null);
     const b = botao();
     if (b) b.hidden = !acesa;
     node.querySelectorAll('[data-viagem]').forEach((n) => {
@@ -76,6 +79,15 @@ export function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null, aoAcen
   };
 
   const idPorCidade = (c) => vs.find((v) => cidadeDaViagem(v) === c)?.id || null;
+
+  /* A locação daquela cidade, que é quem sabe o aeroporto e a distância. */
+  const arredoresDe = (cidade) => {
+    const nu = curto(cidade);
+    const l = store.doProjeto('locacoes')
+      .find((x) => curto(x.cidade) === nu || nu.includes(curto(x.cidade)));
+    if (!l?.aeroporto) return null;
+    return { cidade, aeroporto: l.aeroporto, sigla: l.aeroporto_sigla, km: l.km, tempo: l.tempo };
+  };
 
   function ligarPinos() {
     svg()?.querySelectorAll('.geo-p').forEach((g) => {

@@ -14,7 +14,7 @@ const M = parseMoney;
 
 // Sobe a cada mudança na carga inicial. O app compara com o que está gravado
 // e oferece recarregar quando ficou para trás.
-export const SEED_VERSAO = 18;
+export const SEED_VERSAO = 19;
 
 const PESSOAS = [
   {
@@ -96,27 +96,38 @@ const CONTATOS = [
   ['Sr. Tucum', 'Apoio local', 'Fazenda Canuanã (TO)', '', 'fornecedor', 'Tel (63) 98445-9166.']
 ];
 
+/* As seis escolas. O que estava em texto corrido — aeroporto, distância, quem
+   recebe, onde se dorme — virou campo: é o que o mapa precisa para mostrar os
+   arredores de cada cidade sem alguém ter que ler um parágrafo.
+   [nome, cidade, uf, endereço, aeroporto, sigla, km, tempo, fotógrafo, apoio,
+    hospedagem, obs] */
 const LOCACOES = [
   ['Escola Fundação Bradesco — Conceição do Araguaia', 'Conceição do Araguaia', 'PA',
-    'Av. Couto Magalhães, 2165 — Setor Universitário. Fotógrafa: Elza Lima. '
-    + 'Aeroporto de referência: Palmas (PMW), 395 km / 5h07. Apoio: Sr. Edson e Sr. Neto.'],
+    'Av. Couto Magalhães, 2165 — Setor Universitário',
+    'Palmas', 'PMW', 395, '5h07', 'Elza Lima', 'Sr. Edson e Sr. Neto', '',
+    'Carro Movida retirado em Palmas.'],
   ['Escola Fundação Bradesco — Jaboatão', 'Jaboatão dos Guararapes', 'PE',
-    'Rua Manoel Carneiro Leão, 1457 — Dois Carneiros. Fotógrafo: Ntí Uirá. '
-    + 'Aeroporto: Recife (REC). Deslocamento por Uber/99 ou carro alugado.'],
+    'Rua Manoel Carneiro Leão, 1457 — Dois Carneiros',
+    'Recife', 'REC', 20, '35min', 'Ntí Uirá', '', 'Rede Andrade LG Inn — Boa Viagem',
+    'Deslocamento por Uber/99 ou carro alugado.'],
   ['Escola Fundação Bradesco — Gravataí', 'Gravataí', 'RS',
-    'Rua Aristides D’Avila, 390 — Parque dos Anjos. Fotógrafo: Renato Parada. '
-    + 'Aeroporto: Porto Alegre (POA), 30 km. A planilha e a carta-orçamento escrevem "Gravataí - PR"; '
-    + 'o contrato (cláusula 2.2) traz Gravataí/RS, que é o correto.'],
+    'Rua Aristides D\u2019Avila, 390 — Parque dos Anjos',
+    'Porto Alegre', 'POA', 30, '40min', 'Renato Parada', '', '',
+    'A planilha e a carta-orçamento escrevem "Gravataí - PR"; o contrato '
+    + '(cláusula 2.2) traz Gravataí/RS, que é o correto.'],
   ['Escola Fundação Bradesco — Bodoquena', 'Bodoquena', 'MS',
-    'Rodovia BR-262, Estação Guaycurus — Fazenda Bodoquena, município de Miranda/MS. '
-    + 'Fotógrafo: Pedro Kok. Aeroporto: Campo Grande (CGR), 250–265 km / 3h38. Taxista: Sr. Paulo. '
-    + 'Datas confirmadas pela Fundação.'],
+    'Rodovia BR-262, Estação Guaycurus — Fazenda Bodoquena, município de Miranda/MS',
+    'Campo Grande', 'CGR', 258, '3h38', 'Pedro Kok', 'Sr. Paulo (taxista)', '',
+    'Datas confirmadas pela Fundação.'],
   ['Escola Fundação Bradesco — Fazenda Canuanã', 'Formoso do Araguaia', 'TO',
-    'Fazenda Canuanã, s/n. Fotógrafa: Mariana Valente. Aeroporto: Palmas (PMW), 330 km / 4h16. '
-    + 'Apoio: Sr. Tucum. Datas confirmadas. A equipe fica hospedada na própria Fundação, sem custo.'],
+    'Fazenda Canuanã, s/n',
+    'Palmas', 'PMW', 330, '4h16', 'Mariana Valente', 'Sr. Tucum',
+    'Alojamento da própria Fundação — sem custo',
+    'Datas confirmadas.'],
   ['Escola Fundação Bradesco — Osasco', 'Osasco', 'SP',
-    'Núcleo Administrativo Cidade de Deus, sede da Fundação. Fotógrafo: Fábio Bartelt. '
-    + 'Data ainda não confirmada pela Fundação.']
+    'Núcleo Administrativo Cidade de Deus — sede da Fundação',
+    '', '', 0, '', 'Fábio Bartelt', '', '',
+    'Sem voo, só carro. Data ainda não confirmada pela Fundação.']
 ];
 
 // Orçamento na estrutura da planilha (abas "mavi + profissionais" e "custo viagem ").
@@ -551,10 +562,17 @@ export async function criarProjetoBradesco(existente = null) {
   }
 
   /* locações */
-  for (const [nome, cidade, uf, obs] of LOCACOES) {
+  for (const [nome, cidade, uf, endereco, aeroporto, sigla, km, tempo,
+    fotografo, apoio, hospedagem, obs] of LOCACOES) {
     await ins('locacoes', 'loc:' + cidade, {
-      nome, cidade, uf, endereco: '', contato: '', telefone: '',
+      nome, cidade, uf, endereco, contato: fotografo, telefone: '',
+      aeroporto, aeroporto_sigla: sigla, km, tempo, apoio, hospedagem,
       valor_cents: 0, autorizacao: 'pendente', horario: '', obs
+    });
+    // Quem já tinha a locação de antes não perde nada, mas ganha os campos
+    // novos: eles não existiam quando o registro nasceu.
+    await corrigir('locacoes', 'loc:' + cidade, {
+      endereco, aeroporto, aeroporto_sigla: sigla, km, tempo, apoio, hospedagem
     });
   }
 

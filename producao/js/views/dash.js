@@ -189,6 +189,30 @@ function etapasDaFase(k, etapas) {
   </div>`;
 }
 
+/* O que interessa a quem vai: onde pousa, quanta estrada, onde dorme, quem
+   recebe. Tudo isto já estava no cadastro da locação, preso em texto corrido. */
+function arredoresHTML(v) {
+  const alvo = cidadeDaViagem(v).replace(/\s*\([A-Z]{2}\)\s*$/, '').trim();
+  const l = store.doProjeto('locacoes')
+    .find((x) => x.cidade === alvo || alvo.includes(x.cidade) || x.cidade.includes(alvo));
+  if (!l) return '';
+  const linhas = [
+    l.aeroporto && ['Pousa em', `${l.aeroporto}${l.aeroporto_sigla ? ` (${l.aeroporto_sigla})` : ''}`
+      + (l.km ? ` · ${l.km} km` : '') + (l.tempo ? ` · ${l.tempo}` : '')],
+    l.hospedagem && ['Dorme em', l.hospedagem],
+    l.apoio && ['Quem recebe', l.apoio],
+    l.contato && ['Fotógrafo', l.contato],
+    l.endereco && ['Endereço', l.endereco]
+  ].filter(Boolean);
+  if (!linhas.length) return '';
+  return `<div class="mesa-arred">
+    <div class="olho-txt">Os arredores</div>
+    ${linhas.map(([k, t]) => `<div class="mesa-a">
+      <span class="mesa-a-k">${esc(k)}</span><span class="mesa-a-v">${esc(t)}</span>
+    </div>`).join('')}
+  </div>`;
+}
+
 /* ------------------------------------------------------------------ mapa ---
    O mapa e as viagens são a mesma coisa vista de dois jeitos: o desenho diz
    onde, a lista diz quando e com o quê. Por isso moram juntos e conversam —
@@ -238,6 +262,7 @@ function ladoHTML(v) {
       <div class="mesa-s">${esc(fmtData(v.ida, { ano: false }))} → ${esc(fmtData(v.volta || v.ida, { ano: false }))}
         <span class="ponto"></span> ${esc(emCurso ? 'em curso' : quandoTxt(v, hj))}</div>
     </div>
+    ${arredoresHTML(v)}
     ${pend.length ? `<div class="mesa-lista">
       ${pend.slice(0, 5).map((x) => `<div class="mesa-p">
         <span class="mesa-p-g">

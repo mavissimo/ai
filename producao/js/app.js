@@ -10,6 +10,7 @@ import { minhasTarefas } from './views/tarefas.js';
 import { autenticar, temSenha } from './pin.js';
 import { aplicarTema, TEMAS, temaAtual, definirTema } from './tema.js';
 import { revelar, topoVivo, trocarTela } from './motion.js';
+import { faixaHTML, ligarFaixa } from './faixa.js';
 import { FUNCOES } from './views/equipe.js';
 
 import * as vDash from './views/dash.js';
@@ -191,6 +192,36 @@ function telaLoginRemoto() {
   return node;
 }
 
+/* ---------------------------------------------------------- cor no topo ---
+   Três glifos: automático, claro, escuro. Fica ao lado do avatar porque trocar
+   a cor é coisa que se faz uma vez e se quer achar na hora — e enterrado em
+   Mais, três telas adentro, ninguém achava. */
+const GL_TEMA = {
+  auto: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/>'
+    + '<path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor" stroke="none"/></svg>',
+  claro: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.4"/>'
+    + '<path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2'
+    + 'M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></svg>',
+  escuro: '<svg viewBox="0 0 24 24"><path d="M20 14.4A8.5 8.5 0 0 1 9.6 4 8.5 8.5 0 1 0 20 14.4z"/></svg>'
+};
+
+function seletorTemaHTML() {
+  const atual = temaAtual();
+  return `<div class="tema-sel" role="group" aria-label="Cor">
+    ${TEMAS.map((t) => `<button class="tema-b ${atual === t.v ? 'on' : ''}" data-cor="${t.v}"
+      title="${esc(t.t)}" aria-label="${esc(t.t)}">${GL_TEMA[t.v] || ''}</button>`).join('')}
+  </div>`;
+}
+
+function ligarSeletorTema(raiz) {
+  raiz.querySelectorAll('[data-cor]').forEach((b) => {
+    b.onclick = () => {
+      definirTema(b.dataset.cor);
+      raiz.querySelectorAll('[data-cor]').forEach((x) => x.classList.toggle('on', x === b));
+    };
+  });
+}
+
 /* ---------------- casca ---------------- */
 function tabs() {
   const u = store.user;
@@ -244,11 +275,15 @@ export function render() {
 
   root.innerHTML = `
     <header class="topbar">
-      <h1>${esc(v.titulo)}${v.sub ? `<span class="sub">${esc(v.sub)}</span>` : ''}</h1>
-      <!-- No desktop a coluna da esquerda já diz em que tela você está; o topo
-           passa a carregar o projeto, que é o que some da navegação. -->
-      <span class="topbar-proj">${esc(store.projeto?.nome || '')}</span>
-      <a class="avatar" href="#/mais" aria-label="Perfil">${esc(iniciais(store.user.nome))}</a>
+      <div class="topbar-l">
+        <h1>${esc(v.titulo)}${v.sub ? `<span class="sub">${esc(v.sub)}</span>` : ''}</h1>
+        <!-- No desktop a coluna da esquerda já diz em que tela você está; o topo
+             passa a carregar o projeto, que é o que some da navegação. -->
+        <span class="topbar-proj">${esc(store.projeto?.nome || '')}</span>
+        ${seletorTemaHTML()}
+        <a class="avatar" href="#/mais" aria-label="Perfil">${esc(iniciais(store.user.nome))}</a>
+      </div>
+      ${faixaHTML(store.user)}
     </header>
     <main></main>
     ${tabs()}`;
@@ -256,6 +291,8 @@ export function render() {
   // Os blocos aparecem conforme sobem, e o topo encolhe quando a página anda.
   revelar(v.node);
   topoVivo(root);
+  ligarFaixa(root);
+  ligarSeletorTema(root);
 
   if (v.fab) {
     const b = el(`<button class="fab" aria-label="Adicionar">${v.fab.label}</button>`);
