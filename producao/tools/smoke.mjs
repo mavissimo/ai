@@ -174,6 +174,14 @@ await passo('tocar na viagem aproxima o mapa', async()=>{
 await passo('de perto aparecem os arredores', async()=>{
   if(!await p.locator('.geo-arred').count()) throw new Error('sem aeroporto no mapa');
   if(!await p.locator('.mesa-arred').count()) throw new Error('sem arredores na coluna'); });
+// A cidade deixou de ser um ponto: o limite do município vem do IBGE, e o do
+// aeroporto vem junto, para dar para ver que são duas cidades e não uma.
+await passo('a cidade tem forma, não só ponto', async()=>{
+  const r = await p.evaluate(()=>({
+    alvo:(document.querySelector('.geo-mun.alvo')?.getAttribute('d')||'').length,
+    viz:(document.querySelector('.geo-mun.vizinho')?.getAttribute('d')||'').length }));
+  if (r.alvo < 300) throw new Error('limite do município ausente ou raso: '+r.alvo);
+  if (!r.viz) throw new Error('o município do aeroporto não foi desenhado'); });
 await p.evaluate(()=>document.querySelector('[data-volta]').click()); await p.waitForTimeout(600);
 await passo('voltar ao país', async()=>{
   if(await p.locator('.geo.perto').count()) throw new Error('continuou perto'); });

@@ -17,7 +17,7 @@ export const cidadeDaViagem = (v) => String(v?.destino || v?.titulo || '').trim(
 /* Quanto o mapa aproxima quando uma cidade acende. Caixa grande pede mais
    zoom: no desktop a mesma aproximação do celular deixaria a cidade perdida no
    meio de um estado inteiro. */
-const zDaCaixa = (alt) => Math.min(9, Math.max(4.6, 4.6 * Math.sqrt((alt || 255) / 255)));
+const zDaCaixa = (alt) => Math.min(11, Math.max(6.4, 6.4 * Math.sqrt((alt || 255) / 255)));
 
 /** A caixa vazia. O desenho entra depois, quando ela tiver tamanho. */
 export const caixaMapaHTML = () => `<div class="pn-mapa-caixa" data-mapinha>

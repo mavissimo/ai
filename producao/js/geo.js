@@ -12,6 +12,7 @@
 // cinco, os rios; no fim, as cidades em volta, o aeroporto e a estrada. Tudo é
 // desenhado uma vez só — o zoom acende camada, não redesenha mapa.
 import { PAIS, ESTADOS, RIOS, LAGOS, SIGLAS, abrir } from './malhas.js';
+import { MUNICIPIOS, abrirMil } from './municipios.js';
 export const CIDADES = {
   'São Paulo': [-46.63, -23.55],
   'Osasco': [-46.79, -23.53],
@@ -64,14 +65,21 @@ const UF = {
   SP: [-48.6, -22.2], SE: [-37.4, -10.6], TO: [-48.3, -10.2]
 };
 
+/** O nome como o app o escreve, a partir do nome como veio do cadastro. */
+export function chaveCidade(nome) {
+  if (!nome) return null;
+  const t = String(nome).trim();
+  if (CIDADES[t]) return t;
+  const semUF = t.replace(/\s*\([A-Z]{2}\)\s*$/, '').trim();
+  if (CIDADES[semUF]) return semUF;
+  return Object.keys(CIDADES).find((c) => semUF.includes(c) || c.includes(semUF)) || null;
+}
+
 /** Acha a coordenada pelo nome escrito de qualquer jeito no cadastro. */
 export function coord(nome) {
   if (!nome) return null;
   const t = String(nome).trim();
-  if (CIDADES[t]) return CIDADES[t];
-  const semUF = t.replace(/\s*\([A-Z]{2}\)\s*$/, '').trim();
-  if (CIDADES[semUF]) return CIDADES[semUF];
-  const chave = Object.keys(CIDADES).find((c) => semUF.includes(c) || c.includes(semUF));
+  const chave = chaveCidade(t);
   if (chave) return CIDADES[chave];
   // Nada bateu: cai no centro do estado, que ainda diz em que canto do país é.
   const uf = t.match(/\(([A-Z]{2})\)\s*$/)?.[1] || t.match(/[\/-]\s*([A-Z]{2})\s*$/)?.[1];
@@ -306,7 +314,7 @@ function atualizarEscala(svg, z) {
 
 const ESTADO = new WeakMap();
 const Z_MIN = 1;
-const Z_MAX = 12;
+const Z_MAX = 26;   // com o limite do município desenhado, dá para chegar na cidade
 
 function estado(svg) {
   let s = ESTADO.get(svg);
@@ -528,6 +536,18 @@ export function detalharCidade(svg, d) {
   const porKm = Math.abs(P([a[0], a[1] + 1])[1] - y1) / 111;
 
   const partes = [];
+
+  // O limite do município, do IBGE. É a linha que faltava: até aqui o mapa
+  // sabia dizer o estado e o ponto da cidade, mas não onde a cidade acaba.
+  // O da locação vem cheio; o do aeroporto, só contornado — assim dá para ver
+  // de longe que são duas cidades e não uma.
+  const municipio = (nome, classe) => {
+    const m = MUNICIPIOS[chaveCidade(nome) || ''];
+    if (!m) return;
+    partes.push(`<path class="geo-mun ${classe}" d="${caminho(m.r.map(abrirMil), P, true)}"/>`);
+  };
+  if (d.aeroporto) municipio(d.aeroporto, 'vizinho');
+  municipio(d.cidade, 'alvo');
 
   // O anel de distância: dá tamanho ao que se vê. Um raio que caiba na caixa.
   const raioKm = [25, 50, 100, 200, 400].find((k) => k * porKm * (estado(svg).z || 1) > 26) || 400;
