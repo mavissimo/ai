@@ -1,7 +1,7 @@
 // "Mais": atalhos, dados do projeto, notificações, conta e backup.
 import { store } from '../store.js';
 import { can, PAPEIS } from '../perms.js';
-import { el, abrirForm, toast, confirmar, escolher } from '../ui.js';
+import { el, abrirForm, toast, confirmar, escolher, sheet } from '../ui.js';
 import { esc, iniciais, ordenar } from '../utils.js';
 import { criarProjetoTeste } from '../seed.js';
 import { recarregarProjeto, atualizarProjeto, SEED_VERSAO } from '../seed-bradesco.js';
@@ -143,24 +143,8 @@ export function render() {
     const id = await escolher('Trocar de projeto', projetos.map((x) => ({ v: x.id, t: x.nome, sub: x.cliente })));
     if (id) { store.setProjeto(id); toast('Projeto trocado.'); }
   });
-  node.querySelector('[data-export]')?.addEventListener('click', async () => {
-    const nome = `unit0-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    const json = store.adapter.exportar();
-    // Quando a página roda dentro do visualizador de artifact, o download só
-    // acontece pela capability; em hospedagem normal, o link basta.
-    const downloads = window.claude?.use ? await window.claude.use('downloads') : null;
-    if (downloads) {
-      try { await downloads.save({ filename: nome, data: json }); toast('Backup salvo.'); }
-      catch (e) { if (e?.code !== 'declined') toast('Não consegui salvar o backup.'); }
-      return;
-    }
-    const blob = new Blob([json], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = nome;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-  });
+  node.querySelector('[data-export]')?.addEventListener('click', () => exportarBackup());
+
   node.querySelector('[data-import]')?.addEventListener('click', () => {
     const inp = el('<input type="file" accept="application/json" style="display:none">');
     document.body.append(inp);
@@ -249,4 +233,45 @@ export function renderHistorico() {
         <span class="s">${esc(new Date(a.quando || a.criado_em).toLocaleString('pt-BR'))}</span></span>
     </div>`).join('') : '<div class="empty">Nada registrado ainda.</div>'}</div>`;
   return { titulo: 'Histórico', node };
+}
+
+
+/* ------------------------------------------------------------- backup -----
+   Baixar arquivo não funciona em todo lugar: dentro do visualizador de
+   artifact o navegador bloqueia o download que a própria página dispara. Por
+   isso o backup nunca depende só disso — ele sempre pode ser copiado, que é o
+   caminho que funciona em qualquer aparelho. */
+export function exportarBackup() {
+  const nome = `unit0-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  const json = store.adapter.exportar();
+  const tamanho = (json.length / 1024).toFixed(0);
+
+  const corpo = el(`<div>
+    <p class="small muted" style="margin:0 0 12px">Cópia de tudo que está neste aparelho —
+      ${tamanho} KB. Guarde num e-mail para você mesmo, no Drive ou nas notas.
+      Para voltar com ela, use <b>Importar backup</b> em outro aparelho.</p>
+    <pre class="pedido" data-json>${esc(json.slice(0, 4000))}${json.length > 4000
+      ? `\n\n… mais ${((json.length - 4000) / 1024).toFixed(0)} KB. O botão copia tudo.` : ''}</pre>
+  </div>`);
+
+  const rod = el('<div style="display:flex;gap:8px;width:100%"></div>');
+  const bBaixar = el('<button class="btn gho" style="flex:1">Baixar arquivo</button>');
+  const bCopiar = el('<button class="btn pri" style="flex:1">Copiar tudo</button>');
+  rod.append(bBaixar, bCopiar);
+
+  bCopiar.onclick = async () => {
+    try { await navigator.clipboard.writeText(json); toast('Backup copiado.'); }
+    catch { toast('Não consegui copiar. Selecione o texto e copie na mão.'); }
+  };
+  bBaixar.onclick = () => {
+    const blob = new Blob([json], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = nome;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast('Se não aparecer nada, use "Copiar tudo".');
+  };
+
+  sheet({ titulo: 'Backup', corpo, rodape: rod });
 }

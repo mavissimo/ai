@@ -2,9 +2,7 @@
 //
 // O servidor de módulos e o arquivo único não são a mesma coisa: importação
 // circular, por exemplo, o navegador resolve e o empacotador não. Já publiquei
-// uma página em branco por confiar só no primeiro. Este roteiro entra no app,
-// passa por todas as rotas, abre uma diária no mapa, o mapa da cidade e a porta
-// do dinheiro — tudo no HTML que vai para o ar.
+// uma página em branco por confiar só no primeiro.
 //
 //   node tools/build-single-file.mjs
 //   (cd producao && python3 -m http.server 8123 &)
@@ -58,6 +56,13 @@ await p.evaluate(()=>document.querySelector('.sheet .ix').click());
 await p.waitForTimeout(1400);
 await passo('form de gasto (importação tardia)', async()=>{
   if(!await p.locator('.sheet .f').count()) throw new Error('form não abriu'); });
+// backup sem download
+await p.evaluate(()=>document.querySelector('.sheet .btn.gho').click()); await p.waitForTimeout(400);
+await p.evaluate(()=>location.hash='#/mais'); await p.waitForTimeout(800);
+await p.evaluate(()=>{const b=[...document.querySelectorAll('button,a')].find(x=>/backup|exportar/i.test(x.textContent)); b&&b.click();});
+await p.waitForTimeout(900);
+await passo('backup abre para copiar', async()=>{
+  if(!await p.locator('.sheet [data-json]').count()) throw new Error('sem folha de backup'); });
 await p.screenshot({path:'f-bundle.png'});
 console.log(errs.length ? 'ERROS: ' + errs.slice(0,4).join(' | ') : 'sem erros de JS');
 if (falhou || errs.length) process.exitCode = 1;
