@@ -14,7 +14,8 @@ import { financeiro } from '../calc.js';
 import { FASES } from '../seed.js';
 import { alertas, perguntas } from '../notify.js';
 import { abrirDossie } from '../dossie.js';
-import { brasilSVG, coord } from '../geo.js';
+import { caixaMapaHTML, ligarMapaViagens, cidadeDaViagem } from '../mapaviagens.js';
+import { contaDaViagem, pendencias, ST_VIAGEM } from './viagens.js';
 
 const dias = (a, b) => Math.round(
   (new Date(String(b).slice(0, 10)) - new Date(String(a).slice(0, 10))) / 86400000);
@@ -42,9 +43,10 @@ export function render() {
 
   // Os desenhos precisam do tamanho real da caixa, que só existe depois de
   // estar na tela.
-  requestAnimationFrame(() => { pintarLinha(node, p); pintarMapa(node); });
+  requestAnimationFrame(() => pintarLinha(node, p));
 
   ligar(node, { al, qs, etapas });
+  ligarMapaViagens(node);
   return { titulo: 'Painel', sub: p.nome, node };
 }
 
@@ -171,37 +173,47 @@ function etapasDaFase(k, etapas) {
   </div>`;
 }
 
-/* ------------------------------------------------------------------ mapa --- */
+/* ------------------------------------------------------------------ mapa ---
+   O mapa e as viagens são a mesma coisa vista de dois jeitos: o desenho diz
+   onde, a lista diz quando e com o quê. Por isso moram juntos e conversam —
+   tocar num pino acende a viagem na lista, tocar na viagem aproxima o mapa. */
 function mapaHTML() {
-  return `<section class="bloco largo">
-    <div class="sec"><div class="sec-t">Onde</div><a href="#/mapa" class="small">abrir o mapa</a></div>
-    <a class="pn-mapa-caixa" href="#/mapa" data-mapinha></a>
-  </section>`;
-}
-
-function pintarMapa(node) {
-  const caixa = node.querySelector('[data-mapinha]');
-  if (!caixa) return;
-  const larg = caixa.clientWidth;
-  if (!larg) return;
   const hj = hoje();
   const vs = [...store.doProjeto('viagens')].sort((a, b) => String(a.ida).localeCompare(String(b.ida)));
   const prox = vs.find((v) => (v.volta || v.ida) >= hj) || vs[vs.length - 1];
-  const limpo = (v) => String(v?.destino || '').replace(/\s*\([A-Z]{2}\)\s*$/, '').trim();
-  const pinos = vs.map((v) => ({
-    nome: v.destino, cidade: limpo(v) || v.destino,
-    estado: (v.volta || v.ida) < hj ? 'passou' : 'futuro',
-    rotulo: v === prox ? undefined : false        // só o próximo leva nome
-  })).filter((x) => coord(x.cidade));
-  // No desktop a caixa é larga demais: sem teto, o país ocuparia uma tela
-  // inteira de altura. O desenho se centra sozinho na largura que sobra.
-  caixa.innerHTML = brasilSVG({
-    larg, alt: Math.min(340, Math.round(larg * 0.86)), pinos,
-    rota: 'São Paulo', aceso: limpo(prox) || prox?.destino
-  }) + `<div class="pn-mapa-pe">
-    <b>${esc(prox?.destino || '—')}</b>
-    <span>${esc(quandoTxt(prox, hj))} · ${esc(fmtData(prox?.ida, { ano: false }))}</span>
-  </div>`;
+  const feitas = vs.filter((v) => (v.volta || v.ida) < hj).length;
+
+  return `<section class="bloco largo">
+    <div class="sec"><div class="sec-t">As viagens</div>
+      <span class="small muted">${feitas} de ${vs.length} rodadas</span></div>
+    ${caixaMapaHTML()}
+    <div class="pn-vs" data-vs>
+      ${vs.map((v) => cartaoViagem(v, hj, v === prox)).join('')
+        || '<div class="empty">Nenhuma viagem cadastrada.</div>'}
+    </div>
+  </section>`;
+}
+
+/* Uma viagem em bloco: número e pendências em cima, destino no meio, datas e
+   dinheiro embaixo. Em linha o nome não cabia e vivia cortado. */
+function cartaoViagem(v, hj, prox) {
+  const passou = (v.volta || v.ida) < hj;
+  const emCurso = v.ida <= hj && (v.volta || v.ida) >= hj;
+  const pend = pendencias(v).length;
+  const c = can(store.user, 'orcamento.ver') ? contaDaViagem(v) : null;
+  const quando = emCurso ? 'em curso' : passou ? 'já rodou' : quandoTxt(v, hj);
+  return `<button class="pn-v ${passou ? 'passou' : ''} ${emCurso ? 'curso' : ''} ${prox ? 'prox' : ''}"
+    data-viagem="${v.id}" data-cidade="${esc(cidadeDaViagem(v))}">
+    <span class="pn-v-topo">
+      <span class="pn-v-n">${esc(String(v.numero || '·').padStart(2, '0'))}</span>
+      ${pend ? `<span class="pn-v-p">${pend}</span>` : '<span class="pn-v-ok">tudo ok</span>'}
+    </span>
+    <span class="pn-v-t">${esc(v.destino || v.titulo || 'Viagem')}</span>
+    <span class="pn-v-pe">
+      <span class="pn-v-s">${esc(fmtData(v.ida, { ano: false }))} → ${esc(fmtData(v.volta || v.ida, { ano: false }))}<br>${esc(quando)}</span>
+      ${c ? `<span class="pn-v-m">${fmtMoneyShort(c.fechado)}</span>` : ''}
+    </span>
+  </button>`;
 }
 
 /* "em 1 dias" não é português, e "em 0 dias" muito menos. */

@@ -8,7 +8,7 @@ import { criarProjetoBradesco, atualizarProjeto, SEED_VERSAO } from './seed-brad
 import { alertas, iniciarMonitor } from './notify.js';
 import { minhasTarefas } from './views/tarefas.js';
 import { autenticar, temSenha } from './pin.js';
-import { aplicarTema } from './tema.js';
+import { aplicarTema, TEMAS, temaAtual, definirTema } from './tema.js';
 import { revelar, topoVivo, trocarTela } from './motion.js';
 import { FUNCOES } from './views/equipe.js';
 
@@ -79,12 +79,25 @@ function telaBoasVindas() {
         Você entra escolhendo o seu nome — e vê só o que é da sua alçada.</p>
     </div>
     <div class="capa-pe">
+      <div class="capa-tema">
+        <span class="olho-txt">Cor</span>
+        <div class="seg">${TEMAS.map((t) => `<button data-tema="${t.v}"
+          class="${temaAtual() === t.v ? 'on' : ''}">${esc(t.t)}</button>`).join('')}</div>
+      </div>
       <button class="btn pri wide" data-comecar>Entrar</button>
       <p class="olho-txt" style="margin-top:14px;text-align:center">${isRemote()
         ? 'Os dados ficam no Supabase do projeto'
         : 'Os dados ficam neste aparelho · dá para exportar um backup'}</p>
     </div>
   </div>`);
+  // Trocar a cor aqui na porta, antes de entrar: quem vai passar o dia dentro
+  // do app decide isso uma vez e não pensa mais nisso.
+  node.querySelectorAll('[data-tema]').forEach((b) => {
+    b.onclick = () => {
+      definirTema(b.dataset.tema);
+      node.querySelectorAll('[data-tema]').forEach((x) => x.classList.toggle('on', x === b));
+    };
+  });
   node.querySelector('[data-comecar]').onclick = async () => {
     const b = node.querySelector('[data-comecar]');
     b.disabled = true; b.textContent = 'Montando o projeto…';

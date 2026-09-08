@@ -30,9 +30,9 @@
   color-scheme: dark;
 }
 
-/* O claro é a exceção e só entra por escolha explícita, em Mais → Aparência.
-   Nem o sistema nem quem hospeda a página trocam isto sozinhos: o preto é a
-   identidade do app, não uma preferência de ambiente. */
+/* O claro. Vale em dois casos: por escolha (`data-tema="claro"`), que ganha de
+   tudo, e no automático, quando o sistema pede claro — automático sem sinal
+   nenhum continua escuro, porque o preto é a identidade do app. */
 :root[data-tema="claro"]{
   --bg:#eeeae2; --bg2:#f7f4ee; --bg3:#e3ded4; --line:#cfc8ba;
   --tx:#12100d; --tx2:#514c43; --tx3:#8b8479;
@@ -43,6 +43,19 @@
   --bad-bg:rgba(167,38,32,.10); --info-bg:rgba(44,79,168,.10);
   --scrim:rgba(18,16,13,.55); --sombra:0 10px 30px rgba(18,16,13,.14);
   color-scheme: light;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-tema]){
+  --bg:#eeeae2; --bg2:#f7f4ee; --bg3:#e3ded4; --line:#cfc8ba;
+  --tx:#12100d; --tx2:#514c43; --tx3:#8b8479;
+  --ac:#8a4b12; --ac-tx:#f7f4ee; --ac-soft:rgba(138,75,18,.10); --ac-line:rgba(138,75,18,.30);
+  --ac2:#2158d0;
+  --ok:#2f6b3c; --warn:#8a5a09; --bad:#a72620; --info:#2c4fa8;
+  --ok-bg:rgba(47,107,60,.11); --warn-bg:rgba(138,90,9,.13);
+  --bad-bg:rgba(167,38,32,.10); --info-bg:rgba(44,79,168,.10);
+  --scrim:rgba(18,16,13,.55); --sombra:0 10px 30px rgba(18,16,13,.14);
+  color-scheme: light;
+  }
 }
 
 /* Quem pede menos movimento recebe a mesma interface, parada. Um lugar só. */
@@ -605,7 +618,9 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .geo-grade{stroke:var(--tx);stroke-width:.5;opacity:.10}
 .geo-pais{fill:var(--tx);fill-opacity:.05;stroke:var(--tx);stroke-width:1.2;
   stroke-linejoin:round;opacity:.7}
-.geo-rota{fill:none;stroke:var(--ac);stroke-width:1.4;stroke-dasharray:3 4;opacity:.85}
+.geo-rota{fill:none;stroke:var(--ac);stroke-width:1.4;stroke-dasharray:3 4;opacity:0;
+  transition:opacity var(--t-norm) var(--e-pad)}
+.geo-rota.on{opacity:.85}
 .geo-pino{fill:var(--tx2)}
 .geo-pino.base{fill:var(--tx3)}
 .geo-halo{fill:var(--ac);opacity:.14}
@@ -873,3 +888,60 @@ main{animation:tela var(--t-med) var(--e-entra)}
 .pn-g-l span{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
   color:var(--tx3)}
 .pn-g-v{color:var(--tx3)}
+
+/* O zoom do mapa: o país anda e cresce, o pino e o nome ficam do mesmo tamanho.
+   `transform` puro, então é a placa de vídeo que trabalha. */
+.geo-mundo{transition:transform var(--t-lento) var(--e-folha)}
+.geo-p-in{transition:transform var(--t-lento) var(--e-folha)}
+.geo-p-in{transform:scale(var(--iz,1))}
+.geo-pais,.geo-grade,.geo-rota{vector-effect:non-scaling-stroke}
+.geo.perto .geo-grade{opacity:.14}
+.geo.perto .geo-p:not(.on) .geo-n{opacity:.35}
+.geo-n{transition:opacity var(--t-norm) var(--e-pad)}
+.geo-p{cursor:pointer}
+@media (prefers-reduced-motion: reduce){.geo-mundo,.geo-p-in{transition:none}}
+
+/* ---------------------------------------------------------- as viagens -----
+   Logo abaixo do mapa, porque são a mesma coisa: o desenho diz onde, a lista
+   diz quando. Rolam de lado como uma fita de contatos. */
+.pn-vs{display:flex;gap:var(--s2);overflow-x:auto;scrollbar-width:none;
+  padding:var(--s3) 0 var(--s1);scroll-snap-type:x proximity}
+.pn-vs::-webkit-scrollbar{display:none}
+.pn-v{flex:0 0 auto;width:172px;scroll-snap-align:start;
+  display:flex;flex-direction:column;gap:var(--s2);text-align:left;
+  border:1px solid var(--line);border-radius:var(--r);background:transparent;
+  padding:var(--s3);color:var(--tx);cursor:pointer;min-height:126px}
+.pn-v.passou{opacity:.45}
+.pn-v.curso{border-color:var(--ac)}
+.pn-v.prox{border-color:var(--tx2)}
+.pn-v.on{border-color:var(--ac);background:var(--ac-soft);opacity:1}
+.pn-v-topo{display:flex;align-items:center;justify-content:space-between;gap:var(--s2)}
+.pn-v-n{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--tx3);
+  letter-spacing:.08em}
+.pn-v.on .pn-v-n,.pn-v.curso .pn-v-n{color:var(--ac)}
+.pn-v-t{flex:1;font-family:var(--titulo);font-size:15px;font-weight:800;letter-spacing:-.03em;
+  line-height:1.12;text-transform:uppercase;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.pn-v-pe{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--s2);
+  margin-top:auto}
+.pn-v-s{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--tx3);line-height:1.6}
+.pn-v-p{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--warn);
+  border:1px solid var(--warn);border-radius:3px;padding:0 5px;line-height:1.5}
+.pn-v-ok{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ok)}
+.pn-v-m{font-family:var(--mono);font-size:10px;color:var(--tx2);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.pn-mapa-caixa{position:relative}
+.pn-mapa-volta{position:absolute;left:var(--s3);bottom:var(--s3);z-index:2;
+  font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  background:var(--bg2);color:var(--tx2);border:1px solid var(--line);border-radius:3px;
+  padding:6px 9px;cursor:pointer}
+.pn-mapa-volta:active{background:var(--bg3)}
+@media (min-width:760px){ .pn-v{width:250px} }
+.capa-tema{display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s4)}
+.capa-tema .seg{flex:1}
+/* Na aba de viagens o cartão é largo: aceso, ele ganha o mesmo contorno do
+   pino no mapa, para os dois lados se reconhecerem. */
+.card.act[data-viagem].on{border-color:var(--ac);background:var(--ac-soft)}

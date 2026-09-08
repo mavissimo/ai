@@ -3,7 +3,7 @@
 // página, depois a preferência do sistema. Quem escolhe manda em tudo.
 const K = 'unit0:tema';
 export const TEMAS = [
-  { v: 'auto', t: 'Automático', desc: 'Segue o sistema' },
+  { v: 'auto', t: 'Automático', desc: 'Segue o sistema — escuro quando ele não diz nada' },
   { v: 'claro', t: 'Claro', desc: 'Sempre claro' },
   { v: 'escuro', t: 'Escuro', desc: 'Sempre escuro' }
 ];
@@ -29,7 +29,6 @@ export function escuroAgora() {
   const t = temaAtual();
   if (t === 'escuro') return true;
   if (t === 'claro') return false;
-  // O escuro é o padrão do app, e não segue o sistema: só quem escolhe "claro"
-  // em Mais é que clareia.
-  return true;
+  // No automático o escuro é o padrão: só o sistema pedindo claro é que clareia.
+  return !window.matchMedia?.('(prefers-color-scheme: light)').matches;
 }

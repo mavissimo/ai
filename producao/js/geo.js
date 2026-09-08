@@ -162,31 +162,88 @@ export function brasilSVG({ larg, alt, pinos = [], rota = '', aceso = '' }) {
       }
       if (!livre) texto = '';
     }
-    if (de && on) {
+    if (de && Math.hypot(P(de)[0] - x, P(de)[1] - y) > 6) {
       const [ax, ay] = P(de);
-      // Arco alto, de rota aérea: o desvio é proporcional à distância.
+      // Arco alto, de rota aérea: o desvio é proporcional à distância. Todas
+      // são desenhadas de uma vez e só a da cidade acesa fica visível — assim
+      // trocar de cidade é acender outra linha, não redesenhar o mapa.
       const mx = (ax + x) / 2;
       const my = (ay + y) / 2 - Math.hypot(x - ax, y - ay) * 0.28;
-      arcos.push(`<path class="geo-rota" d="M${ax.toFixed(1)} ${ay.toFixed(1)}
+      arcos.push(`<path class="geo-rota ${on ? 'on' : ''}"
+        data-para="${esc(p.cidade || p.nome)}"
+        d="M${ax.toFixed(1)} ${ay.toFixed(1)}
         Q${mx.toFixed(1)} ${my.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)}"/>`);
-      marcas.push(`<circle class="geo-pino base" cx="${ax.toFixed(1)}" cy="${ay.toFixed(1)}" r="2.5"/>`);
+      if (!arcos.base) {
+        arcos.base = true;
+        marcas.push(`<circle class="geo-pino base" cx="${ax.toFixed(1)}" cy="${ay.toFixed(1)}" r="2.5"/>`);
+      }
     }
     // Rótulo do lado que tiver espaço: no leste ele cai para dentro do país.
     const esq = x > larg * 0.62;
+    // O pino tem duas camadas: a de fora acompanha o zoom do país, a de dentro
+    // é contra-escalada por `--iz`, para que ponto e nome não inchem junto.
     marcas.push(`<g class="geo-p ${p.estado || ''} ${on ? 'on' : ''} ${esq ? 'esq' : ''}"
-      transform="translate(${x.toFixed(1)} ${y.toFixed(1)})" data-cidade="${p.cidade || p.nome}">
-      <circle class="geo-toque" r="16"/>
-      <circle class="geo-halo" r="${on ? 15 : 0}"/>
-      <circle class="geo-pino" r="${on ? 4.5 : 3.2}"/>
-      ${texto ? `<text class="geo-n" x="${esq ? -9 : 9}" y="${dy}"
-        text-anchor="${esq ? 'end' : 'start'}">${texto}</text>` : ''}
+      transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"
+      data-cidade="${esc(p.cidade || p.nome)}" data-x="${x.toFixed(1)}" data-y="${y.toFixed(1)}">
+      <g class="geo-p-in">
+        <circle class="geo-toque" r="16"/>
+        <circle class="geo-halo" r="${on ? 15 : 0}"/>
+        <circle class="geo-pino" r="${on ? 4.5 : 3.2}"/>
+        ${texto ? `<text class="geo-n" x="${esq ? -9 : 9}" y="${dy}"
+          text-anchor="${esq ? 'end' : 'start'}">${texto}</text>` : ''}
+      </g>
     </g>`);
   }
   return `<svg class="geo" viewBox="0 0 ${larg} ${alt}" width="${larg}" height="${alt}"
+    style="--iz:1" data-larg="${larg}" data-alt="${alt}"
     role="img" aria-label="Mapa do Brasil com as cidades do job">
-    ${grade.join('')}
-    <path class="geo-pais" d="${d}"/>
-    ${arcos.join('')}
-    ${marcas.join('')}
+    <g class="geo-mundo" data-mundo>
+      ${grade.join('')}
+      <path class="geo-pais" d="${d}"/>
+      ${arcos.join('')}
+      ${marcas.join('')}
+    </g>
   </svg>`;
 }
+
+/* -------------------------------------------------------------- o zoom -----
+   O país inteiro cabe na tela, mas Gravataí e Porto Alegre viram o mesmo ponto.
+   Aqui o desenho aproxima de uma cidade sem redesenhar nada: o grupo de fora
+   ganha uma transformação e os pinos se defendem dela pela contra-escala. Fica
+   suave porque é `transform`, e continua legível porque o texto não cresce.
+
+   @param {SVGElement} svg  o que `brasilSVG` devolveu, já no documento
+   @param {string} cidade   para onde ir; vazio volta para o país inteiro
+   @param {number} z        quanto aproximar (1 = país inteiro)
+*/
+export function zoomPara(svg, cidade, z = 2.8) {
+  if (!svg) return;
+  // A rota da cidade escolhida acende; as outras somem.
+  svg.querySelectorAll('.geo-rota').forEach((r) => {
+    r.classList.toggle('on', Boolean(cidade) && r.dataset.para === cidade);
+  });
+  const mundo = svg.querySelector('[data-mundo]');
+  if (!mundo) return;
+  const larg = Number(svg.dataset.larg) || 0;
+  const alt = Number(svg.dataset.alt) || 0;
+
+  if (!cidade || z <= 1) {
+    mundo.setAttribute('transform', '');
+    svg.style.setProperty('--iz', '1');
+    svg.classList.remove('perto');
+    return;
+  }
+  const alvo = svg.querySelector(`.geo-p[data-cidade="${CSS.escape(cidade)}"]`);
+  if (!alvo) return;
+  const px = Number(alvo.dataset.x), py = Number(alvo.dataset.y);
+  // Leva o ponto para o centro da caixa e depois amplia em volta dele.
+  const tx = larg / 2 - px * z;
+  const ty = alt / 2 - py * z;
+  mundo.setAttribute('transform', `translate(${tx.toFixed(1)} ${ty.toFixed(1)}) scale(${z})`);
+  svg.style.setProperty('--iz', String(1 / z));
+  svg.classList.add('perto');
+}
+
+/* Aspas dentro de um atributo quebram o SVG inteiro. */
+const esc = (t) => String(t == null ? '' : t)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');

@@ -36,9 +36,9 @@
   color-scheme: dark;
 }
 
-/* O claro é a exceção e só entra por escolha explícita, em Mais → Aparência.
-   Nem o sistema nem quem hospeda a página trocam isto sozinhos: o preto é a
-   identidade do app, não uma preferência de ambiente. */
+/* O claro. Vale em dois casos: por escolha (`data-tema="claro"`), que ganha de
+   tudo, e no automático, quando o sistema pede claro — automático sem sinal
+   nenhum continua escuro, porque o preto é a identidade do app. */
 :root[data-tema="claro"]{
   --bg:#eeeae2; --bg2:#f7f4ee; --bg3:#e3ded4; --line:#cfc8ba;
   --tx:#12100d; --tx2:#514c43; --tx3:#8b8479;
@@ -49,6 +49,19 @@
   --bad-bg:rgba(167,38,32,.10); --info-bg:rgba(44,79,168,.10);
   --scrim:rgba(18,16,13,.55); --sombra:0 10px 30px rgba(18,16,13,.14);
   color-scheme: light;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-tema]){
+  --bg:#eeeae2; --bg2:#f7f4ee; --bg3:#e3ded4; --line:#cfc8ba;
+  --tx:#12100d; --tx2:#514c43; --tx3:#8b8479;
+  --ac:#8a4b12; --ac-tx:#f7f4ee; --ac-soft:rgba(138,75,18,.10); --ac-line:rgba(138,75,18,.30);
+  --ac2:#2158d0;
+  --ok:#2f6b3c; --warn:#8a5a09; --bad:#a72620; --info:#2c4fa8;
+  --ok-bg:rgba(47,107,60,.11); --warn-bg:rgba(138,90,9,.13);
+  --bad-bg:rgba(167,38,32,.10); --info-bg:rgba(44,79,168,.10);
+  --scrim:rgba(18,16,13,.55); --sombra:0 10px 30px rgba(18,16,13,.14);
+  color-scheme: light;
+  }
 }
 
 /* Quem pede menos movimento recebe a mesma interface, parada. Um lugar só. */
@@ -611,7 +624,9 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .geo-grade{stroke:var(--tx);stroke-width:.5;opacity:.10}
 .geo-pais{fill:var(--tx);fill-opacity:.05;stroke:var(--tx);stroke-width:1.2;
   stroke-linejoin:round;opacity:.7}
-.geo-rota{fill:none;stroke:var(--ac);stroke-width:1.4;stroke-dasharray:3 4;opacity:.85}
+.geo-rota{fill:none;stroke:var(--ac);stroke-width:1.4;stroke-dasharray:3 4;opacity:0;
+  transition:opacity var(--t-norm) var(--e-pad)}
+.geo-rota.on{opacity:.85}
 .geo-pino{fill:var(--tx2)}
 .geo-pino.base{fill:var(--tx3)}
 .geo-halo{fill:var(--ac);opacity:.14}
@@ -879,6 +894,63 @@ main{animation:tela var(--t-med) var(--e-entra)}
 .pn-g-l span{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
   color:var(--tx3)}
 .pn-g-v{color:var(--tx3)}
+
+/* O zoom do mapa: o país anda e cresce, o pino e o nome ficam do mesmo tamanho.
+   `transform` puro, então é a placa de vídeo que trabalha. */
+.geo-mundo{transition:transform var(--t-lento) var(--e-folha)}
+.geo-p-in{transition:transform var(--t-lento) var(--e-folha)}
+.geo-p-in{transform:scale(var(--iz,1))}
+.geo-pais,.geo-grade,.geo-rota{vector-effect:non-scaling-stroke}
+.geo.perto .geo-grade{opacity:.14}
+.geo.perto .geo-p:not(.on) .geo-n{opacity:.35}
+.geo-n{transition:opacity var(--t-norm) var(--e-pad)}
+.geo-p{cursor:pointer}
+@media (prefers-reduced-motion: reduce){.geo-mundo,.geo-p-in{transition:none}}
+
+/* ---------------------------------------------------------- as viagens -----
+   Logo abaixo do mapa, porque são a mesma coisa: o desenho diz onde, a lista
+   diz quando. Rolam de lado como uma fita de contatos. */
+.pn-vs{display:flex;gap:var(--s2);overflow-x:auto;scrollbar-width:none;
+  padding:var(--s3) 0 var(--s1);scroll-snap-type:x proximity}
+.pn-vs::-webkit-scrollbar{display:none}
+.pn-v{flex:0 0 auto;width:172px;scroll-snap-align:start;
+  display:flex;flex-direction:column;gap:var(--s2);text-align:left;
+  border:1px solid var(--line);border-radius:var(--r);background:transparent;
+  padding:var(--s3);color:var(--tx);cursor:pointer;min-height:126px}
+.pn-v.passou{opacity:.45}
+.pn-v.curso{border-color:var(--ac)}
+.pn-v.prox{border-color:var(--tx2)}
+.pn-v.on{border-color:var(--ac);background:var(--ac-soft);opacity:1}
+.pn-v-topo{display:flex;align-items:center;justify-content:space-between;gap:var(--s2)}
+.pn-v-n{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--tx3);
+  letter-spacing:.08em}
+.pn-v.on .pn-v-n,.pn-v.curso .pn-v-n{color:var(--ac)}
+.pn-v-t{flex:1;font-family:var(--titulo);font-size:15px;font-weight:800;letter-spacing:-.03em;
+  line-height:1.12;text-transform:uppercase;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.pn-v-pe{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--s2);
+  margin-top:auto}
+.pn-v-s{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--tx3);line-height:1.6}
+.pn-v-p{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--warn);
+  border:1px solid var(--warn);border-radius:3px;padding:0 5px;line-height:1.5}
+.pn-v-ok{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ok)}
+.pn-v-m{font-family:var(--mono);font-size:10px;color:var(--tx2);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.pn-mapa-caixa{position:relative}
+.pn-mapa-volta{position:absolute;left:var(--s3);bottom:var(--s3);z-index:2;
+  font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  background:var(--bg2);color:var(--tx2);border:1px solid var(--line);border-radius:3px;
+  padding:6px 9px;cursor:pointer}
+.pn-mapa-volta:active{background:var(--bg3)}
+@media (min-width:760px){ .pn-v{width:250px} }
+.capa-tema{display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s4)}
+.capa-tema .seg{flex:1}
+/* Na aba de viagens o cartão é largo: aceso, ele ganha o mesmo contorno do
+   pino no mapa, para os dois lados se reconhecerem. */
+.card.act[data-viagem].on{border-color:var(--ac);background:var(--ac-soft)}
 </style>
 <div id="app" class="app"><div class="boot">Carregando…</div></div>
 <script type="module">
@@ -1023,7 +1095,7 @@ const { criarProjetoBradesco, atualizarProjeto, SEED_VERSAO } = __req("js/seed-b
 const { alertas, iniciarMonitor } = __req("js/notify.js");
 const { minhasTarefas } = __req("js/views/tarefas.js");
 const { autenticar, temSenha } = __req("js/pin.js");
-const { aplicarTema } = __req("js/tema.js");
+const { aplicarTema, TEMAS, temaAtual, definirTema } = __req("js/tema.js");
 const { revelar, topoVivo, trocarTela } = __req("js/motion.js");
 const { FUNCOES } = __req("js/views/equipe.js");
 const vDash = __req("js/views/dash.js");
@@ -1092,12 +1164,25 @@ function telaBoasVindas() {
         Você entra escolhendo o seu nome — e vê só o que é da sua alçada.</p>
     </div>
     <div class="capa-pe">
+      <div class="capa-tema">
+        <span class="olho-txt">Cor</span>
+        <div class="seg">${TEMAS.map((t) => `<button data-tema="${t.v}"
+          class="${temaAtual() === t.v ? 'on' : ''}">${esc(t.t)}</button>`).join('')}</div>
+      </div>
       <button class="btn pri wide" data-comecar>Entrar</button>
       <p class="olho-txt" style="margin-top:14px;text-align:center">${isRemote()
         ? 'Os dados ficam no Supabase do projeto'
         : 'Os dados ficam neste aparelho · dá para exportar um backup'}</p>
     </div>
   </div>`);
+  // Trocar a cor aqui na porta, antes de entrar: quem vai passar o dia dentro
+  // do app decide isso uma vez e não pensa mais nisso.
+  node.querySelectorAll('[data-tema]').forEach((b) => {
+    b.onclick = () => {
+      definirTema(b.dataset.tema);
+      node.querySelectorAll('[data-tema]').forEach((x) => x.classList.toggle('on', x === b));
+    };
+  });
   node.querySelector('[data-comecar]').onclick = async () => {
     const b = node.querySelector('[data-comecar]');
     b.disabled = true; b.textContent = 'Montando o projeto…';
@@ -2049,36 +2134,203 @@ function brasilSVG({ larg, alt, pinos = [], rota = '', aceso = '' }) {
       }
       if (!livre) texto = '';
     }
-    if (de && on) {
+    if (de && Math.hypot(P(de)[0] - x, P(de)[1] - y) > 6) {
       const [ax, ay] = P(de);
-      // Arco alto, de rota aérea: o desvio é proporcional à distância.
+      // Arco alto, de rota aérea: o desvio é proporcional à distância. Todas
+      // são desenhadas de uma vez e só a da cidade acesa fica visível — assim
+      // trocar de cidade é acender outra linha, não redesenhar o mapa.
       const mx = (ax + x) / 2;
       const my = (ay + y) / 2 - Math.hypot(x - ax, y - ay) * 0.28;
-      arcos.push(`<path class="geo-rota" d="M${ax.toFixed(1)} ${ay.toFixed(1)}
+      arcos.push(`<path class="geo-rota ${on ? 'on' : ''}"
+        data-para="${esc(p.cidade || p.nome)}"
+        d="M${ax.toFixed(1)} ${ay.toFixed(1)}
         Q${mx.toFixed(1)} ${my.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)}"/>`);
-      marcas.push(`<circle class="geo-pino base" cx="${ax.toFixed(1)}" cy="${ay.toFixed(1)}" r="2.5"/>`);
+      if (!arcos.base) {
+        arcos.base = true;
+        marcas.push(`<circle class="geo-pino base" cx="${ax.toFixed(1)}" cy="${ay.toFixed(1)}" r="2.5"/>`);
+      }
     }
     // Rótulo do lado que tiver espaço: no leste ele cai para dentro do país.
     const esq = x > larg * 0.62;
+    // O pino tem duas camadas: a de fora acompanha o zoom do país, a de dentro
+    // é contra-escalada por `--iz`, para que ponto e nome não inchem junto.
     marcas.push(`<g class="geo-p ${p.estado || ''} ${on ? 'on' : ''} ${esq ? 'esq' : ''}"
-      transform="translate(${x.toFixed(1)} ${y.toFixed(1)})" data-cidade="${p.cidade || p.nome}">
-      <circle class="geo-toque" r="16"/>
-      <circle class="geo-halo" r="${on ? 15 : 0}"/>
-      <circle class="geo-pino" r="${on ? 4.5 : 3.2}"/>
-      ${texto ? `<text class="geo-n" x="${esq ? -9 : 9}" y="${dy}"
-        text-anchor="${esq ? 'end' : 'start'}">${texto}</text>` : ''}
+      transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"
+      data-cidade="${esc(p.cidade || p.nome)}" data-x="${x.toFixed(1)}" data-y="${y.toFixed(1)}">
+      <g class="geo-p-in">
+        <circle class="geo-toque" r="16"/>
+        <circle class="geo-halo" r="${on ? 15 : 0}"/>
+        <circle class="geo-pino" r="${on ? 4.5 : 3.2}"/>
+        ${texto ? `<text class="geo-n" x="${esq ? -9 : 9}" y="${dy}"
+          text-anchor="${esq ? 'end' : 'start'}">${texto}</text>` : ''}
+      </g>
     </g>`);
   }
   return `<svg class="geo" viewBox="0 0 ${larg} ${alt}" width="${larg}" height="${alt}"
+    style="--iz:1" data-larg="${larg}" data-alt="${alt}"
     role="img" aria-label="Mapa do Brasil com as cidades do job">
-    ${grade.join('')}
-    <path class="geo-pais" d="${d}"/>
-    ${arcos.join('')}
-    ${marcas.join('')}
+    <g class="geo-mundo" data-mundo>
+      ${grade.join('')}
+      <path class="geo-pais" d="${d}"/>
+      ${arcos.join('')}
+      ${marcas.join('')}
+    </g>
   </svg>`;
 }
 
-  return { CIDADES, coord, curto, brasilSVG };
+/* -------------------------------------------------------------- o zoom -----
+   O país inteiro cabe na tela, mas Gravataí e Porto Alegre viram o mesmo ponto.
+   Aqui o desenho aproxima de uma cidade sem redesenhar nada: o grupo de fora
+   ganha uma transformação e os pinos se defendem dela pela contra-escala. Fica
+   suave porque é `transform`, e continua legível porque o texto não cresce.
+
+   @param {SVGElement} svg  o que `brasilSVG` devolveu, já no documento
+   @param {string} cidade   para onde ir; vazio volta para o país inteiro
+   @param {number} z        quanto aproximar (1 = país inteiro)
+*/
+function zoomPara(svg, cidade, z = 2.8) {
+  if (!svg) return;
+  // A rota da cidade escolhida acende; as outras somem.
+  svg.querySelectorAll('.geo-rota').forEach((r) => {
+    r.classList.toggle('on', Boolean(cidade) && r.dataset.para === cidade);
+  });
+  const mundo = svg.querySelector('[data-mundo]');
+  if (!mundo) return;
+  const larg = Number(svg.dataset.larg) || 0;
+  const alt = Number(svg.dataset.alt) || 0;
+
+  if (!cidade || z <= 1) {
+    mundo.setAttribute('transform', '');
+    svg.style.setProperty('--iz', '1');
+    svg.classList.remove('perto');
+    return;
+  }
+  const alvo = svg.querySelector(`.geo-p[data-cidade="${CSS.escape(cidade)}"]`);
+  if (!alvo) return;
+  const px = Number(alvo.dataset.x), py = Number(alvo.dataset.y);
+  // Leva o ponto para o centro da caixa e depois amplia em volta dele.
+  const tx = larg / 2 - px * z;
+  const ty = alt / 2 - py * z;
+  mundo.setAttribute('transform', `translate(${tx.toFixed(1)} ${ty.toFixed(1)}) scale(${z})`);
+  svg.style.setProperty('--iz', String(1 / z));
+  svg.classList.add('perto');
+}
+
+/* Aspas dentro de um atributo quebram o SVG inteiro. */
+const esc = (t) => String(t == null ? '' : t)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+
+  return { CIDADES, coord, curto, brasilSVG, zoomPara };
+};
+
+__defs["js/mapaviagens.js"] = function () {
+// O mapa das viagens e a lista, conversando.
+//
+// O desenho diz onde, a lista diz quando e com o quê. Separados, o mapa vira
+// enfeite e a lista vira tabela; juntos, tocar num pino acende a viagem e tocar
+// na viagem aproxima o mapa. Como isso vale no painel e na aba de viagens, mora
+// aqui em vez de existir duas vezes.
+const { store } = __req("js/store.js");
+const { brasilSVG, coord, zoomPara } = __req("js/geo.js");
+const { hoje } = __req("js/utils.js");
+/** A cidade de uma viagem, do jeito que o `geo` reconhece. */
+const cidadeDaViagem = (v) => String(v?.destino || v?.titulo || '')
+  .replace(/\s*\([A-Z]{2}\)\s*$/, '').trim();
+
+/** A caixa vazia. O desenho entra depois, quando ela tiver largura. */
+const caixaMapaHTML = () => '<div class="pn-mapa-caixa" data-mapinha>'
+  + '<button class="pn-mapa-volta" data-volta hidden>ver o país</button></div>';
+
+/**
+ * Desenha o mapa e amarra os dois lados.
+ *
+ * @param {HTMLElement} node       a tela inteira
+ * @param {number} alturaMax       teto de altura do desenho
+ * @param {Function} aoAbrir       chamada quando a mesma viagem é tocada de novo
+ */
+function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null } = {}) {
+  const caixa = node.querySelector('[data-mapinha]');
+  if (!caixa) return;
+
+  const hj = hoje();
+  const vs = [...store.doProjeto('viagens')].sort((a, b) => String(a.ida).localeCompare(String(b.ida)));
+  const prox = vs.find((v) => (v.volta || v.ida) >= hj) || vs[vs.length - 1];
+
+  const desenhar = () => {
+    const larg = caixa.clientWidth;
+    if (!larg) return;
+    const pinos = vs.map((v) => ({
+      nome: v.destino, cidade: cidadeDaViagem(v),
+      estado: (v.volta || v.ida) < hj ? 'passou' : 'futuro'
+    })).filter((x) => coord(x.cidade));
+    // No desktop a caixa é larga demais: sem teto, o país ocuparia uma tela
+    // inteira de altura. O desenho se centra sozinho na largura que sobra.
+    caixa.insertAdjacentHTML('afterbegin', brasilSVG({
+      larg, alt: Math.min(alturaMax, Math.round(larg * 0.86)), pinos,
+      rota: 'São Paulo', aceso: cidadeDaViagem(prox)
+    }));
+    ligarPinos();
+  };
+
+  const svg = () => caixa.querySelector('.geo');
+  const botao = () => caixa.querySelector('[data-volta]');
+  let acesa = null;
+
+  const acender = (cidade, viagemId) => {
+    acesa = acesa === cidade ? null : cidade;
+    // Aproximação de leve: 1,55× já separa Gravataí de Porto Alegre sem jogar o
+    // contorno do país para fora da tela — que é o que faria o zoom deixar de
+    // dizer onde a cidade fica.
+    zoomPara(svg(), acesa, 1.55);
+    const b = botao();
+    if (b) b.hidden = !acesa;
+    node.querySelectorAll('[data-viagem]').forEach((n) => {
+      n.classList.toggle('on', Boolean(acesa) && n.dataset.cidade === acesa);
+    });
+    svg()?.querySelectorAll('.geo-p').forEach((g) => {
+      g.classList.toggle('on', Boolean(acesa) && g.dataset.cidade === acesa);
+    });
+    if (acesa && viagemId) {
+      node.querySelector(`[data-viagem="${viagemId}"]`)
+        ?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+    }
+  };
+
+  function ligarPinos() {
+    svg()?.querySelectorAll('.geo-p').forEach((g) => {
+      g.onclick = () => {
+        const alvo = node.querySelector(`[data-viagem][data-cidade="${CSS.escape(g.dataset.cidade)}"]`);
+        acender(g.dataset.cidade, alvo?.dataset.viagem);
+      };
+    });
+  }
+
+  // O botão de voltar nasce com a caixa, mas o ouvinte fica nela para valer
+  // também depois do desenho entrar.
+  caixa.addEventListener('click', (ev) => {
+    if (ev.target.closest('[data-volta]')) { ev.preventDefault(); acender(acesa); }
+  });
+
+  node.querySelectorAll('[data-viagem]').forEach((b) => {
+    let apertou = 0;
+    b.onclick = () => {
+      // Um toque aproxima o mapa; o segundo abre a viagem. O mesmo alvo serve
+      // para olhar e para entrar, sem precisar de dois botões.
+      const agora = Date.now();
+      if (b.classList.contains('on') && agora - apertou < 4000) {
+        if (aoAbrir) aoAbrir(b.dataset.viagem);
+        else location.hash = '#/viagens';
+        return;
+      }
+      apertou = agora;
+      acender(b.dataset.cidade, b.dataset.viagem);
+    };
+  });
+
+  requestAnimationFrame(desenhar);
+}
+
+  return { cidadeDaViagem, caixaMapaHTML, ligarMapaViagens };
 };
 
 __defs["js/motion.js"] = function () {
@@ -4630,7 +4882,7 @@ __defs["js/tema.js"] = function () {
 // página, depois a preferência do sistema. Quem escolhe manda em tudo.
 const K = 'unit0:tema';
 const TEMAS = [
-  { v: 'auto', t: 'Automático', desc: 'Segue o sistema' },
+  { v: 'auto', t: 'Automático', desc: 'Segue o sistema — escuro quando ele não diz nada' },
   { v: 'claro', t: 'Claro', desc: 'Sempre claro' },
   { v: 'escuro', t: 'Escuro', desc: 'Sempre escuro' }
 ];
@@ -4656,9 +4908,8 @@ function escuroAgora() {
   const t = temaAtual();
   if (t === 'escuro') return true;
   if (t === 'claro') return false;
-  // O escuro é o padrão do app, e não segue o sistema: só quem escolhe "claro"
-  // em Mais é que clareia.
-  return true;
+  // No automático o escuro é o padrão: só o sistema pedindo claro é que clareia.
+  return !window.matchMedia?.('(prefers-color-scheme: light)').matches;
 }
 
   return { TEMAS, temaAtual, aplicarTema, definirTema, escuroAgora };
@@ -7110,7 +7361,8 @@ const { financeiro } = __req("js/calc.js");
 const { FASES } = __req("js/seed.js");
 const { alertas, perguntas } = __req("js/notify.js");
 const { abrirDossie } = __req("js/dossie.js");
-const { brasilSVG, coord } = __req("js/geo.js");
+const { caixaMapaHTML, ligarMapaViagens, cidadeDaViagem } = __req("js/mapaviagens.js");
+const { contaDaViagem, pendencias, ST_VIAGEM } = __req("js/views/viagens.js");
 const dias = (a, b) => Math.round(
   (new Date(String(b).slice(0, 10)) - new Date(String(a).slice(0, 10))) / 86400000);
 
@@ -7137,9 +7389,10 @@ function render() {
 
   // Os desenhos precisam do tamanho real da caixa, que só existe depois de
   // estar na tela.
-  requestAnimationFrame(() => { pintarLinha(node, p); pintarMapa(node); });
+  requestAnimationFrame(() => pintarLinha(node, p));
 
   ligar(node, { al, qs, etapas });
+  ligarMapaViagens(node);
   return { titulo: 'Painel', sub: p.nome, node };
 }
 
@@ -7266,37 +7519,47 @@ function etapasDaFase(k, etapas) {
   </div>`;
 }
 
-/* ------------------------------------------------------------------ mapa --- */
+/* ------------------------------------------------------------------ mapa ---
+   O mapa e as viagens são a mesma coisa vista de dois jeitos: o desenho diz
+   onde, a lista diz quando e com o quê. Por isso moram juntos e conversam —
+   tocar num pino acende a viagem na lista, tocar na viagem aproxima o mapa. */
 function mapaHTML() {
-  return `<section class="bloco largo">
-    <div class="sec"><div class="sec-t">Onde</div><a href="#/mapa" class="small">abrir o mapa</a></div>
-    <a class="pn-mapa-caixa" href="#/mapa" data-mapinha></a>
-  </section>`;
-}
-
-function pintarMapa(node) {
-  const caixa = node.querySelector('[data-mapinha]');
-  if (!caixa) return;
-  const larg = caixa.clientWidth;
-  if (!larg) return;
   const hj = hoje();
   const vs = [...store.doProjeto('viagens')].sort((a, b) => String(a.ida).localeCompare(String(b.ida)));
   const prox = vs.find((v) => (v.volta || v.ida) >= hj) || vs[vs.length - 1];
-  const limpo = (v) => String(v?.destino || '').replace(/\s*\([A-Z]{2}\)\s*$/, '').trim();
-  const pinos = vs.map((v) => ({
-    nome: v.destino, cidade: limpo(v) || v.destino,
-    estado: (v.volta || v.ida) < hj ? 'passou' : 'futuro',
-    rotulo: v === prox ? undefined : false        // só o próximo leva nome
-  })).filter((x) => coord(x.cidade));
-  // No desktop a caixa é larga demais: sem teto, o país ocuparia uma tela
-  // inteira de altura. O desenho se centra sozinho na largura que sobra.
-  caixa.innerHTML = brasilSVG({
-    larg, alt: Math.min(340, Math.round(larg * 0.86)), pinos,
-    rota: 'São Paulo', aceso: limpo(prox) || prox?.destino
-  }) + `<div class="pn-mapa-pe">
-    <b>${esc(prox?.destino || '—')}</b>
-    <span>${esc(quandoTxt(prox, hj))} · ${esc(fmtData(prox?.ida, { ano: false }))}</span>
-  </div>`;
+  const feitas = vs.filter((v) => (v.volta || v.ida) < hj).length;
+
+  return `<section class="bloco largo">
+    <div class="sec"><div class="sec-t">As viagens</div>
+      <span class="small muted">${feitas} de ${vs.length} rodadas</span></div>
+    ${caixaMapaHTML()}
+    <div class="pn-vs" data-vs>
+      ${vs.map((v) => cartaoViagem(v, hj, v === prox)).join('')
+        || '<div class="empty">Nenhuma viagem cadastrada.</div>'}
+    </div>
+  </section>`;
+}
+
+/* Uma viagem em bloco: número e pendências em cima, destino no meio, datas e
+   dinheiro embaixo. Em linha o nome não cabia e vivia cortado. */
+function cartaoViagem(v, hj, prox) {
+  const passou = (v.volta || v.ida) < hj;
+  const emCurso = v.ida <= hj && (v.volta || v.ida) >= hj;
+  const pend = pendencias(v).length;
+  const c = can(store.user, 'orcamento.ver') ? contaDaViagem(v) : null;
+  const quando = emCurso ? 'em curso' : passou ? 'já rodou' : quandoTxt(v, hj);
+  return `<button class="pn-v ${passou ? 'passou' : ''} ${emCurso ? 'curso' : ''} ${prox ? 'prox' : ''}"
+    data-viagem="${v.id}" data-cidade="${esc(cidadeDaViagem(v))}">
+    <span class="pn-v-topo">
+      <span class="pn-v-n">${esc(String(v.numero || '·').padStart(2, '0'))}</span>
+      ${pend ? `<span class="pn-v-p">${pend}</span>` : '<span class="pn-v-ok">tudo ok</span>'}
+    </span>
+    <span class="pn-v-t">${esc(v.destino || v.titulo || 'Viagem')}</span>
+    <span class="pn-v-pe">
+      <span class="pn-v-s">${esc(fmtData(v.ida, { ano: false }))} → ${esc(fmtData(v.volta || v.ida, { ano: false }))}<br>${esc(quando)}</span>
+      ${c ? `<span class="pn-v-m">${fmtMoneyShort(c.fechado)}</span>` : ''}
+    </span>
+  </button>`;
 }
 
 /* "em 1 dias" não é português, e "em 0 dias" muito menos. */
@@ -10695,6 +10958,7 @@ __defs["js/views/viagens.js"] = function () {
 // Viagens: o bloco logístico. Cada ida e volta com quem vai, o que já está
 // fechado (voo, hotel, carro) e quanto custou de verdade contra o orçado.
 const { store, nomeMembro, membros } = __req("js/store.js");
+const { caixaMapaHTML, ligarMapaViagens, cidadeDaViagem } = __req("js/mapaviagens.js");
 const { can } = __req("js/perms.js");
 const { estadoPedido } = __req("js/views/pedidosnf.js");
 const { el, abrirForm, sheet, toast, confirmar, btnOlho } = __req("js/ui.js");
@@ -10768,7 +11032,7 @@ function pendencias(v) {
     });
   }
   for (const i of c.faltando) {
-    out.push({ tipo: 'logistica', id: 'log' + i.k, texto: `${i.icone} ${i.t} ainda não fechado`, quem: null });
+    out.push({ tipo: 'logistica', id: 'log' + i.k, texto: `${i.t} ainda não fechado`, quem: null });
   }
   return out;
 }
@@ -10803,18 +11067,24 @@ function render() {
   const totalOrcado = soma(vs, (v) => v.orcado_cents || 0);
   const totalFechado = soma(vs, (v) => contaDaViagem(v).fechado);
 
+  const pend = soma(vs, (v) => pendencias(v).length);
   node.innerHTML = `
-    <div class="sec" style="margin-top:4px"><div class="sec-t">Viagens</div>${btnOlho(valoresOcultos())}</div>
-    <div class="grid">
-      <div class="kpi"><div class="l">Viagens</div><div class="v">${vs.length}</div>
-        <div class="h">${proximas.length} ainda por rodar</div></div>
+    <div class="sec" style="margin-top:4px"><div class="sec-t">Onze viagens</div>${btnOlho(valoresOcultos())}</div>
+    ${caixaMapaHTML()}
+    <div class="grid3" style="margin-top:var(--s3)">
+      <div class="kpi"><div class="l">Por rodar</div><div class="v">${proximas.length}</div>
+        <div class="h">de ${vs.length} viagens</div></div>
+      <div class="kpi ${pend ? 'warn' : ''}"><div class="l">Pendências</div><div class="v">${pend || '—'}</div>
+        <div class="h">somando todas</div></div>
       <div class="kpi"><div class="l">Orçado</div><div class="v">${fmtMoneyShort(totalOrcado)}</div>
         <div class="h">fechado ${fmtMoneyShort(totalFechado)}</div></div>
     </div>
     ${vs.length ? vs.map((v) => cartao(v, u)).join('') : '<div class="empty">Nenhuma viagem cadastrada.</div>'}`;
 
-  node.querySelectorAll('[data-viagem]').forEach((n) => {
-    n.onclick = () => abrir(store.get('viagens', n.dataset.viagem), editar);
+  // O mapa acende o cartão e o cartão aproxima o mapa; o segundo toque abre.
+  ligarMapaViagens(node, {
+    alturaMax: 300,
+    aoAbrir: (id) => abrir(store.get('viagens', id), editar)
   });
 
   return {
@@ -10835,7 +11105,8 @@ function cartao(v, u) {
   const quando = v.status === 'feita' ? 'já rodou'
     : dias === 0 ? 'é hoje' : dias > 0 ? `em ${dias} dia${dias > 1 ? 's' : ''}` : 'em curso';
 
-  return `<div class="card act ${emCurso ? 'ativa' : ''}" data-viagem="${v.id}" style="cursor:pointer">
+  return `<div class="card act ${emCurso ? 'ativa' : ''}" data-viagem="${v.id}"
+    data-cidade="${esc(cidadeDaViagem(v))}" style="cursor:pointer">
     ${emCurso ? '<div class="faixa-ativa">Em curso agora</div>' : ''}
     <div style="display:flex;gap:11px;align-items:flex-start">
       <span class="ico ${dias === 0 || emCurso ? 'urg' : ''}">${v.numero || '✈️'}</span>
@@ -10861,7 +11132,9 @@ function cartao(v, u) {
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
       ${ITENS.map((i) => {
         const ok = !c.faltando.some((f) => f.k === i.k);
-        return `<span class="tag ${ok ? 'ok' : 'warn'}">${i.icone} ${esc(i.t)}${ok ? '' : ' —'}</span>`;
+        // O símbolo passa por `.ico` para virar traço como no resto do app —
+        // emoji solto dentro da etiqueta escapava da troca.
+        return `<span class="tag ${ok ? 'ok' : 'warn'}"><i class="ico ico-inline">${i.icone}</i>${esc(i.t)}${ok ? '' : ' —'}</span>`;
       }).join('')}
       ${(v.participantes || []).map((id) => `<span class="avatar sm">${esc(iniciais(nomeMembro(id)))}</span>`).join('')}
       ${meu ? '<span class="tag info">você vai</span>' : ''}

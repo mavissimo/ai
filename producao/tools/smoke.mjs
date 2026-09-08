@@ -93,18 +93,55 @@ await passo('dossiê da tarefa', async()=>{
   if(await p.locator('.ds-b').count() < 3) throw new Error('sem blocos'); });
 await p.evaluate(()=>{const s=document.querySelector('.scrim'); s&&s.click();}); await p.waitForTimeout(400);
 
-// tema: escuro por padrão, claro só por escolha
-await passo('escuro é o padrão', async()=>{
-  const bg = await p.evaluate(()=>getComputedStyle(document.body).backgroundColor);
-  const [r,g,bl] = bg.match(/\d+/g).map(Number);
-  if (r+g+bl > 120) throw new Error('fundo claro: '+bg); });
-await p.evaluate(()=>document.documentElement.setAttribute('data-tema','claro'));
-await p.waitForTimeout(300);
-await passo('claro por escolha', async()=>{
-  const bg = await p.evaluate(()=>getComputedStyle(document.body).backgroundColor);
-  const [r,g,bl] = bg.match(/\d+/g).map(Number);
-  if (r+g+bl < 500) throw new Error('não clareou: '+bg); });
-await p.evaluate(()=>document.documentElement.removeAttribute('data-tema'));
+// tema: três opções de verdade — automático segue o sistema, e a escolha ganha
+const fundo = async () => {
+  const bg = await p.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  const [r,g,b2] = bg.match(/\d+/g).map(Number);
+  return { soma: r+g+b2, bg };
+};
+const midia = (m) => cdp.send('Emulation.setEmulatedMedia',
+  { features: [{ name: 'prefers-color-scheme', value: m }] });
+// O atributo é derivado do que está gravado — mexer só nele o app desfaz na
+// primeira troca de mídia. Aqui a escolha é feita do mesmo jeito que na tela.
+const escolher = (t) => p.evaluate((t) => {
+  const r = document.documentElement;
+  if (t) { localStorage.setItem('unit0:tema', t); r.setAttribute('data-tema', t); }
+  else { localStorage.removeItem('unit0:tema'); r.removeAttribute('data-tema'); }
+}, t);
+
+await midia('dark'); await p.waitForTimeout(200);
+await passo('automático + sistema escuro = escuro', async()=>{
+  const f = await fundo(); if (f.soma > 120) throw new Error(f.bg); });
+
+await midia('light'); await p.waitForTimeout(200);
+await passo('automático + sistema claro = claro', async()=>{
+  const f = await fundo(); if (f.soma < 500) throw new Error(f.bg); });
+
+await escolher('escuro');
+await p.waitForTimeout(200);
+await passo('escolher escuro ganha do sistema', async()=>{
+  const f = await fundo(); if (f.soma > 120) throw new Error(f.bg); });
+
+await midia('dark');
+await escolher('claro');
+await p.waitForTimeout(200);
+await passo('escolher claro ganha do sistema', async()=>{
+  const f = await fundo(); if (f.soma < 500) throw new Error(f.bg); });
+await escolher(null);
+
+// as viagens embaixo do mapa, e o zoom que liga uma coisa na outra
+await p.evaluate(()=>location.hash='#/'); await p.waitForTimeout(1200);
+await passo('viagens abaixo do mapa', async()=>{
+  const n = await p.locator('[data-viagem]').count();
+  if (n < 5) throw new Error('só '+n+' viagens'); });
+await p.evaluate(()=>document.querySelectorAll('[data-viagem]')[2].click());
+await p.waitForTimeout(700);
+await passo('tocar na viagem aproxima o mapa', async()=>{
+  if(!await p.locator('.geo.perto').count()) throw new Error('não aproximou');
+  if(!await p.locator('[data-volta]:not([hidden])').count()) throw new Error('sem volta'); });
+await p.evaluate(()=>document.querySelector('[data-volta]').click()); await p.waitForTimeout(600);
+await passo('voltar ao país', async()=>{
+  if(await p.locator('.geo.perto').count()) throw new Error('continuou perto'); });
 
 await p.screenshot({path:'f-bundle.png'});
 console.log(errs.length ? 'ERROS: ' + errs.slice(0,4).join(' | ') : 'sem erros de JS');

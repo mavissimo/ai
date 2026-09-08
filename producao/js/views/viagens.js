@@ -1,6 +1,7 @@
 // Viagens: o bloco logístico. Cada ida e volta com quem vai, o que já está
 // fechado (voo, hotel, carro) e quanto custou de verdade contra o orçado.
 import { store, nomeMembro, membros } from '../store.js';
+import { caixaMapaHTML, ligarMapaViagens, cidadeDaViagem } from '../mapaviagens.js';
 import { can } from '../perms.js';
 import { estadoPedido } from './pedidosnf.js';
 import { el, abrirForm, sheet, toast, confirmar, btnOlho } from '../ui.js';
@@ -78,7 +79,7 @@ export function pendencias(v) {
     });
   }
   for (const i of c.faltando) {
-    out.push({ tipo: 'logistica', id: 'log' + i.k, texto: `${i.icone} ${i.t} ainda não fechado`, quem: null });
+    out.push({ tipo: 'logistica', id: 'log' + i.k, texto: `${i.t} ainda não fechado`, quem: null });
   }
   return out;
 }
@@ -113,18 +114,24 @@ export function render() {
   const totalOrcado = soma(vs, (v) => v.orcado_cents || 0);
   const totalFechado = soma(vs, (v) => contaDaViagem(v).fechado);
 
+  const pend = soma(vs, (v) => pendencias(v).length);
   node.innerHTML = `
-    <div class="sec" style="margin-top:4px"><div class="sec-t">Viagens</div>${btnOlho(valoresOcultos())}</div>
-    <div class="grid">
-      <div class="kpi"><div class="l">Viagens</div><div class="v">${vs.length}</div>
-        <div class="h">${proximas.length} ainda por rodar</div></div>
+    <div class="sec" style="margin-top:4px"><div class="sec-t">Onze viagens</div>${btnOlho(valoresOcultos())}</div>
+    ${caixaMapaHTML()}
+    <div class="grid3" style="margin-top:var(--s3)">
+      <div class="kpi"><div class="l">Por rodar</div><div class="v">${proximas.length}</div>
+        <div class="h">de ${vs.length} viagens</div></div>
+      <div class="kpi ${pend ? 'warn' : ''}"><div class="l">Pendências</div><div class="v">${pend || '—'}</div>
+        <div class="h">somando todas</div></div>
       <div class="kpi"><div class="l">Orçado</div><div class="v">${fmtMoneyShort(totalOrcado)}</div>
         <div class="h">fechado ${fmtMoneyShort(totalFechado)}</div></div>
     </div>
     ${vs.length ? vs.map((v) => cartao(v, u)).join('') : '<div class="empty">Nenhuma viagem cadastrada.</div>'}`;
 
-  node.querySelectorAll('[data-viagem]').forEach((n) => {
-    n.onclick = () => abrir(store.get('viagens', n.dataset.viagem), editar);
+  // O mapa acende o cartão e o cartão aproxima o mapa; o segundo toque abre.
+  ligarMapaViagens(node, {
+    alturaMax: 300,
+    aoAbrir: (id) => abrir(store.get('viagens', id), editar)
   });
 
   return {
@@ -145,7 +152,8 @@ function cartao(v, u) {
   const quando = v.status === 'feita' ? 'já rodou'
     : dias === 0 ? 'é hoje' : dias > 0 ? `em ${dias} dia${dias > 1 ? 's' : ''}` : 'em curso';
 
-  return `<div class="card act ${emCurso ? 'ativa' : ''}" data-viagem="${v.id}" style="cursor:pointer">
+  return `<div class="card act ${emCurso ? 'ativa' : ''}" data-viagem="${v.id}"
+    data-cidade="${esc(cidadeDaViagem(v))}" style="cursor:pointer">
     ${emCurso ? '<div class="faixa-ativa">Em curso agora</div>' : ''}
     <div style="display:flex;gap:11px;align-items:flex-start">
       <span class="ico ${dias === 0 || emCurso ? 'urg' : ''}">${v.numero || '✈️'}</span>
@@ -171,7 +179,9 @@ function cartao(v, u) {
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
       ${ITENS.map((i) => {
         const ok = !c.faltando.some((f) => f.k === i.k);
-        return `<span class="tag ${ok ? 'ok' : 'warn'}">${i.icone} ${esc(i.t)}${ok ? '' : ' —'}</span>`;
+        // O símbolo passa por `.ico` para virar traço como no resto do app —
+        // emoji solto dentro da etiqueta escapava da troca.
+        return `<span class="tag ${ok ? 'ok' : 'warn'}"><i class="ico ico-inline">${i.icone}</i>${esc(i.t)}${ok ? '' : ' —'}</span>`;
       }).join('')}
       ${(v.participantes || []).map((id) => `<span class="avatar sm">${esc(iniciais(nomeMembro(id)))}</span>`).join('')}
       ${meu ? '<span class="tag info">você vai</span>' : ''}
