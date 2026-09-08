@@ -74,6 +74,21 @@ function relacoes(ref) {
     }
   }
 
+  if (ref.t === 'viagens') {
+    const tar = store.doProjeto('tarefas')
+      .filter((t) => t.viagem_id === r.id && aberta(t));
+    if (tar.length) depende.push(item(`${tar.length} providência(s) desta viagem`,
+      'nada disso se resolve depois de embarcar', '#/tarefas'));
+    const ev = store.doProjeto('eventos')
+      .filter((e) => e.data >= r.ida && e.data <= (r.volta || r.ida));
+    if (ev.length) trava.push(item(`${ev.length} dia(s) de agenda nesta viagem`,
+      `${fmtData(r.ida)} a ${fmtData(r.volta)}`, '#/agenda'));
+    const cs = store.doProjeto('contas')
+      .filter((c) => c.viagem_id === r.id && c.status === 'aberto');
+    if (cs.length) trava.push(item(`${cs.length} conta(s) desta viagem`,
+      'a viagem não fecha com conta em aberto', '#/pagamentos'));
+  }
+
   if (ref.t === 'confirmacoes') {
     const ev = r.ref_id && store.get('eventos', r.ref_id);
     if (ev) depende.push(item(ev.titulo, `${fmtData(ev.data)} · ${ev.local || ''}`, '#/mapa'));

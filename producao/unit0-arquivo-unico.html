@@ -789,8 +789,9 @@ main{animation:tela var(--t-med) var(--e-entra)}
 .ds-p{font-size:14.5px;line-height:1.6;color:var(--tx);margin:0;max-width:52ch}
 
 .ds-lista{display:flex;flex-direction:column;margin-top:var(--s1)}
-.ds-l{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) 0;
-  border-top:1px solid var(--line);color:var(--tx);text-decoration:none}
+.ds-l{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) 0;width:100%;
+  border:0;border-top:1px solid var(--line);color:var(--tx);text-decoration:none;
+  background:none;font:inherit;text-align:left;cursor:pointer}
 .ds-l:first-child{border-top:0}
 .ds-lg{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .ds-lt{font-size:14px;font-weight:650;letter-spacing:-.01em}
@@ -893,8 +894,13 @@ main{animation:tela var(--t-med) var(--e-entra)}
   color:var(--tx3)}
 
 /* o mapa do painel */
+/* A caixa e o desenho são a mesma coisa: o SVG ocupa tudo, sempre. Antes o
+   desenho tinha altura própria e, no desktop, a coluna esticava até a altura
+   do painel ao lado — sobrava um retângulo preto embaixo do país. */
 .pn-mapa-caixa{display:block;position:relative;border:1px solid var(--line);border-radius:var(--r);
-  padding:var(--s3) var(--s3) 0;overflow:hidden;color:inherit;text-decoration:none}
+  overflow:hidden;color:inherit;text-decoration:none;
+  height:clamp(240px,66vw,var(--mapa-alt,320px));background:var(--bg2)}
+.pn-mapa-caixa .geo{position:absolute;inset:0}
 .pn-mapa-pe{display:flex;flex-direction:column;gap:2px;padding:var(--s3) var(--s1) var(--s4)}
 .pn-mapa-pe b{font-family:var(--titulo);font-size:17px;font-weight:800;letter-spacing:-.03em;
   text-transform:uppercase}
@@ -903,16 +909,38 @@ main{animation:tela var(--t-med) var(--e-entra)}
 
 
 /* O zoom do mapa: o país anda e cresce, o pino e o nome ficam do mesmo tamanho.
-   `transform` puro, então é a placa de vídeo que trabalha. */
+   `transform` puro, então é a placa de vídeo que trabalha. Enquanto o dedo
+   arrasta, a transição sai da frente — senão o mapa persegue a mão. */
 .geo-mundo{transition:transform var(--t-lento) var(--e-folha)}
 .geo-p-in{transition:transform var(--t-lento) var(--e-folha)}
 .geo-p-in{transform:scale(var(--iz,1))}
-.geo-pais,.geo-grade,.geo-rota{vector-effect:non-scaling-stroke}
+.geo.sem-transicao .geo-mundo,.geo.sem-transicao .geo-p-in{transition:none}
+.geo-pais,.geo-grade,.geo-rota,.geo-anel,.geo-estrada{vector-effect:non-scaling-stroke}
+.geo{touch-action:pan-y}
+.geo.movel{touch-action:none;cursor:grab}
+.geo.movel.arrastando{cursor:grabbing}
+.geo-grade.fina{opacity:0;transition:opacity var(--t-norm) var(--e-pad)}
 .geo.perto .geo-grade{opacity:.14}
-.geo.perto .geo-p:not(.on) .geo-n{opacity:.35}
+.geo.perto .geo-grade.fina{opacity:.07}
+.geo.perto .geo-p:not(.on):not(.viz):not(.aero) .geo-n{opacity:.35}
 .geo-n{transition:opacity var(--t-norm) var(--e-pad)}
 .geo-p{cursor:pointer}
+/* as cidades em volta, que só existem de perto */
+.geo-p.viz{pointer-events:none}
+.geo-p.viz .geo-pino{fill:var(--tx3)}
+.geo-p.viz .geo-n{font-size:8px;fill:var(--tx3);letter-spacing:.06em}
+.geo-anel{fill:none;stroke:var(--ac);stroke-width:1;stroke-dasharray:3 5;opacity:.5}
+.geo-ficha{font-family:var(--mono);font-size:7.6px;letter-spacing:.08em;
+  text-transform:uppercase;fill:var(--tx2)}
 @media (prefers-reduced-motion: reduce){.geo-mundo,.geo-p-in{transition:none}}
+
+/* os controles do mapa, no canto, sem tapar o desenho */
+.pn-mapa-ctrl{position:absolute;right:8px;top:8px;z-index:2;display:flex;flex-direction:column;
+  border:1px solid var(--line);border-radius:5px;overflow:hidden;background:var(--bg2)}
+.pn-mapa-b{width:30px;height:30px;display:grid;place-items:center;border:0;background:transparent;
+  color:var(--tx2);font-size:17px;font-weight:600;line-height:1;cursor:pointer;padding:0}
+.pn-mapa-b + .pn-mapa-b{border-top:1px solid var(--line)}
+.pn-mapa-b:active{background:var(--line);color:var(--tx)}
 
 /* ---------------------------------------------------------- as viagens -----
    Logo abaixo do mapa, porque são a mesma coisa: o desenho diz onde, a lista
@@ -1003,7 +1031,9 @@ main{animation:tela var(--t-med) var(--e-entra)}
    mapa deixar de ser figura. */
 .mesa{display:grid;gap:var(--s3);grid-template-columns:1fr}
 @media (min-width:720px){ .mesa{grid-template-columns:1.15fr .85fr;align-items:stretch} }
-.mesa .pn-mapa-caixa{min-height:0}
+/* No desktop a mesa estica as duas colunas juntas: aqui o mapa larga a altura
+   fixa e toma a da linha, e o desenho vai atrás dela pelo ResizeObserver. */
+@media (min-width:720px){ .mesa .pn-mapa-caixa{height:auto;min-height:300px} }
 .mesa-lado{display:flex;flex-direction:column;border:1px solid var(--line);
   border-radius:var(--r);padding:var(--s4);min-height:0}
 .mesa-vazio{margin:auto;text-align:center}
@@ -1057,9 +1087,21 @@ main{animation:tela var(--t-med) var(--e-entra)}
 .faixa.parada .fx-trilho{animation-play-state:paused}
 @keyframes fx{to{transform:translateX(var(--percurso,-100%))}}
 .fx-copia{display:flex;flex:none;align-items:center}
-.fx-i{display:inline-flex;align-items:baseline;gap:7px;padding:0 var(--s4);
+/* Cada linha é um botão: some a cara de botão, fica o alvo. A seta só aparece
+   quando o dedo ou o mouse encosta — senão a faixa vira um monte de setas. */
+.fx-i{display:inline-flex;align-items:baseline;gap:7px;padding:4px var(--s4);
   font-size:11.5px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;color:var(--tx2);
-  border-right:1px solid var(--line)}
+  border:0;border-right:1px solid var(--line);background:none;font-family:inherit;
+  cursor:pointer;-webkit-tap-highlight-color:transparent}
+.fx-v{flex:none;font-style:normal;font-size:10px;color:var(--cor,var(--tx3));
+  opacity:0;transform:translateX(-3px);
+  transition:opacity var(--t-rap) var(--e-pad),transform var(--t-rap) var(--e-pad)}
+.fx-i:hover,.fx-i:focus-visible{color:var(--tx)}
+.fx-i:hover .fx-v,.fx-i:focus-visible .fx-v{opacity:1;transform:none}
+.fx-i:hover .fx-t,.fx-i:focus-visible .fx-t{text-decoration:underline;
+  text-decoration-color:var(--cor,var(--line));text-underline-offset:3px}
+.fx-i:active{color:var(--tx)}
+.fx-i:active .fx-v{opacity:1;transform:none}
 .fx-o{font-family:var(--mono);font-size:8.5px;font-style:normal;font-weight:500;
   letter-spacing:.14em;text-transform:uppercase;color:var(--cor,var(--tx3))}
 .fx-i.f1{--cor:var(--f1)} .fx-i.f2{--cor:var(--f2)} .fx-i.f3{--cor:var(--f3)}
@@ -1861,7 +1903,7 @@ const APP = {
      preso numa versão e quem abre não tem como saber se está vendo a de ontem.
      O empacotador troca isto pela data e pelo commit reais; no servidor de
      módulos fica "dev", que também é uma informação. */
-  build: "2026-09-08 · 839a4ac"
+  build: "2026-09-08 · a6725cd"
 };
 
 const isRemote = () => Boolean(SUPABASE.url && SUPABASE.anonKey);
@@ -1943,6 +1985,21 @@ function relacoes(ref) {
           'é deste dinheiro que elas saem', '#/pagamentos'));
       }
     }
+  }
+
+  if (ref.t === 'viagens') {
+    const tar = store.doProjeto('tarefas')
+      .filter((t) => t.viagem_id === r.id && aberta(t));
+    if (tar.length) depende.push(item(`${tar.length} providência(s) desta viagem`,
+      'nada disso se resolve depois de embarcar', '#/tarefas'));
+    const ev = store.doProjeto('eventos')
+      .filter((e) => e.data >= r.ida && e.data <= (r.volta || r.ida));
+    if (ev.length) trava.push(item(`${ev.length} dia(s) de agenda nesta viagem`,
+      `${fmtData(r.ida)} a ${fmtData(r.volta)}`, '#/agenda'));
+    const cs = store.doProjeto('contas')
+      .filter((c) => c.viagem_id === r.id && c.status === 'aberto');
+    if (cs.length) trava.push(item(`${cs.length} conta(s) desta viagem`,
+      'a viagem não fecha com conta em aberto', '#/pagamentos'));
   }
 
   if (ref.t === 'confirmacoes') {
@@ -2096,32 +2153,112 @@ __defs["js/faixa.js"] = function () {
 // ninguém precise abrir nada. Só entra o que muda sozinho com o tempo — o que
 // é hoje, o que embarca, o que vence, o que falta. Nada de número decorativo:
 // se a linha não muda de um dia para o outro, ela não merece estar correndo.
+//
+// E cada linha é um botão. Letreiro que só informa obriga a pessoa a caçar
+// depois, no menu, a coisa que ela acabou de ler — então aqui a linha abre o
+// dossiê do que ela está dizendo, ou leva direto para onde se resolve.
 const { store, nomeMembro } = __req("js/store.js");
 const { can } = __req("js/perms.js");
-const { esc, fmtMoneyShort, fmtData, diasAte, hoje } = __req("js/utils.js");
+const { el, sheet } = __req("js/ui.js");
+const { esc, fmtMoney, fmtMoneyShort, fmtData, diasAte, hoje } = __req("js/utils.js");
 const { financeiro } = __req("js/calc.js");
 const { alertas } = __req("js/notify.js");
+const { abrirDossie } = __req("js/dossie.js");
 const { paraCobrar } = __req("js/views/pedidosnf.js");
 const emDias = (d) => (d === 0 ? 'hoje' : d === 1 ? 'amanhã' : `em ${d} dias`);
+
+/* ------------------------------------------------------- os dossiês -------
+   Explicação genérica não explica nada, então cada tipo de linha tem a sua,
+   escrita à mão. O `ref` é o que faz o dossiê descobrir sozinho do que aquilo
+   depende e o que está travado esperando. */
+
+const dossieEvento = (e, hj) => ({
+  texto: e.titulo,
+  detalhe: [fmtData(e.data), e.hora_inicio, e.local].filter(Boolean).join(' · '),
+  urg: e.data === hj ? 3 : 2,
+  rota: '#/agenda',
+  ref: { t: 'eventos', id: e.id },
+  origem: e.data === hj
+    ? 'É o que está marcado para hoje na agenda do projeto.'
+    : 'É o próximo compromisso deste tipo na agenda do projeto.',
+  porque: e.confirmado === false
+    ? 'Ainda não está confirmado. Diária sem confirmação é equipe parada em '
+      + 'aeroporto: o contrato pede dez dias úteis de antecedência.'
+    : 'É o que a equipe está contando para se organizar — passagem, diária e '
+      + 'chamada saem daqui.',
+  como: 'Abra na agenda para conferir hora, lugar e quem vai. Se algo mudou, '
+    + 'mude aqui primeiro: é desta data que sai o resto.'
+});
+
+const dossieViagem = (v, curso) => ({
+  texto: `Viagem ${v.numero || ''} — ${v.destino || ''}`.trim(),
+  detalhe: `${fmtData(v.ida)} a ${fmtData(v.volta)}`,
+  urg: curso ? 3 : 2,
+  rota: '#/viagens',
+  ref: { t: 'viagens', id: v.id },
+  origem: curso
+    ? 'Está acontecendo agora: a data de hoje cai entre a ida e a volta.'
+    : 'É a próxima viagem a embarcar no cronograma.',
+  porque: curso
+    ? 'Enquanto a viagem roda, tudo que faltou vira problema em campo — '
+      + 'não dá para pedir de longe o que ficou em São Paulo.'
+    : 'Passagem, hospedagem, carro e equipe se resolvem antes de embarcar. '
+      + 'Depois vira remarcação, e remarcação custa.',
+  como: 'Abra a viagem para ver a lista de providências dela e o que ainda '
+    + 'está aberto.'
+});
+
+const dossieEntrega = (e) => ({
+  texto: e.titulo,
+  detalhe: e.prazo ? `prazo ${fmtData(e.prazo)}` : 'sem prazo',
+  urg: (diasAte(e.prazo) ?? 9) < 0 ? 3 : (diasAte(e.prazo) ?? 9) <= 7 ? 2 : 1,
+  rota: '#/entregas',
+  ref: { t: 'entregas', id: e.id },
+  origem: 'É a próxima entrega com prazo aberto no contrato.',
+  porque: 'Entrega no prazo é o que libera a próxima parcela — e atraso em '
+    + 'entrega é a única coisa deste contrato que gera multa.',
+  como: 'Abra a entrega, veja em que rodada de aprovação ela está e o que '
+    + 'falta para fechar.'
+});
+
+const dossieConta = (c) => ({
+  texto: c.titulo || c.descricao || 'Conta em aberto',
+  detalhe: [fmtMoney(c.valor_cents), c.venc ? `venceu ${fmtData(c.venc)}` : ''].filter(Boolean).join(' · '),
+  urg: 3,
+  rota: '#/pagamentos',
+  ref: { t: 'contas', id: c.id },
+  origem: 'A data de vencimento já passou e a conta continua em aberto.',
+  porque: 'Conta vencida é alguém da equipe esperando o dinheiro dele, e é '
+    + 'juros que saem do nosso lado, não do cliente.',
+  como: 'Pague e dê baixa, ou remarque o vencimento com a data real — sumir '
+    + 'da lista sem baixa é o que faz o número do caixa mentir.'
+});
 
 /** O que a faixa tem a dizer, na ordem em que importa. */
 function itensDaFaixa(u = store.user) {
   const out = [];
   const hj = hoje();
-  const add = (cor, olho, txt) => txt && out.push({ cor, olho, txt });
+  const add = (cor, olho, txt, acao) => txt && out.push({ cor, olho, txt, ...(acao || {}) });
 
   // O dia de hoje, se ele for alguma coisa.
   const deHoje = store.doProjeto('eventos').filter((e) => e.data === hj);
   for (const e of deHoje.slice(0, 2)) {
-    add('f3', 'hoje', [e.titulo, e.hora_inicio].filter(Boolean).join(' · '));
+    add('f3', 'hoje', [e.titulo, e.hora_inicio].filter(Boolean).join(' · '),
+      { dossie: dossieEvento(e, hj) });
   }
 
   // A próxima viagem — e a que estiver rodando agora.
   const vs = [...store.doProjeto('viagens')].sort((a, b) => String(a.ida).localeCompare(String(b.ida)));
   const curso = vs.find((v) => v.ida <= hj && (v.volta || v.ida) >= hj);
-  if (curso) add('f2', 'em curso', `${curso.destino} · volta ${fmtData(curso.volta, { ano: false })}`);
+  if (curso) {
+    add('f2', 'em curso', `${curso.destino} · volta ${fmtData(curso.volta, { ano: false })}`,
+      { dossie: dossieViagem(curso, true) });
+  }
   const prox = vs.find((v) => v.ida > hj);
-  if (prox) add('f1', 'próxima viagem', `${prox.destino} · embarca ${emDias(diasAte(prox.ida))}`);
+  if (prox) {
+    add('f1', 'próxima viagem', `${prox.destino} · embarca ${emDias(diasAte(prox.ida))}`,
+      { dossie: dossieViagem(prox, false) });
+  }
 
   // A próxima diária de filmagem, que é o que a equipe realmente conta.
   const diaria = store.doProjeto('eventos')
@@ -2129,23 +2266,31 @@ function itensDaFaixa(u = store.user) {
     .sort((a, b) => String(a.data).localeCompare(String(b.data)))[0];
   if (diaria) {
     add('f1', 'próxima diária', `${diaria.titulo} · ${fmtData(diaria.data, { ano: false })}`
-      + (diaria.confirmado === false ? ' · a confirmar' : ''));
+      + (diaria.confirmado === false ? ' · a confirmar' : ''),
+    { dossie: dossieEvento(diaria, hj) });
   }
 
   // O que está pegando fogo agora.
   const al = alertas();
-  const urgentes = al.filter((a) => a.urg >= 3).length;
-  if (urgentes) add('f3', 'urgente', `${urgentes} ${urgentes === 1 ? 'coisa' : 'coisas'} para resolver hoje`);
+  const urgentes = al.filter((a) => a.urg >= 3);
+  if (urgentes.length) {
+    add('f3', 'urgente', `${urgentes.length} ${urgentes.length === 1 ? 'coisa' : 'coisas'} para resolver hoje`,
+      { lista: { titulo: 'Para resolver hoje', itens: urgentes } });
+  }
 
   // Nota fiscal que não chega trava pagamento.
   if (can(u, 'contas.ver')) {
     const nf = paraCobrar().length;
-    if (nf) add('f3', 'nota fiscal', `${nf} ${nf === 1 ? 'nota atrasada' : 'notas atrasadas'} para cobrar`);
+    if (nf) {
+      add('f3', 'nota fiscal', `${nf} ${nf === 1 ? 'nota atrasada' : 'notas atrasadas'} para cobrar`,
+        { rota: '#/pedidos-nf' });
+    }
     const vencidas = store.doProjeto('contas')
       .filter((c) => c.status === 'aberto' && c.tipo === 'pagar' && (diasAte(c.venc) ?? 9) < 0);
     if (vencidas.length) {
       add('f3', 'vencido',
-        `${vencidas.length} ${vencidas.length === 1 ? 'conta vencida' : 'contas vencidas'}`);
+        `${vencidas.length} ${vencidas.length === 1 ? 'conta vencida' : 'contas vencidas'}`,
+        { lista: { titulo: 'Contas vencidas', itens: vencidas.map(dossieConta) } });
     }
   }
 
@@ -2153,7 +2298,10 @@ function itensDaFaixa(u = store.user) {
   const ent = store.doProjeto('entregas')
     .filter((e) => e.status !== 'entregue' && e.prazo)
     .sort((a, b) => String(a.prazo).localeCompare(String(b.prazo)))[0];
-  if (ent) add('f4', 'próxima entrega', `${ent.titulo} · ${emDias(diasAte(ent.prazo))}`);
+  if (ent) {
+    add('f4', 'próxima entrega', `${ent.titulo} · ${emDias(diasAte(ent.prazo))}`,
+      { dossie: dossieEntrega(ent) });
+  }
 
   // Onde o contrato está no tempo.
   const ctr = store.doProjeto('contratos').find((c) => c.tipo === 'cliente');
@@ -2163,37 +2311,70 @@ function itensDaFaixa(u = store.user) {
   if (de && ate) {
     const total = Math.max(1, (new Date(ate) - new Date(de)) / 86400000);
     const andado = Math.round(Math.max(0, Math.min(1, (new Date(hj) - new Date(de)) / 86400000 / total)) * 100);
-    add('f5', 'contrato', `${andado}% do prazo · entrega ${fmtData(ate, { ano: false })}`);
+    add('f5', 'contrato', `${andado}% do prazo · entrega ${fmtData(ate, { ano: false })}`,
+      { rota: '#/contratos' });
   }
 
   // O dinheiro entra por último e só para quem pode ver.
   if (can(u, 'orcamento.ver')) {
     const f = financeiro();
-    add('f5', 'orçamento', `${fmtMoneyShort(f.comprometido)} de ${fmtMoneyShort(f.orcado)} comprometidos`);
+    add('f5', 'orçamento', `${fmtMoneyShort(f.comprometido)} de ${fmtMoneyShort(f.orcado)} comprometidos`,
+      { rota: '#/financeiro' });
   }
 
   // Quem está de viagem marcada nos próximos dias.
   const emBreve = vs.find((v) => (diasAte(v.ida) ?? 99) >= 0 && (diasAte(v.ida) ?? 99) <= 7);
   if (emBreve && (emBreve.participantes || []).length) {
-    add('f4', 'quem vai', emBreve.participantes.map(nomeMembro).join(', '));
+    add('f4', 'quem vai', emBreve.participantes.map(nomeMembro).join(', '),
+      { dossie: dossieViagem(emBreve, false) });
   }
 
   return out;
 }
 
+/* A faixa desenhada e a faixa ligada são duas chamadas separadas; isto é o
+   que uma deixa para a outra, para o índice do botão achar a ação certa. */
+let ULTIMOS = [];
+
 /* O trilho aparece duas vezes: quando a primeira cópia termina de sair pela
    esquerda, a segunda já está no lugar dela e o laço não tem emenda. */
 function faixaHTML(u = store.user) {
   const itens = itensDaFaixa(u);
+  ULTIMOS = itens;
   if (!itens.length) return '';
-  const bloco = itens.map((i) => `<span class="fx-i ${i.cor}">
-    <i class="fx-o">${esc(i.olho)}</i>${esc(i.txt)}</span>`).join('');
+  const bloco = itens.map((i, n) => `<button type="button" class="fx-i ${i.cor}" data-fx="${n}">
+    <i class="fx-o">${esc(i.olho)}</i><span class="fx-t">${esc(i.txt)}</span>
+    <i class="fx-v" aria-hidden="true">→</i></button>`).join('');
   return `<div class="faixa" data-faixa aria-label="Estado do projeto">
     <div class="fx-trilho" data-fx-trilho>
       <div class="fx-copia">${bloco}</div>
       <div class="fx-copia" aria-hidden="true">${bloco}</div>
     </div>
   </div>`;
+}
+
+/* Quando a linha fala de um monte de coisas, ela abre o monte — e cada uma
+   dali abre o seu próprio dossiê. Um número sem a lista atrás é só susto. */
+function abrirLista(titulo, itens) {
+  const corpo = el(`<div class="ds"><div class="ds-lista">${itens.map((a, n) => `
+    <button type="button" class="ds-l" data-n="${n}">
+      <span class="ds-lg"><span class="ds-lt">${esc(a.texto)}</span>
+      <span class="ds-ls">${esc(a.detalhe || '')}</span></span>
+      <span class="ds-lv">→</span></button>`).join('')}</div></div>`);
+  const sh = sheet({ titulo, corpo });
+  corpo.querySelectorAll('[data-n]').forEach((b) => {
+    b.onclick = () => { sh.close(); abrirDossie(itens[Number(b.dataset.n)]); };
+  });
+  return sh;
+}
+
+/** O que acontece quando se toca numa linha da faixa. */
+function abrirItemDaFaixa(i) {
+  if (!i) return;
+  if (i.dossie) return abrirDossie(i.dossie);
+  if (i.lista) return abrirLista(i.lista.titulo, i.lista.itens);
+  if (i.rota) { location.hash = i.rota; }
+  return null;
 }
 
 /**
@@ -2205,6 +2386,7 @@ function ligarFaixa(raiz) {
   const faixa = raiz.querySelector('[data-faixa]');
   const trilho = raiz.querySelector('[data-fx-trilho]');
   if (!faixa || !trilho) return;
+  const itens = ULTIMOS;
 
   const medir = () => {
     const copia = trilho.querySelector('.fx-copia');
@@ -2220,7 +2402,7 @@ function ligarFaixa(raiz) {
   new ResizeObserver(medir).observe(faixa);
 
   // Segurar o dedo em cima para. É o único jeito de ler uma linha inteira num
-  // letreiro que anda.
+  // letreiro que anda — e de acertar o toque naquilo que se quer abrir.
   const parar = () => faixa.classList.add('parada');
   const seguir = () => faixa.classList.remove('parada');
   faixa.addEventListener('pointerdown', parar);
@@ -2229,9 +2411,31 @@ function ligarFaixa(raiz) {
   faixa.addEventListener('pointerleave', seguir);
   faixa.addEventListener('mouseenter', parar);
   faixa.addEventListener('mouseleave', seguir);
+
+  // Um alvo que anda é difícil de acertar: enquanto a folha está aberta a
+  // faixa fica parada, e ela só volta a correr quando a folha fecha.
+  faixa.addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-fx]');
+    if (!b) return;
+    ev.preventDefault();
+    const i = itens[Number(b.dataset.fx)];
+    if (!i) return;
+    faixa.classList.add('parada');
+    const sh = abrirItemDaFaixa(i);
+    if (!sh?.root) { faixa.classList.remove('parada'); return; }
+    // A folha fecha de três jeitos — botão, fundo, tecla —, e todos acabam
+    // tirando ela do documento. Vigiar isso é mais honesto do que envolver os
+    // três caminhos e esquecer um.
+    const olho = new MutationObserver(() => {
+      if (sh.root.isConnected) return;
+      faixa.classList.remove('parada');
+      olho.disconnect();
+    });
+    olho.observe(document.body, { childList: true });
+  });
 }
 
-  return { itensDaFaixa, faixaHTML, ligarFaixa };
+  return { itensDaFaixa, faixaHTML, abrirItemDaFaixa, ligarFaixa };
 };
 
 __defs["js/files.js"] = function () {
@@ -2473,15 +2677,24 @@ function brasilSVG({ larg, alt, pinos = [], rota = '', aceso = '' }) {
   d += 'Z';
 
   // Paralelos e meridianos: dão escala ao desenho e enchem o vazio com ordem.
+  // Duas malhas: a de 10° dá a leitura de longe, a de 2,5° só aparece quando o
+  // zoom entra. É ela que garante que aproximar nunca mostre um vazio — de
+  // perto, sertão sem litoral por perto continua tendo chão desenhado.
   const grade = [];
-  for (let lat = 0; lat >= -30; lat -= 10) {
-    const [, y] = P([-60, lat]);
-    grade.push(`<line class="geo-grade" x1="0" y1="${y.toFixed(1)}" x2="${larg}" y2="${y.toFixed(1)}"/>`);
-  }
-  for (let lon = -70; lon <= -40; lon += 10) {
-    const [x] = P([lon, 0]);
-    grade.push(`<line class="geo-grade" x1="${x.toFixed(1)}" y1="0" x2="${x.toFixed(1)}" y2="${alt}"/>`);
-  }
+  const linhas = (passo, classe) => {
+    for (let lat = 10; lat >= -40; lat -= passo) {
+      const [, y] = P([-60, lat]);
+      if (y < -2 || y > alt + 2) continue;
+      grade.push(`<line class="${classe}" x1="0" y1="${y.toFixed(1)}" x2="${larg}" y2="${y.toFixed(1)}"/>`);
+    }
+    for (let lon = -80; lon <= -30; lon += passo) {
+      const [x] = P([lon, 0]);
+      if (x < -2 || x > larg + 2) continue;
+      grade.push(`<line class="${classe}" x1="${x.toFixed(1)}" y1="0" x2="${x.toFixed(1)}" y2="${alt}"/>`);
+    }
+  };
+  linhas(2.5, 'geo-grade fina');
+  linhas(10, 'geo-grade');
 
   const de = rota ? coord(rota) : null;
   const arcos = [];
@@ -2564,90 +2777,302 @@ function brasilSVG({ larg, alt, pinos = [], rota = '', aceso = '' }) {
   </svg>`;
 }
 
-/* -------------------------------------------------------------- o zoom -----
-   O país inteiro cabe na tela, mas Gravataí e Porto Alegre viram o mesmo ponto.
-   Aqui o desenho aproxima de uma cidade sem redesenhar nada: o grupo de fora
-   ganha uma transformação e os pinos se defendem dela pela contra-escala. Fica
-   suave porque é `transform`, e continua legível porque o texto não cresce.
+/* ------------------------------------------------- o zoom e o arrasto ------
+   O país inteiro cabe na tela, mas Gravataí e Porto Alegre viram o mesmo
+   ponto. Aqui o desenho aproxima, anda com o dedo e volta, sem redesenhar
+   nada: o grupo de fora ganha uma transformação e os pinos se defendem dela
+   pela contra-escala. Fica suave porque é `transform`, e continua legível
+   porque o texto não cresce.
 
-   @param {SVGElement} svg  o que `brasilSVG` devolveu, já no documento
-   @param {string} cidade   para onde ir; vazio volta para o país inteiro
-   @param {number} z        quanto aproximar (1 = país inteiro)
-*/
-function zoomPara(svg, cidade, z = 2.8) {
+   A regra que manda em tudo: **a caixa nunca fica vazia**. Aproximar e
+   arrastar movem o desenho, e sem freio o país sai de quadro e sobra um
+   buraco preto. Por isso todo movimento passa por `limitar()`, que prende a
+   translação ao retângulo em que o desenho ainda cobre a moldura inteira. */
+
+const ESTADO = new WeakMap();
+const Z_MIN = 1;
+const Z_MAX = 12;
+
+function estado(svg) {
+  let s = ESTADO.get(svg);
+  if (!s) {
+    s = { z: 1, tx: 0, ty: 0, larg: Number(svg.dataset.larg) || 0, alt: Number(svg.dataset.alt) || 0 };
+    ESTADO.set(svg, s);
+  }
+  return s;
+}
+
+/* O freio. Depois de escalar por `z`, o desenho mede `larg*z` por `alt*z`; para
+   ele cobrir a caixa, a translação tem que ficar entre o canto oposto e zero.
+   Como z ≥ 1, esse intervalo nunca é vazio — logo nunca sobra fundo à mostra. */
+function limitar(s) {
+  s.z = Math.max(Z_MIN, Math.min(Z_MAX, s.z));
+  s.tx = Math.max(s.larg - s.larg * s.z, Math.min(0, s.tx));
+  s.ty = Math.max(s.alt - s.alt * s.z, Math.min(0, s.ty));
+}
+
+function aplicar(svg, { suave = true } = {}) {
+  const s = estado(svg);
+  limitar(s);
+  const mundo = svg.querySelector('[data-mundo]');
+  if (!mundo) return;
+  svg.classList.toggle('sem-transicao', !suave);
+  mundo.setAttribute('transform', s.z <= 1.001 ? ''
+    : `translate(${s.tx.toFixed(1)} ${s.ty.toFixed(1)}) scale(${s.z.toFixed(3)})`);
+  svg.style.setProperty('--iz', String(1 / s.z));
+  svg.classList.toggle('perto', s.z > 1.25);
+  svg.classList.toggle('movel', s.z > 1.02);
+  svg.dataset.z = s.z.toFixed(2);
+  svg.dispatchEvent(new CustomEvent('geo:mudou', { detail: { z: s.z }, bubbles: true }));
+}
+
+/** Quanto o mapa está aproximado agora. */
+const zoomAtual = (svg) => (svg ? estado(svg).z : 1);
+
+/** Coordenada de tela (px do viewBox) a partir de um evento de ponteiro. */
+function noSvg(svg, ev) {
+  const s = estado(svg);
+  const r = svg.getBoundingClientRect();
+  const k = r.width ? s.larg / r.width : 1;
+  return [(ev.clientX - r.left) * k, (ev.clientY - r.top) * k];
+}
+
+/* Ampliar em volta de um ponto: o ponto do mundo que estava embaixo do dedo
+   continua embaixo do dedo. É isso que faz o gesto parecer natural. */
+function ampliar(svg, fator, mx, my, suave = false) {
+  const s = estado(svg);
+  const z0 = s.z;
+  const z1 = Math.max(Z_MIN, Math.min(Z_MAX, z0 * fator));
+  if (Math.abs(z1 - z0) < 1e-4) return;
+  s.z = z1;
+  s.tx = mx - (mx - s.tx) * (z1 / z0);
+  s.ty = my - (my - s.ty) * (z1 / z0);
+  aplicar(svg, { suave });
+}
+
+/** O passo dos botões + e −, sempre em volta do meio da caixa. */
+function zoomPasso(svg, fator) {
+  if (!svg) return;
+  const s = estado(svg);
+  ampliar(svg, fator, s.larg / 2, s.alt / 2, true);
+}
+
+/**
+ * Aproxima de uma cidade.
+ *
+ * @param {SVGElement} svg  o que `brasilSVG` devolveu, já no documento
+ * @param {string} cidade   para onde ir; vazio volta para o país inteiro
+ * @param {number} z        quanto aproximar (1 = país inteiro)
+ */
+function zoomPara(svg, cidade, z = 4.2) {
   if (!svg) return;
   // A rota da cidade escolhida acende; as outras somem.
   svg.querySelectorAll('.geo-rota').forEach((r) => {
     r.classList.toggle('on', Boolean(cidade) && r.dataset.para === cidade);
   });
-  const mundo = svg.querySelector('[data-mundo]');
-  if (!mundo) return;
-  const larg = Number(svg.dataset.larg) || 0;
-  const alt = Number(svg.dataset.alt) || 0;
-
+  const s = estado(svg);
   if (!cidade || z <= 1) {
-    mundo.setAttribute('transform', '');
-    svg.style.setProperty('--iz', '1');
-    svg.classList.remove('perto');
+    s.z = 1; s.tx = 0; s.ty = 0;
+    aplicar(svg);
     return;
   }
   const alvo = svg.querySelector(`.geo-p[data-cidade="${CSS.escape(cidade)}"]`);
   if (!alvo) return;
   const px = Number(alvo.dataset.x), py = Number(alvo.dataset.y);
-  // Leva o ponto para o centro da caixa e depois amplia em volta dele.
-  const tx = larg / 2 - px * z;
-  const ty = alt / 2 - py * z;
-  mundo.setAttribute('transform', `translate(${tx.toFixed(1)} ${ty.toFixed(1)}) scale(${z})`);
-  svg.style.setProperty('--iz', String(1 / z));
-  svg.classList.add('perto');
+  s.z = z;
+  // Leva o ponto para o centro da caixa; o freio traz de volta o que passar.
+  s.tx = s.larg / 2 - px * z;
+  s.ty = s.alt / 2 - py * z;
+  aplicar(svg);
+}
+
+/**
+ * O mapa que se pega com a mão: arrastar anda, roda e pinça aproximam.
+ *
+ * Um mapa que só obedece a botão é um cartaz. Este responde ao dedo — e
+ * distingue arrastar de tocar, senão puxar o mapa acenderia a cidade que
+ * ficou embaixo do dedo no fim do movimento.
+ */
+function ligarNavegacaoMapa(svg) {
+  if (!svg || svg.dataset.nav === '1') return;
+  svg.dataset.nav = '1';
+  const s = estado(svg);
+  const dedos = new Map();
+  let moveu = false;
+  let origem = null;   // de onde o arrasto começou
+  let pinca = null;    // distância e meio entre dois dedos
+
+  const medir = () => {
+    const [a, b] = [...dedos.values()];
+    return { d: Math.hypot(a[0] - b[0], a[1] - b[1]), mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2 };
+  };
+
+  const mover = (ev) => {
+    if (!dedos.has(ev.pointerId)) return;
+    dedos.set(ev.pointerId, noSvg(svg, ev));
+    if (dedos.size >= 2) {
+      const m = medir();
+      if (pinca && pinca.d > 4) {
+        moveu = true;
+        ampliar(svg, m.d / pinca.d, m.mx, m.my);
+        s.tx += m.mx - pinca.mx;
+        s.ty += m.my - pinca.my;
+        aplicar(svg, { suave: false });
+      }
+      pinca = m;
+      return;
+    }
+    if (!origem) return;
+    const p = dedos.get(ev.pointerId);
+    const dx = p[0] - origem.x, dy = p[1] - origem.y;
+    if (!moveu && Math.hypot(dx, dy) < 6) return;
+    moveu = true;
+    s.tx = origem.tx + dx;
+    s.ty = origem.ty + dy;
+    aplicar(svg, { suave: false });
+  };
+
+  const soltar = (ev) => {
+    dedos.delete(ev.pointerId);
+    if (dedos.size < 2) pinca = null;
+    if (!dedos.size) {
+      origem = null;
+      svg.classList.remove('arrastando');
+      window.removeEventListener('pointermove', mover);
+      window.removeEventListener('pointerup', soltar);
+      window.removeEventListener('pointercancel', soltar);
+    }
+  };
+
+  svg.addEventListener('pointerdown', (ev) => {
+    const p = noSvg(svg, ev);
+    dedos.set(ev.pointerId, p);
+    if (dedos.size === 1) {
+      moveu = false;
+      origem = { x: p[0], y: p[1], tx: s.tx, ty: s.ty };
+      svg.classList.add('arrastando');
+      window.addEventListener('pointermove', mover);
+      window.addEventListener('pointerup', soltar);
+      window.addEventListener('pointercancel', soltar);
+    }
+    if (dedos.size === 2) { pinca = medir(); ev.preventDefault(); }
+  });
+
+  // Arrastar não é tocar. Sem isto, largar o dedo em cima de um pino no fim do
+  // movimento acenderia uma cidade que ninguém escolheu.
+  svg.addEventListener('click', (ev) => {
+    if (!moveu) return;
+    moveu = false;
+    ev.stopPropagation();
+    ev.preventDefault();
+  }, true);
+
+  svg.addEventListener('wheel', (ev) => {
+    ev.preventDefault();
+    const [mx, my] = noSvg(svg, ev);
+    ampliar(svg, Math.exp(-ev.deltaY * 0.0018), mx, my);
+  }, { passive: false });
 }
 
 /* ---------------------------------------------------- os arredores ---------
    De perto, o mapa passa a mostrar o que interessa a quem vai: onde se pousa,
-   quanto tem de estrada até a escola e quanto tempo. É desenhado só quando o
-   zoom entra, porque num país inteiro isso vira sujeira.
+   quanta estrada falta até a locação, o que existe em volta e qual é o
+   tamanho das coisas. Tudo sai do cadastro e de coordenadas reais — nada aqui
+   é enfeite inventado. É desenhado só quando o zoom entra, porque num país
+   inteiro isso vira sujeira.
 
    @param {SVGElement} svg
-   @param {object} d  { cidade, aeroporto, km, tempo } — vazio limpa a camada
+   @param {object} d { cidade, aeroporto, sigla, km, tempo, local, hospedagem }
 */
 function detalharCidade(svg, d) {
   if (!svg) return;
   const mundo = svg.querySelector('[data-mundo]');
   if (!mundo) return;
   mundo.querySelector('.geo-arred')?.remove();
-  if (!d?.cidade || !d.aeroporto) return;
+  if (!d?.cidade) return;
 
   const larg = Number(svg.dataset.larg) || 0;
   const alt = Number(svg.dataset.alt) || 0;
-  const a = coord(d.cidade), b = coord(d.aeroporto);
-  if (!a || !b) return;
+  const a = coord(d.cidade);
+  if (!a) return;
   const P = (c) => projetar(c[0], c[1], larg, alt);
   const [x1, y1] = P(a);
-  const [x2, y2] = P(b);
-  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
-  // Trinta quilômetros num mapa do Brasil são dois pixels: Porto Alegre cai em
-  // cima de Gravataí. Quando isso acontece, o rótulo do aeroporto desce e a
-  // distância sai do desenho — ela continua escrita ao lado, por extenso.
-  const perto = Math.hypot(x2 - x1, y2 - y1) < 42;
-  const rotulo = perto ? '' : [d.km ? `${d.km} km` : '', d.tempo].filter(Boolean).join(' · ');
+  // Um grau de latitude são 111 km em qualquer lugar: é assim que o anel de
+  // distância e a escala saem em quilômetros de verdade.
+  const porKm = Math.abs(P([a[0], a[1] + 1])[1] - y1) / 111;
+
+  const partes = [];
+
+  // O anel de distância: dá tamanho ao que se vê. Um raio que caiba na caixa.
+  const raioKm = [25, 50, 100, 200, 400].find((k) => k * porKm * (estado(svg).z || 1) > 26) || 400;
+  partes.push(`<circle class="geo-anel" cx="${x1.toFixed(1)}" cy="${y1.toFixed(1)}"
+    r="${(raioKm * porKm).toFixed(2)}"/>`);
+  partes.push(`<g class="geo-p" transform="translate(${x1.toFixed(1)} ${(y1 - raioKm * porKm).toFixed(2)})">
+    <g class="geo-p-in"><text class="geo-km" text-anchor="middle" y="-4">${raioKm} km</text></g></g>`);
+
+  // O que existe em volta, de verdade: cidades reais que caem dentro do anel
+  // largo. Não é lista de atração turística — é o que dá para reconhecer.
+  // Fica de fora quem já está desenhado (a própria cidade, o aeroporto) e
+  // quem cai colado no pino: dois nomes no mesmo lugar não são dois nomes.
+  const z = estado(svg).z || 1;
+  const ja = new Set([curto(d.cidade), curto(d.aeroporto || '')].filter(Boolean));
+  const perto = Object.entries(CIDADES)
+    .map(([n, c]) => ({ n, c, dpx: Math.hypot(P(c)[0] - x1, P(c)[1] - y1) }))
+    .filter((v) => v.dpx * z > 44 && v.dpx / porKm < raioKm * 3.2 && !ja.has(curto(v.n)))
+    .sort((u, v) => u.dpx - v.dpx)
+    .slice(0, 6);
+  for (const v of perto) {
+    const [vx, vy] = P(v.c);
+    partes.push(`<g class="geo-p viz" transform="translate(${vx.toFixed(1)} ${vy.toFixed(1)})">
+      <g class="geo-p-in"><circle class="geo-pino" r="1.8"/>
+      <text class="geo-n" x="6" y="3">${esc(curto(v.n))}</text></g></g>`);
+  }
+
+  // O aeroporto e a estrada até a locação.
+  const b = d.aeroporto ? coord(d.aeroporto) : null;
+  if (b) {
+    const [x2, y2] = P(b);
+    // Trinta quilômetros num mapa do Brasil são dois pixels: de longe o
+    // aeroporto cai em cima da cidade. Quando isso acontece, o rótulo desce e a
+    // distância sai do desenho — ela continua escrita ao lado, por extenso.
+    const colado = Math.hypot(x2 - x1, y2 - y1) * z < 42;
+    const rot = colado ? '' : [d.km ? `${d.km} km` : '', d.tempo].filter(Boolean).join(' · ');
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+    if (!colado) {
+      partes.push(`<line class="geo-estrada" x1="${x2.toFixed(1)}" y1="${y2.toFixed(1)}"
+        x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}"/>`);
+    }
+    // O nome do aeroporto sai sempre para o lado contrário ao da cidade: é o
+    // único lugar onde ele não escreve por cima do nome dela.
+    const fora = x2 <= x1 ? -1 : 1;
+    partes.push(`<g class="geo-p aero" transform="translate(${x2.toFixed(1)} ${y2.toFixed(1)})">
+      <g class="geo-p-in">
+        <path class="geo-aero" d="M-5 1.5 L5.5 -2.5 L4 1.4 a1.7 1.7 0 0 1-1.1 1L-1 3.5 -2 4.9 -2.8 2.4z"/>
+        <text class="geo-n aero" x="${fora * 8}" y="3.4"
+          text-anchor="${fora < 0 ? 'end' : 'start'}">${esc(curto(d.aeroporto))}${
+      d.sigla ? ' · ' + esc(d.sigla) : ''}${colado && d.km ? ` · ${d.km} km` : ''}</text>
+      </g></g>`);
+    if (rot) {
+      partes.push(`<g class="geo-p" transform="translate(${mx.toFixed(1)} ${my.toFixed(1)})">
+        <g class="geo-p-in"><text class="geo-km" text-anchor="middle" y="-6">${esc(rot)}</text></g></g>`);
+    }
+  }
+
+  // A locação e a cama, penduradas na cidade. O rótulo do aeroporto, quando
+  // ele cai colado, sobe; estas descem. Assim a pilha fica legível: aeroporto
+  // em cima, cidade no meio, onde se filma e onde se dorme embaixo.
+  const corta = (t) => (t.length > 30 ? t.slice(0, 29).trim() + '…' : t);
+  const linhas = [d.local, d.hospedagem].filter(Boolean).map(corta);
+  if (linhas.length) {
+    const y0 = 18;
+    partes.push(`<g class="geo-p ficha" transform="translate(${x1.toFixed(1)} ${y1.toFixed(1)})">
+      <g class="geo-p-in">${linhas.map((t, i) => `<text class="geo-ficha" x="0"
+        y="${y0 + i * 11}" text-anchor="middle">${esc(t)}</text>`).join('')}</g></g>`);
+  }
 
   const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   g.setAttribute('class', 'geo-arred');
-  g.innerHTML = `
-    ${perto ? '' : `<line class="geo-estrada" x1="${x2.toFixed(1)}" y1="${y2.toFixed(1)}"
-      x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}"/>`}
-    <g class="geo-p aero" transform="translate(${x2.toFixed(1)} ${y2.toFixed(1)})">
-      <g class="geo-p-in">
-        <path class="geo-aero" d="M-5 1.5 L5.5 -2.5 L4 1.4 a1.7 1.7 0 0 1-1.1 1L-1 3.5 -2 4.9 -2.8 2.4z"/>
-        <text class="geo-n aero" x="${perto ? 0 : 8}" y="${perto ? 16 : 3.4}"
-          text-anchor="${perto ? 'middle' : 'start'}">${esc(curto(d.aeroporto))}${
-          d.sigla ? ' · ' + esc(d.sigla) : ''}${
-          perto && d.km ? ` · ${d.km} km` : ''}</text>
-      </g>
-    </g>
-    ${rotulo ? `<g class="geo-p" transform="translate(${mx.toFixed(1)} ${my.toFixed(1)})">
-      <g class="geo-p-in"><text class="geo-km" text-anchor="middle" y="-6">${esc(rotulo)}</text></g>
-    </g>` : ''}`;
+  g.innerHTML = partes.join('');
   mundo.appendChild(g);
 }
 
@@ -2655,7 +3080,7 @@ function detalharCidade(svg, d) {
 const esc = (t) => String(t == null ? '' : t)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 
-  return { CIDADES, coord, curto, brasilSVG, zoomPara, detalharCidade };
+  return { CIDADES, coord, curto, brasilSVG, zoomAtual, zoomPasso, zoomPara, ligarNavegacaoMapa, detalharCidade };
 };
 
 __defs["js/mapaviagens.js"] = function () {
@@ -2666,7 +3091,7 @@ __defs["js/mapaviagens.js"] = function () {
 // na viagem aproxima o mapa. Como isso vale no painel e na aba de viagens, mora
 // aqui em vez de existir duas vezes.
 const { store } = __req("js/store.js");
-const { brasilSVG, coord, zoomPara, detalharCidade, curto } = __req("js/geo.js");
+const { brasilSVG, coord, zoomPara, zoomPasso, ligarNavegacaoMapa, detalharCidade, curto } = __req("js/geo.js");
 const { hoje } = __req("js/utils.js");
 /* A cidade de uma viagem, com o estado no fim. O "(PA)" fica: é ele que salva
    quando a cidade não está no mapa de coordenadas — e era exatamente isso que
@@ -2674,9 +3099,19 @@ const { hoje } = __req("js/utils.js");
    o rótulo encurta na hora. */
 const cidadeDaViagem = (v) => String(v?.destino || v?.titulo || '').trim();
 
-/** A caixa vazia. O desenho entra depois, quando ela tiver largura. */
-const caixaMapaHTML = () => '<div class="pn-mapa-caixa" data-mapinha>'
-  + '<button class="pn-mapa-volta" data-volta hidden>ver o país</button></div>';
+/* Quanto o mapa aproxima quando uma cidade acende. Caixa grande pede mais
+   zoom: no desktop a mesma aproximação do celular deixaria a cidade perdida no
+   meio de um estado inteiro. */
+const zDaCaixa = (alt) => Math.min(9, Math.max(4.6, 4.6 * Math.sqrt((alt || 255) / 255)));
+
+/** A caixa vazia. O desenho entra depois, quando ela tiver tamanho. */
+const caixaMapaHTML = () => `<div class="pn-mapa-caixa" data-mapinha>
+  <div class="pn-mapa-ctrl">
+    <button class="pn-mapa-b" data-zoom="mais" aria-label="Aproximar">+</button>
+    <button class="pn-mapa-b" data-zoom="menos" aria-label="Afastar">−</button>
+  </div>
+  <button class="pn-mapa-volta" data-volta hidden>ver o país</button>
+</div>`;
 
 /**
  * Desenha o mapa e amarra os dois lados.
@@ -2688,42 +3123,52 @@ const caixaMapaHTML = () => '<div class="pn-mapa-caixa" data-mapinha>'
 function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null, aoAcender = null } = {}) {
   const caixa = node.querySelector('[data-mapinha]');
   if (!caixa) return;
+  caixa.style.setProperty('--mapa-alt', `${alturaMax}px`);
 
   const hj = hoje();
   const vs = [...store.doProjeto('viagens')].sort((a, b) => String(a.ida).localeCompare(String(b.ida)));
   const prox = vs.find((v) => (v.volta || v.ida) >= hj) || vs[vs.length - 1];
 
+  let acesa = null;
+  let medida = { larg: 0, alt: 0 };
+
+  /* O desenho ocupa a caixa inteira, largura e altura. Antes ele tinha altura
+     própria e, no desktop, a coluna esticava até a altura do painel ao lado —
+     sobrava um retângulo preto embaixo do país. Caixa e desenho agora são a
+     mesma coisa. */
   const desenhar = () => {
     const larg = caixa.clientWidth;
-    if (!larg) return;
+    const alt = caixa.clientHeight;
+    if (!larg || !alt) return;
+    if (Math.abs(larg - medida.larg) < 2 && Math.abs(alt - medida.alt) < 2) return;
+    medida = { larg, alt };
     const pinos = vs.map((v) => ({
       nome: v.destino, cidade: cidadeDaViagem(v),
       estado: (v.volta || v.ida) < hj ? 'passou' : 'futuro'
     })).filter((x) => coord(x.cidade));
-    // No desktop a caixa é larga demais: sem teto, o país ocuparia uma tela
-    // inteira de altura. O desenho se centra sozinho na largura que sobra.
+    caixa.querySelector('.geo')?.remove();
     caixa.insertAdjacentHTML('afterbegin', brasilSVG({
-      larg, alt: Math.min(alturaMax, Math.round(larg * 0.86)), pinos,
-      rota: 'São Paulo', aceso: cidadeDaViagem(prox)
+      larg, alt, pinos, rota: 'São Paulo', aceso: acesa || cidadeDaViagem(prox)
     }));
     ligarPinos();
+    ligarNavegacaoMapa(svg());
+    if (acesa) aproximar();
   };
 
   const svg = () => caixa.querySelector('.geo');
   const botao = () => caixa.querySelector('[data-volta]');
-  let acesa = null;
+
+  /* De perto o mapa mostra os arredores: onde se pousa, quanta estrada falta
+     até a locação, que cidades existem em volta e a que distância. Sai do
+     cadastro, não de um palpite. */
+  const aproximar = () => {
+    zoomPara(svg(), acesa, zDaCaixa(medida.alt));
+    detalharCidade(svg(), acesa ? arredoresDe(acesa) : null);
+  };
 
   const acender = (cidade, viagemId) => {
     acesa = acesa === cidade ? null : cidade;
-    // Aproximação de leve: 1,55× já separa Gravataí de Porto Alegre sem jogar o
-    // contorno do país para fora da tela — que é o que faria o zoom deixar de
-    // dizer onde a cidade fica.
-    // De perto o mapa mostra os arredores: onde se pousa e quanta estrada
-    // falta até a escola. Sai da locação, não de um palpite.
-    zoomPara(svg(), acesa, 2.1);
-    detalharCidade(svg(), acesa ? arredoresDe(acesa) : null);
-    const b = botao();
-    if (b) b.hidden = !acesa;
+    aproximar();
     node.querySelectorAll('[data-viagem]').forEach((n) => {
       n.classList.toggle('on', Boolean(acesa) && n.dataset.cidade === acesa);
     });
@@ -2740,17 +3185,25 @@ function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null, aoAcender = n
 
   const idPorCidade = (c) => vs.find((v) => cidadeDaViagem(v) === c)?.id || null;
 
-  /* A locação daquela cidade, que é quem sabe o aeroporto e a distância. */
+  /* A locação daquela cidade, que é quem sabe o aeroporto, a distância e onde
+     a equipe dorme. */
   const arredoresDe = (cidade) => {
     const nu = curto(cidade);
     const l = store.doProjeto('locacoes')
       .find((x) => curto(x.cidade) === nu || nu.includes(curto(x.cidade)));
-    if (!l?.aeroporto) return null;
-    return { cidade, aeroporto: l.aeroporto, sigla: l.aeroporto_sigla, km: l.km, tempo: l.tempo };
+    return {
+      cidade,
+      aeroporto: l?.aeroporto || '',
+      sigla: l?.aeroporto_sigla || '',
+      km: l?.km || '',
+      tempo: l?.tempo || '',
+      local: l?.nome || '',
+      hospedagem: l?.hospedagem || ''
+    };
   };
 
   function ligarPinos() {
-    svg()?.querySelectorAll('.geo-p').forEach((g) => {
+    svg()?.querySelectorAll('.geo-p[data-cidade]').forEach((g) => {
       g.onclick = () => {
         const alvo = node.querySelector(`[data-viagem][data-cidade="${CSS.escape(g.dataset.cidade)}"]`);
         acender(g.dataset.cidade, alvo?.dataset.viagem);
@@ -2758,10 +3211,26 @@ function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null, aoAcender = n
     });
   }
 
-  // O botão de voltar nasce com a caixa, mas o ouvinte fica nela para valer
-  // também depois do desenho entrar.
+  // Os botões nascem com a caixa, mas o ouvinte fica nela para valer também
+  // depois do desenho entrar.
   caixa.addEventListener('click', (ev) => {
-    if (ev.target.closest('[data-volta]')) { ev.preventDefault(); acender(acesa); }
+    const z = ev.target.closest('[data-zoom]');
+    if (z) {
+      ev.preventDefault();
+      zoomPasso(svg(), z.dataset.zoom === 'mais' ? 1.8 : 1 / 1.8);
+      return;
+    }
+    if (ev.target.closest('[data-volta]')) {
+      ev.preventDefault();
+      if (acesa) acender(acesa);
+      else zoomPara(svg(), '', 1);
+    }
+  });
+
+  // O botão de voltar acompanha o zoom, venha ele de um pino ou do dedo.
+  caixa.addEventListener('geo:mudou', (ev) => {
+    const b = botao();
+    if (b) b.hidden = (ev.detail?.z || 1) <= 1.02;
   });
 
   node.querySelectorAll('[data-viagem]').forEach((b) => {
@@ -2782,10 +3251,14 @@ function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null, aoAcender = n
 
   requestAnimationFrame(() => {
     desenhar();
-    // Abre já mostrando a próxima viagem: tela vazia esperando um toque não
-    // ensina nada a quem chegou agora.
-    if (aoAcender && prox) aoAcender(cidadeDaViagem(prox), prox.id);
+    // Abre com o país inteiro à vista, mas com a próxima viagem já escolhida
+    // na coluna ao lado: tela vazia esperando um toque não ensina nada a quem
+    // chegou agora, e abrir aproximado esconde onde as coisas ficam.
+    if (prox && aoAcender) aoAcender(cidadeDaViagem(prox), prox.id);
   });
+  // A caixa muda de tamanho quando o painel ao lado cresce; o desenho tem que
+  // acompanhar, senão volta a sobrar canto vazio.
+  new ResizeObserver(desenhar).observe(caixa);
 }
 
   return { cidadeDaViagem, caixaMapaHTML, ligarMapaViagens };

@@ -156,15 +156,24 @@ export function brasilSVG({ larg, alt, pinos = [], rota = '', aceso = '' }) {
   d += 'Z';
 
   // Paralelos e meridianos: dão escala ao desenho e enchem o vazio com ordem.
+  // Duas malhas: a de 10° dá a leitura de longe, a de 2,5° só aparece quando o
+  // zoom entra. É ela que garante que aproximar nunca mostre um vazio — de
+  // perto, sertão sem litoral por perto continua tendo chão desenhado.
   const grade = [];
-  for (let lat = 0; lat >= -30; lat -= 10) {
-    const [, y] = P([-60, lat]);
-    grade.push(`<line class="geo-grade" x1="0" y1="${y.toFixed(1)}" x2="${larg}" y2="${y.toFixed(1)}"/>`);
-  }
-  for (let lon = -70; lon <= -40; lon += 10) {
-    const [x] = P([lon, 0]);
-    grade.push(`<line class="geo-grade" x1="${x.toFixed(1)}" y1="0" x2="${x.toFixed(1)}" y2="${alt}"/>`);
-  }
+  const linhas = (passo, classe) => {
+    for (let lat = 10; lat >= -40; lat -= passo) {
+      const [, y] = P([-60, lat]);
+      if (y < -2 || y > alt + 2) continue;
+      grade.push(`<line class="${classe}" x1="0" y1="${y.toFixed(1)}" x2="${larg}" y2="${y.toFixed(1)}"/>`);
+    }
+    for (let lon = -80; lon <= -30; lon += passo) {
+      const [x] = P([lon, 0]);
+      if (x < -2 || x > larg + 2) continue;
+      grade.push(`<line class="${classe}" x1="${x.toFixed(1)}" y1="0" x2="${x.toFixed(1)}" y2="${alt}"/>`);
+    }
+  };
+  linhas(2.5, 'geo-grade fina');
+  linhas(10, 'geo-grade');
 
   const de = rota ? coord(rota) : null;
   const arcos = [];
@@ -247,90 +256,302 @@ export function brasilSVG({ larg, alt, pinos = [], rota = '', aceso = '' }) {
   </svg>`;
 }
 
-/* -------------------------------------------------------------- o zoom -----
-   O país inteiro cabe na tela, mas Gravataí e Porto Alegre viram o mesmo ponto.
-   Aqui o desenho aproxima de uma cidade sem redesenhar nada: o grupo de fora
-   ganha uma transformação e os pinos se defendem dela pela contra-escala. Fica
-   suave porque é `transform`, e continua legível porque o texto não cresce.
+/* ------------------------------------------------- o zoom e o arrasto ------
+   O país inteiro cabe na tela, mas Gravataí e Porto Alegre viram o mesmo
+   ponto. Aqui o desenho aproxima, anda com o dedo e volta, sem redesenhar
+   nada: o grupo de fora ganha uma transformação e os pinos se defendem dela
+   pela contra-escala. Fica suave porque é `transform`, e continua legível
+   porque o texto não cresce.
 
-   @param {SVGElement} svg  o que `brasilSVG` devolveu, já no documento
-   @param {string} cidade   para onde ir; vazio volta para o país inteiro
-   @param {number} z        quanto aproximar (1 = país inteiro)
-*/
-export function zoomPara(svg, cidade, z = 2.8) {
+   A regra que manda em tudo: **a caixa nunca fica vazia**. Aproximar e
+   arrastar movem o desenho, e sem freio o país sai de quadro e sobra um
+   buraco preto. Por isso todo movimento passa por `limitar()`, que prende a
+   translação ao retângulo em que o desenho ainda cobre a moldura inteira. */
+
+const ESTADO = new WeakMap();
+const Z_MIN = 1;
+const Z_MAX = 12;
+
+function estado(svg) {
+  let s = ESTADO.get(svg);
+  if (!s) {
+    s = { z: 1, tx: 0, ty: 0, larg: Number(svg.dataset.larg) || 0, alt: Number(svg.dataset.alt) || 0 };
+    ESTADO.set(svg, s);
+  }
+  return s;
+}
+
+/* O freio. Depois de escalar por `z`, o desenho mede `larg*z` por `alt*z`; para
+   ele cobrir a caixa, a translação tem que ficar entre o canto oposto e zero.
+   Como z ≥ 1, esse intervalo nunca é vazio — logo nunca sobra fundo à mostra. */
+function limitar(s) {
+  s.z = Math.max(Z_MIN, Math.min(Z_MAX, s.z));
+  s.tx = Math.max(s.larg - s.larg * s.z, Math.min(0, s.tx));
+  s.ty = Math.max(s.alt - s.alt * s.z, Math.min(0, s.ty));
+}
+
+function aplicar(svg, { suave = true } = {}) {
+  const s = estado(svg);
+  limitar(s);
+  const mundo = svg.querySelector('[data-mundo]');
+  if (!mundo) return;
+  svg.classList.toggle('sem-transicao', !suave);
+  mundo.setAttribute('transform', s.z <= 1.001 ? ''
+    : `translate(${s.tx.toFixed(1)} ${s.ty.toFixed(1)}) scale(${s.z.toFixed(3)})`);
+  svg.style.setProperty('--iz', String(1 / s.z));
+  svg.classList.toggle('perto', s.z > 1.25);
+  svg.classList.toggle('movel', s.z > 1.02);
+  svg.dataset.z = s.z.toFixed(2);
+  svg.dispatchEvent(new CustomEvent('geo:mudou', { detail: { z: s.z }, bubbles: true }));
+}
+
+/** Quanto o mapa está aproximado agora. */
+export const zoomAtual = (svg) => (svg ? estado(svg).z : 1);
+
+/** Coordenada de tela (px do viewBox) a partir de um evento de ponteiro. */
+function noSvg(svg, ev) {
+  const s = estado(svg);
+  const r = svg.getBoundingClientRect();
+  const k = r.width ? s.larg / r.width : 1;
+  return [(ev.clientX - r.left) * k, (ev.clientY - r.top) * k];
+}
+
+/* Ampliar em volta de um ponto: o ponto do mundo que estava embaixo do dedo
+   continua embaixo do dedo. É isso que faz o gesto parecer natural. */
+function ampliar(svg, fator, mx, my, suave = false) {
+  const s = estado(svg);
+  const z0 = s.z;
+  const z1 = Math.max(Z_MIN, Math.min(Z_MAX, z0 * fator));
+  if (Math.abs(z1 - z0) < 1e-4) return;
+  s.z = z1;
+  s.tx = mx - (mx - s.tx) * (z1 / z0);
+  s.ty = my - (my - s.ty) * (z1 / z0);
+  aplicar(svg, { suave });
+}
+
+/** O passo dos botões + e −, sempre em volta do meio da caixa. */
+export function zoomPasso(svg, fator) {
+  if (!svg) return;
+  const s = estado(svg);
+  ampliar(svg, fator, s.larg / 2, s.alt / 2, true);
+}
+
+/**
+ * Aproxima de uma cidade.
+ *
+ * @param {SVGElement} svg  o que `brasilSVG` devolveu, já no documento
+ * @param {string} cidade   para onde ir; vazio volta para o país inteiro
+ * @param {number} z        quanto aproximar (1 = país inteiro)
+ */
+export function zoomPara(svg, cidade, z = 4.2) {
   if (!svg) return;
   // A rota da cidade escolhida acende; as outras somem.
   svg.querySelectorAll('.geo-rota').forEach((r) => {
     r.classList.toggle('on', Boolean(cidade) && r.dataset.para === cidade);
   });
-  const mundo = svg.querySelector('[data-mundo]');
-  if (!mundo) return;
-  const larg = Number(svg.dataset.larg) || 0;
-  const alt = Number(svg.dataset.alt) || 0;
-
+  const s = estado(svg);
   if (!cidade || z <= 1) {
-    mundo.setAttribute('transform', '');
-    svg.style.setProperty('--iz', '1');
-    svg.classList.remove('perto');
+    s.z = 1; s.tx = 0; s.ty = 0;
+    aplicar(svg);
     return;
   }
   const alvo = svg.querySelector(`.geo-p[data-cidade="${CSS.escape(cidade)}"]`);
   if (!alvo) return;
   const px = Number(alvo.dataset.x), py = Number(alvo.dataset.y);
-  // Leva o ponto para o centro da caixa e depois amplia em volta dele.
-  const tx = larg / 2 - px * z;
-  const ty = alt / 2 - py * z;
-  mundo.setAttribute('transform', `translate(${tx.toFixed(1)} ${ty.toFixed(1)}) scale(${z})`);
-  svg.style.setProperty('--iz', String(1 / z));
-  svg.classList.add('perto');
+  s.z = z;
+  // Leva o ponto para o centro da caixa; o freio traz de volta o que passar.
+  s.tx = s.larg / 2 - px * z;
+  s.ty = s.alt / 2 - py * z;
+  aplicar(svg);
+}
+
+/**
+ * O mapa que se pega com a mão: arrastar anda, roda e pinça aproximam.
+ *
+ * Um mapa que só obedece a botão é um cartaz. Este responde ao dedo — e
+ * distingue arrastar de tocar, senão puxar o mapa acenderia a cidade que
+ * ficou embaixo do dedo no fim do movimento.
+ */
+export function ligarNavegacaoMapa(svg) {
+  if (!svg || svg.dataset.nav === '1') return;
+  svg.dataset.nav = '1';
+  const s = estado(svg);
+  const dedos = new Map();
+  let moveu = false;
+  let origem = null;   // de onde o arrasto começou
+  let pinca = null;    // distância e meio entre dois dedos
+
+  const medir = () => {
+    const [a, b] = [...dedos.values()];
+    return { d: Math.hypot(a[0] - b[0], a[1] - b[1]), mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2 };
+  };
+
+  const mover = (ev) => {
+    if (!dedos.has(ev.pointerId)) return;
+    dedos.set(ev.pointerId, noSvg(svg, ev));
+    if (dedos.size >= 2) {
+      const m = medir();
+      if (pinca && pinca.d > 4) {
+        moveu = true;
+        ampliar(svg, m.d / pinca.d, m.mx, m.my);
+        s.tx += m.mx - pinca.mx;
+        s.ty += m.my - pinca.my;
+        aplicar(svg, { suave: false });
+      }
+      pinca = m;
+      return;
+    }
+    if (!origem) return;
+    const p = dedos.get(ev.pointerId);
+    const dx = p[0] - origem.x, dy = p[1] - origem.y;
+    if (!moveu && Math.hypot(dx, dy) < 6) return;
+    moveu = true;
+    s.tx = origem.tx + dx;
+    s.ty = origem.ty + dy;
+    aplicar(svg, { suave: false });
+  };
+
+  const soltar = (ev) => {
+    dedos.delete(ev.pointerId);
+    if (dedos.size < 2) pinca = null;
+    if (!dedos.size) {
+      origem = null;
+      svg.classList.remove('arrastando');
+      window.removeEventListener('pointermove', mover);
+      window.removeEventListener('pointerup', soltar);
+      window.removeEventListener('pointercancel', soltar);
+    }
+  };
+
+  svg.addEventListener('pointerdown', (ev) => {
+    const p = noSvg(svg, ev);
+    dedos.set(ev.pointerId, p);
+    if (dedos.size === 1) {
+      moveu = false;
+      origem = { x: p[0], y: p[1], tx: s.tx, ty: s.ty };
+      svg.classList.add('arrastando');
+      window.addEventListener('pointermove', mover);
+      window.addEventListener('pointerup', soltar);
+      window.addEventListener('pointercancel', soltar);
+    }
+    if (dedos.size === 2) { pinca = medir(); ev.preventDefault(); }
+  });
+
+  // Arrastar não é tocar. Sem isto, largar o dedo em cima de um pino no fim do
+  // movimento acenderia uma cidade que ninguém escolheu.
+  svg.addEventListener('click', (ev) => {
+    if (!moveu) return;
+    moveu = false;
+    ev.stopPropagation();
+    ev.preventDefault();
+  }, true);
+
+  svg.addEventListener('wheel', (ev) => {
+    ev.preventDefault();
+    const [mx, my] = noSvg(svg, ev);
+    ampliar(svg, Math.exp(-ev.deltaY * 0.0018), mx, my);
+  }, { passive: false });
 }
 
 /* ---------------------------------------------------- os arredores ---------
    De perto, o mapa passa a mostrar o que interessa a quem vai: onde se pousa,
-   quanto tem de estrada até a escola e quanto tempo. É desenhado só quando o
-   zoom entra, porque num país inteiro isso vira sujeira.
+   quanta estrada falta até a locação, o que existe em volta e qual é o
+   tamanho das coisas. Tudo sai do cadastro e de coordenadas reais — nada aqui
+   é enfeite inventado. É desenhado só quando o zoom entra, porque num país
+   inteiro isso vira sujeira.
 
    @param {SVGElement} svg
-   @param {object} d  { cidade, aeroporto, km, tempo } — vazio limpa a camada
+   @param {object} d { cidade, aeroporto, sigla, km, tempo, local, hospedagem }
 */
 export function detalharCidade(svg, d) {
   if (!svg) return;
   const mundo = svg.querySelector('[data-mundo]');
   if (!mundo) return;
   mundo.querySelector('.geo-arred')?.remove();
-  if (!d?.cidade || !d.aeroporto) return;
+  if (!d?.cidade) return;
 
   const larg = Number(svg.dataset.larg) || 0;
   const alt = Number(svg.dataset.alt) || 0;
-  const a = coord(d.cidade), b = coord(d.aeroporto);
-  if (!a || !b) return;
+  const a = coord(d.cidade);
+  if (!a) return;
   const P = (c) => projetar(c[0], c[1], larg, alt);
   const [x1, y1] = P(a);
-  const [x2, y2] = P(b);
-  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
-  // Trinta quilômetros num mapa do Brasil são dois pixels: Porto Alegre cai em
-  // cima de Gravataí. Quando isso acontece, o rótulo do aeroporto desce e a
-  // distância sai do desenho — ela continua escrita ao lado, por extenso.
-  const perto = Math.hypot(x2 - x1, y2 - y1) < 42;
-  const rotulo = perto ? '' : [d.km ? `${d.km} km` : '', d.tempo].filter(Boolean).join(' · ');
+  // Um grau de latitude são 111 km em qualquer lugar: é assim que o anel de
+  // distância e a escala saem em quilômetros de verdade.
+  const porKm = Math.abs(P([a[0], a[1] + 1])[1] - y1) / 111;
+
+  const partes = [];
+
+  // O anel de distância: dá tamanho ao que se vê. Um raio que caiba na caixa.
+  const raioKm = [25, 50, 100, 200, 400].find((k) => k * porKm * (estado(svg).z || 1) > 26) || 400;
+  partes.push(`<circle class="geo-anel" cx="${x1.toFixed(1)}" cy="${y1.toFixed(1)}"
+    r="${(raioKm * porKm).toFixed(2)}"/>`);
+  partes.push(`<g class="geo-p" transform="translate(${x1.toFixed(1)} ${(y1 - raioKm * porKm).toFixed(2)})">
+    <g class="geo-p-in"><text class="geo-km" text-anchor="middle" y="-4">${raioKm} km</text></g></g>`);
+
+  // O que existe em volta, de verdade: cidades reais que caem dentro do anel
+  // largo. Não é lista de atração turística — é o que dá para reconhecer.
+  // Fica de fora quem já está desenhado (a própria cidade, o aeroporto) e
+  // quem cai colado no pino: dois nomes no mesmo lugar não são dois nomes.
+  const z = estado(svg).z || 1;
+  const ja = new Set([curto(d.cidade), curto(d.aeroporto || '')].filter(Boolean));
+  const perto = Object.entries(CIDADES)
+    .map(([n, c]) => ({ n, c, dpx: Math.hypot(P(c)[0] - x1, P(c)[1] - y1) }))
+    .filter((v) => v.dpx * z > 44 && v.dpx / porKm < raioKm * 3.2 && !ja.has(curto(v.n)))
+    .sort((u, v) => u.dpx - v.dpx)
+    .slice(0, 6);
+  for (const v of perto) {
+    const [vx, vy] = P(v.c);
+    partes.push(`<g class="geo-p viz" transform="translate(${vx.toFixed(1)} ${vy.toFixed(1)})">
+      <g class="geo-p-in"><circle class="geo-pino" r="1.8"/>
+      <text class="geo-n" x="6" y="3">${esc(curto(v.n))}</text></g></g>`);
+  }
+
+  // O aeroporto e a estrada até a locação.
+  const b = d.aeroporto ? coord(d.aeroporto) : null;
+  if (b) {
+    const [x2, y2] = P(b);
+    // Trinta quilômetros num mapa do Brasil são dois pixels: de longe o
+    // aeroporto cai em cima da cidade. Quando isso acontece, o rótulo desce e a
+    // distância sai do desenho — ela continua escrita ao lado, por extenso.
+    const colado = Math.hypot(x2 - x1, y2 - y1) * z < 42;
+    const rot = colado ? '' : [d.km ? `${d.km} km` : '', d.tempo].filter(Boolean).join(' · ');
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+    if (!colado) {
+      partes.push(`<line class="geo-estrada" x1="${x2.toFixed(1)}" y1="${y2.toFixed(1)}"
+        x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}"/>`);
+    }
+    // O nome do aeroporto sai sempre para o lado contrário ao da cidade: é o
+    // único lugar onde ele não escreve por cima do nome dela.
+    const fora = x2 <= x1 ? -1 : 1;
+    partes.push(`<g class="geo-p aero" transform="translate(${x2.toFixed(1)} ${y2.toFixed(1)})">
+      <g class="geo-p-in">
+        <path class="geo-aero" d="M-5 1.5 L5.5 -2.5 L4 1.4 a1.7 1.7 0 0 1-1.1 1L-1 3.5 -2 4.9 -2.8 2.4z"/>
+        <text class="geo-n aero" x="${fora * 8}" y="3.4"
+          text-anchor="${fora < 0 ? 'end' : 'start'}">${esc(curto(d.aeroporto))}${
+      d.sigla ? ' · ' + esc(d.sigla) : ''}${colado && d.km ? ` · ${d.km} km` : ''}</text>
+      </g></g>`);
+    if (rot) {
+      partes.push(`<g class="geo-p" transform="translate(${mx.toFixed(1)} ${my.toFixed(1)})">
+        <g class="geo-p-in"><text class="geo-km" text-anchor="middle" y="-6">${esc(rot)}</text></g></g>`);
+    }
+  }
+
+  // A locação e a cama, penduradas na cidade. O rótulo do aeroporto, quando
+  // ele cai colado, sobe; estas descem. Assim a pilha fica legível: aeroporto
+  // em cima, cidade no meio, onde se filma e onde se dorme embaixo.
+  const corta = (t) => (t.length > 30 ? t.slice(0, 29).trim() + '…' : t);
+  const linhas = [d.local, d.hospedagem].filter(Boolean).map(corta);
+  if (linhas.length) {
+    const y0 = 18;
+    partes.push(`<g class="geo-p ficha" transform="translate(${x1.toFixed(1)} ${y1.toFixed(1)})">
+      <g class="geo-p-in">${linhas.map((t, i) => `<text class="geo-ficha" x="0"
+        y="${y0 + i * 11}" text-anchor="middle">${esc(t)}</text>`).join('')}</g></g>`);
+  }
 
   const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   g.setAttribute('class', 'geo-arred');
-  g.innerHTML = `
-    ${perto ? '' : `<line class="geo-estrada" x1="${x2.toFixed(1)}" y1="${y2.toFixed(1)}"
-      x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}"/>`}
-    <g class="geo-p aero" transform="translate(${x2.toFixed(1)} ${y2.toFixed(1)})">
-      <g class="geo-p-in">
-        <path class="geo-aero" d="M-5 1.5 L5.5 -2.5 L4 1.4 a1.7 1.7 0 0 1-1.1 1L-1 3.5 -2 4.9 -2.8 2.4z"/>
-        <text class="geo-n aero" x="${perto ? 0 : 8}" y="${perto ? 16 : 3.4}"
-          text-anchor="${perto ? 'middle' : 'start'}">${esc(curto(d.aeroporto))}${
-          d.sigla ? ' · ' + esc(d.sigla) : ''}${
-          perto && d.km ? ` · ${d.km} km` : ''}</text>
-      </g>
-    </g>
-    ${rotulo ? `<g class="geo-p" transform="translate(${mx.toFixed(1)} ${my.toFixed(1)})">
-      <g class="geo-p-in"><text class="geo-km" text-anchor="middle" y="-6">${esc(rotulo)}</text></g>
-    </g>` : ''}`;
+  g.innerHTML = partes.join('');
   mundo.appendChild(g);
 }
 

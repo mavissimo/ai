@@ -178,6 +178,89 @@ await p.evaluate(()=>document.querySelector('[data-volta]').click()); await p.wa
 await passo('voltar ao país', async()=>{
   if(await p.locator('.geo.perto').count()) throw new Error('continuou perto'); });
 
+
+/* Folha aberta de um passo anterior fica por cima de tudo e come o arrasto:
+   o mapa só se testa com a tela limpa. */
+const fecharFolhas = async () => {
+  await p.evaluate(()=>{ document.querySelectorAll('.sheet [data-x]').forEach(b=>b.click()); });
+  await p.waitForTimeout(400);
+};
+await fecharFolhas();
+
+/* O buraco preto: a queixa foi "não deixa esse espaço nunca". O desenho tem de
+   cobrir a caixa inteira em qualquer zoom e depois de qualquer arrasto. */
+const cobertura = () => p.evaluate(() => {
+  const g = document.querySelector('.geo');
+  const cx = document.querySelector('.pn-mapa-caixa');
+  const rg = g.getBoundingClientRect(), rc = cx.getBoundingClientRect();
+  // 1px de borda de cada lado: a caixa mede 2px a mais que o desenho, e só.
+  const enquadra = Math.abs(rg.width-rc.width) < 3 && Math.abs(rg.height-rc.height) < 3;
+  const t = g.querySelector('[data-mundo]').getAttribute('transform') || '';
+  const m = t.match(/translate\(([-\d.]+) ([-\d.]+)\) scale\(([\d.]+)\)/);
+  if (!m) return { enquadra, z:1, preso:true, alt:rc.height };
+  const [, tx, ty, z] = m.map(Number);
+  const L = Number(g.dataset.larg), A = Number(g.dataset.alt);
+  const preso = tx <= .6 && tx >= L-L*z-.6 && ty <= .6 && ty >= A-A*z-.6;
+  return { enquadra, z, preso, alt:rc.height };
+});
+await p.evaluate(()=>document.querySelectorAll('[data-viagem]')[2].click());
+await p.waitForTimeout(700);
+await passo('o mapa preenche a caixa', async()=>{
+  const c = await cobertura();
+  if (!c.enquadra) throw new Error('sobra caixa em volta do desenho');
+  if (c.alt < 200) throw new Error('caixa de '+Math.round(c.alt)+'px');
+  if (!c.preso) throw new Error('o desenho saiu de quadro em z='+c.z); });
+await passo('aproxima de verdade', async()=>{
+  const c = await cobertura();
+  if (c.z < 3) throw new Error('zoom de só '+c.z); });
+await passo('os botões de zoom andam', async()=>{
+  const antes = (await cobertura()).z;
+  await p.evaluate(()=>document.querySelector('[data-zoom="mais"]').click());
+  await p.waitForTimeout(500);
+  const c = await cobertura();
+  if (c.z <= antes) throw new Error('não aproximou'); 
+  if (!c.preso) throw new Error('saiu de quadro depois do +'); });
+await passo('o mapa se arrasta com a mão', async()=>{
+  // Acender a viagem rola a lista, e o mapa pode ter saído da tela: arrastar
+  // o que não está visível não testa nada.
+  await p.evaluate(()=>document.querySelector('.pn-mapa-caixa').scrollIntoView({block:'center'}));
+  await p.waitForTimeout(400);
+  const cx = await p.locator('.pn-mapa-caixa').boundingBox();
+  const t0 = await p.evaluate(()=>document.querySelector('[data-mundo]').getAttribute('transform'));
+  await p.mouse.move(cx.x+cx.width/2, cx.y+cx.height/2);
+  await p.mouse.down();
+  await p.mouse.move(cx.x+cx.width/2-70, cx.y+cx.height/2-40, {steps:8});
+  await p.mouse.up();
+  await p.waitForTimeout(300);
+  const t1 = await p.evaluate(()=>document.querySelector('[data-mundo]').getAttribute('transform'));
+  if (t0 === t1) throw new Error('o arrasto não mexeu no mapa: '+t0);
+  const c = await cobertura();
+  if (!c.preso) throw new Error('o arrasto abriu um vazio'); });
+await p.evaluate(()=>{ const b=document.querySelector('[data-volta]'); if(b) b.click(); });
+await p.waitForTimeout(600);
+
+/* A faixa: "precisam ser coisas clicáveis pra gente resolver ou ver com
+   detalhes". Toda linha tem de ser botão, e a linha tem de abrir algo. */
+await passo('toda linha da faixa é botão', async()=>{
+  const r = await p.evaluate(()=>{
+    const c = document.querySelector('.fx-copia');
+    return { itens: c.querySelectorAll('.fx-i').length, botoes: c.querySelectorAll('button[data-fx]').length };
+  });
+  if (r.itens < 4) throw new Error('faixa com '+r.itens+' itens');
+  if (r.itens !== r.botoes) throw new Error(r.itens-r.botoes+' linhas sem ação'); });
+await passo('a linha da faixa abre e se explica', async()=>{
+  const abriu = await p.evaluate(()=>{
+    const alvos = ['próxima viagem','urgente','próxima entrega','em curso','próxima diária'];
+    const bs = [...document.querySelectorAll('.fx-copia:first-child button[data-fx]')];
+    const b = bs.find((x)=>alvos.includes(x.querySelector('.fx-o')?.textContent.trim()));
+    if (!b) return false; b.click(); return true;
+  });
+  if (!abriu) throw new Error('nenhuma linha com dossiê');
+  await p.waitForTimeout(500);
+  if (!await p.locator('.sheet .ds-tit, .sheet .ds-lista').count()) throw new Error('não abriu nada');
+  await p.evaluate(()=>document.querySelector('.sheet [data-x]')?.click());
+  await p.waitForTimeout(400); });
+
 await p.screenshot({path:'f-bundle.png'});
 console.log(errs.length ? 'ERROS: ' + errs.slice(0,4).join(' | ') : 'sem erros de JS');
 if (falhou || errs.length) process.exitCode = 1;

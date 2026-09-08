@@ -5,7 +5,7 @@
 // na viagem aproxima o mapa. Como isso vale no painel e na aba de viagens, mora
 // aqui em vez de existir duas vezes.
 import { store } from './store.js';
-import { brasilSVG, coord, zoomPara, detalharCidade, curto } from './geo.js';
+import { brasilSVG, coord, zoomPara, zoomPasso, ligarNavegacaoMapa, detalharCidade, curto } from './geo.js';
 import { hoje } from './utils.js';
 
 /* A cidade de uma viagem, com o estado no fim. O "(PA)" fica: é ele que salva
@@ -14,9 +14,19 @@ import { hoje } from './utils.js';
    o rótulo encurta na hora. */
 export const cidadeDaViagem = (v) => String(v?.destino || v?.titulo || '').trim();
 
-/** A caixa vazia. O desenho entra depois, quando ela tiver largura. */
-export const caixaMapaHTML = () => '<div class="pn-mapa-caixa" data-mapinha>'
-  + '<button class="pn-mapa-volta" data-volta hidden>ver o país</button></div>';
+/* Quanto o mapa aproxima quando uma cidade acende. Caixa grande pede mais
+   zoom: no desktop a mesma aproximação do celular deixaria a cidade perdida no
+   meio de um estado inteiro. */
+const zDaCaixa = (alt) => Math.min(9, Math.max(4.6, 4.6 * Math.sqrt((alt || 255) / 255)));
+
+/** A caixa vazia. O desenho entra depois, quando ela tiver tamanho. */
+export const caixaMapaHTML = () => `<div class="pn-mapa-caixa" data-mapinha>
+  <div class="pn-mapa-ctrl">
+    <button class="pn-mapa-b" data-zoom="mais" aria-label="Aproximar">+</button>
+    <button class="pn-mapa-b" data-zoom="menos" aria-label="Afastar">−</button>
+  </div>
+  <button class="pn-mapa-volta" data-volta hidden>ver o país</button>
+</div>`;
 
 /**
  * Desenha o mapa e amarra os dois lados.
@@ -28,42 +38,52 @@ export const caixaMapaHTML = () => '<div class="pn-mapa-caixa" data-mapinha>'
 export function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null, aoAcender = null } = {}) {
   const caixa = node.querySelector('[data-mapinha]');
   if (!caixa) return;
+  caixa.style.setProperty('--mapa-alt', `${alturaMax}px`);
 
   const hj = hoje();
   const vs = [...store.doProjeto('viagens')].sort((a, b) => String(a.ida).localeCompare(String(b.ida)));
   const prox = vs.find((v) => (v.volta || v.ida) >= hj) || vs[vs.length - 1];
 
+  let acesa = null;
+  let medida = { larg: 0, alt: 0 };
+
+  /* O desenho ocupa a caixa inteira, largura e altura. Antes ele tinha altura
+     própria e, no desktop, a coluna esticava até a altura do painel ao lado —
+     sobrava um retângulo preto embaixo do país. Caixa e desenho agora são a
+     mesma coisa. */
   const desenhar = () => {
     const larg = caixa.clientWidth;
-    if (!larg) return;
+    const alt = caixa.clientHeight;
+    if (!larg || !alt) return;
+    if (Math.abs(larg - medida.larg) < 2 && Math.abs(alt - medida.alt) < 2) return;
+    medida = { larg, alt };
     const pinos = vs.map((v) => ({
       nome: v.destino, cidade: cidadeDaViagem(v),
       estado: (v.volta || v.ida) < hj ? 'passou' : 'futuro'
     })).filter((x) => coord(x.cidade));
-    // No desktop a caixa é larga demais: sem teto, o país ocuparia uma tela
-    // inteira de altura. O desenho se centra sozinho na largura que sobra.
+    caixa.querySelector('.geo')?.remove();
     caixa.insertAdjacentHTML('afterbegin', brasilSVG({
-      larg, alt: Math.min(alturaMax, Math.round(larg * 0.86)), pinos,
-      rota: 'São Paulo', aceso: cidadeDaViagem(prox)
+      larg, alt, pinos, rota: 'São Paulo', aceso: acesa || cidadeDaViagem(prox)
     }));
     ligarPinos();
+    ligarNavegacaoMapa(svg());
+    if (acesa) aproximar();
   };
 
   const svg = () => caixa.querySelector('.geo');
   const botao = () => caixa.querySelector('[data-volta]');
-  let acesa = null;
+
+  /* De perto o mapa mostra os arredores: onde se pousa, quanta estrada falta
+     até a locação, que cidades existem em volta e a que distância. Sai do
+     cadastro, não de um palpite. */
+  const aproximar = () => {
+    zoomPara(svg(), acesa, zDaCaixa(medida.alt));
+    detalharCidade(svg(), acesa ? arredoresDe(acesa) : null);
+  };
 
   const acender = (cidade, viagemId) => {
     acesa = acesa === cidade ? null : cidade;
-    // Aproximação de leve: 1,55× já separa Gravataí de Porto Alegre sem jogar o
-    // contorno do país para fora da tela — que é o que faria o zoom deixar de
-    // dizer onde a cidade fica.
-    // De perto o mapa mostra os arredores: onde se pousa e quanta estrada
-    // falta até a escola. Sai da locação, não de um palpite.
-    zoomPara(svg(), acesa, 2.1);
-    detalharCidade(svg(), acesa ? arredoresDe(acesa) : null);
-    const b = botao();
-    if (b) b.hidden = !acesa;
+    aproximar();
     node.querySelectorAll('[data-viagem]').forEach((n) => {
       n.classList.toggle('on', Boolean(acesa) && n.dataset.cidade === acesa);
     });
@@ -80,17 +100,25 @@ export function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null, aoAcen
 
   const idPorCidade = (c) => vs.find((v) => cidadeDaViagem(v) === c)?.id || null;
 
-  /* A locação daquela cidade, que é quem sabe o aeroporto e a distância. */
+  /* A locação daquela cidade, que é quem sabe o aeroporto, a distância e onde
+     a equipe dorme. */
   const arredoresDe = (cidade) => {
     const nu = curto(cidade);
     const l = store.doProjeto('locacoes')
       .find((x) => curto(x.cidade) === nu || nu.includes(curto(x.cidade)));
-    if (!l?.aeroporto) return null;
-    return { cidade, aeroporto: l.aeroporto, sigla: l.aeroporto_sigla, km: l.km, tempo: l.tempo };
+    return {
+      cidade,
+      aeroporto: l?.aeroporto || '',
+      sigla: l?.aeroporto_sigla || '',
+      km: l?.km || '',
+      tempo: l?.tempo || '',
+      local: l?.nome || '',
+      hospedagem: l?.hospedagem || ''
+    };
   };
 
   function ligarPinos() {
-    svg()?.querySelectorAll('.geo-p').forEach((g) => {
+    svg()?.querySelectorAll('.geo-p[data-cidade]').forEach((g) => {
       g.onclick = () => {
         const alvo = node.querySelector(`[data-viagem][data-cidade="${CSS.escape(g.dataset.cidade)}"]`);
         acender(g.dataset.cidade, alvo?.dataset.viagem);
@@ -98,10 +126,26 @@ export function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null, aoAcen
     });
   }
 
-  // O botão de voltar nasce com a caixa, mas o ouvinte fica nela para valer
-  // também depois do desenho entrar.
+  // Os botões nascem com a caixa, mas o ouvinte fica nela para valer também
+  // depois do desenho entrar.
   caixa.addEventListener('click', (ev) => {
-    if (ev.target.closest('[data-volta]')) { ev.preventDefault(); acender(acesa); }
+    const z = ev.target.closest('[data-zoom]');
+    if (z) {
+      ev.preventDefault();
+      zoomPasso(svg(), z.dataset.zoom === 'mais' ? 1.8 : 1 / 1.8);
+      return;
+    }
+    if (ev.target.closest('[data-volta]')) {
+      ev.preventDefault();
+      if (acesa) acender(acesa);
+      else zoomPara(svg(), '', 1);
+    }
+  });
+
+  // O botão de voltar acompanha o zoom, venha ele de um pino ou do dedo.
+  caixa.addEventListener('geo:mudou', (ev) => {
+    const b = botao();
+    if (b) b.hidden = (ev.detail?.z || 1) <= 1.02;
   });
 
   node.querySelectorAll('[data-viagem]').forEach((b) => {
@@ -122,8 +166,12 @@ export function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null, aoAcen
 
   requestAnimationFrame(() => {
     desenhar();
-    // Abre já mostrando a próxima viagem: tela vazia esperando um toque não
-    // ensina nada a quem chegou agora.
-    if (aoAcender && prox) aoAcender(cidadeDaViagem(prox), prox.id);
+    // Abre com o país inteiro à vista, mas com a próxima viagem já escolhida
+    // na coluna ao lado: tela vazia esperando um toque não ensina nada a quem
+    // chegou agora, e abrir aproximado esconde onde as coisas ficam.
+    if (prox && aoAcender) aoAcender(cidadeDaViagem(prox), prox.id);
   });
+  // A caixa muda de tamanho quando o painel ao lado cresce; o desenho tem que
+  // acompanhar, senão volta a sobrar canto vazio.
+  new ResizeObserver(desenhar).observe(caixa);
 }
