@@ -25,7 +25,7 @@ export const caixaMapaHTML = () => '<div class="pn-mapa-caixa" data-mapinha>'
  * @param {number} alturaMax       teto de altura do desenho
  * @param {Function} aoAbrir       chamada quando a mesma viagem é tocada de novo
  */
-export function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null } = {}) {
+export function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null, aoAcender = null } = {}) {
   const caixa = node.querySelector('[data-mapinha]');
   if (!caixa) return;
 
@@ -71,7 +71,11 @@ export function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null } = {})
       node.querySelector(`[data-viagem="${viagemId}"]`)
         ?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
     }
+    // Quem chamou decide o que mostrar ao lado do mapa.
+    if (aoAcender) aoAcender(acesa, acesa ? (viagemId || idPorCidade(acesa)) : null);
   };
+
+  const idPorCidade = (c) => vs.find((v) => cidadeDaViagem(v) === c)?.id || null;
 
   function ligarPinos() {
     svg()?.querySelectorAll('.geo-p').forEach((g) => {
@@ -104,5 +108,10 @@ export function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null } = {})
     };
   });
 
-  requestAnimationFrame(desenhar);
+  requestAnimationFrame(() => {
+    desenhar();
+    // Abre já mostrando a próxima viagem: tela vazia esperando um toque não
+    // ensina nada a quem chegou agora.
+    if (aoAcender && prox) aoAcender(cidadeDaViagem(prox), prox.id);
+  });
 }

@@ -311,6 +311,14 @@ export function perguntas() {
       pergunta: c.titulo,
       contexto: c.obs || 'Confirme para a produção saber que está de pé.',
       sim: 'Confirmo', nao: 'Tenho problema',
+      rota: '#/meu',
+      origem: 'A produção pediu esta confirmação quando montou a viagem, e ela fica '
+        + 'aqui até você responder — não some sozinha nem some com o tempo.',
+      porque: 'Enquanto ninguém responde, a produção não sabe se pode contar com você. '
+        + 'Passagem, hospedagem e diária ficam presas nisso, e no fim quem paga a '
+        + 'remarcação é o projeto.',
+      como: '"Confirmo" fecha o assunto agora. "Tenho problema" marca para a produção '
+        + 'conversar com você — nenhuma das duas cancela nada sozinha.',
       async aoSim() { await store.update('confirmacoes', c.id, { status: 'confirmado', respondido_em: hoje() }); },
       async aoNao() { await store.update('confirmacoes', c.id, { status: 'problema', respondido_em: hoje() }); }
     }));
@@ -326,6 +334,15 @@ export function perguntas() {
         pergunta: `${c.tipo === 'pagar' ? 'Já pagou' : 'Já caiu'} ${fmtMoney(c.valor_cents)}?`,
         contexto: `${c.descricao} · venceu ${prazoTxt(c.venc)}`,
         sim: c.tipo === 'pagar' ? 'Já paguei' : 'Já caiu', nao: 'Ainda não',
+        rota: c.tipo === 'pagar' ? '#/pagamentos' : '#/contas',
+        origem: `Esta conta venceu em ${fmtData(c.venc)} e continua marcada como aberta. `
+          + 'O app não tem como saber sozinho se o dinheiro saiu — por isso pergunta.',
+        porque: c.tipo === 'pagar'
+          ? 'Conta paga que segue aberta faz o app achar que ainda deve, e o número de '
+            + '"quanto já saiu" fica errado para menos no fechamento do job.'
+          : 'Parcela recebida que segue aberta faz o caixa parecer menor do que é.',
+        como: 'Se já saiu, o toque em "Já paguei" dá baixa e cria o lançamento sozinho, '
+          + 'com data de hoje. Se ainda não, ela volta a perguntar amanhã.',
         async aoSim() {
           await store.update('contas', c.id, { status: 'quitado', quitado_em: hoje() });
           await store.insert('lancamentos', {
@@ -348,6 +365,13 @@ export function perguntas() {
       pergunta: `A NF de ${atrasada.conta.contraparte || atrasada.conta.descricao} já chegou?`,
       contexto: `${fmtMoney(atrasada.conta.valor_cents)} · ${atrasada.est.t}`,
       sim: 'Chegou', nao: 'Vou cobrar',
+      rota: '#/pedidos-nf',
+      origem: `O pedido de nota foi mandado em ${fmtData(atrasada.conta.nf_pedido_em)} e `
+        + `passaram-se mais de ${DIAS_FOLLOWUP} dias sem resposta.`,
+      porque: 'A produtora não paga sem nota. Enquanto ela não chega, quem trabalhou não '
+        + 'recebe e o gasto não entra no fechamento.',
+      como: '"Chegou" encerra a cobrança. "Vou cobrar" marca a data de hoje e o texto do '
+        + 'follow-up fica pronto em Pedidos de NF, para mandar por e-mail ou WhatsApp.',
       async aoSim() { await store.update('contas', atrasada.conta.id, { nf_status: 'recebida' }); },
       async aoNao() { await store.update('contas', atrasada.conta.id, { nf_cobrado_em: hoje() }); }
     });
@@ -365,6 +389,14 @@ export function perguntas() {
         pergunta: `O cliente confirmou ${e.titulo}?`,
         contexto: `${fmtData(e.data, { longo: true })} · o contrato pede 10 dias úteis de antecedência`,
         sim: 'Confirmou', nao: 'Ainda não',
+        rota: '#/mapa', ref: { t: 'eventos', id: e.id },
+        origem: 'Esta diária está na agenda mas continua marcada como não confirmada pela '
+          + 'Fundação, e a data se aproxima.',
+        porque: 'Pela cláusula 4.3 do contrato, cada diária precisa ser confirmada com dez '
+          + 'dias úteis de antecedência. Sem isso a equipe pode viajar para nada — e a '
+          + 'passagem já estará comprada.',
+        como: '"Confirmou" trava a data e ela para de aparecer como prevista no mapa e na '
+          + 'agenda. Se ainda não veio, vale cobrar a Fundação hoje.',
         async aoSim() { await store.update('eventos', e.id, { confirmado: true }); }
       });
     }
@@ -377,6 +409,14 @@ export function perguntas() {
       id: 'q_fonte_' + velha.id, urg: 2, icone: '🔗',
       pergunta: `Conferiu ${velha.titulo}?`,
       contexto: statusFonte(velha).txt + ' — o projeto depende desse link',
+      rota: '#/fontes', ref: { t: 'fontes', id: velha.id },
+      origem: 'Esta fonte de fora tem uma frequência de conferência combinada, e a última '
+        + 'foi há tempo demais.',
+      porque: 'Tudo que este app mostra saiu de algum lugar: contrato, planilha, agenda, '
+        + 'e-mail. Se a fonte mudou e ninguém trouxe, o número na tela está velho e as '
+        + 'decisões saem em cima dele.',
+      como: 'Abra o link, compare com o que está aqui e marque como conferida. O que '
+        + 'estiver diferente, corrija na tela que for dona daquele dado.',
       sim: 'Conferi agora', nao: 'Depois',
       async aoSim() { await store.update('fontes', velha.id, { conferido_em: hoje() }); }
     });

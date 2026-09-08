@@ -996,6 +996,48 @@ main{animation:tela var(--t-med) var(--e-entra)}
 .ag-mais{display:block;padding:var(--s3) var(--s4);border-top:1px solid var(--line);
   font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
   color:var(--ac2)}
+
+/* ----------------------------------------------------------------- mesa ----
+   O mapa e o que falta, lado a lado. No celular empilham; a partir de 720px o
+   desenho fica à esquerda e a coluna de trabalho à direita, que é o que faz o
+   mapa deixar de ser figura. */
+.mesa{display:grid;gap:var(--s3);grid-template-columns:1fr}
+@media (min-width:720px){ .mesa{grid-template-columns:1.15fr .85fr;align-items:stretch} }
+.mesa .pn-mapa-caixa{min-height:0}
+.mesa-lado{display:flex;flex-direction:column;border:1px solid var(--line);
+  border-radius:var(--r);padding:var(--s4);min-height:0}
+.mesa-vazio{margin:auto;text-align:center}
+.mesa-cab{padding-bottom:var(--s3);border-bottom:1px solid var(--line)}
+.mesa-t{font-family:var(--titulo);font-size:clamp(19px,5.4vw,24px);font-weight:800;
+  letter-spacing:-.04em;line-height:1.05;margin:var(--s2) 0 0;text-transform:uppercase}
+.mesa-s{font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--tx3);margin-top:var(--s2);display:flex;align-items:center;gap:var(--s2)}
+.mesa-lista{display:flex;flex-direction:column;padding-top:var(--s1)}
+.mesa-p{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) 0;
+  border-bottom:1px solid var(--line)}
+.mesa-p.mais{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--tx3);border-bottom:0}
+.mesa-p-g{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mesa-p-t{font-size:13.5px;font-weight:600;line-height:1.3}
+.mesa-p-s{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--tx3)}
+.mesa-ok{padding:var(--s5) 0;color:var(--ok);font-size:13.5px}
+.mesa-pe{display:flex;align-items:center;gap:var(--s3);margin-top:auto;padding-top:var(--s4)}
+.mesa-pe-n,.mesa-pe-m{font-family:var(--titulo);font-size:17px;font-weight:800;
+  letter-spacing:-.03em;display:flex;flex-direction:column}
+.mesa-pe-n i,.mesa-pe-m i{font-family:var(--mono);font-size:8.5px;font-style:normal;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);font-weight:400;margin-top:2px}
+.mesa-pe .btn{margin-left:auto}
+.mesa-nota{font-size:12.5px;color:var(--tx3);line-height:1.5;margin:var(--s3) 0 0;
+  padding-left:var(--s3);border-left:2px solid var(--line);max-width:60ch}
+
+/* a pergunta que abre */
+.ag-q-cab{display:flex;gap:var(--s3);align-items:center;width:100%;text-align:left;
+  border:0;background:none;color:inherit;padding:0;cursor:pointer}
+.ag-q-e{flex:none;font-family:var(--mono);font-size:8px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tx3);border:1px solid var(--line);border-radius:3px;
+  padding:3px 6px}
+.ag-q-cab:active .ag-q-e{background:var(--bg3)}
 </style>
 <div id="app" class="app"><div class="boot">Carregando…</div></div>
 <script type="module">
@@ -2336,7 +2378,7 @@ const caixaMapaHTML = () => '<div class="pn-mapa-caixa" data-mapinha>'
  * @param {number} alturaMax       teto de altura do desenho
  * @param {Function} aoAbrir       chamada quando a mesma viagem é tocada de novo
  */
-function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null } = {}) {
+function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null, aoAcender = null } = {}) {
   const caixa = node.querySelector('[data-mapinha]');
   if (!caixa) return;
 
@@ -2382,7 +2424,11 @@ function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null } = {}) {
       node.querySelector(`[data-viagem="${viagemId}"]`)
         ?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
     }
+    // Quem chamou decide o que mostrar ao lado do mapa.
+    if (aoAcender) aoAcender(acesa, acesa ? (viagemId || idPorCidade(acesa)) : null);
   };
+
+  const idPorCidade = (c) => vs.find((v) => cidadeDaViagem(v) === c)?.id || null;
 
   function ligarPinos() {
     svg()?.querySelectorAll('.geo-p').forEach((g) => {
@@ -2415,7 +2461,12 @@ function ligarMapaViagens(node, { alturaMax = 340, aoAbrir = null } = {}) {
     };
   });
 
-  requestAnimationFrame(desenhar);
+  requestAnimationFrame(() => {
+    desenhar();
+    // Abre já mostrando a próxima viagem: tela vazia esperando um toque não
+    // ensina nada a quem chegou agora.
+    if (aoAcender && prox) aoAcender(cidadeDaViagem(prox), prox.id);
+  });
 }
 
   return { cidadeDaViagem, caixaMapaHTML, ligarMapaViagens };
@@ -3101,6 +3152,14 @@ function perguntas() {
       pergunta: c.titulo,
       contexto: c.obs || 'Confirme para a produção saber que está de pé.',
       sim: 'Confirmo', nao: 'Tenho problema',
+      rota: '#/meu',
+      origem: 'A produção pediu esta confirmação quando montou a viagem, e ela fica '
+        + 'aqui até você responder — não some sozinha nem some com o tempo.',
+      porque: 'Enquanto ninguém responde, a produção não sabe se pode contar com você. '
+        + 'Passagem, hospedagem e diária ficam presas nisso, e no fim quem paga a '
+        + 'remarcação é o projeto.',
+      como: '"Confirmo" fecha o assunto agora. "Tenho problema" marca para a produção '
+        + 'conversar com você — nenhuma das duas cancela nada sozinha.',
       async aoSim() { await store.update('confirmacoes', c.id, { status: 'confirmado', respondido_em: hoje() }); },
       async aoNao() { await store.update('confirmacoes', c.id, { status: 'problema', respondido_em: hoje() }); }
     }));
@@ -3116,6 +3175,15 @@ function perguntas() {
         pergunta: `${c.tipo === 'pagar' ? 'Já pagou' : 'Já caiu'} ${fmtMoney(c.valor_cents)}?`,
         contexto: `${c.descricao} · venceu ${prazoTxt(c.venc)}`,
         sim: c.tipo === 'pagar' ? 'Já paguei' : 'Já caiu', nao: 'Ainda não',
+        rota: c.tipo === 'pagar' ? '#/pagamentos' : '#/contas',
+        origem: `Esta conta venceu em ${fmtData(c.venc)} e continua marcada como aberta. `
+          + 'O app não tem como saber sozinho se o dinheiro saiu — por isso pergunta.',
+        porque: c.tipo === 'pagar'
+          ? 'Conta paga que segue aberta faz o app achar que ainda deve, e o número de '
+            + '"quanto já saiu" fica errado para menos no fechamento do job.'
+          : 'Parcela recebida que segue aberta faz o caixa parecer menor do que é.',
+        como: 'Se já saiu, o toque em "Já paguei" dá baixa e cria o lançamento sozinho, '
+          + 'com data de hoje. Se ainda não, ela volta a perguntar amanhã.',
         async aoSim() {
           await store.update('contas', c.id, { status: 'quitado', quitado_em: hoje() });
           await store.insert('lancamentos', {
@@ -3138,6 +3206,13 @@ function perguntas() {
       pergunta: `A NF de ${atrasada.conta.contraparte || atrasada.conta.descricao} já chegou?`,
       contexto: `${fmtMoney(atrasada.conta.valor_cents)} · ${atrasada.est.t}`,
       sim: 'Chegou', nao: 'Vou cobrar',
+      rota: '#/pedidos-nf',
+      origem: `O pedido de nota foi mandado em ${fmtData(atrasada.conta.nf_pedido_em)} e `
+        + `passaram-se mais de ${DIAS_FOLLOWUP} dias sem resposta.`,
+      porque: 'A produtora não paga sem nota. Enquanto ela não chega, quem trabalhou não '
+        + 'recebe e o gasto não entra no fechamento.',
+      como: '"Chegou" encerra a cobrança. "Vou cobrar" marca a data de hoje e o texto do '
+        + 'follow-up fica pronto em Pedidos de NF, para mandar por e-mail ou WhatsApp.',
       async aoSim() { await store.update('contas', atrasada.conta.id, { nf_status: 'recebida' }); },
       async aoNao() { await store.update('contas', atrasada.conta.id, { nf_cobrado_em: hoje() }); }
     });
@@ -3155,6 +3230,14 @@ function perguntas() {
         pergunta: `O cliente confirmou ${e.titulo}?`,
         contexto: `${fmtData(e.data, { longo: true })} · o contrato pede 10 dias úteis de antecedência`,
         sim: 'Confirmou', nao: 'Ainda não',
+        rota: '#/mapa', ref: { t: 'eventos', id: e.id },
+        origem: 'Esta diária está na agenda mas continua marcada como não confirmada pela '
+          + 'Fundação, e a data se aproxima.',
+        porque: 'Pela cláusula 4.3 do contrato, cada diária precisa ser confirmada com dez '
+          + 'dias úteis de antecedência. Sem isso a equipe pode viajar para nada — e a '
+          + 'passagem já estará comprada.',
+        como: '"Confirmou" trava a data e ela para de aparecer como prevista no mapa e na '
+          + 'agenda. Se ainda não veio, vale cobrar a Fundação hoje.',
         async aoSim() { await store.update('eventos', e.id, { confirmado: true }); }
       });
     }
@@ -3167,6 +3250,14 @@ function perguntas() {
       id: 'q_fonte_' + velha.id, urg: 2, icone: '🔗',
       pergunta: `Conferiu ${velha.titulo}?`,
       contexto: statusFonte(velha).txt + ' — o projeto depende desse link',
+      rota: '#/fontes', ref: { t: 'fontes', id: velha.id },
+      origem: 'Esta fonte de fora tem uma frequência de conferência combinada, e a última '
+        + 'foi há tempo demais.',
+      porque: 'Tudo que este app mostra saiu de algum lugar: contrato, planilha, agenda, '
+        + 'e-mail. Se a fonte mudou e ninguém trouxe, o número na tela está velho e as '
+        + 'decisões saem em cima dele.',
+      como: 'Abra o link, compare com o que está aqui e marque como conferida. O que '
+        + 'estiver diferente, corrija na tela que for dona daquele dado.',
       sim: 'Conferi agora', nao: 'Depois',
       async aoSim() { await store.update('fontes', velha.id, { conferido_em: hoje() }); }
     });
@@ -7457,7 +7548,7 @@ __defs["js/views/dash.js"] = function () {
 // para uma faixa fina no fim (ele tem uma aba inteira só dele) e o alto da tela
 // virou três desenhos: a linha do contrato, o caminho das etapas com as
 // dependências, e o mapa do país.
-const { store } = __req("js/store.js");
+const { store, nomeMembro } = __req("js/store.js");
 const { can } = __req("js/perms.js");
 const { el, toast } = __req("js/ui.js");
 const { esc, fmtMoneyShort, fmtData, prazoTxt, hoje } = __req("js/utils.js");
@@ -7484,16 +7575,35 @@ function render() {
 
   node.innerHTML = `
     ${capaHTML(p, etapas)}
+    ${mapaHTML()}
     ${agoraHTML(al, qs)}
-    ${caminhoHTML(etapas)}
-    ${mapaHTML()}`;
+    ${caminhoHTML(etapas)}`;
 
   // Os desenhos precisam do tamanho real da caixa, que só existe depois de
   // estar na tela.
   requestAnimationFrame(() => pintarLinha(node, p));
 
   ligar(node, { al, qs, etapas });
-  ligarMapaViagens(node);
+  // O lado da mesa acompanha o pino: acender uma cidade é encher a coluna com
+  // o que falta naquela viagem, e resolver dali mesmo.
+  const lado = node.querySelector('[data-lado]');
+  ligarMapaViagens(node, {
+    alturaMax: 300,
+    aoAcender: (cidade, id) => {
+      if (!lado) return;
+      const v = id ? store.get('viagens', id) : null;
+      lado.innerHTML = ladoHTML(v);
+      lado.querySelectorAll('[data-pend]').forEach((b) => {
+        b.onclick = async () => {
+          const alvo = (v ? pendencias(v) : []).find((x) => x.id === b.dataset.pend);
+          if (!alvo?.resolver) return;
+          await alvo.resolver();
+          toast('Feito.');
+          store.emit();
+        };
+      });
+    }
+  });
   return { titulo: 'Painel', sub: p.nome, node };
 }
 
@@ -7629,16 +7739,62 @@ function mapaHTML() {
   const vs = [...store.doProjeto('viagens')].sort((a, b) => String(a.ida).localeCompare(String(b.ida)));
   const prox = vs.find((v) => (v.volta || v.ida) >= hj) || vs[vs.length - 1];
   const feitas = vs.filter((v) => (v.volta || v.ida) < hj).length;
+  // Pós é trabalho remoto: só entra no mapa quando alguém marca um lugar.
+  const posSemLugar = store.doProjeto('eventos')
+    .some((e) => e.tipo === 'entrega' && !e.local);
 
   return `<section class="bloco largo">
-    <div class="sec"><div class="sec-t">As viagens</div>
-      <span class="small muted">${feitas} de ${vs.length} rodadas</span></div>
-    ${caixaMapaHTML()}
+    <div class="sec"><div class="sec-t">Onde e o que falta</div>
+      <span class="small muted">${feitas} de ${vs.length} viagens rodadas</span></div>
+
+    <div class="mesa">
+      ${caixaMapaHTML()}
+      <aside class="mesa-lado" data-lado></aside>
+    </div>
+
     <div class="pn-vs" data-vs>
       ${vs.map((v) => cartaoViagem(v, hj, v === prox)).join('')
         || '<div class="empty">Nenhuma viagem cadastrada.</div>'}
     </div>
+    ${posSemLugar ? `<p class="mesa-nota">A pós é remota e não tem pino: ela só entra no
+      mapa quando alguém marcar um lugar — uma review do cliente na ilha, por exemplo.</p>` : ''}
   </section>`;
+}
+
+/* O lado da mesa: a viagem acesa, com o que ainda falta nela e quem resolve.
+   É o que faz o mapa deixar de ser figura — o pino aponta e aqui se trabalha. */
+function ladoHTML(v) {
+  if (!v) return '<div class="mesa-vazio"><span class="olho-txt">Toque num pino</span></div>';
+  const hj = hoje();
+  const pend = pendencias(v);
+  const c = can(store.user, 'orcamento.ver') ? contaDaViagem(v) : null;
+  const emCurso = v.ida <= hj && (v.volta || v.ida) >= hj;
+  const st = ST_VIAGEM?.[v.status];
+  const meus = pend.filter((x) => x.quem === store.user?.id).length;
+
+  return `
+    <div class="mesa-cab">
+      <div class="olho-txt">Viagem ${esc(String(v.numero || ''))}${st ? ' · ' + esc(st.t) : ''}</div>
+      <h3 class="mesa-t">${esc(v.destino || v.titulo || '')}</h3>
+      <div class="mesa-s">${esc(fmtData(v.ida, { ano: false }))} → ${esc(fmtData(v.volta || v.ida, { ano: false }))}
+        <span class="ponto"></span> ${esc(emCurso ? 'em curso' : quandoTxt(v, hj))}</div>
+    </div>
+    ${pend.length ? `<div class="mesa-lista">
+      ${pend.slice(0, 5).map((x) => `<div class="mesa-p">
+        <span class="mesa-p-g">
+          <span class="mesa-p-t">${esc(x.texto)}</span>
+          <span class="mesa-p-s">${esc(x.quem ? nomeMembro(x.quem) : 'sem dono')}</span>
+        </span>
+        ${x.resolver ? `<button class="btn sm gho" data-pend="${esc(x.id)}">feito</button>` : ''}
+      </div>`).join('')}
+      ${pend.length > 5 ? `<div class="mesa-p mais">e mais ${pend.length - 5} nesta viagem</div>` : ''}
+    </div>` : '<div class="mesa-ok">Nada pendente nesta viagem.</div>'}
+    <div class="mesa-pe">
+      <span class="mesa-pe-n">${pend.length}<i>${pend.length === 1 ? ' pendência' : ' pendências'}${
+        meus ? ` · ${meus} sua${meus > 1 ? 's' : ''}` : ''}</i></span>
+      ${c ? `<span class="mesa-pe-m">${fmtMoneyShort(c.fechado)}<i>de ${fmtMoneyShort(c.orcado)}</i></span>` : ''}
+      <a class="btn sm" href="#/viagens">Abrir</a>
+    </div>`;
 }
 
 /* Uma viagem em bloco: número e pendências em cima, destino no meio, datas e
@@ -7700,10 +7856,11 @@ function agoraHTML(al, qs) {
       <span class="small muted">${urg ? `${urg} urgente${urg > 1 ? 's' : ''} · ` : ''}${al.length} no total</span></div>
 
     ${qs.slice(0, 2).map((q) => `<div class="ag-q" data-q="${q.id}">
-      <div class="ag-q-cab">
+      <button class="ag-q-cab" data-entender="${q.id}">
         <span class="ico ${q.urg >= 3 ? 'urg' : 'med'}">${q.icone}</span>
         <span class="ag-q-t">${esc(q.pergunta)}</span>
-      </div>
+        <span class="ag-q-e">o que é isso</span>
+      </button>
       <div class="ag-q-c">${esc(q.contexto || '')}</div>
       <div class="ag-q-b">
         <button class="btn sm pri" data-sim>${esc(q.sim || 'Sim')}</button>
@@ -7760,6 +7917,12 @@ function ligar(node, { al, qs, etapas }) {
       try { await fn(); } catch (e) { toast('Falhou: ' + e.message); }
       setTimeout(() => store.emit(), 200);
     };
+    // Antes dava para responder mas não dava para entender: tocar no enunciado
+    // abre o dossiê da pergunta, com de onde veio, por que importa e o que cada
+    // botão faz.
+    n.querySelector('[data-entender]')?.addEventListener('click', () => abrirDossie({
+      ...q, texto: q.pergunta, detalhe: q.contexto
+    }));
     n.querySelector('[data-sim]').onclick = () => some(q.aoSim);
     n.querySelector('[data-nao]').onclick = () => some(q.aoNao || (async () => {}));
   });

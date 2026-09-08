@@ -77,6 +77,10 @@ await passo('painel: mapa', async()=>{
   if(!await p.locator('.pn-mapa-caixa .geo').count()) throw new Error('sem mapa'); });
 // Nenhuma cidade pode sumir em silêncio: Belém, Salvador e Curitiba sumiam por
 // não estarem no mapa de coordenadas, e ninguém era avisado.
+await passo('mesa: o lado mostra a viagem acesa', async()=>{
+  if(!await p.locator('.mesa-lado .mesa-t').count()) throw new Error('lado vazio'); });
+await passo('mesa: dá para resolver dali', async()=>{
+  if(!await p.locator('.mesa-lado [data-pend]').count()) throw new Error('sem botão de resolver'); });
 await passo('toda cidade tem pino', async()=>{
   const n = await p.locator('.geo-p').count();
   if (n < 9) throw new Error('só '+n+' pinos para 11 viagens'); });
@@ -85,6 +89,13 @@ await passo('toda cidade tem pino', async()=>{
 await passo('painel tem avisos', async()=>{
   if(!await p.locator('[data-alerta]').count()) throw new Error('sem avisos'); });
 await p.evaluate(()=>document.querySelectorAll('[data-alerta]')[0].click()); await p.waitForTimeout(800);
+await p.evaluate(()=>document.querySelector('[data-entender]')?.click());
+await p.waitForTimeout(800);
+await passo('a pergunta abre e se explica', async()=>{
+  const b = await p.locator('.ds-b').count();
+  if (b < 3) throw new Error('só '+b+' blocos'); });
+await p.evaluate(()=>{const s=document.querySelector('.scrim'); s&&s.click();});
+await p.waitForTimeout(400);
 await passo('dossiê do aviso', async()=>{
   const b = await p.locator('.ds-b').count();
   if (b < 3) throw new Error('só '+b+' blocos'); });

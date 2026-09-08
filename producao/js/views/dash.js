@@ -6,7 +6,7 @@
 // para uma faixa fina no fim (ele tem uma aba inteira só dele) e o alto da tela
 // virou três desenhos: a linha do contrato, o caminho das etapas com as
 // dependências, e o mapa do país.
-import { store } from '../store.js';
+import { store, nomeMembro } from '../store.js';
 import { can } from '../perms.js';
 import { el, toast } from '../ui.js';
 import { esc, fmtMoneyShort, fmtData, prazoTxt, hoje } from '../utils.js';
@@ -34,16 +34,35 @@ export function render() {
 
   node.innerHTML = `
     ${capaHTML(p, etapas)}
+    ${mapaHTML()}
     ${agoraHTML(al, qs)}
-    ${caminhoHTML(etapas)}
-    ${mapaHTML()}`;
+    ${caminhoHTML(etapas)}`;
 
   // Os desenhos precisam do tamanho real da caixa, que só existe depois de
   // estar na tela.
   requestAnimationFrame(() => pintarLinha(node, p));
 
   ligar(node, { al, qs, etapas });
-  ligarMapaViagens(node);
+  // O lado da mesa acompanha o pino: acender uma cidade é encher a coluna com
+  // o que falta naquela viagem, e resolver dali mesmo.
+  const lado = node.querySelector('[data-lado]');
+  ligarMapaViagens(node, {
+    alturaMax: 300,
+    aoAcender: (cidade, id) => {
+      if (!lado) return;
+      const v = id ? store.get('viagens', id) : null;
+      lado.innerHTML = ladoHTML(v);
+      lado.querySelectorAll('[data-pend]').forEach((b) => {
+        b.onclick = async () => {
+          const alvo = (v ? pendencias(v) : []).find((x) => x.id === b.dataset.pend);
+          if (!alvo?.resolver) return;
+          await alvo.resolver();
+          toast('Feito.');
+          store.emit();
+        };
+      });
+    }
+  });
   return { titulo: 'Painel', sub: p.nome, node };
 }
 
@@ -179,16 +198,62 @@ function mapaHTML() {
   const vs = [...store.doProjeto('viagens')].sort((a, b) => String(a.ida).localeCompare(String(b.ida)));
   const prox = vs.find((v) => (v.volta || v.ida) >= hj) || vs[vs.length - 1];
   const feitas = vs.filter((v) => (v.volta || v.ida) < hj).length;
+  // Pós é trabalho remoto: só entra no mapa quando alguém marca um lugar.
+  const posSemLugar = store.doProjeto('eventos')
+    .some((e) => e.tipo === 'entrega' && !e.local);
 
   return `<section class="bloco largo">
-    <div class="sec"><div class="sec-t">As viagens</div>
-      <span class="small muted">${feitas} de ${vs.length} rodadas</span></div>
-    ${caixaMapaHTML()}
+    <div class="sec"><div class="sec-t">Onde e o que falta</div>
+      <span class="small muted">${feitas} de ${vs.length} viagens rodadas</span></div>
+
+    <div class="mesa">
+      ${caixaMapaHTML()}
+      <aside class="mesa-lado" data-lado></aside>
+    </div>
+
     <div class="pn-vs" data-vs>
       ${vs.map((v) => cartaoViagem(v, hj, v === prox)).join('')
         || '<div class="empty">Nenhuma viagem cadastrada.</div>'}
     </div>
+    ${posSemLugar ? `<p class="mesa-nota">A pós é remota e não tem pino: ela só entra no
+      mapa quando alguém marcar um lugar — uma review do cliente na ilha, por exemplo.</p>` : ''}
   </section>`;
+}
+
+/* O lado da mesa: a viagem acesa, com o que ainda falta nela e quem resolve.
+   É o que faz o mapa deixar de ser figura — o pino aponta e aqui se trabalha. */
+function ladoHTML(v) {
+  if (!v) return '<div class="mesa-vazio"><span class="olho-txt">Toque num pino</span></div>';
+  const hj = hoje();
+  const pend = pendencias(v);
+  const c = can(store.user, 'orcamento.ver') ? contaDaViagem(v) : null;
+  const emCurso = v.ida <= hj && (v.volta || v.ida) >= hj;
+  const st = ST_VIAGEM?.[v.status];
+  const meus = pend.filter((x) => x.quem === store.user?.id).length;
+
+  return `
+    <div class="mesa-cab">
+      <div class="olho-txt">Viagem ${esc(String(v.numero || ''))}${st ? ' · ' + esc(st.t) : ''}</div>
+      <h3 class="mesa-t">${esc(v.destino || v.titulo || '')}</h3>
+      <div class="mesa-s">${esc(fmtData(v.ida, { ano: false }))} → ${esc(fmtData(v.volta || v.ida, { ano: false }))}
+        <span class="ponto"></span> ${esc(emCurso ? 'em curso' : quandoTxt(v, hj))}</div>
+    </div>
+    ${pend.length ? `<div class="mesa-lista">
+      ${pend.slice(0, 5).map((x) => `<div class="mesa-p">
+        <span class="mesa-p-g">
+          <span class="mesa-p-t">${esc(x.texto)}</span>
+          <span class="mesa-p-s">${esc(x.quem ? nomeMembro(x.quem) : 'sem dono')}</span>
+        </span>
+        ${x.resolver ? `<button class="btn sm gho" data-pend="${esc(x.id)}">feito</button>` : ''}
+      </div>`).join('')}
+      ${pend.length > 5 ? `<div class="mesa-p mais">e mais ${pend.length - 5} nesta viagem</div>` : ''}
+    </div>` : '<div class="mesa-ok">Nada pendente nesta viagem.</div>'}
+    <div class="mesa-pe">
+      <span class="mesa-pe-n">${pend.length}<i>${pend.length === 1 ? ' pendência' : ' pendências'}${
+        meus ? ` · ${meus} sua${meus > 1 ? 's' : ''}` : ''}</i></span>
+      ${c ? `<span class="mesa-pe-m">${fmtMoneyShort(c.fechado)}<i>de ${fmtMoneyShort(c.orcado)}</i></span>` : ''}
+      <a class="btn sm" href="#/viagens">Abrir</a>
+    </div>`;
 }
 
 /* Uma viagem em bloco: número e pendências em cima, destino no meio, datas e
@@ -250,10 +315,11 @@ function agoraHTML(al, qs) {
       <span class="small muted">${urg ? `${urg} urgente${urg > 1 ? 's' : ''} · ` : ''}${al.length} no total</span></div>
 
     ${qs.slice(0, 2).map((q) => `<div class="ag-q" data-q="${q.id}">
-      <div class="ag-q-cab">
+      <button class="ag-q-cab" data-entender="${q.id}">
         <span class="ico ${q.urg >= 3 ? 'urg' : 'med'}">${q.icone}</span>
         <span class="ag-q-t">${esc(q.pergunta)}</span>
-      </div>
+        <span class="ag-q-e">o que é isso</span>
+      </button>
       <div class="ag-q-c">${esc(q.contexto || '')}</div>
       <div class="ag-q-b">
         <button class="btn sm pri" data-sim>${esc(q.sim || 'Sim')}</button>
@@ -310,6 +376,12 @@ function ligar(node, { al, qs, etapas }) {
       try { await fn(); } catch (e) { toast('Falhou: ' + e.message); }
       setTimeout(() => store.emit(), 200);
     };
+    // Antes dava para responder mas não dava para entender: tocar no enunciado
+    // abre o dossiê da pergunta, com de onde veio, por que importa e o que cada
+    // botão faz.
+    n.querySelector('[data-entender]')?.addEventListener('click', () => abrirDossie({
+      ...q, texto: q.pergunta, detalhe: q.contexto
+    }));
     n.querySelector('[data-sim]').onclick = () => some(q.aoSim);
     n.querySelector('[data-nao]').onclick = () => some(q.aoNao || (async () => {}));
   });
