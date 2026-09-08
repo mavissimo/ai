@@ -9,9 +9,13 @@ import { store, nomeMembro } from '../store.js';
 import { can } from '../perms.js';
 import { el, toast } from '../ui.js';
 import { esc, fmtMoney, fmtMoneyShort, fmtData, diaSemana, hoje, diasAte, iniciais, soma } from '../utils.js';
-import { custoDoEvento } from '../calc.js';
+import { custoDoEvento, financeiro } from '../calc.js';
 import { pendencias, contaDaViagem } from './viagens.js';
 import { abrirEvento } from './agenda.js';
+import { brasilSVG, coord } from '../geo.js';
+import { camposLancamento } from './financeiro.js';
+import { abrirForm, confirmar } from '../ui.js';
+import { textoPedido, assuntoPedido, linkEmail, linkWhats } from '../nf.js';
 
 const CURVA = 'cubic-bezier(.32,.72,0,1)';   // a curva de folha do iOS
 const menosMovimento = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -85,11 +89,13 @@ export function render() {
   node.innerHTML = `
     <div class="mapa-luz" data-luz></div>
     <div class="mapa-trilho" data-trilho>
+      ${paisHTML(lista, nViagens)}
       ${lista.map((s, i) => estacaoHTML(s, i, nViagens)).join('')}
     </div>
     <div class="mapa-regua" data-regua role="tablist" aria-label="Viagens">
+      <button class="tick pais" data-ir="0" role="tab" aria-label="O job inteiro"><i></i></button>
       ${lista.map((s, i) => `<button class="tick ${s.passou ? 'passou' : ''}
-        ${s.dias === 0 ? 'hoje' : ''}" data-ir="${i}" role="tab"
+        ${s.dias === 0 ? 'hoje' : ''}" data-ir="${i + 1}" role="tab"
         aria-label="${esc(s.titulo)}"><i></i></button>`).join('')}
     </div>`;
 
@@ -100,7 +106,7 @@ export function render() {
   // Cada corpo ganha seu lugar no espaço da estação depois que a tela existe:
   // a constelação é calculada com a altura real, não com um chute.
   const pintarCorpos = () => {
-    node.querySelectorAll('.est-campo').forEach((campo) => {
+    node.querySelectorAll('.est-campo[data-est]').forEach((campo) => {
       const s = lista[Number(campo.dataset.est)];
       const pos = constelacao(s.corpos, campo.clientWidth, campo.clientHeight);
       campo.innerHTML = percursoSVG(pos, s.corpos, campo.clientWidth, campo.clientHeight);
@@ -142,7 +148,8 @@ export function render() {
   });
 
   requestAnimationFrame(() => {
-    trilho.scrollLeft = inicial * trilho.clientWidth;
+    trilho.scrollLeft = (inicial + 1) * trilho.clientWidth;   // +1: o país abre a fila
+    pintarPais(node, lista, trilho);
     pintarCorpos();
     aoRolar();
     node.classList.add('pronto');
@@ -151,11 +158,73 @@ export function render() {
   const ro = new ResizeObserver(() => {
     const at = Math.round(trilho.scrollLeft / Math.max(1, trilho.clientWidth));
     pintarCorpos();
+    pintarPais(node, lista, trilho);
     trilho.scrollLeft = at * trilho.clientWidth;
   });
   ro.observe(trilho);
 
   return { titulo: 'Mapa', node, cheio: true };
+}
+
+
+/* ------------------------------------------------------------- o país -----
+   A primeira página é o job inteiro: o Brasil desenhado, cada destino no seu
+   lugar, numerado na ordem em que acontece. É por aqui que se entende o
+   tamanho da coisa antes de entrar em qualquer viagem. */
+function paisHTML(lista, nViagens) {
+  const u = store.user;
+  const p = store.projeto || {};
+  const feitas = lista.filter((s) => s.tipo === 'viagem' && s.passou).length;
+  const diarias = lista.reduce((n, s) => n + s.corpos.filter((c) => c.ev.tipo === 'diaria').length, 0);
+  const pend = lista.reduce((n, s) => n + s.pend, 0);
+  const f = can(u, 'orcamento.ver') ? financeiro() : null;
+  return `<section class="estacao pais" data-i="-1">
+    <header class="est-cab">
+      <div class="est-olho">O job inteiro <span class="est-ix">${nViagens} destinos</span></div>
+      <h2 class="est-tit">${esc(p.nome || 'O job')}</h2>
+      <div class="est-sub">${esc(p.cliente || '')} <span class="ponto"></span>
+        ${feitas} de ${nViagens} rodadas</div>
+    </header>
+    <div class="est-campo pais-campo" data-pais></div>
+    <footer class="est-pe">
+      ${f ? `<div class="pe-item"><b>${fmtMoneyShort(f.contratado)}</b><span>contrato</span></div>
+        <div class="pe-item"><b>${fmtMoneyShort(f.comprometido)}</b><span>comprometido</span></div>` : ''}
+      <div class="pe-item ${pend ? 'atencao' : ''}"><b>${pend || '—'}</b><span>pendências</span></div>
+      <div class="pe-item"><b>${diarias}</b><span>diárias</span></div>
+    </footer>
+  </section>`;
+}
+
+/* O desenho só existe depois que a caixa tem tamanho: aqui ele é medido e
+   pintado, e cada pino leva ao seu destino com um toque. */
+function pintarPais(node, lista, trilho) {
+  const caixa = node.querySelector('[data-pais]');
+  if (!caixa) return;
+  const larg = caixa.clientWidth, alt = caixa.clientHeight;
+  if (!larg || !alt) return;
+  const pinos = lista.filter((s) => s.tipo === 'viagem').map((s, i) => ({
+    nome: s.titulo, cidade: cidadeDe(s), n: i + 1,
+    estado: s.passou ? 'passou' : s.dias === 0 ? 'hoje' : 'futuro'
+  }));
+  caixa.innerHTML = brasilSVG({ larg, alt, pinos });
+  // Um pino é um atalho: leva para a estação daquela viagem.
+  caixa.querySelectorAll('.geo-p').forEach((g, i) => {
+    g.style.cursor = 'pointer';
+    g.onclick = () => trilho.scrollTo({ left: (i + 1) * trilho.clientWidth,
+      behavior: menosMovimento() ? 'auto' : 'smooth' });
+  });
+}
+
+/* A cidade de uma estação sai do destino da viagem ou do local da diária. */
+function cidadeDe(s) {
+  const v = s.viagem;
+  const bruto = v?.destino || s.titulo || '';
+  const limpo = bruto.replace(/\s*\([A-Z]{2}\)\s*$/, '').trim();
+  if (coord(limpo)) return limpo;
+  for (const c of s.corpos) {
+    if (coord(c.ev.local)) return c.ev.local;
+  }
+  return limpo;
 }
 
 const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -308,6 +377,25 @@ function abrirCorpo(c, noEl, raiz) {
     setTimeout(() => painel.remove(), 340);
   };
 
+  /* Tudo o que dá para fazer com o dia sem sair do mapa. É isto que o
+     transforma de painel em lugar de trabalho. */
+  const acoes = {
+    gasto: () => abrirForm({
+      titulo: 'Gasto do dia',
+      subtitulo: `${rotulo(c)} · ${fmtData(c.ev.data, { longo: true })}`,
+      campos: camposLancamento(store.user, { evento_id: c.ev.id, data: c.ev.data,
+        viagem_id: c.viagem?.id || null, tipo: 'saida' }),
+      onSave: async (v) => {
+        await store.insert('lancamentos', { ...v, tipo: 'saida', evento_id: c.ev.id,
+          viagem_id: c.viagem?.id || null });
+        toast('Gasto lançado.');
+        pintar();
+      }
+    }),
+    viagem: () => { fechar(); location.hash = '#/viagens'; },
+    editar: () => { fechar(); abrirEvento(c.ev); }
+  };
+
   const pintar = () => {
     const u = store.user;
     const e = c.ev;
@@ -340,7 +428,12 @@ function abrirCorpo(c, noEl, raiz) {
             ${on ? `<div class="as-corpo">${conteudo(a.k, c, conf, pend, u)}</div>` : ''}
           </section>`;
         }).join('')}
-        <button class="btn wide gho" data-classico>Abrir na agenda</button>
+        <div class="pn-acoes">
+          ${can(u, 'lanc.edit') ? '<button class="btn sm" data-acao="gasto">Lançar gasto</button>' : ''}
+          ${c.viagem && can(u, 'contas.ver') ? '<button class="btn sm" data-acao="viagem">Abrir a viagem</button>' : ''}
+          ${can(u, 'agenda.edit') ? '<button class="btn sm" data-acao="editar">Editar o dia</button>' : ''}
+          <button class="btn sm gho" data-classico>Ver na agenda</button>
+        </div>
       </div>`;
 
     painel.querySelector('[data-fechar]').onclick = fechar;
@@ -355,6 +448,22 @@ function abrirCorpo(c, noEl, raiz) {
             behavior: menosMovimento() ? 'auto' : 'smooth' });
         }
       };
+    });
+    // O mapa só pode ser desenhado depois que a caixa tem largura de verdade.
+    const cx = painel.querySelector('[data-mapa]');
+    if (cx) requestAnimationFrame(() => {
+      const larg = cx.clientWidth;
+      if (!larg) return;
+      cx.innerHTML = brasilSVG({
+        larg, alt: Math.round(larg * 1.02), rota: 'São Paulo',
+        aceso: cx.dataset.mapa,
+        pinos: [{ nome: cx.dataset.mapa, cidade: cx.dataset.mapa, estado: c.estado,
+          rotulo: cx.dataset.mapa }]
+      });
+    });
+
+    painel.querySelectorAll('[data-acao]').forEach((b) => {
+      b.onclick = () => acoes[b.dataset.acao]?.();
     });
     painel.querySelectorAll('[data-ok]').forEach((n) => {
       n.onclick = async () => {
@@ -447,12 +556,15 @@ function conteudo(k, c, conf, pend, u) {
     const loc = store.doProjeto('locacoes').find((l) => e.local && e.local.includes(l.cidade));
     const end = e.endereco || loc?.obs || '';
     const mapa = end || e.local;
-    return `${e.local ? `<div class="pn-forte">${esc(e.local)}</div>` : ''}
+    const cid = e.local || loc?.cidade || '';
+    return `${coord(cid) ? `<div class="pn-mapa" data-mapa="${esc(cid)}"></div>` : ''}
+      ${e.local ? `<div class="pn-forte">${esc(e.local)}</div>` : ''}
       ${end ? `<p class="pn-p">${esc(end)}</p>` : ''}
       ${e.levar ? `<p class="pn-p"><b>Levar:</b> ${esc(e.levar)}</p>` : ''}
       ${mapa ? `<a class="btn sm gho" target="_blank" rel="noopener"
-        href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapa)}">Ver no mapa</a>` : ''}`;
+        href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapa)}">Abrir no Google Maps</a>` : ''}`;
   }
+
   if (k === 'dinheiro') {
     const lan = store.doProjeto('lancamentos').filter((l) => l.evento_id === e.id);
     return `<div class="pn-numero">${fmtMoney(c.custo)}<span>gasto neste dia</span></div>

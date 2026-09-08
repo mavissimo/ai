@@ -1,10 +1,66 @@
 // Kit de interface: bottom-sheet, formulários gerados por spec, toast, confirmação.
 import { esc, moneyInput, mascaraMoeda, parseMoney } from './utils.js';
 
+/* ---------------------------------------------------------------- glifos ---
+   O app nasceu com emoji nos símbolos e emoji tem cor, brilho e desenho de
+   outra gente: destoa de tudo. Aqui cada um vira um traço do mesmo peso do
+   resto da interface. A troca acontece na saída de `el`, que é por onde todo
+   nó passa — assim nenhuma tela precisa saber disso. */
+const gl = (d, extra = '') => '<svg viewBox="0 0 24 24" class="gl" ' + extra + '>' + d + '</svg>';
+const GLIFOS = {
+  '💵': gl('<rect x="2.5" y="6" width="19" height="12" rx="1.5"/><circle cx="12" cy="12" r="2.7"/>'
+    + '<path d="M6 12h.01M18 12h.01"/>'),
+  '💸': gl('<rect x="2.5" y="6" width="19" height="12" rx="1.5"/><circle cx="12" cy="12" r="2.7"/>'
+    + '<path d="M6 12h.01M18 12h.01"/>'),
+  '🧾': gl('<path d="M6 3h12v18l-2.4-1.6L13.2 21l-2.4-1.6L8.4 21 6 19.4z"/><path d="M9 8h6M9 12h6"/>'),
+  '📄': gl('<path d="M6.5 3h7L19 8.5V21H6.5z"/><path d="M13.5 3v5.5H19"/>'),
+  '📦': gl('<path d="M3.5 7.5 12 3.5l8.5 4v9L12 20.5l-8.5-4z"/><path d="M3.5 7.5 12 11.6l8.5-4.1M12 11.6V20.5"/>'),
+  '✈️': gl('<path d="M3 14 21 7.5l-2.6 6.8a3 3 0 0 1-1.9 1.8L10 18.6 8.4 21 6.9 16.4z"/>'),
+  '🎬': gl('<rect x="3" y="9" width="18" height="11.5" rx="1.5"/><path d="M3 9 6.5 3.5M9 9l3.5-5.5M15 9l3.5-5.5"/>'),
+  '📍': gl('<path d="M12 21c4.2-4.4 6.3-7.7 6.3-10.3A6.3 6.3 0 0 0 5.7 10.7C5.7 13.3 7.8 16.6 12 21z"/>'
+    + '<circle cx="12" cy="10.5" r="2.2"/>'),
+  '⚠️': gl('<path d="M12 4.2 21.2 20H2.8z"/><path d="M12 10v4.2M12 17h.01"/>'),
+  '⛔': gl('<circle cx="12" cy="12" r="8.6"/><path d="M6 6l12 12"/>'),
+  '☑️': gl('<rect x="3.6" y="3.6" width="16.8" height="16.8" rx="2"/><path d="M8 12.4l2.8 2.8L16.4 9"/>'),
+  '✅': gl('<circle cx="12" cy="12" r="8.6"/><path d="M8.2 12.4l2.6 2.6 5-5.4"/>'),
+  '❌': gl('<circle cx="12" cy="12" r="8.6"/><path d="M9 9l6 6M15 9l-6 6"/>'),
+  '🙋': gl('<circle cx="12" cy="7.6" r="3.2"/><path d="M5.6 20.4c.8-3.6 3.3-5.6 6.4-5.6s5.6 2 6.4 5.6"/>'),
+  '👥': gl('<circle cx="9" cy="8" r="3.1"/><path d="M3.6 19c.6-3 2.7-4.6 5.4-4.6S13.8 16 14.4 19"/>'
+    + '<circle cx="17" cy="9" r="2.3"/><path d="M16 14.6c2.2.2 3.8 1.8 4.3 4.4"/>'),
+  '⏰': gl('<circle cx="12" cy="12.6" r="7.8"/><path d="M12 8.2v4.4l2.8 1.7"/>'),
+  '🏨': gl('<path d="M4 20V6h9v14M13 11h7v9"/><path d="M7 9h2M7 13h2M16 15h1"/>'),
+  '🚗': gl('<path d="M4.2 15.5h15.6M5.4 15.5l1.4-4.6a2 2 0 0 1 1.9-1.4h6.6a2 2 0 0 1 1.9 1.4l1.4 4.6"/>'
+    + '<path d="M4.2 15.5v3h2.6v-3M17.2 15.5v3h2.6v-3"/><path d="M7.4 17h.01M16.6 17h.01"/>'),
+  '🍽️': gl('<path d="M7 3v8M7 11v10M4.4 3v5a2.6 2.6 0 0 0 5.2 0V3"/>'
+    + '<path d="M17.4 3c-1.6 1.4-2.4 3.2-2.4 5.4 0 1.7.8 2.8 2.4 3.2V21"/>'),
+  '📶': gl('<path d="M4 20v-4M9.3 20v-8M14.6 20v-12M19.9 20V5"/>'),
+  '🎥': gl('<rect x="2.6" y="7.4" width="12.4" height="9.2" rx="1.6"/><path d="M15 11.2 21.4 8v8l-6.4-3.2z"/>'),
+  '•': gl('<circle cx="12" cy="12" r="3.2"/>')
+};
+
+function trocarEmoji(raiz) {
+  if (!raiz || raiz.nodeType !== 1) return raiz;
+  const alvos = raiz.matches?.('.ico') ? [raiz] : [];
+  raiz.querySelectorAll?.('.ico').forEach((n) => alvos.push(n));
+  for (const n of alvos) {
+    const g = GLIFOS[n.textContent.trim()];
+    if (g) n.innerHTML = g;
+  }
+  return raiz;
+}
+
 export function el(html) {
   const t = document.createElement('template');
   t.innerHTML = html.trim();
-  return t.content.firstElementChild;
+  return trocarEmoji(t.content.firstElementChild);
+}
+
+// Nem toda tela nasce por `el`: várias montam com `innerHTML` direto. Um
+// observador cobre todas de uma vez, inclusive as folhas que abrem depois.
+if (typeof MutationObserver === 'function') {
+  new MutationObserver((muts) => {
+    for (const m of muts) for (const n of m.addedNodes) trocarEmoji(n);
+  }).observe(document.documentElement, { childList: true, subtree: true });
 }
 
 let toastT = null;

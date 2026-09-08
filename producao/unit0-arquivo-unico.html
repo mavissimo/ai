@@ -2,7 +2,7 @@
 <title>Unit0</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
 /* ============================================================================
    Tema. O padrão do :root é o claro; o escuro entra por três caminhos, nesta
@@ -11,48 +11,58 @@
    do sistema. Toda cor da interface sai daqui — nada de cor solta no CSS.
    ========================================================================= */
 :root{
-  --bg:#f4f6f9; --bg2:#ffffff; --bg3:#eceff4; --line:#dde2ea;
-  --tx:#151a23; --tx2:#5b6478; --tx3:#8a93a5;
-  --ac:#a86a12; --ac-tx:#ffffff; --ac-soft:rgba(168,106,18,.10); --ac-line:rgba(168,106,18,.28);
+  /* Papel osso e tinta quase preta: o contraste alto é o que dá a cara de
+     cartaz. Nada de cinza-azulado de painel. */
+  --bg:#eeeae2; --bg2:#f7f4ee; --bg3:#e3ded4; --line:#cfc8ba;
+  --tx:#12100d; --tx2:#514c43; --tx3:#8b8479;
+  --ac:#8a4b12; --ac-tx:#f7f4ee; --ac-soft:rgba(138,75,18,.10); --ac-line:rgba(138,75,18,.30);
   --ac2:#2158d0;
-  --ok:#0f7a52; --warn:#9a5c08; --bad:#c02a33; --info:#2158d0;
-  --ok-bg:rgba(15,122,82,.10); --warn-bg:rgba(154,92,8,.12);
-  --bad-bg:rgba(192,42,51,.10); --info-bg:rgba(33,88,208,.10);
-  --scrim:rgba(20,24,32,.45); --sombra:0 8px 24px rgba(20,26,40,.16);
-  --titulo: Archivo, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --r:14px; --sp:16px;
+  --ok:#2f6b3c; --warn:#8a5a09; --bad:#a72620; --info:#2c4fa8;
+  --ok-bg:rgba(47,107,60,.11); --warn-bg:rgba(138,90,9,.13);
+  --bad-bg:rgba(167,38,32,.10); --info-bg:rgba(44,79,168,.10);
+  --scrim:rgba(18,16,13,.55); --sombra:0 10px 30px rgba(18,16,13,.14);
+  --titulo: Archivo, 'Helvetica Neue', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --r:5px; --sp:16px;
   /* escala de espaço: tudo no layout sai de um destes seis degraus */
   --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:36px;
-  --r-sm:10px; --r-lg:18px;
+  --r-sm:3px; --r-lg:7px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark){
   :root:not([data-tema="claro"]):not([data-theme="light"]){
-    --bg:#0f1115; --bg2:#161a21; --bg3:#1d222b; --line:#272d38;
-    --tx:#e9edf5; --tx2:#9aa5b8; --tx3:#6b7688;
-    --ac:#f4b23e; --ac-tx:#191203; --ac-soft:rgba(244,178,62,.12); --ac-line:rgba(244,178,62,.35);
-    --ac2:#4c8dff;
-    --ok:#3ecf8e; --warn:#f0a33a; --bad:#f2555a; --info:#6aa9ff;
-    --ok-bg:rgba(62,207,142,.14); --warn-bg:rgba(240,163,58,.15);
-    --bad-bg:rgba(242,85,90,.15); --info-bg:rgba(106,169,255,.15);
-    --scrim:rgba(0,0,0,.6); --sombra:0 8px 24px rgba(0,0,0,.45);
+    --bg:#0a0a09; --bg2:#141311; --bg3:#1d1b18; --line:#2e2b26;
+    --tx:#f2eee6; --tx2:#a49d91; --tx3:#726c62;
+    --ac:#e0a03a; --ac-tx:#141105; --ac-soft:rgba(224,160,58,.13); --ac-line:rgba(224,160,58,.38);
+    --ac2:#6f9dff;
+    --ok:#5fbe7d; --warn:#e0a03a; --bad:#e8615c; --info:#7aa6ff;
+    --ok-bg:rgba(95,190,125,.14); --warn-bg:rgba(224,160,58,.15);
+    --bad-bg:rgba(232,97,92,.15); --info-bg:rgba(122,166,255,.15);
+    --scrim:rgba(0,0,0,.7); --sombra:0 10px 30px rgba(0,0,0,.55);
     color-scheme: dark;
   }
 }
 :root:not([data-tema="claro"])[data-theme="dark"],
 :root[data-tema="escuro"]{
-  --bg:#0f1115; --bg2:#161a21; --bg3:#1d222b; --line:#272d38;
-  --tx:#e9edf5; --tx2:#9aa5b8; --tx3:#6b7688;
-  --ac:#f4b23e; --ac-tx:#191203; --ac-soft:rgba(244,178,62,.12); --ac-line:rgba(244,178,62,.35);
-  --ac2:#4c8dff;
-  --ok:#3ecf8e; --warn:#f0a33a; --bad:#f2555a; --info:#6aa9ff;
-  --ok-bg:rgba(62,207,142,.14); --warn-bg:rgba(240,163,58,.15);
-  --bad-bg:rgba(242,85,90,.15); --info-bg:rgba(106,169,255,.15);
-  --scrim:rgba(0,0,0,.6); --sombra:0 8px 24px rgba(0,0,0,.45);
+  --bg:#0a0a09; --bg2:#141311; --bg3:#1d1b18; --line:#2e2b26;
+  --tx:#f2eee6; --tx2:#a49d91; --tx3:#726c62;
+  --ac:#e0a03a; --ac-tx:#141105; --ac-soft:rgba(224,160,58,.13); --ac-line:rgba(224,160,58,.38);
+  --ac2:#6f9dff;
+  --ok:#5fbe7d; --warn:#e0a03a; --bad:#e8615c; --info:#7aa6ff;
+  --ok-bg:rgba(95,190,125,.14); --warn-bg:rgba(224,160,58,.15);
+  --bad-bg:rgba(232,97,92,.15); --info-bg:rgba(122,166,255,.15);
+  --scrim:rgba(0,0,0,.7); --sombra:0 10px 30px rgba(0,0,0,.55);
   color-scheme: dark;
 }
+
+/* O "olho" é o rótulo de ficha técnica que abre um bloco: mono, caixa alta,
+   entreletra larga. Aparece em cartaz, em crédito de filme e agora aqui. */
+.olho-txt{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--tx3)}
+.fio{height:1px;background:var(--tx);opacity:.18;margin:var(--s4) 0}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--tx)}
@@ -67,9 +77,10 @@ button,input,select,textarea{font:inherit;color:inherit}
 .topbar{position:sticky;top:0;z-index:20;background:var(--bg);
   border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;
   display:flex;align-items:center;gap:10px}
-.topbar h1{font-family:var(--titulo);font-size:16px;margin:0;font-weight:700;letter-spacing:-.2px;flex:1;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.topbar .sub{display:block;font-size:11px;color:var(--tx3);font-weight:500}
+.topbar h1{font-family:var(--titulo);font-size:13px;margin:0;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .sub{display:block;font-family:var(--mono);font-size:9.5px;color:var(--tx3);
+  font-weight:400;letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
 .olho{width:32px;height:32px;flex:none;border-radius:50%;background:transparent;border:1px solid var(--line);
   color:var(--tx2);display:grid;place-items:center;cursor:pointer;padding:0}
 .olho svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
@@ -81,17 +92,20 @@ button,input,select,textarea{font:inherit;color:inherit}
 .avatar{width:34px;height:34px;border-radius:50%;background:var(--bg3);border:1px solid var(--line);
   display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--ac);flex:none}
 main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760px;width:100%;margin:0 auto}
-.titulao{font-family:var(--titulo);font-size:28px;font-weight:700;letter-spacing:-.8px;
-  margin:var(--s1) 0 var(--s4);line-height:1.12}
-.titulao .sub{display:block;font-family:inherit;font-size:13.5px;font-weight:500;
-  color:var(--tx3);letter-spacing:0;margin-top:var(--s1)}
+.titulao{font-family:var(--titulo);font-size:clamp(30px,9vw,42px);font-weight:800;
+  letter-spacing:-.045em;margin:var(--s2) 0 var(--s5);line-height:.98;text-transform:uppercase;
+  text-wrap:balance}
+.titulao .sub{display:block;font-family:var(--mono);font-size:11px;font-weight:400;
+  color:var(--tx3);letter-spacing:.06em;margin-top:var(--s3);text-transform:uppercase;
+  line-height:1.5}
 
 /* bottom nav */
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;
   background:var(--bg2);border-top:1px solid var(--line);
   padding:6px 4px calc(6px + var(--safe-b))}
-.tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;
-  color:var(--tx3);font-size:10.5px;font-weight:600;border-radius:10px;position:relative}
+.tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 2px;
+  color:var(--tx3);font-family:var(--mono);font-size:8.5px;font-weight:500;letter-spacing:.08em;
+  text-transform:uppercase;border-radius:6px;position:relative}
 .tabbar a.on{color:var(--ac)}
 .tabbar a svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;
   stroke-linecap:round;stroke-linejoin:round}
@@ -101,13 +115,13 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 /* blocks */
 .card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);
   padding:var(--s4);margin-bottom:var(--s3)}
-.kpi,.card{box-shadow:0 1px 2px rgba(20,26,40,.04)}
+.kpi,.card{box-shadow:none}
 .card.tight{padding:2px var(--s4)}
 /* lista agrupada: as linhas encostam nas bordas e o separador recua até o texto */
 .card.lista{padding:0 0 0 var(--s4)}
 .card.lista > .row{padding-right:var(--s4)}
-.card h2,.sec-t{font-size:13px;margin:0 0 var(--s3);color:var(--tx3);font-weight:650;
-  letter-spacing:0;text-transform:none}
+.card h2,.sec-t{font-family:var(--mono);font-size:10.5px;margin:0 0 var(--s3);color:var(--tx3);
+  font-weight:500;letter-spacing:.14em;text-transform:uppercase}
 .sec{margin:var(--s6) 0 var(--s3);display:flex;align-items:baseline;gap:var(--s2)}
 .sec:first-child{margin-top:var(--s3)}
 .sec .sec-t{margin:0;flex:1}
@@ -115,10 +129,11 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--s2);margin-bottom:var(--s3)}
 @media(max-width:360px){.grid3{grid-template-columns:1fr 1fr}}
 .kpi{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:var(--s3) var(--s4)}
-.kpi .l{font-size:11.5px;color:var(--tx3);font-weight:600;letter-spacing:0;text-transform:none}
-.kpi .v{font-family:var(--titulo);font-size:22px;font-weight:700;margin-top:var(--s1);
-  letter-spacing:-.6px;line-height:1.15}
-.kpi .h{font-size:11.5px;color:var(--tx3);margin-top:var(--s1);line-height:1.3}
+.kpi .l{font-family:var(--mono);font-size:10px;color:var(--tx3);font-weight:500;
+  letter-spacing:.12em;text-transform:uppercase}
+.kpi .v{font-family:var(--titulo);font-size:25px;font-weight:800;margin-top:var(--s2);
+  letter-spacing:-.035em;line-height:1.05;font-variant-numeric:tabular-nums}
+.kpi .h{font-size:11.5px;color:var(--tx3);margin-top:var(--s2);line-height:1.35}
 .kpi.ok .v{color:var(--ok)} .kpi.bad .v{color:var(--bad)} .kpi.warn .v{color:var(--warn)}
 
 .row{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) 0;min-height:52px;
@@ -134,7 +149,7 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .row .s{display:block;font-size:12.5px;color:var(--tx3);margin-top:1px;line-height:1.35;
   overflow:hidden;text-overflow:ellipsis}
 .row .r{text-align:right;flex:none;font-variant-numeric:tabular-nums}
-.row .r .v{font-weight:650;font-size:15px;letter-spacing:-.2px}
+.row .r .v{font-family:var(--mono);font-weight:500;font-size:14px;letter-spacing:-.01em}
 /* seta de "isto abre alguma coisa" — a dica que faltava para saber o que é clicável */
 .row.act{cursor:pointer;position:relative;padding-right:var(--s5)}
 .row.act::after{content:"";position:absolute;right:var(--s2);top:50%;width:7px;height:7px;
@@ -147,26 +162,27 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .row.act.sem-seta::after{display:none}
 .mono{font-variant-numeric:tabular-nums}
 
-.tag{display:inline-block;font-size:11px;font-weight:650;padding:3px 9px;border-radius:999px;
-  background:var(--bg3);color:var(--tx2);letter-spacing:0;text-transform:none;white-space:nowrap}
+.tag{display:inline-block;font-family:var(--mono);font-size:9.5px;font-weight:500;padding:4px 8px;
+  border-radius:3px;background:var(--bg3);color:var(--tx2);letter-spacing:.1em;
+  text-transform:uppercase;white-space:nowrap;line-height:1.1}
 .tag.ok{background:var(--ok-bg);color:var(--ok)}
 .tag.warn{background:var(--warn-bg);color:var(--warn)}
 .tag.bad{background:var(--bad-bg);color:var(--bad)}
 .tag.info{background:var(--info-bg);color:var(--info)}
 .tag.mut{background:var(--bg3);color:var(--tx3)}
 
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line);
-  background:var(--bg3);color:var(--tx);border-radius:11px;padding:11px 14px;font-weight:650;font-size:14px;
-  cursor:pointer;min-height:44px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--tx);
+  background:transparent;color:var(--tx);border-radius:4px;padding:11px 16px;font-weight:650;
+  font-size:12px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;min-height:44px}
 .btn:active{transform:scale(.985)}
-.btn.pri{background:var(--ac);border-color:var(--ac);color:var(--ac-tx)}
-.btn.gho{background:transparent}
-.btn.sm{padding:7px 11px;min-height:36px;font-size:13px;border-radius:9px}
+.btn.pri{background:var(--tx);border-color:var(--tx);color:var(--bg2)}
+.btn.gho{background:transparent;border-color:var(--line);color:var(--tx2)}
+.btn.sm{padding:7px 11px;min-height:34px;font-size:10.5px;border-radius:3px;letter-spacing:.1em}
 .btn.wide{width:100%}
 .btn.danger{color:var(--bad);border-color:rgba(242,85,90,.4)}
 .btns{display:flex;gap:8px;flex-wrap:wrap}
-.fab{position:fixed;right:16px;bottom:calc(84px + var(--safe-b));z-index:25;width:56px;height:56px;
-  border-radius:50%;background:var(--ac);color:var(--ac-tx);border:0;font-size:28px;font-weight:400;
+.fab{position:fixed;right:16px;bottom:calc(84px + var(--safe-b));z-index:25;width:54px;height:54px;
+  border-radius:5px;background:var(--tx);color:var(--bg2);border:0;font-size:26px;font-weight:400;
   box-shadow:var(--sombra);display:grid;place-items:center;cursor:pointer}
 
 .bar{height:7px;border-radius:99px;background:var(--bg3);overflow:hidden;margin-top:8px}
@@ -176,8 +192,9 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .chips{display:flex;gap:var(--s2);overflow-x:auto;padding:2px 0 var(--s3);-webkit-overflow-scrolling:touch;
   scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
-.chip{flex:none;padding:8px 13px;border-radius:999px;background:var(--bg2);border:1px solid var(--line);
-  font-size:13px;font-weight:600;color:var(--tx2);cursor:pointer;white-space:nowrap}
+.chip{flex:none;padding:8px 12px;border-radius:3px;background:transparent;border:1px solid var(--line);
+  font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--tx3);cursor:pointer;white-space:nowrap}
 .chip.on{background:var(--tx);color:var(--bg);border-color:var(--tx)}
 
 .empty{text-align:center;color:var(--tx3);padding:26px 14px;font-size:13.5px}
@@ -213,9 +230,10 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .check{display:flex;align-items:center;gap:10px;padding:10px 0}
 .check input{width:22px;height:22px;flex:none}
-.seg{display:flex;background:var(--bg3);border:1px solid var(--line);border-radius:11px;overflow:hidden}
-.seg button{flex:1;padding:11px 6px;background:transparent;border:0;font-size:13px;font-weight:650;
-  color:var(--tx2);cursor:pointer}
+.seg{display:flex;background:transparent;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg button{flex:1;padding:11px 6px;background:transparent;border:0;font-family:var(--mono);
+  font-size:10.5px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--tx3);cursor:pointer}
 .seg button.on{background:var(--tx);color:var(--bg)}
 .multi-abre{width:100%;display:flex;align-items:center;gap:var(--s2);text-align:left;
   background:var(--bg3);border:1px solid var(--line);border-radius:11px;padding:12px;
@@ -358,10 +376,17 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
 /* símbolo à esquerda das linhas do painel */
-.ico{flex:none;width:30px;height:30px;border-radius:9px;background:var(--bg3);display:grid;
-  place-items:center;font-size:15px;line-height:1}
-.ico.urg{background:var(--bad-bg)}
-.ico.med{background:var(--warn-bg)}
+.ico{flex:none;width:30px;height:30px;border-radius:3px;background:transparent;
+  border:1px solid var(--line);display:grid;place-items:center;font-size:14px;line-height:1;
+  color:var(--tx2)}
+.ico .gl{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.5;
+  stroke-linecap:round;stroke-linejoin:round}
+/* Versão de dentro do texto: sem moldura, alinhado à linha. */
+.ico.ico-inline{width:auto;height:auto;border:0;display:inline-grid;vertical-align:-3px;
+  margin-right:5px}
+.ico.ico-inline .gl{width:14px;height:14px}
+.ico.urg{border-color:var(--bad);color:var(--bad)}
+.ico.med{border-color:var(--warn);color:var(--warn)}
 
 
 /* ============================================================================
@@ -397,12 +422,14 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
   padding:var(--s5) var(--s5) var(--s3)}
 .estacao.passou{opacity:.78}
 
-.est-olho{font-size:11px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;
-  color:var(--tx3)}
-.est-tit{font-family:var(--titulo);font-size:clamp(28px,8.5vw,40px);font-weight:700;
-  letter-spacing:-1.2px;line-height:1.04;margin:var(--s2) 0 0;text-wrap:balance}
-.est-sub{font-size:13px;color:var(--tx2);margin-top:var(--s2);
-  display:flex;align-items:center;gap:var(--s2)}
+.est-olho{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--tx3);padding-bottom:var(--s3);
+  border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
+.est-tit{font-family:var(--titulo);font-size:clamp(30px,10vw,46px);font-weight:800;
+  letter-spacing:-.05em;line-height:.94;margin:var(--s4) 0 0;text-transform:uppercase;
+  text-wrap:balance}
+.est-sub{font-family:var(--mono);font-size:10.5px;color:var(--tx2);margin-top:var(--s3);
+  letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:var(--s2)}
 .est-sub .ponto{width:3px;height:3px;border-radius:50%;background:var(--tx3);flex:none}
 
 .est-campo{position:relative;flex:1;min-height:0;margin:var(--s4) 0 var(--s3)}
@@ -430,13 +457,14 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
   box-shadow:0 10px 30px -12px rgba(20,26,40,.35), 0 1px 2px rgba(20,26,40,.06);
   transition:transform .34s cubic-bezier(.32,.72,0,1),box-shadow .34s,background .2s}
 .no-dia{font-family:var(--titulo);font-size:calc(var(--d) * .33);font-weight:700;letter-spacing:-1px}
-.no-mes{font-size:calc(var(--d) * .15);color:var(--tx3);text-transform:uppercase;
-  letter-spacing:.6px;font-weight:650;margin-top:2px}
+.no-mes{font-family:var(--mono);font-size:calc(var(--d) * .13);color:var(--tx3);
+  text-transform:uppercase;letter-spacing:.14em;font-weight:500;margin-top:3px}
 .no-txt{display:flex;flex-direction:column;gap:2px;min-width:0;position:relative;z-index:1}
 .no-bolha{position:relative;z-index:1}
-.no-t{font-size:14px;font-weight:650;letter-spacing:-.2px;line-height:1.2;
+.no-t{font-size:14.5px;font-weight:700;letter-spacing:-.02em;line-height:1.2;
   overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.no-s{font-size:11.5px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.no-s{font-family:var(--mono);font-size:10px;color:var(--tx3);letter-spacing:.06em;
+  text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .no:active .no-bolha{transform:scale(.94)}
 @media (hover:hover){.no:hover .no-bolha{transform:scale(1.06);
   box-shadow:0 18px 40px -14px rgba(20,26,40,.45)}}
@@ -460,10 +488,12 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 
 /* rodapé da estação: quatro números, sem moldura */
 .est-pe{display:flex;gap:var(--s5);flex:none;padding-top:var(--s3);
-  border-top:1px solid var(--line)}
+  border-top:1px solid var(--tx);border-top-color:color-mix(in srgb,var(--tx) 40%,transparent)}
 .pe-item{display:flex;flex-direction:column;gap:1px;min-width:0}
-.pe-item b{font-family:var(--titulo);font-size:17px;font-weight:700;letter-spacing:-.5px}
-.pe-item span{font-size:10.5px;color:var(--tx3);letter-spacing:.2px}
+.pe-item b{font-family:var(--titulo);font-size:19px;font-weight:800;letter-spacing:-.035em;
+  font-variant-numeric:tabular-nums}
+.pe-item span{font-family:var(--mono);font-size:9px;color:var(--tx3);letter-spacing:.14em;
+  text-transform:uppercase;margin-top:2px}
 .pe-item.atencao b{color:var(--warn)}
 
 /* régua: uma marca por estação, a atual mais larga */
@@ -493,10 +523,13 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
   border:0;background:var(--bg3);color:var(--tx2);display:grid;place-items:center;cursor:pointer}
 .pn-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 .pn-x:active{background:var(--line)}
-.pn-quando{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--ac)}
-.pn-tit{font-family:var(--titulo);font-size:clamp(24px,6.6vw,32px);font-weight:700;
-  letter-spacing:-1px;line-height:1.08;margin:var(--s2) 44px 0 0;text-wrap:balance}
-.pn-sub{font-size:13px;color:var(--tx2);margin-top:var(--s2)}
+.pn-quando{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--ac)}
+.pn-tit{font-family:var(--titulo);font-size:clamp(26px,7.4vw,36px);font-weight:800;
+  letter-spacing:-.045em;line-height:.96;margin:var(--s3) 44px 0 0;text-transform:uppercase;
+  text-wrap:balance}
+.pn-sub{font-family:var(--mono);font-size:10.5px;color:var(--tx2);margin-top:var(--s3);
+  letter-spacing:.05em;text-transform:uppercase}
 
 .pn-rolo{flex:1;min-height:0;overflow-y:auto;padding:var(--s3) var(--s5) var(--s6);
   -webkit-overflow-scrolling:touch}
@@ -508,8 +541,9 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .as-i{flex:none;width:26px;height:26px;display:grid;place-items:center;color:var(--tx2)}
 .as-i svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;
   stroke-linecap:round;stroke-linejoin:round}
-.as-t{flex:1;font-size:15px;font-weight:600;letter-spacing:-.2px}
-.as-n{font-size:12px;font-weight:650;color:var(--tx3);font-variant-numeric:tabular-nums}
+.as-t{flex:1;font-size:15px;font-weight:650;letter-spacing:-.015em}
+.as-n{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--tx3);
+  font-variant-numeric:tabular-nums}
 .as-n.alerta{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:1px 7px}
 .as-v{flex:none;display:grid;place-items:center;color:var(--tx3);
   transition:transform .3s cubic-bezier(.32,.72,0,1)}
@@ -520,10 +554,10 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .as-corpo{padding:0 0 var(--s4);animation:as-abre .34s cubic-bezier(.32,.72,0,1)}
 @keyframes as-abre{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 
-.pn-numero{font-family:var(--titulo);font-size:34px;font-weight:700;letter-spacing:-1.4px;
-  line-height:1;margin-bottom:var(--s4)}
-.pn-numero span{display:block;font-family:inherit;font-size:12.5px;font-weight:500;
-  letter-spacing:0;color:var(--tx3);margin-top:var(--s1)}
+.pn-numero{font-family:var(--titulo);font-size:38px;font-weight:800;letter-spacing:-.05em;
+  line-height:1;margin-bottom:var(--s4);font-variant-numeric:tabular-nums}
+.pn-numero span{display:block;font-family:var(--mono);font-size:9.5px;font-weight:400;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--tx3);margin-top:var(--s2)}
 .pn-forte{font-size:19px;font-weight:650;letter-spacing:-.4px;margin-bottom:var(--s3)}
 .pn-p{font-size:14px;color:var(--tx2);line-height:1.5;margin:0 0 var(--s3)}
 .pn-vazio{font-size:13.5px;color:var(--tx3);margin:0;padding:var(--s2) 0 var(--s4)}
@@ -552,6 +586,92 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 }
 .app.cheio main > .banner{flex:none;margin:var(--s3) var(--s4) 0}
 .app.cheio main > .empty{margin:auto;padding:var(--s6)}
+
+/* ------------------------------------------------------------ o país -------
+   O Brasil desenhado. Fio fino, sem preenchimento pesado: é carta náutica, não
+   ilustração. A grade de paralelos dá escala e ocupa o vazio com ordem. */
+.geo{display:block;margin:0 auto;overflow:visible}
+.geo-grade{stroke:var(--tx);stroke-width:.5;opacity:.10}
+.geo-pais{fill:var(--tx);fill-opacity:.05;stroke:var(--tx);stroke-width:1.2;
+  stroke-linejoin:round;opacity:.7}
+.geo-rota{fill:none;stroke:var(--ac);stroke-width:1.4;stroke-dasharray:3 4;opacity:.85}
+.geo-pino{fill:var(--tx2)}
+.geo-pino.base{fill:var(--tx3)}
+.geo-halo{fill:var(--ac);opacity:.14}
+.geo-p.passou .geo-pino{fill:var(--tx3);opacity:.5}
+.geo-p.hoje .geo-pino,.geo-p.on .geo-pino{fill:var(--ac)}
+.geo-toque{fill:transparent}
+.geo-n{fill:var(--tx2);font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.1em}
+.geo-p.passou .geo-n{fill:var(--tx3);opacity:.6}
+.geo-p.on .geo-n{fill:var(--tx);font-weight:600}
+.geo-rot{fill:var(--tx);font-family:var(--titulo);font-size:12px;font-weight:700;
+  letter-spacing:-.01em}
+.pais-campo{display:grid;place-items:center}
+.pn-mapa{margin:0 0 var(--s4)}
+.est-ix{float:right;color:var(--tx3)}
+
+/* barra de ações do painel: o dia vira lugar de trabalho, não só de leitura */
+.pn-acoes{display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s5);
+  padding-top:var(--s4);border-top:1px solid var(--line)}
+.pn-acoes .btn{flex:1 1 44%}
+
+/* ------------------------------------------------------------- índice ------
+   Lista numerada, do jeito de ficha técnica: número em mono à esquerda, nome
+   em corpo grande, uma linha de explicação embaixo, fio separando. É como o
+   dinheiro escolhe o que criar e como se escolhe uma conta. */
+.indice{display:flex;flex-direction:column}
+.ix{display:flex;align-items:baseline;gap:var(--s3);width:100%;text-align:left;
+  padding:var(--s4) 0;border:0;border-top:1px solid var(--line);background:none;
+  color:var(--tx);cursor:pointer}
+.ix:first-child{border-top:0}
+.ix:active{opacity:.55}
+.ix-n{font-family:var(--mono);font-size:10px;color:var(--tx3);letter-spacing:.1em;flex:none;
+  width:22px}
+.ix-g{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.ix-t{font-family:var(--titulo);font-size:18px;font-weight:700;letter-spacing:-.03em;
+  text-transform:uppercase;line-height:1.05}
+.ix-d{font-size:12.5px;color:var(--tx3);line-height:1.4}
+.ix-v{flex:none;color:var(--tx3);font-size:15px}
+.ix-v.num{font-family:var(--mono);font-size:13px;color:var(--tx);font-variant-numeric:tabular-nums}
+
+/* faixa de criação no topo do Dinheiro */
+.criar-faixa{display:flex;align-items:center;gap:var(--s3);width:100%;text-align:left;
+  border:1px solid var(--tx);background:var(--tx);color:var(--bg2);border-radius:4px;
+  padding:var(--s4);cursor:pointer;margin-bottom:var(--s4)}
+.criar-faixa:active{opacity:.85}
+.criar-faixa b{font-family:var(--titulo);font-size:17px;font-weight:800;letter-spacing:-.02em;
+  text-transform:uppercase;display:block}
+.criar-faixa span{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+  text-transform:uppercase;opacity:.7;display:block;margin-top:3px}
+.criar-faixa i{margin-left:auto;font-style:normal;font-size:22px;line-height:1}
+
+/* ---------------------------------------------------------------- capa -----
+   O começo. Antes o app abria pedindo para "Começar" sem dizer o que era, e a
+   seguir mostrava uma lista de gente com um aviso vermelho de senha. Agora a
+   primeira tela é a ficha do projeto — o que é, de quem, de que tamanho — e a
+   senha virou opção, não pedágio. */
+.capa{min-height:100dvh;display:flex;flex-direction:column;
+  padding:calc(env(safe-area-inset-top,0px) + var(--s5)) var(--s5)
+    calc(var(--s5) + var(--safe-b));max-width:560px;margin:0 auto;width:100%}
+.capa-topo{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s3);
+  padding-bottom:var(--s4);border-bottom:1px solid var(--tx);
+  border-bottom-color:color-mix(in srgb,var(--tx) 35%,transparent)}
+.capa-topo .marca{font-size:26px}
+.capa-meio{flex:1;display:flex;flex-direction:column;justify-content:center;
+  padding:var(--s6) 0}
+.capa.quem .capa-meio{justify-content:flex-start;padding-top:var(--s5)}
+.capa-tit{font-family:var(--titulo);font-size:clamp(34px,11vw,54px);font-weight:800;
+  letter-spacing:-.05em;line-height:.94;margin:var(--s3) 0 var(--s5);text-transform:uppercase}
+.capa-ficha{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s3);
+  padding:var(--s4) 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.capa-ficha div{display:flex;flex-direction:column;gap:3px}
+.capa-ficha b{font-family:var(--titulo);font-size:26px;font-weight:800;letter-spacing:-.04em;
+  line-height:1}
+.capa-ficha span{font-family:var(--mono);font-size:9px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3)}
+.capa-p{font-size:14.5px;line-height:1.55;color:var(--tx2);margin:var(--s5) 0 0;max-width:44ch}
+.capa-pe{flex:none}
+.capa .indice{margin-top:var(--s2)}
 </style>
 <div id="app" class="app"><div class="boot">Carregando…</div></div>
 <script type="module">
@@ -737,29 +857,41 @@ const rotaAtual = () => (location.hash || '#/').slice(1).split('?')[0] || '/';
 
 /* ---------------- login ---------------- */
 function telaBoasVindas() {
-  const node = el(`<div class="login">
-    <span class="marca" style="font-size:40px;margin-bottom:18px">${MARCA}</span>
-    <p>Gestão de produção audiovisual: negociação, pré, produção, pós, dinheiro
-      e equipe — tudo no celular.</p>
-    <button class="btn pri wide" data-comecar>Começar</button>
-    <p class="small muted" style="margin-top:12px">Carrega o projeto <b>Doc Fundação Bradesco 70 Anos</b>
-      com contrato, cronograma, orçamento e equipe já cadastrados.</p>
-    <p class="small muted" style="margin-top:18px">${isRemote()
-      ? 'Modo nuvem: os dados ficam no Supabase do projeto.'
-      : 'Modo demo: os dados ficam neste aparelho. Você pode exportar um backup a qualquer momento.'}</p>
+  const node = el(`<div class="capa">
+    <div class="capa-topo">
+      <span class="marca">${MARCA}</span>
+      <span class="olho-txt">Gestão de produção</span>
+    </div>
+    <div class="capa-meio">
+      <div class="olho-txt">O projeto que está carregado</div>
+      <h1 class="capa-tit">Doc Fundação<br>Bradesco 70 Anos</h1>
+      <div class="capa-ficha">
+        <div><b>11</b><span>viagens</span></div>
+        <div><b>17</b><span>diárias</span></div>
+        <div><b>40</b><span>peças</span></div>
+        <div><b>9</b><span>cidades</span></div>
+      </div>
+      <p class="capa-p">Contrato, cronograma, orçamento, viagens e equipe já estão dentro.
+        Você entra escolhendo o seu nome — e vê só o que é da sua alçada.</p>
+    </div>
+    <div class="capa-pe">
+      <button class="btn pri wide" data-comecar>Entrar</button>
+      <p class="olho-txt" style="margin-top:14px;text-align:center">${isRemote()
+        ? 'Os dados ficam no Supabase do projeto'
+        : 'Os dados ficam neste aparelho · dá para exportar um backup'}</p>
+    </div>
   </div>`);
   node.querySelector('[data-comecar]').onclick = async () => {
     const b = node.querySelector('[data-comecar]');
     b.disabled = true; b.textContent = 'Montando o projeto…';
     try {
       await criarProjetoBradesco();
-      toast('Projeto carregado. Escolha quem você é.');
       location.hash = '#/';
       render();
     } catch (e) {
       console.error(e);
       toast('Não consegui montar: ' + e.message);
-      b.disabled = false; b.textContent = 'Começar';
+      b.disabled = false; b.textContent = 'Entrar';
     }
   };
   return node;
@@ -767,20 +899,27 @@ function telaBoasVindas() {
 
 function telaQuemEVoce() {
   const lista = store.all('membros');
-  const node = el(`<div class="login">
-    <h1>Quem é você?</h1>
-    <p>Cada pessoa vê só o que é da sua alçada.</p>
-    <div data-lista></div>
-    <button class="btn gho wide" style="margin-top:14px" data-sou-novo>Não estou na lista</button>
+  const node = el(`<div class="capa quem">
+    <div class="capa-topo">
+      <span class="marca">${MARCA}</span>
+      <span class="olho-txt">Doc Fundação Bradesco</span>
+    </div>
+    <div class="capa-meio">
+      <div class="olho-txt">Entrar como</div>
+      <h1 class="capa-tit">Quem é você?</h1>
+      <div class="indice" data-lista></div>
+      <button class="btn gho wide" style="margin-top:20px" data-sou-novo>Não estou na lista</button>
+      <p class="olho-txt" style="margin-top:14px">Dá para trocar depois, em Mais.</p>
+    </div>
   </div>`);
   const box = node.querySelector('[data-lista]');
-  lista.forEach((m) => {
+  lista.forEach((m, i) => {
     const p = PAPEIS[m.papel] || PAPEIS.equipe;
-    const b = el(`<button class="who">
-      <span class="avatar">${esc(iniciais(m.nome))}</span>
-      <span style="flex:1"><span style="display:block;font-weight:650">${esc(m.nome)}</span>
-        <span class="small muted">${esc([m.funcao, p.curto].filter(Boolean).join(' · '))}</span></span>
-      <span class="tag ${temSenha(m) ? 'mut' : 'warn'}">${temSenha(m) ? '🔒' : 'criar senha'}</span></button>`);
+    const b = el(`<button class="ix">
+      <span class="ix-n">${String(i + 1).padStart(2, '0')}</span>
+      <span class="ix-g"><span class="ix-t">${esc(m.nome)}</span>
+        <span class="ix-d">${esc([m.funcao, p.curto].filter(Boolean).join(' · '))}</span></span>
+      <span class="ix-v">${temSenha(m) ? '🔒' : '→'}</span></button>`);
     b.onclick = async () => {
       if (!await autenticar(m)) return;
       store.setUser(m);
@@ -1300,6 +1439,203 @@ async function abrirArquivo(meta) {
   return { salvarArquivo, urlArquivo, removerArquivo, abrirArquivo };
 };
 
+__defs["js/geo.js"] = function () {
+// O Brasil desenhado, não baixado.
+//
+// A página publicada não consegue buscar imagem de fora — nenhum tile de mapa
+// chega aqui. Então o contorno do país é um caminho vetorial nosso e as cidades
+// são coordenadas de verdade projetadas em cima dele. Custa zero de rede,
+// funciona sem sinal na estrada e ainda por cima tem a cara de cartaz que o
+// resto do app está tomando.
+
+/* Contorno simplificado, em graus (longitude, latitude), no sentido horário a
+   partir de Roraima. É silhueta, não cartografia: serve para reconhecer o país
+   e situar a cidade, não para navegar. */
+const CONTORNO = [
+  [-60.7, 5.2], [-60.0, 4.6], [-59.0, 3.9], [-56.5, 2.0], [-55.2, 2.5], [-54.2, 2.2],
+  [-51.6, 4.4], [-50.9, 2.2], [-50.0, 1.8], [-48.6, -0.2], [-48.5, -1.4], [-46.5, -0.8],
+  [-44.3, -2.5], [-43.3, -2.4], [-41.8, -2.9], [-40.5, -2.8], [-38.5, -3.7], [-37.2, -4.9],
+  [-35.2, -5.2], [-34.8, -6.9], [-34.85, -8.05], [-35.7, -9.7], [-36.4, -10.5], [-37.1, -11.3],
+  [-38.5, -13.0], [-38.9, -13.9], [-39.0, -14.8], [-38.9, -16.4], [-39.2, -17.7], [-39.7, -18.6],
+  [-40.3, -20.3], [-41.0, -21.6], [-41.9, -22.4], [-42.0, -23.0], [-43.2, -23.0], [-44.6, -23.4],
+  [-46.3, -24.0], [-47.9, -25.0], [-48.5, -25.5], [-48.5, -26.9], [-48.5, -27.6], [-48.8, -28.6],
+  [-50.0, -30.4], [-51.4, -31.9], [-52.2, -32.6], [-53.4, -33.7], [-53.5, -32.6], [-54.6, -31.5],
+  [-55.6, -30.9], [-56.9, -30.1], [-57.6, -30.2], [-56.2, -28.8], [-55.6, -27.4], [-54.3, -25.7],
+  [-54.6, -25.6], [-54.3, -24.1], [-54.7, -23.0], [-55.7, -22.6], [-57.6, -22.1], [-57.9, -20.9],
+  [-58.2, -20.0], [-58.0, -19.4], [-57.8, -19.0], [-59.0, -16.4], [-60.4, -15.1], [-60.3, -13.5],
+  [-61.9, -13.5], [-63.0, -12.6], [-64.5, -12.5], [-65.4, -10.5], [-65.3, -9.8], [-66.8, -9.8],
+  [-68.6, -11.0], [-69.6, -10.9], [-70.6, -11.0], [-70.6, -9.5], [-72.2, -9.9], [-73.2, -9.4],
+  [-72.9, -7.6], [-73.8, -7.3], [-72.9, -5.1], [-70.8, -4.2], [-70.0, -4.2], [-69.9, -2.2],
+  [-69.4, -1.1], [-69.9, 0.6], [-69.2, 0.9], [-67.9, 1.7], [-67.3, 2.0], [-67.1, 2.8],
+  [-64.5, 4.1], [-63.4, 3.9], [-61.4, 4.5], [-60.7, 5.2]
+];
+
+/* Onde ficam as cidades do job. Chave é o que aparece no cadastro. */
+const CIDADES = {
+  'São Paulo': [-46.63, -23.55],
+  'Osasco': [-46.79, -23.53],
+  'Conceição do Araguaia': [-49.26, -8.26],
+  'Formoso do Araguaia': [-49.53, -11.80],
+  'Canuanã': [-49.55, -11.62],
+  'Palmas': [-48.33, -10.24],
+  'Jaboatão dos Guararapes': [-35.01, -8.11],
+  'Recife': [-34.88, -8.05],
+  'Gravataí': [-50.99, -29.94],
+  'Porto Alegre': [-51.23, -30.03],
+  'Bodoquena': [-56.71, -20.53],
+  'Miranda': [-56.38, -20.24],
+  'Campo Grande': [-54.65, -20.47]
+};
+
+/** Acha a coordenada pelo nome escrito de qualquer jeito no cadastro. */
+function coord(nome) {
+  if (!nome) return null;
+  const t = String(nome).trim();
+  if (CIDADES[t]) return CIDADES[t];
+  const chave = Object.keys(CIDADES).find((c) => t.includes(c) || c.includes(t));
+  return chave ? CIDADES[chave] : null;
+}
+
+/* "Conceição do Araguaia" não cabe num mapa de celular. O nome que identifica
+   é o primeiro pedaço; o resto é endereço. */
+function curto(nome) {
+  if (!nome) return '';
+  return String(nome)
+    .replace(/\s*\([A-Z]{2}\)\s*$/, '')
+    .split(/\s+d[oaei]s?\s+/i)[0]
+    .trim()
+    .toUpperCase();
+}
+
+const LIMITES = { o: -74.2, l: -34.0, n: 5.6, s: -34.2 };
+
+/* Projeção equiretangular com a longitude corrigida pela latitude média: numa
+   faixa do tamanho do Brasil isso já basta para o desenho não achatar. */
+function projetar(lon, lat, larg, alt, caixa = LIMITES) {
+  const k = Math.cos((((caixa.n + caixa.s) / 2) * Math.PI) / 180);
+  const dx = (caixa.l - caixa.o) * k;
+  const dy = caixa.n - caixa.s;
+  const escala = Math.min(larg / dx, alt / dy);
+  const cx = larg / 2 - (((caixa.o + caixa.l) / 2) * k) * escala;
+  const cy = alt / 2 + (((caixa.n + caixa.s) / 2)) * escala;
+  return [lon * k * escala + cx, cy - lat * escala];
+}
+
+/**
+ * O país em SVG.
+ *
+ * @param {object} o
+ * @param {number} o.larg  largura em px
+ * @param {number} o.alt   altura em px
+ * @param {Array}  o.pinos [{ nome, cidade, n, estado }] — estado vira classe
+ * @param {string} o.rota  cidade de partida, para o arco até o pino aceso
+ * @param {string} o.aceso nome do pino em destaque
+ */
+function brasilSVG({ larg, alt, pinos = [], rota = '', aceso = '' }) {
+  const P = (c) => projetar(c[0], c[1], larg, alt);
+  // Curva que passa pelos meios dos segmentos: o polígono some e sobra uma
+  // silhueta desenhada. É o que faz o país parecer traço e não gráfico.
+  // Repetir um vértice faz a curva praticamente passar por ele: é assim que os
+  // cantos que dão a cara do país — o bico do Rio Grande do Norte, o Chuí, a
+  // ponta do Acre — não viram curva mansa.
+  const CANTOS = new Set(['-35.2,-5.2', '-34.85,-8.05', '-53.4,-33.7', '-73.2,-9.4',
+    '-51.6,4.4', '-60.7,5.2', '-38.5,-3.7', '-48.5,-25.5']);
+  const pts = [];
+  for (const c of CONTORNO) {
+    const q = P(c);
+    pts.push(q);
+    if (CANTOS.has(c.join(','))) pts.push(q);
+  }
+  const md = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const n2 = (v) => v.toFixed(1);
+  let d = `M${n2(md(pts[pts.length - 1], pts[0])[0])} ${n2(md(pts[pts.length - 1], pts[0])[1])}`;
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i];
+    const m = md(a, pts[(i + 1) % pts.length]);
+    d += `Q${n2(a[0])} ${n2(a[1])} ${n2(m[0])} ${n2(m[1])}`;
+  }
+  d += 'Z';
+
+  // Paralelos e meridianos: dão escala ao desenho e enchem o vazio com ordem.
+  const grade = [];
+  for (let lat = 0; lat >= -30; lat -= 10) {
+    const [, y] = P([-60, lat]);
+    grade.push(`<line class="geo-grade" x1="0" y1="${y.toFixed(1)}" x2="${larg}" y2="${y.toFixed(1)}"/>`);
+  }
+  for (let lon = -70; lon <= -40; lon += 10) {
+    const [x] = P([lon, 0]);
+    grade.push(`<line class="geo-grade" x1="${x.toFixed(1)}" y1="0" x2="${x.toFixed(1)}" y2="${alt}"/>`);
+  }
+
+  const de = rota ? coord(rota) : null;
+  const arcos = [];
+  const marcas = [];
+  // Duas viagens para a mesma cidade dão um pino só: onze marcas empilhadas em
+  // cinco lugares não dizem nada.
+  const vistos = [];
+  const ocupados = [];
+  for (const p of pinos) {
+    const c = coord(p.cidade || p.nome);
+    if (!c) continue;
+    const [x, y] = P(c);
+    // Perto demais é o mesmo lugar: São Paulo e Osasco não merecem dois pontos.
+    const perto = vistos.find((v) => Math.hypot(v.x - x, v.y - y) < 14);
+    if (perto) { perto.p.vezes++; continue; }
+    vistos.push({ x, y, p });
+    p.vezes = 1;
+    const on = aceso && (p.nome === aceso || p.cidade === aceso);
+    // Um rótulo que encosta no outro não é rótulo: aqui ele desce até achar
+    // lugar e, se não achar, some — o ponto sozinho já diz onde é.
+    const bruto = p.rotulo === false ? '' : (p.rotulo || p.cidade || p.nome);
+    let texto = curto(bruto);
+    let dy = 3.4;
+    if (texto) {
+      const larguraTxt = texto.length * 6.4;
+      const x0 = () => (x > larg * 0.62 ? x - 9 - larguraTxt : x + 9);
+      let livre = false;
+      for (const tentativa of [3.4, -9, 15, -20, 26]) {
+        const cx0 = x0(), cy0 = y + tentativa;
+        if (!ocupados.some((r) => Math.abs(r.y - cy0) < 11
+          && cx0 < r.x + r.w + 4 && cx0 + larguraTxt + 4 > r.x)) {
+          dy = tentativa; livre = true;
+          ocupados.push({ x: cx0, y: cy0, w: larguraTxt });
+          break;
+        }
+      }
+      if (!livre) texto = '';
+    }
+    if (de && on) {
+      const [ax, ay] = P(de);
+      // Arco alto, de rota aérea: o desvio é proporcional à distância.
+      const mx = (ax + x) / 2;
+      const my = (ay + y) / 2 - Math.hypot(x - ax, y - ay) * 0.28;
+      arcos.push(`<path class="geo-rota" d="M${ax.toFixed(1)} ${ay.toFixed(1)}
+        Q${mx.toFixed(1)} ${my.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)}"/>`);
+      marcas.push(`<circle class="geo-pino base" cx="${ax.toFixed(1)}" cy="${ay.toFixed(1)}" r="2.5"/>`);
+    }
+    // Rótulo do lado que tiver espaço: no leste ele cai para dentro do país.
+    const esq = x > larg * 0.62;
+    marcas.push(`<g class="geo-p ${p.estado || ''} ${on ? 'on' : ''} ${esq ? 'esq' : ''}"
+      transform="translate(${x.toFixed(1)} ${y.toFixed(1)})" data-cidade="${p.cidade || p.nome}">
+      <circle class="geo-toque" r="16"/>
+      <circle class="geo-halo" r="${on ? 15 : 0}"/>
+      <circle class="geo-pino" r="${on ? 4.5 : 3.2}"/>
+      ${texto ? `<text class="geo-n" x="${esq ? -9 : 9}" y="${dy}"
+        text-anchor="${esq ? 'end' : 'start'}">${texto}</text>` : ''}
+    </g>`);
+  }
+  return `<svg class="geo" viewBox="0 0 ${larg} ${alt}" width="${larg}" height="${alt}"
+    role="img" aria-label="Mapa do Brasil com as cidades do job">
+    ${grade.join('')}
+    <path class="geo-pais" d="${d}"/>
+    ${arcos.join('')}
+    ${marcas.join('')}
+  </svg>`;
+}
+
+  return { CIDADES, coord, curto, brasilSVG };
+};
+
 __defs["js/nf.js"] = function () {
 // Pedido de nota fiscal. O texto que a produção monta na mão para cada pessoa
 // — job, função, vencimento, valor e os dados de faturamento da produtora —
@@ -1403,7 +1739,57 @@ function linkWhats(conta, extras = []) {
   return `https://wa.me/${num}?text=${encodeURIComponent(textoPedido(conta, extras))}`;
 }
 
-  return { faturamento, irmasSemNF, textoPedido, assuntoPedido, linkEmail, linkWhats };
+
+/* --------------------------------------------------------------- cobrança ---
+   O outro lado do balcão: o e-mail que a produtora manda ao cliente quando a
+   parcela vence. Sai do mesmo lugar que o pedido de NF para os dois textos não
+   viverem em cabeças diferentes. */
+function textoCobranca(conta) {
+  if (!conta) return '';
+  const f = faturamento();
+  const p = store.projeto || {};
+  const ctr = store.doProjeto('contratos').find((c) => c.tipo === 'cliente');
+  // Linha ausente é `null` e some; linha vazia é `''` e vira parágrafo. Trocar
+  // um pelo outro colava o texto todo num bloco só.
+  return [
+    'Prezados,',
+    '',
+    `Seguem os dados para o pagamento da ${conta.parcela ? `parcela ${conta.parcela}` : 'parcela'} `
+      + `do projeto ${(p.nome || '').toUpperCase()}.`,
+    ctr?.numero ? `Contrato ${ctr.numero}.` : null,
+    '',
+    `Valor: ${fmtMoney(conta.valor_cents)}`,
+    `Vencimento: ${conta.venc ? fmtData(conta.venc) : 'a combinar'}`,
+    conta.nf_numero ? `Nota fiscal: ${conta.nf_numero}` : null,
+    '',
+    '— Dados da produtora —',
+    `CNPJ: ${f.cnpj}`,
+    f.razao,
+    f.endereco,
+    f.cidade,
+    '',
+    'Qualquer dúvida, estou à disposição.'
+  ].filter((l) => l !== null).join('\n');
+}
+
+function assuntoCobranca(conta) {
+  const p = store.projeto || {};
+  return `${(p.nome || 'Projeto').toUpperCase()} _ `
+    + `${conta?.parcela ? `PARCELA ${conta.parcela}` : 'PAGAMENTO'}`
+    + `${conta?.nf_numero ? ` _ NF ${conta.nf_numero}` : ''}`;
+}
+
+/** Link de e-mail de cobrança, endereçado ao contato do contrato quando existe. */
+function linkCobranca(conta) {
+  const ctr = store.doProjeto('contratos').find((c) => c.tipo === 'cliente');
+  // O contrato guarda o contato do cliente com nomes diferentes conforme a
+  // época em que foi cadastrado; qualquer um serve para preencher o "para".
+  const para = ctr?.contato_email || ctr?.email || ctr?.contato || '';
+  return `mailto:${encodeURIComponent(para)}?subject=${encodeURIComponent(assuntoCobranca(conta))}`
+    + `&body=${encodeURIComponent(textoCobranca(conta))}`;
+}
+
+  return { faturamento, irmasSemNF, textoPedido, assuntoPedido, linkEmail, linkWhats, textoCobranca, assuntoCobranca, linkCobranca };
 };
 
 __defs["js/nota.js"] = function () {
@@ -1983,6 +2369,11 @@ async function digest(txt) {
 }
 
 const temSenha = (m) => Boolean(m?.pin_hash);
+/* Quem disse que não quer senha não é perguntado de novo. Trancar a troca de
+   perfil só faz sentido para quem divide o aparelho; para quem está testando
+   no próprio celular era só um pedágio. */
+const dispensouSenha = (m) => Boolean(m?.sem_senha);
+const precisaSenha = (m) => temSenha(m) || !dispensouSenha(m);
 const hashSenha = (membroId, pin) => digest(`unit0:${membroId}:${pin}`);
 
 async function definirSenha(membro, pin) {
@@ -2009,7 +2400,7 @@ function autenticar(membro) {
 
     const corpo = el(`<div>
       <p class="small muted" style="margin:0 0 16px">${criando
-        ? 'Primeira vez aqui. Escolha uma senha de 4 dígitos — ela vai ser pedida nas próximas entradas.'
+        ? 'Se você divide este aparelho com alguém, escolha uma senha de 4 dígitos. Se é só seu, pode entrar sem.'
         : `Digite a senha de 4 dígitos de ${esc(membro.nome)}.`}</p>
       <div class="f">
         <label for="pin1">${criando ? 'Nova senha' : 'Senha'}</label>
@@ -2020,7 +2411,9 @@ function autenticar(membro) {
         <input id="pin2" class="pin" type="password" inputmode="numeric" pattern="[0-9]*"
           maxlength="4" autocomplete="off" placeholder="••••"></div>` : ''}
       <div class="small muted" data-msg style="min-height:18px"></div>
-      ${criando ? '' : '<p class="small muted" style="margin-top:14px">Esqueceu? Peça para o Master zerar a sua senha em Equipe.</p>'}
+      ${criando
+        ? '<button class="btn gho wide" data-pular style="margin-top:10px">Entrar sem senha</button>'
+        : '<p class="small muted" style="margin-top:14px">Esqueceu? Peça para o Master zerar a sua senha em Equipe.</p>'}
     </div>`);
 
     const rod = el('<div style="display:flex;gap:8px;width:100%"></div>');
@@ -2047,6 +2440,10 @@ function autenticar(membro) {
     });
 
     bN.onclick = () => { resolvido = true; sh.close(); resolve(false); };
+    corpo.querySelector('[data-pular]')?.addEventListener('click', async () => {
+      await store.update('membros', membro.id, { sem_senha: true });
+      resolvido = true; sh.close(); resolve(true);
+    });
     bS.onclick = async () => {
       const a = p1.value;
       if (!valido(a)) return erro('A senha tem 4 dígitos.');
@@ -2102,7 +2499,7 @@ function trocarSenha(membro) {
   });
 }
 
-  return { temSenha, hashSenha, definirSenha, limparSenha, conferirSenha, autenticar, trocarSenha };
+  return { temSenha, dispensouSenha, precisaSenha, hashSenha, definirSenha, limparSenha, conferirSenha, autenticar, trocarSenha };
 };
 
 __defs["js/seed-bradesco.js"] = function () {
@@ -3657,10 +4054,66 @@ function escuroAgora() {
 __defs["js/ui.js"] = function () {
 // Kit de interface: bottom-sheet, formulários gerados por spec, toast, confirmação.
 const { esc, moneyInput, mascaraMoeda, parseMoney } = __req("js/utils.js");
+/* ---------------------------------------------------------------- glifos ---
+   O app nasceu com emoji nos símbolos e emoji tem cor, brilho e desenho de
+   outra gente: destoa de tudo. Aqui cada um vira um traço do mesmo peso do
+   resto da interface. A troca acontece na saída de `el`, que é por onde todo
+   nó passa — assim nenhuma tela precisa saber disso. */
+const gl = (d, extra = '') => '<svg viewBox="0 0 24 24" class="gl" ' + extra + '>' + d + '</svg>';
+const GLIFOS = {
+  '💵': gl('<rect x="2.5" y="6" width="19" height="12" rx="1.5"/><circle cx="12" cy="12" r="2.7"/>'
+    + '<path d="M6 12h.01M18 12h.01"/>'),
+  '💸': gl('<rect x="2.5" y="6" width="19" height="12" rx="1.5"/><circle cx="12" cy="12" r="2.7"/>'
+    + '<path d="M6 12h.01M18 12h.01"/>'),
+  '🧾': gl('<path d="M6 3h12v18l-2.4-1.6L13.2 21l-2.4-1.6L8.4 21 6 19.4z"/><path d="M9 8h6M9 12h6"/>'),
+  '📄': gl('<path d="M6.5 3h7L19 8.5V21H6.5z"/><path d="M13.5 3v5.5H19"/>'),
+  '📦': gl('<path d="M3.5 7.5 12 3.5l8.5 4v9L12 20.5l-8.5-4z"/><path d="M3.5 7.5 12 11.6l8.5-4.1M12 11.6V20.5"/>'),
+  '✈️': gl('<path d="M3 14 21 7.5l-2.6 6.8a3 3 0 0 1-1.9 1.8L10 18.6 8.4 21 6.9 16.4z"/>'),
+  '🎬': gl('<rect x="3" y="9" width="18" height="11.5" rx="1.5"/><path d="M3 9 6.5 3.5M9 9l3.5-5.5M15 9l3.5-5.5"/>'),
+  '📍': gl('<path d="M12 21c4.2-4.4 6.3-7.7 6.3-10.3A6.3 6.3 0 0 0 5.7 10.7C5.7 13.3 7.8 16.6 12 21z"/>'
+    + '<circle cx="12" cy="10.5" r="2.2"/>'),
+  '⚠️': gl('<path d="M12 4.2 21.2 20H2.8z"/><path d="M12 10v4.2M12 17h.01"/>'),
+  '⛔': gl('<circle cx="12" cy="12" r="8.6"/><path d="M6 6l12 12"/>'),
+  '☑️': gl('<rect x="3.6" y="3.6" width="16.8" height="16.8" rx="2"/><path d="M8 12.4l2.8 2.8L16.4 9"/>'),
+  '✅': gl('<circle cx="12" cy="12" r="8.6"/><path d="M8.2 12.4l2.6 2.6 5-5.4"/>'),
+  '❌': gl('<circle cx="12" cy="12" r="8.6"/><path d="M9 9l6 6M15 9l-6 6"/>'),
+  '🙋': gl('<circle cx="12" cy="7.6" r="3.2"/><path d="M5.6 20.4c.8-3.6 3.3-5.6 6.4-5.6s5.6 2 6.4 5.6"/>'),
+  '👥': gl('<circle cx="9" cy="8" r="3.1"/><path d="M3.6 19c.6-3 2.7-4.6 5.4-4.6S13.8 16 14.4 19"/>'
+    + '<circle cx="17" cy="9" r="2.3"/><path d="M16 14.6c2.2.2 3.8 1.8 4.3 4.4"/>'),
+  '⏰': gl('<circle cx="12" cy="12.6" r="7.8"/><path d="M12 8.2v4.4l2.8 1.7"/>'),
+  '🏨': gl('<path d="M4 20V6h9v14M13 11h7v9"/><path d="M7 9h2M7 13h2M16 15h1"/>'),
+  '🚗': gl('<path d="M4.2 15.5h15.6M5.4 15.5l1.4-4.6a2 2 0 0 1 1.9-1.4h6.6a2 2 0 0 1 1.9 1.4l1.4 4.6"/>'
+    + '<path d="M4.2 15.5v3h2.6v-3M17.2 15.5v3h2.6v-3"/><path d="M7.4 17h.01M16.6 17h.01"/>'),
+  '🍽️': gl('<path d="M7 3v8M7 11v10M4.4 3v5a2.6 2.6 0 0 0 5.2 0V3"/>'
+    + '<path d="M17.4 3c-1.6 1.4-2.4 3.2-2.4 5.4 0 1.7.8 2.8 2.4 3.2V21"/>'),
+  '📶': gl('<path d="M4 20v-4M9.3 20v-8M14.6 20v-12M19.9 20V5"/>'),
+  '🎥': gl('<rect x="2.6" y="7.4" width="12.4" height="9.2" rx="1.6"/><path d="M15 11.2 21.4 8v8l-6.4-3.2z"/>'),
+  '•': gl('<circle cx="12" cy="12" r="3.2"/>')
+};
+
+function trocarEmoji(raiz) {
+  if (!raiz || raiz.nodeType !== 1) return raiz;
+  const alvos = raiz.matches?.('.ico') ? [raiz] : [];
+  raiz.querySelectorAll?.('.ico').forEach((n) => alvos.push(n));
+  for (const n of alvos) {
+    const g = GLIFOS[n.textContent.trim()];
+    if (g) n.innerHTML = g;
+  }
+  return raiz;
+}
+
 function el(html) {
   const t = document.createElement('template');
   t.innerHTML = html.trim();
-  return t.content.firstElementChild;
+  return trocarEmoji(t.content.firstElementChild);
+}
+
+// Nem toda tela nasce por `el`: várias montam com `innerHTML` direto. Um
+// observador cobre todas de uma vez, inclusive as folhas que abrem depois.
+if (typeof MutationObserver === 'function') {
+  new MutationObserver((muts) => {
+    for (const m of muts) for (const n of m.addedNodes) trocarEmoji(n);
+  }).observe(document.documentElement, { childList: true, subtree: true });
 }
 
 let toastT = null;
@@ -4315,7 +4768,7 @@ function cartaoEvento(e, u) {
         <span class="t" style="color:var(--ac);font-size:17px">${esc(minha.hora)}${minha.obs ? ` <span class="small muted">${esc(minha.obs)}</span>` : ''}</span></span></div>` : ''}
     <div class="hr"></div>
     <div class="small" style="display:flex;flex-wrap:wrap;gap:6px 14px;color:var(--tx2)">
-      ${lugar ? `<span>📍 ${esc(lugar)}</span>` : ''}
+      ${lugar ? `<span><i class="ico ico-inline">📍</i>${esc(lugar)}</span>` : ''}
       ${confs.length ? `<span>👥 ${ok}/${confs.length} confirmados</span>` : ''}
       ${e.contato_nome ? `<span>☎️ ${esc(e.contato_nome)}</span>` : ''}
       ${e.roteiro_dia ? '<span>🗒 tem roteiro do dia</span>' : ''}
@@ -5787,6 +6240,192 @@ function abrirContrato(c, editar, verValor) {
   return { render };
 };
 
+__defs["js/views/criar.js"] = function () {
+// A boca do funil do dinheiro.
+//
+// Tudo que é grana nasce aqui: gasto, entrada, conta a pagar, conta a receber,
+// pedido de nota, cobrança do cliente e a nossa própria NF. Antes cada um
+// desses estava escondido num canto diferente — num FAB, numa aba, numa lista.
+// Agora é uma porta só, e o que ela abre continua sendo a mesma tela de sempre,
+// para não haver dois caminhos que fazem a mesma coisa de jeitos diferentes.
+const { store, nomeMembro } = __req("js/store.js");
+const { can } = __req("js/perms.js");
+const { el, sheet, toast, abrirForm } = __req("js/ui.js");
+const { esc, fmtMoney, fmtData, hoje } = __req("js/utils.js");
+const { camposLancamento } = __req("js/views/financeiro.js");
+const { novaConta } = __req("js/views/contas.js");
+const { linkCobranca, textoCobranca, linkEmail, textoPedido, irmasSemNF } = __req("js/nf.js");
+/* Cada porta sabe quem pode abri-la e o que faz do outro lado. A ordem é a do
+   dia a dia: o que se faz toda hora em cima, o que se faz uma vez por mês
+   embaixo. */
+function portas(u) {
+  return [
+    {
+      k: 'gasto', t: 'Gasto', cap: 'lanc.edit',
+      d: 'Uma saída que já aconteceu. Vai para a rubrica e para o dia.',
+      abrir: () => lancamento(u, 'saida')
+    },
+    {
+      k: 'entrada', t: 'Entrada', cap: 'lanc.aprovar',
+      d: 'Dinheiro que caiu na conta. Serve para dar baixa numa parcela.',
+      abrir: () => lancamento(u, 'entrada')
+    },
+    {
+      k: 'caixinha', t: 'Gasto da caixinha', cap: 'lanc.edit',
+      d: 'Saiu em dinheiro vivo da verba de produção.',
+      abrir: () => lancamento(u, 'saida', { forma: 'dinheiro', fonte: 'caixinha' })
+    },
+    {
+      k: 'pagar', t: 'Conta a pagar', cap: 'contas.edit',
+      d: 'Um combinado com alguém: valor, vencimento e se pede nota.',
+      abrir: () => novaConta('pagar')
+    },
+    {
+      k: 'receber', t: 'Conta a receber', cap: 'contas.edit',
+      d: 'Uma parcela do contrato, ou qualquer entrada combinada.',
+      abrir: () => novaConta('receber')
+    },
+    {
+      k: 'pedirnf', t: 'Pedir nota fiscal', cap: 'contas.ver',
+      d: 'Monta o texto do pedido e abre o e-mail já preenchido.',
+      abrir: () => escolherConta('pagar', 'Pedir nota de quem?', pedirNF)
+    },
+    {
+      k: 'cobrar', t: 'Cobrar o cliente', cap: 'contas.ver',
+      d: 'E-mail com valor, vencimento e os dados da produtora.',
+      abrir: () => escolherConta('receber', 'Cobrar qual parcela?', cobrar)
+    },
+    {
+      k: 'nossanf', t: 'Lançar a nossa NF', cap: 'nf.emitir',
+      d: 'Guarda o número da nota que a produtora emitiu para o cliente.',
+      abrir: () => escolherConta('receber', 'A nota é de qual parcela?', lancarNossaNF)
+    }
+  ].filter((x) => !x.cap || can(u, x.cap));
+}
+
+/** A porta da frente do dinheiro. */
+function abrirCriar(u = store.user) {
+  const lista = portas(u);
+  const corpo = el('<div class="indice"></div>');
+  lista.forEach((x, i) => {
+    const b = el(`<button class="ix">
+      <span class="ix-n">${String(i + 1).padStart(2, '0')}</span>
+      <span class="ix-g"><span class="ix-t">${esc(x.t)}</span>
+        <span class="ix-d">${esc(x.d)}</span></span>
+      <span class="ix-v">→</span>
+    </button>`);
+    b.onclick = () => { sh.close(); x.abrir(); };
+    corpo.append(b);
+  });
+  const sh = sheet({ titulo: 'Criar', corpo });
+  return sh;
+}
+
+/* ------------------------------------------------------------ lançamento --- */
+function lancamento(u, tipo, fixo = {}) {
+  abrirForm({
+    titulo: tipo === 'entrada' ? 'Entrada de dinheiro'
+      : fixo.fonte === 'caixinha' ? 'Gasto da caixinha' : 'Novo gasto',
+    campos: camposLancamento(u, { tipo, ...fixo }),
+    onSave: async (v) => {
+      await store.insert('lancamentos', {
+        ...fixo, ...v, tipo,
+        status: tipo === 'entrada' ? 'recebido' : (can(u, 'lanc.aprovar') ? 'aprovado' : 'pendente')
+      });
+      toast(tipo === 'entrada' ? 'Entrada registrada.'
+        : can(u, 'lanc.aprovar') ? 'Lançado.' : 'Enviado para aprovação.');
+    }
+  });
+}
+
+/* ---------------------------------------------------- escolher uma conta --- */
+function escolherConta(tipo, titulo, aoEscolher) {
+  const lista = store.doProjeto('contas')
+    .filter((c) => c.tipo === tipo && c.status === 'aberto')
+    .sort((a, b) => String(a.venc || '9').localeCompare(String(b.venc || '9')));
+  if (!lista.length) {
+    toast(tipo === 'pagar' ? 'Nenhuma conta a pagar em aberto.' : 'Nenhuma parcela em aberto.');
+    return;
+  }
+  const corpo = el('<div class="indice"></div>');
+  lista.forEach((c) => {
+    const quem = c.membro_id ? nomeMembro(c.membro_id) : (c.contraparte || '');
+    const b = el(`<button class="ix">
+      <span class="ix-g"><span class="ix-t">${esc(c.descricao || quem)}</span>
+        <span class="ix-d">${esc([quem !== c.descricao ? quem : '',
+          c.venc ? 'vence ' + fmtData(c.venc) : 'sem data'].filter(Boolean).join(' · '))}</span></span>
+      <span class="ix-v num">${fmtMoney(c.valor_cents)}</span>
+    </button>`);
+    b.onclick = () => { sh.close(); aoEscolher(c); };
+    corpo.append(b);
+  });
+  const sh = sheet({ titulo, corpo });
+}
+
+/* ------------------------------------------------------------- pedir NF --- */
+function pedirNF(c) {
+  const extras = irmasSemNF(c);
+  const corpo = el(`<div>
+    ${extras.length ? `<p class="small muted" style="margin:0 0 12px">
+      ${extras.length} outra(s) conta(s) da mesma pessoa entram no mesmo pedido,
+      discriminadas linha a linha.</p>` : ''}
+    <pre class="pedido">${esc(textoPedido(c, extras))}</pre>
+  </div>`);
+  const rod = el('<div style="display:flex;gap:8px;width:100%"></div>');
+  const bCopiar = el('<button class="btn gho" style="flex:1">Copiar</button>');
+  const bMail = el('<a class="btn pri" style="flex:1" target="_blank" rel="noopener">Abrir e-mail</a>');
+  bMail.href = linkEmail(c, extras);
+  bCopiar.onclick = async () => {
+    try { await navigator.clipboard.writeText(textoPedido(c, extras)); toast('Copiado.'); }
+    catch { toast('Não consegui copiar. Selecione o texto.'); }
+  };
+  bMail.onclick = async () => {
+    await store.update('contas', c.id, { nf_pedido_em: hoje() });
+    toast('Marquei como pedida hoje.');
+  };
+  rod.append(bCopiar, bMail);
+  sheet({ titulo: 'Pedido de nota fiscal', corpo, rodape: rod });
+}
+
+/* -------------------------------------------------------------- cobrança --- */
+function cobrar(c) {
+  const corpo = el(`<div><pre class="pedido">${esc(textoCobranca(c))}</pre></div>`);
+  const rod = el('<div style="display:flex;gap:8px;width:100%"></div>');
+  const bCopiar = el('<button class="btn gho" style="flex:1">Copiar</button>');
+  const bMail = el('<a class="btn pri" style="flex:1" target="_blank" rel="noopener">Abrir e-mail</a>');
+  bMail.href = linkCobranca(c);
+  bCopiar.onclick = async () => {
+    try { await navigator.clipboard.writeText(textoCobranca(c)); toast('Copiado.'); }
+    catch { toast('Não consegui copiar. Selecione o texto.'); }
+  };
+  bMail.onclick = async () => {
+    await store.update('contas', c.id, { nf_cobrado_em: hoje() });
+    toast('Marquei a cobrança de hoje.');
+  };
+  rod.append(bCopiar, bMail);
+  sheet({ titulo: 'Cobrar o cliente', corpo, rodape: rod });
+}
+
+/* ---------------------------------------------------------- a nossa nota --- */
+function lancarNossaNF(c) {
+  abrirForm({
+    titulo: 'Nota fiscal emitida',
+    subtitulo: `${c.descricao} · ${fmtMoney(c.valor_cents)}`,
+    campos: [
+      { k: 'nf_numero', label: 'Número da NF', type: 'texto', req: true, valor: c.nf_numero || '' },
+      { k: 'nf_emitida_em', label: 'Emitida em', type: 'data', valor: c.nf_emitida_em || hoje() },
+      { k: 'obs', label: 'Observação', type: 'area', valor: c.obs || '' }
+    ],
+    onSave: async (v) => {
+      await store.update('contas', c.id, { ...v, nf_status: 'emitida' });
+      toast(`NF ${v.nf_numero} guardada.`);
+    }
+  });
+}
+
+  return { abrirCriar };
+};
+
 __defs["js/views/dash.js"] = function () {
 // Painel: status do projeto, o que trava, o que vence, quanto sobra.
 // No celular os blocos empilham; a partir de 900px eles se distribuem em
@@ -6576,6 +7215,7 @@ const RUBRICAS_POR_FUNCAO = [
 ];
 
 /** Lista de rubricas que faz sentido para quem está lançando. */
+const { abrirCriar } = __req("js/views/criar.js");
 function rubricasPara(u) {
   const doOrcamento = store.doProjeto('orcamento').map((o) => o.rubrica);
   if (podeVerTudo(u)) {
@@ -6629,6 +7269,9 @@ function render() {
   const node = el('<div></div>');
   node.innerHTML = `
     ${chipsHTML(u)}
+    ${aba === 'resumo' ? `<button class="criar-faixa" data-criar>
+      <span><b>Criar</b><span>Gasto · entrada · conta · nota fiscal · cobrança</span></span>
+      <i>+</i></button>` : ''}
     ${aba === 'resumo' ? blocoResumo(f, verLucro, u) : ''}
     ${aba === 'orcamento' ? blocoOrcamento(u) : ''}
     ${aba === 'gastos' ? blocoLancamentos(u) : ''}`;
@@ -6641,12 +7284,15 @@ function render() {
   node.querySelectorAll('[data-flanc]').forEach((b) => { b.onclick = () => { filtroLanc = b.dataset.flanc; store.emit(); }; });
   node.querySelector('[data-imposto]')?.addEventListener('click', () => editarImposto());
   node.querySelector('[data-nova-rubrica]')?.addEventListener('click', () => novaRubrica());
+  node.querySelector('[data-criar]')?.addEventListener('click', () => abrirCriar(u));
 
   return {
     titulo: 'Dinheiro',
     node,
-    fab: can(u, 'lanc.edit') && aba !== 'orcamento'
-      ? { label: '+', onClick: () => novoLancamento(u, 'saida') }
+    // O + do Dinheiro não abre mais só "gasto": abre a porta de tudo que é
+    // grana, que é o que a pessoa realmente quer quando toca ali.
+    fab: can(u, 'lanc.edit') || can(u, 'contas.edit') || can(u, 'contas.ver')
+      ? { label: '+', onClick: () => abrirCriar(u) }
       : null
   };
 }
@@ -7494,9 +8140,13 @@ const { store, nomeMembro } = __req("js/store.js");
 const { can } = __req("js/perms.js");
 const { el, toast } = __req("js/ui.js");
 const { esc, fmtMoney, fmtMoneyShort, fmtData, diaSemana, hoje, diasAte, iniciais, soma } = __req("js/utils.js");
-const { custoDoEvento } = __req("js/calc.js");
+const { custoDoEvento, financeiro } = __req("js/calc.js");
 const { pendencias, contaDaViagem } = __req("js/views/viagens.js");
 const { abrirEvento } = __req("js/views/agenda.js");
+const { brasilSVG, coord } = __req("js/geo.js");
+const { camposLancamento } = __req("js/views/financeiro.js");
+const { abrirForm, confirmar } = __req("js/ui.js");
+const { textoPedido, assuntoPedido, linkEmail, linkWhats } = __req("js/nf.js");
 const CURVA = 'cubic-bezier(.32,.72,0,1)';   // a curva de folha do iOS
 const menosMovimento = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -7569,11 +8219,13 @@ function render() {
   node.innerHTML = `
     <div class="mapa-luz" data-luz></div>
     <div class="mapa-trilho" data-trilho>
+      ${paisHTML(lista, nViagens)}
       ${lista.map((s, i) => estacaoHTML(s, i, nViagens)).join('')}
     </div>
     <div class="mapa-regua" data-regua role="tablist" aria-label="Viagens">
+      <button class="tick pais" data-ir="0" role="tab" aria-label="O job inteiro"><i></i></button>
       ${lista.map((s, i) => `<button class="tick ${s.passou ? 'passou' : ''}
-        ${s.dias === 0 ? 'hoje' : ''}" data-ir="${i}" role="tab"
+        ${s.dias === 0 ? 'hoje' : ''}" data-ir="${i + 1}" role="tab"
         aria-label="${esc(s.titulo)}"><i></i></button>`).join('')}
     </div>`;
 
@@ -7584,7 +8236,7 @@ function render() {
   // Cada corpo ganha seu lugar no espaço da estação depois que a tela existe:
   // a constelação é calculada com a altura real, não com um chute.
   const pintarCorpos = () => {
-    node.querySelectorAll('.est-campo').forEach((campo) => {
+    node.querySelectorAll('.est-campo[data-est]').forEach((campo) => {
       const s = lista[Number(campo.dataset.est)];
       const pos = constelacao(s.corpos, campo.clientWidth, campo.clientHeight);
       campo.innerHTML = percursoSVG(pos, s.corpos, campo.clientWidth, campo.clientHeight);
@@ -7626,7 +8278,8 @@ function render() {
   });
 
   requestAnimationFrame(() => {
-    trilho.scrollLeft = inicial * trilho.clientWidth;
+    trilho.scrollLeft = (inicial + 1) * trilho.clientWidth;   // +1: o país abre a fila
+    pintarPais(node, lista, trilho);
     pintarCorpos();
     aoRolar();
     node.classList.add('pronto');
@@ -7635,11 +8288,73 @@ function render() {
   const ro = new ResizeObserver(() => {
     const at = Math.round(trilho.scrollLeft / Math.max(1, trilho.clientWidth));
     pintarCorpos();
+    pintarPais(node, lista, trilho);
     trilho.scrollLeft = at * trilho.clientWidth;
   });
   ro.observe(trilho);
 
   return { titulo: 'Mapa', node, cheio: true };
+}
+
+
+/* ------------------------------------------------------------- o país -----
+   A primeira página é o job inteiro: o Brasil desenhado, cada destino no seu
+   lugar, numerado na ordem em que acontece. É por aqui que se entende o
+   tamanho da coisa antes de entrar em qualquer viagem. */
+function paisHTML(lista, nViagens) {
+  const u = store.user;
+  const p = store.projeto || {};
+  const feitas = lista.filter((s) => s.tipo === 'viagem' && s.passou).length;
+  const diarias = lista.reduce((n, s) => n + s.corpos.filter((c) => c.ev.tipo === 'diaria').length, 0);
+  const pend = lista.reduce((n, s) => n + s.pend, 0);
+  const f = can(u, 'orcamento.ver') ? financeiro() : null;
+  return `<section class="estacao pais" data-i="-1">
+    <header class="est-cab">
+      <div class="est-olho">O job inteiro <span class="est-ix">${nViagens} destinos</span></div>
+      <h2 class="est-tit">${esc(p.nome || 'O job')}</h2>
+      <div class="est-sub">${esc(p.cliente || '')} <span class="ponto"></span>
+        ${feitas} de ${nViagens} rodadas</div>
+    </header>
+    <div class="est-campo pais-campo" data-pais></div>
+    <footer class="est-pe">
+      ${f ? `<div class="pe-item"><b>${fmtMoneyShort(f.contratado)}</b><span>contrato</span></div>
+        <div class="pe-item"><b>${fmtMoneyShort(f.comprometido)}</b><span>comprometido</span></div>` : ''}
+      <div class="pe-item ${pend ? 'atencao' : ''}"><b>${pend || '—'}</b><span>pendências</span></div>
+      <div class="pe-item"><b>${diarias}</b><span>diárias</span></div>
+    </footer>
+  </section>`;
+}
+
+/* O desenho só existe depois que a caixa tem tamanho: aqui ele é medido e
+   pintado, e cada pino leva ao seu destino com um toque. */
+function pintarPais(node, lista, trilho) {
+  const caixa = node.querySelector('[data-pais]');
+  if (!caixa) return;
+  const larg = caixa.clientWidth, alt = caixa.clientHeight;
+  if (!larg || !alt) return;
+  const pinos = lista.filter((s) => s.tipo === 'viagem').map((s, i) => ({
+    nome: s.titulo, cidade: cidadeDe(s), n: i + 1,
+    estado: s.passou ? 'passou' : s.dias === 0 ? 'hoje' : 'futuro'
+  }));
+  caixa.innerHTML = brasilSVG({ larg, alt, pinos });
+  // Um pino é um atalho: leva para a estação daquela viagem.
+  caixa.querySelectorAll('.geo-p').forEach((g, i) => {
+    g.style.cursor = 'pointer';
+    g.onclick = () => trilho.scrollTo({ left: (i + 1) * trilho.clientWidth,
+      behavior: menosMovimento() ? 'auto' : 'smooth' });
+  });
+}
+
+/* A cidade de uma estação sai do destino da viagem ou do local da diária. */
+function cidadeDe(s) {
+  const v = s.viagem;
+  const bruto = v?.destino || s.titulo || '';
+  const limpo = bruto.replace(/\s*\([A-Z]{2}\)\s*$/, '').trim();
+  if (coord(limpo)) return limpo;
+  for (const c of s.corpos) {
+    if (coord(c.ev.local)) return c.ev.local;
+  }
+  return limpo;
 }
 
 const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -7792,6 +8507,25 @@ function abrirCorpo(c, noEl, raiz) {
     setTimeout(() => painel.remove(), 340);
   };
 
+  /* Tudo o que dá para fazer com o dia sem sair do mapa. É isto que o
+     transforma de painel em lugar de trabalho. */
+  const acoes = {
+    gasto: () => abrirForm({
+      titulo: 'Gasto do dia',
+      subtitulo: `${rotulo(c)} · ${fmtData(c.ev.data, { longo: true })}`,
+      campos: camposLancamento(store.user, { evento_id: c.ev.id, data: c.ev.data,
+        viagem_id: c.viagem?.id || null, tipo: 'saida' }),
+      onSave: async (v) => {
+        await store.insert('lancamentos', { ...v, tipo: 'saida', evento_id: c.ev.id,
+          viagem_id: c.viagem?.id || null });
+        toast('Gasto lançado.');
+        pintar();
+      }
+    }),
+    viagem: () => { fechar(); location.hash = '#/viagens'; },
+    editar: () => { fechar(); abrirEvento(c.ev); }
+  };
+
   const pintar = () => {
     const u = store.user;
     const e = c.ev;
@@ -7824,7 +8558,12 @@ function abrirCorpo(c, noEl, raiz) {
             ${on ? `<div class="as-corpo">${conteudo(a.k, c, conf, pend, u)}</div>` : ''}
           </section>`;
         }).join('')}
-        <button class="btn wide gho" data-classico>Abrir na agenda</button>
+        <div class="pn-acoes">
+          ${can(u, 'lanc.edit') ? '<button class="btn sm" data-acao="gasto">Lançar gasto</button>' : ''}
+          ${c.viagem && can(u, 'contas.ver') ? '<button class="btn sm" data-acao="viagem">Abrir a viagem</button>' : ''}
+          ${can(u, 'agenda.edit') ? '<button class="btn sm" data-acao="editar">Editar o dia</button>' : ''}
+          <button class="btn sm gho" data-classico>Ver na agenda</button>
+        </div>
       </div>`;
 
     painel.querySelector('[data-fechar]').onclick = fechar;
@@ -7839,6 +8578,22 @@ function abrirCorpo(c, noEl, raiz) {
             behavior: menosMovimento() ? 'auto' : 'smooth' });
         }
       };
+    });
+    // O mapa só pode ser desenhado depois que a caixa tem largura de verdade.
+    const cx = painel.querySelector('[data-mapa]');
+    if (cx) requestAnimationFrame(() => {
+      const larg = cx.clientWidth;
+      if (!larg) return;
+      cx.innerHTML = brasilSVG({
+        larg, alt: Math.round(larg * 1.02), rota: 'São Paulo',
+        aceso: cx.dataset.mapa,
+        pinos: [{ nome: cx.dataset.mapa, cidade: cx.dataset.mapa, estado: c.estado,
+          rotulo: cx.dataset.mapa }]
+      });
+    });
+
+    painel.querySelectorAll('[data-acao]').forEach((b) => {
+      b.onclick = () => acoes[b.dataset.acao]?.();
     });
     painel.querySelectorAll('[data-ok]').forEach((n) => {
       n.onclick = async () => {
@@ -7931,12 +8686,15 @@ function conteudo(k, c, conf, pend, u) {
     const loc = store.doProjeto('locacoes').find((l) => e.local && e.local.includes(l.cidade));
     const end = e.endereco || loc?.obs || '';
     const mapa = end || e.local;
-    return `${e.local ? `<div class="pn-forte">${esc(e.local)}</div>` : ''}
+    const cid = e.local || loc?.cidade || '';
+    return `${coord(cid) ? `<div class="pn-mapa" data-mapa="${esc(cid)}"></div>` : ''}
+      ${e.local ? `<div class="pn-forte">${esc(e.local)}</div>` : ''}
       ${end ? `<p class="pn-p">${esc(end)}</p>` : ''}
       ${e.levar ? `<p class="pn-p"><b>Levar:</b> ${esc(e.levar)}</p>` : ''}
       ${mapa ? `<a class="btn sm gho" target="_blank" rel="noopener"
-        href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapa)}">Ver no mapa</a>` : ''}`;
+        href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapa)}">Abrir no Google Maps</a>` : ''}`;
   }
+
   if (k === 'dinheiro') {
     const lan = store.doProjeto('lancamentos').filter((l) => l.evento_id === e.id);
     return `<div class="pn-numero">${fmtMoney(c.custo)}<span>gasto neste dia</span></div>

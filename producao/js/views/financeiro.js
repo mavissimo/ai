@@ -34,6 +34,8 @@ const RUBRICAS_POR_FUNCAO = [
 ];
 
 /** Lista de rubricas que faz sentido para quem está lançando. */
+import { abrirCriar } from './criar.js';
+
 export function rubricasPara(u) {
   const doOrcamento = store.doProjeto('orcamento').map((o) => o.rubrica);
   if (podeVerTudo(u)) {
@@ -87,6 +89,9 @@ export function render() {
   const node = el('<div></div>');
   node.innerHTML = `
     ${chipsHTML(u)}
+    ${aba === 'resumo' ? `<button class="criar-faixa" data-criar>
+      <span><b>Criar</b><span>Gasto · entrada · conta · nota fiscal · cobrança</span></span>
+      <i>+</i></button>` : ''}
     ${aba === 'resumo' ? blocoResumo(f, verLucro, u) : ''}
     ${aba === 'orcamento' ? blocoOrcamento(u) : ''}
     ${aba === 'gastos' ? blocoLancamentos(u) : ''}`;
@@ -99,12 +104,15 @@ export function render() {
   node.querySelectorAll('[data-flanc]').forEach((b) => { b.onclick = () => { filtroLanc = b.dataset.flanc; store.emit(); }; });
   node.querySelector('[data-imposto]')?.addEventListener('click', () => editarImposto());
   node.querySelector('[data-nova-rubrica]')?.addEventListener('click', () => novaRubrica());
+  node.querySelector('[data-criar]')?.addEventListener('click', () => abrirCriar(u));
 
   return {
     titulo: 'Dinheiro',
     node,
-    fab: can(u, 'lanc.edit') && aba !== 'orcamento'
-      ? { label: '+', onClick: () => novoLancamento(u, 'saida') }
+    // O + do Dinheiro não abre mais só "gasto": abre a porta de tudo que é
+    // grana, que é o que a pessoa realmente quer quando toca ali.
+    fab: can(u, 'lanc.edit') || can(u, 'contas.edit') || can(u, 'contas.ver')
+      ? { label: '+', onClick: () => abrirCriar(u) }
       : null
   };
 }

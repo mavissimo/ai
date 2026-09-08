@@ -59,29 +59,41 @@ const rotaAtual = () => (location.hash || '#/').slice(1).split('?')[0] || '/';
 
 /* ---------------- login ---------------- */
 function telaBoasVindas() {
-  const node = el(`<div class="login">
-    <span class="marca" style="font-size:40px;margin-bottom:18px">${MARCA}</span>
-    <p>Gestão de produção audiovisual: negociação, pré, produção, pós, dinheiro
-      e equipe — tudo no celular.</p>
-    <button class="btn pri wide" data-comecar>Começar</button>
-    <p class="small muted" style="margin-top:12px">Carrega o projeto <b>Doc Fundação Bradesco 70 Anos</b>
-      com contrato, cronograma, orçamento e equipe já cadastrados.</p>
-    <p class="small muted" style="margin-top:18px">${isRemote()
-      ? 'Modo nuvem: os dados ficam no Supabase do projeto.'
-      : 'Modo demo: os dados ficam neste aparelho. Você pode exportar um backup a qualquer momento.'}</p>
+  const node = el(`<div class="capa">
+    <div class="capa-topo">
+      <span class="marca">${MARCA}</span>
+      <span class="olho-txt">Gestão de produção</span>
+    </div>
+    <div class="capa-meio">
+      <div class="olho-txt">O projeto que está carregado</div>
+      <h1 class="capa-tit">Doc Fundação<br>Bradesco 70 Anos</h1>
+      <div class="capa-ficha">
+        <div><b>11</b><span>viagens</span></div>
+        <div><b>17</b><span>diárias</span></div>
+        <div><b>40</b><span>peças</span></div>
+        <div><b>9</b><span>cidades</span></div>
+      </div>
+      <p class="capa-p">Contrato, cronograma, orçamento, viagens e equipe já estão dentro.
+        Você entra escolhendo o seu nome — e vê só o que é da sua alçada.</p>
+    </div>
+    <div class="capa-pe">
+      <button class="btn pri wide" data-comecar>Entrar</button>
+      <p class="olho-txt" style="margin-top:14px;text-align:center">${isRemote()
+        ? 'Os dados ficam no Supabase do projeto'
+        : 'Os dados ficam neste aparelho · dá para exportar um backup'}</p>
+    </div>
   </div>`);
   node.querySelector('[data-comecar]').onclick = async () => {
     const b = node.querySelector('[data-comecar]');
     b.disabled = true; b.textContent = 'Montando o projeto…';
     try {
       await criarProjetoBradesco();
-      toast('Projeto carregado. Escolha quem você é.');
       location.hash = '#/';
       render();
     } catch (e) {
       console.error(e);
       toast('Não consegui montar: ' + e.message);
-      b.disabled = false; b.textContent = 'Começar';
+      b.disabled = false; b.textContent = 'Entrar';
     }
   };
   return node;
@@ -89,20 +101,27 @@ function telaBoasVindas() {
 
 function telaQuemEVoce() {
   const lista = store.all('membros');
-  const node = el(`<div class="login">
-    <h1>Quem é você?</h1>
-    <p>Cada pessoa vê só o que é da sua alçada.</p>
-    <div data-lista></div>
-    <button class="btn gho wide" style="margin-top:14px" data-sou-novo>Não estou na lista</button>
+  const node = el(`<div class="capa quem">
+    <div class="capa-topo">
+      <span class="marca">${MARCA}</span>
+      <span class="olho-txt">Doc Fundação Bradesco</span>
+    </div>
+    <div class="capa-meio">
+      <div class="olho-txt">Entrar como</div>
+      <h1 class="capa-tit">Quem é você?</h1>
+      <div class="indice" data-lista></div>
+      <button class="btn gho wide" style="margin-top:20px" data-sou-novo>Não estou na lista</button>
+      <p class="olho-txt" style="margin-top:14px">Dá para trocar depois, em Mais.</p>
+    </div>
   </div>`);
   const box = node.querySelector('[data-lista]');
-  lista.forEach((m) => {
+  lista.forEach((m, i) => {
     const p = PAPEIS[m.papel] || PAPEIS.equipe;
-    const b = el(`<button class="who">
-      <span class="avatar">${esc(iniciais(m.nome))}</span>
-      <span style="flex:1"><span style="display:block;font-weight:650">${esc(m.nome)}</span>
-        <span class="small muted">${esc([m.funcao, p.curto].filter(Boolean).join(' · '))}</span></span>
-      <span class="tag ${temSenha(m) ? 'mut' : 'warn'}">${temSenha(m) ? '🔒' : 'criar senha'}</span></button>`);
+    const b = el(`<button class="ix">
+      <span class="ix-n">${String(i + 1).padStart(2, '0')}</span>
+      <span class="ix-g"><span class="ix-t">${esc(m.nome)}</span>
+        <span class="ix-d">${esc([m.funcao, p.curto].filter(Boolean).join(' · '))}</span></span>
+      <span class="ix-v">${temSenha(m) ? '🔒' : '→'}</span></button>`);
     b.onclick = async () => {
       if (!await autenticar(m)) return;
       store.setUser(m);

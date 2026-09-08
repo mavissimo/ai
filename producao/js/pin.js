@@ -23,6 +23,11 @@ async function digest(txt) {
 }
 
 export const temSenha = (m) => Boolean(m?.pin_hash);
+/* Quem disse que não quer senha não é perguntado de novo. Trancar a troca de
+   perfil só faz sentido para quem divide o aparelho; para quem está testando
+   no próprio celular era só um pedágio. */
+export const dispensouSenha = (m) => Boolean(m?.sem_senha);
+export const precisaSenha = (m) => temSenha(m) || !dispensouSenha(m);
 export const hashSenha = (membroId, pin) => digest(`unit0:${membroId}:${pin}`);
 
 export async function definirSenha(membro, pin) {
@@ -49,7 +54,7 @@ export function autenticar(membro) {
 
     const corpo = el(`<div>
       <p class="small muted" style="margin:0 0 16px">${criando
-        ? 'Primeira vez aqui. Escolha uma senha de 4 dígitos — ela vai ser pedida nas próximas entradas.'
+        ? 'Se você divide este aparelho com alguém, escolha uma senha de 4 dígitos. Se é só seu, pode entrar sem.'
         : `Digite a senha de 4 dígitos de ${esc(membro.nome)}.`}</p>
       <div class="f">
         <label for="pin1">${criando ? 'Nova senha' : 'Senha'}</label>
@@ -60,7 +65,9 @@ export function autenticar(membro) {
         <input id="pin2" class="pin" type="password" inputmode="numeric" pattern="[0-9]*"
           maxlength="4" autocomplete="off" placeholder="••••"></div>` : ''}
       <div class="small muted" data-msg style="min-height:18px"></div>
-      ${criando ? '' : '<p class="small muted" style="margin-top:14px">Esqueceu? Peça para o Master zerar a sua senha em Equipe.</p>'}
+      ${criando
+        ? '<button class="btn gho wide" data-pular style="margin-top:10px">Entrar sem senha</button>'
+        : '<p class="small muted" style="margin-top:14px">Esqueceu? Peça para o Master zerar a sua senha em Equipe.</p>'}
     </div>`);
 
     const rod = el('<div style="display:flex;gap:8px;width:100%"></div>');
@@ -87,6 +94,10 @@ export function autenticar(membro) {
     });
 
     bN.onclick = () => { resolvido = true; sh.close(); resolve(false); };
+    corpo.querySelector('[data-pular]')?.addEventListener('click', async () => {
+      await store.update('membros', membro.id, { sem_senha: true });
+      resolvido = true; sh.close(); resolve(true);
+    });
     bS.onclick = async () => {
       const a = p1.value;
       if (!valido(a)) return erro('A senha tem 4 dígitos.');

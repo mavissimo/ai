@@ -151,7 +151,7 @@ function cartaoEvento(e, u) {
         <span class="t" style="color:var(--ac);font-size:17px">${esc(minha.hora)}${minha.obs ? ` <span class="small muted">${esc(minha.obs)}</span>` : ''}</span></span></div>` : ''}
     <div class="hr"></div>
     <div class="small" style="display:flex;flex-wrap:wrap;gap:6px 14px;color:var(--tx2)">
-      ${lugar ? `<span>📍 ${esc(lugar)}</span>` : ''}
+      ${lugar ? `<span><i class="ico ico-inline">📍</i>${esc(lugar)}</span>` : ''}
       ${confs.length ? `<span>👥 ${ok}/${confs.length} confirmados</span>` : ''}
       ${e.contato_nome ? `<span>☎️ ${esc(e.contato_nome)}</span>` : ''}
       ${e.roteiro_dia ? '<span>🗒 tem roteiro do dia</span>' : ''}
