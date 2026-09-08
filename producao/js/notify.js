@@ -133,10 +133,22 @@ export function alertas() {
     });
   }
 
-  // Tarefas: atrasadas, cobradas e as de hoje
+  /* Tarefas: atrasadas, cobradas e as de hoje.
+
+     Oitenta e sete das cento e onze tarefas do projeto são de viagem — o mesmo
+     punhado de providências repetido nas onze. Se todas gritam no painel, o
+     painel vira ruído e a pessoa para de olhar. Aqui só as das duas próximas
+     viagens sobem: as outras continuam inteiras em Trabalho e na página da
+     viagem, que é onde se prepara viagem. */
+  const proximas = new Set([...store.doProjeto('viagens')]
+    .filter((v) => (diasAte(v.volta || v.ida) ?? -1) >= 0)
+    .sort((a, b) => String(a.ida).localeCompare(String(b.ida)))
+    .slice(0, 2).map((v) => v.id));
+
   store.doProjeto('tarefas').forEach((t) => {
     const aberto = (t.status || (t.feito ? 'feita' : 'aberta')) !== 'feita';
     if (!aberto) return;
+    if (t.viagem_id && !proximas.has(t.viagem_id)) return;
     const meu = t.responsavel_id === u?.id;
     if (!meu && !can(u, 'lanc.ver')) return;
     if (t.cobrado_em && meu) {
@@ -183,10 +195,12 @@ export function alertas() {
       como: 'Em Etapas, abra e escreva o que está faltando. Quem resolver destrava.' });
   });
 
-  // Compromissos de hoje/amanhã
+  // Compromissos de hoje e amanhã. Viagem não entra: ela já tem o mapa, a fita
+  // de viagens no painel e a aba inteira — repetir aqui só ocupa lugar.
   store.doProjeto('eventos').forEach((ev) => {
     const d = diasAte(ev.data);
     if (d !== 0 && d !== 1) return;
+    if (ev.tipo === 'viagem') return;
     const meu = (ev.participantes || []).includes(u?.id);
     if (!meu && !can(u, 'agenda.ver')) return;
     add({
@@ -293,7 +307,7 @@ export function perguntas() {
     .filter((c) => c.status === 'pendente' && c.membro_id === u?.id)
     .slice(0, 2)
     .forEach((c) => out.push({
-      id: 'q_conf_' + c.id, urg: 3, icone: '🙋',
+      id: 'q_conf_' + c.id, urg: 3, icone: '🙋', ref: { t: 'confirmacoes', id: c.id },
       pergunta: c.titulo,
       contexto: c.obs || 'Confirme para a produção saber que está de pé.',
       sim: 'Confirmo', nao: 'Tenho problema',
@@ -308,6 +322,7 @@ export function perguntas() {
       .slice(0, 2)
       .forEach((c) => out.push({
         id: 'q_conta_' + c.id, urg: 3, icone: c.tipo === 'pagar' ? '💸' : '💰',
+        ref: { t: 'contas', id: c.id },
         pergunta: `${c.tipo === 'pagar' ? 'Já pagou' : 'Já caiu'} ${fmtMoney(c.valor_cents)}?`,
         contexto: `${c.descricao} · venceu ${prazoTxt(c.venc)}`,
         sim: c.tipo === 'pagar' ? 'Já paguei' : 'Já caiu', nao: 'Ainda não',
@@ -329,6 +344,7 @@ export function perguntas() {
     const atrasada = paraCobrar()[0];
     if (atrasada) out.push({
       id: 'q_nf_' + atrasada.conta.id, urg: 3, icone: '🧾',
+      ref: { t: 'contas', id: atrasada.conta.id },
       pergunta: `A NF de ${atrasada.conta.contraparte || atrasada.conta.descricao} já chegou?`,
       contexto: `${fmtMoney(atrasada.conta.valor_cents)} · ${atrasada.est.t}`,
       sim: 'Chegou', nao: 'Vou cobrar',

@@ -42,7 +42,43 @@ export const CIDADES = {
   'Porto Alegre': [-51.23, -30.03],
   'Bodoquena': [-56.71, -20.53],
   'Miranda': [-56.38, -20.24],
-  'Campo Grande': [-54.65, -20.47]
+  'Campo Grande': [-54.65, -20.47],
+  'Belém': [-48.50, -1.46],
+  'Salvador': [-38.51, -12.97],
+  'Curitiba': [-49.27, -25.43],
+  'Rio de Janeiro': [-43.20, -22.91],
+  'Brasília': [-47.88, -15.79],
+  'Fortaleza': [-38.54, -3.73],
+  'Manaus': [-60.02, -3.10],
+  'Belo Horizonte': [-43.94, -19.92],
+  'Natal': [-35.21, -5.79],
+  'Florianópolis': [-48.55, -27.59],
+  'Goiânia': [-49.25, -16.68],
+  'Vitória': [-40.34, -20.32],
+  'Maceió': [-35.74, -9.67],
+  'João Pessoa': [-34.86, -7.12],
+  'Teresina': [-42.80, -5.09],
+  'São Luís': [-44.30, -2.53],
+  'Aracaju': [-37.07, -10.91],
+  'Cuiabá': [-56.10, -15.60],
+  'Porto Velho': [-63.90, -8.76],
+  'Rio Branco': [-67.81, -9.97],
+  'Macapá': [-51.07, 0.03],
+  'Boa Vista': [-60.67, 2.82]
+};
+
+/* O centro de cada estado. É a rede de segurança: quando a cidade não está no
+   mapa acima — e sempre vai faltar alguma —, o "(PA)" do fim do nome ainda põe
+   o pino no lugar certo do país. Antes disso, viagem para cidade desconhecida
+   simplesmente sumia do mapa sem avisar ninguém. */
+const UF = {
+  AC: [-70.5, -9.0], AL: [-36.6, -9.6], AP: [-51.9, 1.4], AM: [-64.6, -4.1],
+  BA: [-41.7, -12.5], CE: [-39.3, -5.2], DF: [-47.8, -15.8], ES: [-40.6, -19.6],
+  GO: [-49.6, -16.0], MA: [-45.3, -5.0], MT: [-55.9, -12.9], MS: [-54.8, -20.5],
+  MG: [-44.6, -18.6], PA: [-52.5, -4.3], PB: [-36.7, -7.1], PR: [-51.5, -24.6],
+  PE: [-37.9, -8.4], PI: [-43.0, -7.4], RJ: [-42.6, -22.3], RN: [-36.6, -5.8],
+  RS: [-53.2, -29.7], RO: [-62.8, -10.9], RR: [-61.4, 2.1], SC: [-50.5, -27.3],
+  SP: [-48.6, -22.2], SE: [-37.4, -10.6], TO: [-48.3, -10.2]
 };
 
 /** Acha a coordenada pelo nome escrito de qualquer jeito no cadastro. */
@@ -50,8 +86,13 @@ export function coord(nome) {
   if (!nome) return null;
   const t = String(nome).trim();
   if (CIDADES[t]) return CIDADES[t];
-  const chave = Object.keys(CIDADES).find((c) => t.includes(c) || c.includes(t));
-  return chave ? CIDADES[chave] : null;
+  const semUF = t.replace(/\s*\([A-Z]{2}\)\s*$/, '').trim();
+  if (CIDADES[semUF]) return CIDADES[semUF];
+  const chave = Object.keys(CIDADES).find((c) => semUF.includes(c) || c.includes(semUF));
+  if (chave) return CIDADES[chave];
+  // Nada bateu: cai no centro do estado, que ainda diz em que canto do país é.
+  const uf = t.match(/\(([A-Z]{2})\)\s*$/)?.[1] || t.match(/[\/-]\s*([A-Z]{2})\s*$/)?.[1];
+  return (uf && UF[uf]) || null;
 }
 
 /* "Conceição do Araguaia" não cabe num mapa de celular. O nome que identifica

@@ -12,9 +12,14 @@
   --tx:#f4f1ea; --tx2:#a29b90; --tx3:#6d685f;
   --ac:#e8b13d; --ac-tx:#161104; --ac-soft:rgba(232,177,61,.12); --ac-line:rgba(232,177,61,.38);
   --ac2:#7ba6ff;
-  --ok:#5fbe7d; --warn:#e8b13d; --bad:#ef4a44; --info:#7ba6ff;
-  --ok-bg:rgba(95,190,125,.13); --warn-bg:rgba(232,177,61,.14);
-  --bad-bg:rgba(239,74,68,.14); --info-bg:rgba(123,166,255,.13);
+  /* Quatro cores de cartaz antigo — vermelho de tinta, azul de petróleo, verde
+     de garrafa e o mostarda do logo. Nenhuma é saturada: cor berrante em cima
+     de preto vibra e cansa. Elas carregam o significado (feito · atenção ·
+     perigo · informação) e reaparecem nas fases do caminho. */
+  --ok:#7fa96b; --warn:#e0a93e; --bad:#d4553f; --info:#5e93b8;
+  --ok-bg:rgba(127,169,107,.14); --warn-bg:rgba(224,169,62,.14);
+  --bad-bg:rgba(212,85,63,.15); --info-bg:rgba(94,147,184,.15);
+  --f1:#5e93b8; --f2:#e0a93e; --f3:#d4553f; --f4:#7fa96b; --f5:#a8887a;
   --scrim:rgba(0,0,0,.72); --sombra:0 12px 34px rgba(0,0,0,.6);
   --titulo: Archivo, 'Helvetica Neue', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -44,9 +49,10 @@
   --tx:#12100d; --tx2:#514c43; --tx3:#8b8479;
   --ac:#8a4b12; --ac-tx:#f7f4ee; --ac-soft:rgba(138,75,18,.10); --ac-line:rgba(138,75,18,.30);
   --ac2:#2158d0;
-  --ok:#2f6b3c; --warn:#8a5a09; --bad:#a72620; --info:#2c4fa8;
-  --ok-bg:rgba(47,107,60,.11); --warn-bg:rgba(138,90,9,.13);
-  --bad-bg:rgba(167,38,32,.10); --info-bg:rgba(44,79,168,.10);
+  --ok:#4e7a3e; --warn:#9a6b10; --bad:#a83a26; --info:#35688c;
+  --ok-bg:rgba(78,122,62,.12); --warn-bg:rgba(154,107,16,.13);
+  --bad-bg:rgba(168,58,38,.11); --info-bg:rgba(53,104,140,.11);
+  --f1:#35688c; --f2:#9a6b10; --f3:#a83a26; --f4:#4e7a3e; --f5:#7a5c4e;
   --scrim:rgba(18,16,13,.55); --sombra:0 10px 30px rgba(18,16,13,.14);
   color-scheme: light;
 }
@@ -56,9 +62,10 @@
   --tx:#12100d; --tx2:#514c43; --tx3:#8b8479;
   --ac:#8a4b12; --ac-tx:#f7f4ee; --ac-soft:rgba(138,75,18,.10); --ac-line:rgba(138,75,18,.30);
   --ac2:#2158d0;
-  --ok:#2f6b3c; --warn:#8a5a09; --bad:#a72620; --info:#2c4fa8;
-  --ok-bg:rgba(47,107,60,.11); --warn-bg:rgba(138,90,9,.13);
-  --bad-bg:rgba(167,38,32,.10); --info-bg:rgba(44,79,168,.10);
+  --ok:#4e7a3e; --warn:#9a6b10; --bad:#a83a26; --info:#35688c;
+  --ok-bg:rgba(78,122,62,.12); --warn-bg:rgba(154,107,16,.13);
+  --bad-bg:rgba(168,58,38,.11); --info-bg:rgba(53,104,140,.11);
+  --f1:#35688c; --f2:#9a6b10; --f3:#a83a26; --f4:#4e7a3e; --f5:#7a5c4e;
   --scrim:rgba(18,16,13,.55); --sombra:0 10px 30px rgba(18,16,13,.14);
   color-scheme: light;
   }
@@ -840,13 +847,24 @@ main{animation:tela var(--t-med) var(--e-entra)}
   background:var(--bg);border-radius:50%}
 .cam-anel svg{position:absolute;inset:0;width:48px;height:48px;transform:rotate(-90deg)}
 .cam-t{fill:none;stroke:var(--line);stroke-width:3}
-.cam-p{fill:none;stroke:var(--tx2);stroke-width:3;stroke-linecap:round;
+.cam-p{fill:none;stroke-width:3;stroke-linecap:round;
   stroke-dashoffset:132;animation:cam-anel var(--t-lento) var(--e-entra) .3s forwards}
 @keyframes cam-anel{to{stroke-dashoffset:var(--vazio)}}
 @media (prefers-reduced-motion: reduce){.cam-p{animation:none;stroke-dashoffset:var(--vazio)}}
-.cam-f.feito .cam-p{stroke:var(--ok)}
-.cam-f.agora .cam-p{stroke:var(--ac)}
+/* Cada fase tem a sua cor, e é a mesma do começo ao fim do app. O caminho
+   deixa de ser cinco anéis iguais e vira um espectro que se lê de longe. */
+.cam-f{--cor:var(--f1)}
+.cam-f:nth-child(2){--cor:var(--f2)}
+.cam-f:nth-child(3){--cor:var(--f3)}
+.cam-f:nth-child(4){--cor:var(--f4)}
+.cam-f:nth-child(5){--cor:var(--f5)}
+.cam-p{stroke:var(--cor)}
 .cam-f.travado .cam-p{stroke:var(--bad)}
+.cam-f.feito .cam-anel::after{content:"";position:absolute;inset:-4px;border-radius:50%;
+  border:1px solid var(--cor);opacity:.35}
+.cam-f.agora .cam-t2,.cam-f.on .cam-t2{color:var(--cor)}
+.cam-tag.agora{color:var(--cor)}
+.cam-fio.aberto{background:var(--cor);opacity:.45}
 .cam-n{font-family:var(--mono);font-size:12px;font-weight:600;line-height:1;
   font-variant-numeric:tabular-nums}
 .cam-n i{font-style:normal;color:var(--tx3);font-size:9px}
@@ -883,17 +901,6 @@ main{animation:tela var(--t-med) var(--e-entra)}
 .pn-mapa-pe span{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
   text-transform:uppercase;color:var(--tx3)}
 
-/* o dinheiro, discreto */
-.pn-grana{display:flex;align-items:center;gap:var(--s3);position:relative;
-  border:1px solid var(--line);border-radius:var(--r);padding:var(--s4);
-  color:inherit;text-decoration:none;overflow:hidden}
-.pn-g-b{position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--bg3)}
-.pn-g-b i{display:block;height:100%;background:var(--ac)}
-.pn-g-l{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.pn-g-l b{font-family:var(--titulo);font-size:18px;font-weight:800;letter-spacing:-.03em}
-.pn-g-l span{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--tx3)}
-.pn-g-v{color:var(--tx3)}
 
 /* O zoom do mapa: o país anda e cresce, o pino e o nome ficam do mesmo tamanho.
    `transform` puro, então é a placa de vídeo que trabalha. */
@@ -951,6 +958,44 @@ main{animation:tela var(--t-med) var(--e-entra)}
 /* Na aba de viagens o cartão é largo: aceso, ele ganha o mesmo contorno do
    pino no mapa, para os dois lados se reconhecerem. */
 .card.act[data-viagem].on{border-color:var(--ac);background:var(--ac-soft)}
+
+/* ---------------------------------------------------------------- agora ----
+   O único bloco da tela que pede ação, e por isso o primeiro. A barra colorida
+   à esquerda diz a urgência sem precisar de palavra; a pergunta de um toque
+   carrega os dois botões dentro dela. */
+.ag-limpo{border:1px solid var(--line);border-radius:var(--r);padding:var(--s5) var(--s4)}
+.ag-limpo p{margin:var(--s2) 0 0;font-size:14px;color:var(--tx2);line-height:1.5}
+
+.ag-q{border:1px solid var(--ac-line);border-left:3px solid var(--ac);
+  border-radius:var(--r);padding:var(--s3) var(--s4);margin-bottom:var(--s2)}
+.ag-q-cab{display:flex;gap:var(--s3);align-items:center}
+.ag-q-t{flex:1;font-size:15px;font-weight:700;letter-spacing:-.02em;line-height:1.25}
+.ag-q-c{font-size:12px;color:var(--tx3);line-height:1.4;margin-top:var(--s1);
+  padding-left:calc(30px + var(--s3));
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ag-q-b{display:flex;gap:var(--s2);margin-top:var(--s3);padding-left:calc(30px + var(--s3))}
+.ag-q-b .btn{flex:1;min-height:38px}
+.ag-q.indo{opacity:0;transform:scale(.98);transition:opacity var(--t-norm),transform var(--t-norm)}
+
+.ag-lista{display:flex;flex-direction:column;border:1px solid var(--line);
+  border-radius:var(--r);overflow:hidden;margin-top:var(--s2)}
+.ag-l{display:flex;align-items:stretch;gap:0;width:100%;text-align:left;border:0;
+  border-top:1px solid var(--line);background:none;color:inherit;cursor:pointer;padding:0}
+.ag-l:first-child{border-top:0}
+.ag-l-b{flex:none;width:3px;background:var(--tx3);opacity:.4}
+.ag-l.u3 .ag-l-b{background:var(--bad);opacity:1}
+.ag-l.u2 .ag-l-b{background:var(--warn);opacity:1}
+.ag-l.u1 .ag-l-b{background:var(--info);opacity:.7}
+.ag-l-g{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;
+  padding:var(--s3) var(--s3) var(--s3) var(--s4)}
+.ag-l-t{font-size:14.5px;font-weight:650;letter-spacing:-.01em;line-height:1.3}
+.ag-l-s{font-size:12px;color:var(--tx3);line-height:1.4}
+.ag-l-v{flex:none;align-self:center;font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tx3);padding-right:var(--s4)}
+.ag-l:active{background:var(--bg2)}
+.ag-mais{display:block;padding:var(--s3) var(--s4);border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ac2)}
 </style>
 <div id="app" class="app"><div class="boot">Carregando…</div></div>
 <script type="module">
@@ -2014,7 +2059,43 @@ const CIDADES = {
   'Porto Alegre': [-51.23, -30.03],
   'Bodoquena': [-56.71, -20.53],
   'Miranda': [-56.38, -20.24],
-  'Campo Grande': [-54.65, -20.47]
+  'Campo Grande': [-54.65, -20.47],
+  'Belém': [-48.50, -1.46],
+  'Salvador': [-38.51, -12.97],
+  'Curitiba': [-49.27, -25.43],
+  'Rio de Janeiro': [-43.20, -22.91],
+  'Brasília': [-47.88, -15.79],
+  'Fortaleza': [-38.54, -3.73],
+  'Manaus': [-60.02, -3.10],
+  'Belo Horizonte': [-43.94, -19.92],
+  'Natal': [-35.21, -5.79],
+  'Florianópolis': [-48.55, -27.59],
+  'Goiânia': [-49.25, -16.68],
+  'Vitória': [-40.34, -20.32],
+  'Maceió': [-35.74, -9.67],
+  'João Pessoa': [-34.86, -7.12],
+  'Teresina': [-42.80, -5.09],
+  'São Luís': [-44.30, -2.53],
+  'Aracaju': [-37.07, -10.91],
+  'Cuiabá': [-56.10, -15.60],
+  'Porto Velho': [-63.90, -8.76],
+  'Rio Branco': [-67.81, -9.97],
+  'Macapá': [-51.07, 0.03],
+  'Boa Vista': [-60.67, 2.82]
+};
+
+/* O centro de cada estado. É a rede de segurança: quando a cidade não está no
+   mapa acima — e sempre vai faltar alguma —, o "(PA)" do fim do nome ainda põe
+   o pino no lugar certo do país. Antes disso, viagem para cidade desconhecida
+   simplesmente sumia do mapa sem avisar ninguém. */
+const UF = {
+  AC: [-70.5, -9.0], AL: [-36.6, -9.6], AP: [-51.9, 1.4], AM: [-64.6, -4.1],
+  BA: [-41.7, -12.5], CE: [-39.3, -5.2], DF: [-47.8, -15.8], ES: [-40.6, -19.6],
+  GO: [-49.6, -16.0], MA: [-45.3, -5.0], MT: [-55.9, -12.9], MS: [-54.8, -20.5],
+  MG: [-44.6, -18.6], PA: [-52.5, -4.3], PB: [-36.7, -7.1], PR: [-51.5, -24.6],
+  PE: [-37.9, -8.4], PI: [-43.0, -7.4], RJ: [-42.6, -22.3], RN: [-36.6, -5.8],
+  RS: [-53.2, -29.7], RO: [-62.8, -10.9], RR: [-61.4, 2.1], SC: [-50.5, -27.3],
+  SP: [-48.6, -22.2], SE: [-37.4, -10.6], TO: [-48.3, -10.2]
 };
 
 /** Acha a coordenada pelo nome escrito de qualquer jeito no cadastro. */
@@ -2022,8 +2103,13 @@ function coord(nome) {
   if (!nome) return null;
   const t = String(nome).trim();
   if (CIDADES[t]) return CIDADES[t];
-  const chave = Object.keys(CIDADES).find((c) => t.includes(c) || c.includes(t));
-  return chave ? CIDADES[chave] : null;
+  const semUF = t.replace(/\s*\([A-Z]{2}\)\s*$/, '').trim();
+  if (CIDADES[semUF]) return CIDADES[semUF];
+  const chave = Object.keys(CIDADES).find((c) => semUF.includes(c) || c.includes(semUF));
+  if (chave) return CIDADES[chave];
+  // Nada bateu: cai no centro do estado, que ainda diz em que canto do país é.
+  const uf = t.match(/\(([A-Z]{2})\)\s*$/)?.[1] || t.match(/[\/-]\s*([A-Z]{2})\s*$/)?.[1];
+  return (uf && UF[uf]) || null;
 }
 
 /* "Conceição do Araguaia" não cabe num mapa de celular. O nome que identifica
@@ -2233,9 +2319,11 @@ __defs["js/mapaviagens.js"] = function () {
 const { store } = __req("js/store.js");
 const { brasilSVG, coord, zoomPara } = __req("js/geo.js");
 const { hoje } = __req("js/utils.js");
-/** A cidade de uma viagem, do jeito que o `geo` reconhece. */
-const cidadeDaViagem = (v) => String(v?.destino || v?.titulo || '')
-  .replace(/\s*\([A-Z]{2}\)\s*$/, '').trim();
+/* A cidade de uma viagem, com o estado no fim. O "(PA)" fica: é ele que salva
+   quando a cidade não está no mapa de coordenadas — e era exatamente isso que
+   fazia Belém, Salvador e Curitiba sumirem do desenho sem avisar. Quem desenha
+   o rótulo encurta na hora. */
+const cidadeDaViagem = (v) => String(v?.destino || v?.titulo || '').trim();
 
 /** A caixa vazia. O desenho entra depois, quando ela tiver largura. */
 const caixaMapaHTML = () => '<div class="pn-mapa-caixa" data-mapinha>'
@@ -2835,10 +2923,22 @@ function alertas() {
     });
   }
 
-  // Tarefas: atrasadas, cobradas e as de hoje
+  /* Tarefas: atrasadas, cobradas e as de hoje.
+
+     Oitenta e sete das cento e onze tarefas do projeto são de viagem — o mesmo
+     punhado de providências repetido nas onze. Se todas gritam no painel, o
+     painel vira ruído e a pessoa para de olhar. Aqui só as das duas próximas
+     viagens sobem: as outras continuam inteiras em Trabalho e na página da
+     viagem, que é onde se prepara viagem. */
+  const proximas = new Set([...store.doProjeto('viagens')]
+    .filter((v) => (diasAte(v.volta || v.ida) ?? -1) >= 0)
+    .sort((a, b) => String(a.ida).localeCompare(String(b.ida)))
+    .slice(0, 2).map((v) => v.id));
+
   store.doProjeto('tarefas').forEach((t) => {
     const aberto = (t.status || (t.feito ? 'feita' : 'aberta')) !== 'feita';
     if (!aberto) return;
+    if (t.viagem_id && !proximas.has(t.viagem_id)) return;
     const meu = t.responsavel_id === u?.id;
     if (!meu && !can(u, 'lanc.ver')) return;
     if (t.cobrado_em && meu) {
@@ -2885,10 +2985,12 @@ function alertas() {
       como: 'Em Etapas, abra e escreva o que está faltando. Quem resolver destrava.' });
   });
 
-  // Compromissos de hoje/amanhã
+  // Compromissos de hoje e amanhã. Viagem não entra: ela já tem o mapa, a fita
+  // de viagens no painel e a aba inteira — repetir aqui só ocupa lugar.
   store.doProjeto('eventos').forEach((ev) => {
     const d = diasAte(ev.data);
     if (d !== 0 && d !== 1) return;
+    if (ev.tipo === 'viagem') return;
     const meu = (ev.participantes || []).includes(u?.id);
     if (!meu && !can(u, 'agenda.ver')) return;
     add({
@@ -2995,7 +3097,7 @@ function perguntas() {
     .filter((c) => c.status === 'pendente' && c.membro_id === u?.id)
     .slice(0, 2)
     .forEach((c) => out.push({
-      id: 'q_conf_' + c.id, urg: 3, icone: '🙋',
+      id: 'q_conf_' + c.id, urg: 3, icone: '🙋', ref: { t: 'confirmacoes', id: c.id },
       pergunta: c.titulo,
       contexto: c.obs || 'Confirme para a produção saber que está de pé.',
       sim: 'Confirmo', nao: 'Tenho problema',
@@ -3010,6 +3112,7 @@ function perguntas() {
       .slice(0, 2)
       .forEach((c) => out.push({
         id: 'q_conta_' + c.id, urg: 3, icone: c.tipo === 'pagar' ? '💸' : '💰',
+        ref: { t: 'contas', id: c.id },
         pergunta: `${c.tipo === 'pagar' ? 'Já pagou' : 'Já caiu'} ${fmtMoney(c.valor_cents)}?`,
         contexto: `${c.descricao} · venceu ${prazoTxt(c.venc)}`,
         sim: c.tipo === 'pagar' ? 'Já paguei' : 'Já caiu', nao: 'Ainda não',
@@ -3031,6 +3134,7 @@ function perguntas() {
     const atrasada = paraCobrar()[0];
     if (atrasada) out.push({
       id: 'q_nf_' + atrasada.conta.id, urg: 3, icone: '🧾',
+      ref: { t: 'contas', id: atrasada.conta.id },
       pergunta: `A NF de ${atrasada.conta.contraparte || atrasada.conta.descricao} já chegou?`,
       contexto: `${fmtMoney(atrasada.conta.valor_cents)} · ${atrasada.est.t}`,
       sim: 'Chegou', nao: 'Vou cobrar',
@@ -7356,8 +7460,7 @@ __defs["js/views/dash.js"] = function () {
 const { store } = __req("js/store.js");
 const { can } = __req("js/perms.js");
 const { el, toast } = __req("js/ui.js");
-const { esc, fmtMoneyShort, pct, fmtData, prazoTxt, diasAte, hoje, valoresOcultos } = __req("js/utils.js");
-const { financeiro } = __req("js/calc.js");
+const { esc, fmtMoneyShort, fmtData, prazoTxt, hoje } = __req("js/utils.js");
 const { FASES } = __req("js/seed.js");
 const { alertas, perguntas } = __req("js/notify.js");
 const { abrirDossie } = __req("js/dossie.js");
@@ -7381,11 +7484,9 @@ function render() {
 
   node.innerHTML = `
     ${capaHTML(p, etapas)}
+    ${agoraHTML(al, qs)}
     ${caminhoHTML(etapas)}
-    ${mapaHTML()}
-    ${perguntasHTML(qs)}
-    ${alertasHTML(al)}
-    ${dinheiroHTML(u)}`;
+    ${mapaHTML()}`;
 
   // Os desenhos precisam do tamanho real da caixa, que só existe depois de
   // estar na tela.
@@ -7572,60 +7673,57 @@ function quandoTxt(v, hj) {
   return `em ${d} dias`;
 }
 
-/* ------------------------------------------------------- decisões rápidas --- */
-function perguntasHTML(qs) {
-  if (!qs.length) return '';
-  return `<section class="bloco largo perguntas">
-    <div class="sec"><div class="sec-t">Resolve agora</div>
-      <span class="small muted">${qs.length === 1 ? '1 pergunta' : qs.length + ' perguntas'}</span></div>
-    <div class="grid3">${qs.map((q) => `
-      <div class="pergunta" data-q="${q.id}">
-        <div class="p-cab">
-          <span class="ico ${q.urg >= 3 ? 'urg' : 'med'}">${q.icone}</span>
-          <span class="p-txt">${esc(q.pergunta)}</span>
-        </div>
-        <div class="p-ctx">${esc(q.contexto || '')}</div>
-        <div class="btns" style="margin-top:auto;padding-top:var(--s3)">
-          <button class="btn sm pri" style="flex:1" data-sim>${esc(q.sim || 'Sim')}</button>
-          <button class="btn sm gho" data-nao>${esc(q.nao || 'Agora não')}</button>
-        </div>
-      </div>`).join('')}</div>
-  </section>`;
-}
+/* ---------------------------------------------------------------- agora ---
+   Antes eram dois blocos: "Resolve agora", com as perguntas de um toque, e
+   "Precisa de você", com a lista de avisos. Só que os dois saem do mesmo lugar
+   e mostravam o mesmo item duas vezes — a conta vencida aparecia como pergunta
+   em cima e como linha embaixo, e a faixa de dinheiro no pé repetia um número
+   que já tem uma aba inteira. Agora é uma lista só, logo abaixo do nome do job:
+   quem tem resposta de um toque mostra os dois botões ali mesmo, o resto abre o
+   dossiê. É a primeira coisa da tela porque é a única que pede ação. */
+function agoraHTML(al, qs) {
+  if (!al.length && !qs.length) {
+    return `<section class="bloco largo"><div class="ag-limpo">
+      <span class="olho-txt">Agora</span>
+      <p>Nada esperando por você. O que está em curso segue embaixo.</p>
+    </div></section>`;
+  }
+  // O que já virou pergunta não repete como linha.
+  // Duas perguntas abertas por vez. Três cartões grandes tomavam a tela toda e
+  // a lista, que é o resto do trabalho, ficava abaixo da dobra.
+  const refs = new Set(qs.slice(0, 2).map((q) => q.ref && q.ref.t + ':' + q.ref.id).filter(Boolean));
+  const linhas = al.filter((a) => !refs.has(a.ref && a.ref.t + ':' + a.ref.id));
+  const urg = al.filter((a) => a.urg >= 3).length;
 
-function alertasHTML(al) {
-  if (!al.length) return '';
-  return `<section class="bloco largo">
-    <div class="sec"><div class="sec-t">Precisa de você</div>
-      <span class="small muted">${al.length}</span></div>
-    <div class="card lista">
-      ${al.slice(0, 6).map((a, i) => `
-        <button class="row act alto" data-alerta="${i}" style="width:100%;text-align:left;
-          background:none;border:0;border-bottom:1px solid var(--line);color:inherit">
-          <span class="ico ${a.urg >= 3 ? 'urg' : a.urg === 2 ? 'med' : ''}">${a.icone || '•'}</span>
-          <span class="g"><span class="t">${esc(a.texto)}</span>
-            ${a.detalhe ? `<span class="s">${esc(a.detalhe)}</span>` : ''}</span>
-        </button>`).join('')}
-      ${al.length > 6 ? `<a class="row act" href="#/tarefas" style="text-decoration:none;color:inherit">
-        <span class="g"><span class="t" style="color:var(--ac2)">Ver os outros ${al.length - 6}</span></span></a>` : ''}
-    </div>
-  </section>`;
-}
+  return `<section class="bloco largo agora">
+    <div class="sec"><div class="sec-t">Agora</div>
+      <span class="small muted">${urg ? `${urg} urgente${urg > 1 ? 's' : ''} · ` : ''}${al.length} no total</span></div>
 
-/* O dinheiro em uma linha. O resto está na aba dele. */
-function dinheiroHTML(u) {
-  if (!can(u, 'orcamento.ver') || valoresOcultos()) return '';
-  const f = financeiro();
-  const usado = pct(f.comprometido, f.orcado || 1);
-  return `<section class="bloco largo">
-    <a class="pn-grana" href="#/financeiro">
-      <span class="pn-g-b"><i style="width:${Math.min(100, usado)}%"></i></span>
-      <span class="pn-g-l">
-        <b>${fmtMoneyShort(f.comprometido)}</b>
-        <span>de ${fmtMoneyShort(f.orcado)} orçados · ${usado}%</span>
-      </span>
-      <span class="pn-g-v">→</span>
-    </a>
+    ${qs.slice(0, 2).map((q) => `<div class="ag-q" data-q="${q.id}">
+      <div class="ag-q-cab">
+        <span class="ico ${q.urg >= 3 ? 'urg' : 'med'}">${q.icone}</span>
+        <span class="ag-q-t">${esc(q.pergunta)}</span>
+      </div>
+      <div class="ag-q-c">${esc(q.contexto || '')}</div>
+      <div class="ag-q-b">
+        <button class="btn sm pri" data-sim>${esc(q.sim || 'Sim')}</button>
+        <button class="btn sm gho" data-nao>${esc(q.nao || 'Agora não')}</button>
+      </div>
+    </div>`).join('')}
+
+    ${linhas.length ? `<div class="ag-lista">
+      ${linhas.slice(0, 5).map((a) => {
+        const i = al.indexOf(a);
+        return `<button class="ag-l u${Math.min(3, a.urg || 1)}" data-alerta="${i}">
+          <span class="ag-l-b"></span>
+          <span class="ag-l-g"><span class="ag-l-t">${esc(a.texto)}</span>
+            ${a.detalhe ? `<span class="ag-l-s">${esc(a.detalhe)}</span>` : ''}</span>
+          <span class="ag-l-v">entender</span>
+        </button>`;
+      }).join('')}
+      ${linhas.length > 5 ? `<a class="ag-mais" href="#/tarefas">
+        e mais ${linhas.length - 5} — ver tudo</a>` : ''}
+    </div>` : ''}
   </section>`;
 }
 

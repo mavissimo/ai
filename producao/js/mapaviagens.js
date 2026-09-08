@@ -8,9 +8,11 @@ import { store } from './store.js';
 import { brasilSVG, coord, zoomPara } from './geo.js';
 import { hoje } from './utils.js';
 
-/** A cidade de uma viagem, do jeito que o `geo` reconhece. */
-export const cidadeDaViagem = (v) => String(v?.destino || v?.titulo || '')
-  .replace(/\s*\([A-Z]{2}\)\s*$/, '').trim();
+/* A cidade de uma viagem, com o estado no fim. O "(PA)" fica: é ele que salva
+   quando a cidade não está no mapa de coordenadas — e era exatamente isso que
+   fazia Belém, Salvador e Curitiba sumirem do desenho sem avisar. Quem desenha
+   o rótulo encurta na hora. */
+export const cidadeDaViagem = (v) => String(v?.destino || v?.titulo || '').trim();
 
 /** A caixa vazia. O desenho entra depois, quando ela tiver largura. */
 export const caixaMapaHTML = () => '<div class="pn-mapa-caixa" data-mapinha>'

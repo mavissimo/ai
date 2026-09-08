@@ -9,8 +9,7 @@
 import { store } from '../store.js';
 import { can } from '../perms.js';
 import { el, toast } from '../ui.js';
-import { esc, fmtMoneyShort, pct, fmtData, prazoTxt, diasAte, hoje, valoresOcultos } from '../utils.js';
-import { financeiro } from '../calc.js';
+import { esc, fmtMoneyShort, fmtData, prazoTxt, hoje } from '../utils.js';
 import { FASES } from '../seed.js';
 import { alertas, perguntas } from '../notify.js';
 import { abrirDossie } from '../dossie.js';
@@ -35,11 +34,9 @@ export function render() {
 
   node.innerHTML = `
     ${capaHTML(p, etapas)}
+    ${agoraHTML(al, qs)}
     ${caminhoHTML(etapas)}
-    ${mapaHTML()}
-    ${perguntasHTML(qs)}
-    ${alertasHTML(al)}
-    ${dinheiroHTML(u)}`;
+    ${mapaHTML()}`;
 
   // Os desenhos precisam do tamanho real da caixa, que só existe depois de
   // estar na tela.
@@ -226,60 +223,57 @@ function quandoTxt(v, hj) {
   return `em ${d} dias`;
 }
 
-/* ------------------------------------------------------- decisões rápidas --- */
-function perguntasHTML(qs) {
-  if (!qs.length) return '';
-  return `<section class="bloco largo perguntas">
-    <div class="sec"><div class="sec-t">Resolve agora</div>
-      <span class="small muted">${qs.length === 1 ? '1 pergunta' : qs.length + ' perguntas'}</span></div>
-    <div class="grid3">${qs.map((q) => `
-      <div class="pergunta" data-q="${q.id}">
-        <div class="p-cab">
-          <span class="ico ${q.urg >= 3 ? 'urg' : 'med'}">${q.icone}</span>
-          <span class="p-txt">${esc(q.pergunta)}</span>
-        </div>
-        <div class="p-ctx">${esc(q.contexto || '')}</div>
-        <div class="btns" style="margin-top:auto;padding-top:var(--s3)">
-          <button class="btn sm pri" style="flex:1" data-sim>${esc(q.sim || 'Sim')}</button>
-          <button class="btn sm gho" data-nao>${esc(q.nao || 'Agora não')}</button>
-        </div>
-      </div>`).join('')}</div>
-  </section>`;
-}
+/* ---------------------------------------------------------------- agora ---
+   Antes eram dois blocos: "Resolve agora", com as perguntas de um toque, e
+   "Precisa de você", com a lista de avisos. Só que os dois saem do mesmo lugar
+   e mostravam o mesmo item duas vezes — a conta vencida aparecia como pergunta
+   em cima e como linha embaixo, e a faixa de dinheiro no pé repetia um número
+   que já tem uma aba inteira. Agora é uma lista só, logo abaixo do nome do job:
+   quem tem resposta de um toque mostra os dois botões ali mesmo, o resto abre o
+   dossiê. É a primeira coisa da tela porque é a única que pede ação. */
+function agoraHTML(al, qs) {
+  if (!al.length && !qs.length) {
+    return `<section class="bloco largo"><div class="ag-limpo">
+      <span class="olho-txt">Agora</span>
+      <p>Nada esperando por você. O que está em curso segue embaixo.</p>
+    </div></section>`;
+  }
+  // O que já virou pergunta não repete como linha.
+  // Duas perguntas abertas por vez. Três cartões grandes tomavam a tela toda e
+  // a lista, que é o resto do trabalho, ficava abaixo da dobra.
+  const refs = new Set(qs.slice(0, 2).map((q) => q.ref && q.ref.t + ':' + q.ref.id).filter(Boolean));
+  const linhas = al.filter((a) => !refs.has(a.ref && a.ref.t + ':' + a.ref.id));
+  const urg = al.filter((a) => a.urg >= 3).length;
 
-function alertasHTML(al) {
-  if (!al.length) return '';
-  return `<section class="bloco largo">
-    <div class="sec"><div class="sec-t">Precisa de você</div>
-      <span class="small muted">${al.length}</span></div>
-    <div class="card lista">
-      ${al.slice(0, 6).map((a, i) => `
-        <button class="row act alto" data-alerta="${i}" style="width:100%;text-align:left;
-          background:none;border:0;border-bottom:1px solid var(--line);color:inherit">
-          <span class="ico ${a.urg >= 3 ? 'urg' : a.urg === 2 ? 'med' : ''}">${a.icone || '•'}</span>
-          <span class="g"><span class="t">${esc(a.texto)}</span>
-            ${a.detalhe ? `<span class="s">${esc(a.detalhe)}</span>` : ''}</span>
-        </button>`).join('')}
-      ${al.length > 6 ? `<a class="row act" href="#/tarefas" style="text-decoration:none;color:inherit">
-        <span class="g"><span class="t" style="color:var(--ac2)">Ver os outros ${al.length - 6}</span></span></a>` : ''}
-    </div>
-  </section>`;
-}
+  return `<section class="bloco largo agora">
+    <div class="sec"><div class="sec-t">Agora</div>
+      <span class="small muted">${urg ? `${urg} urgente${urg > 1 ? 's' : ''} · ` : ''}${al.length} no total</span></div>
 
-/* O dinheiro em uma linha. O resto está na aba dele. */
-function dinheiroHTML(u) {
-  if (!can(u, 'orcamento.ver') || valoresOcultos()) return '';
-  const f = financeiro();
-  const usado = pct(f.comprometido, f.orcado || 1);
-  return `<section class="bloco largo">
-    <a class="pn-grana" href="#/financeiro">
-      <span class="pn-g-b"><i style="width:${Math.min(100, usado)}%"></i></span>
-      <span class="pn-g-l">
-        <b>${fmtMoneyShort(f.comprometido)}</b>
-        <span>de ${fmtMoneyShort(f.orcado)} orçados · ${usado}%</span>
-      </span>
-      <span class="pn-g-v">→</span>
-    </a>
+    ${qs.slice(0, 2).map((q) => `<div class="ag-q" data-q="${q.id}">
+      <div class="ag-q-cab">
+        <span class="ico ${q.urg >= 3 ? 'urg' : 'med'}">${q.icone}</span>
+        <span class="ag-q-t">${esc(q.pergunta)}</span>
+      </div>
+      <div class="ag-q-c">${esc(q.contexto || '')}</div>
+      <div class="ag-q-b">
+        <button class="btn sm pri" data-sim>${esc(q.sim || 'Sim')}</button>
+        <button class="btn sm gho" data-nao>${esc(q.nao || 'Agora não')}</button>
+      </div>
+    </div>`).join('')}
+
+    ${linhas.length ? `<div class="ag-lista">
+      ${linhas.slice(0, 5).map((a) => {
+        const i = al.indexOf(a);
+        return `<button class="ag-l u${Math.min(3, a.urg || 1)}" data-alerta="${i}">
+          <span class="ag-l-b"></span>
+          <span class="ag-l-g"><span class="ag-l-t">${esc(a.texto)}</span>
+            ${a.detalhe ? `<span class="ag-l-s">${esc(a.detalhe)}</span>` : ''}</span>
+          <span class="ag-l-v">entender</span>
+        </button>`;
+      }).join('')}
+      ${linhas.length > 5 ? `<a class="ag-mais" href="#/tarefas">
+        e mais ${linhas.length - 5} — ver tudo</a>` : ''}
+    </div>` : ''}
   </section>`;
 }
 

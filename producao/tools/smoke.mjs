@@ -75,6 +75,11 @@ await passo('fase abre as etapas', async()=>{
   if(!await p.locator('[data-etapa]').count()) throw new Error('não abriu'); });
 await passo('painel: mapa', async()=>{
   if(!await p.locator('.pn-mapa-caixa .geo').count()) throw new Error('sem mapa'); });
+// Nenhuma cidade pode sumir em silêncio: Belém, Salvador e Curitiba sumiam por
+// não estarem no mapa de coordenadas, e ninguém era avisado.
+await passo('toda cidade tem pino', async()=>{
+  const n = await p.locator('.geo-p').count();
+  if (n < 9) throw new Error('só '+n+' pinos para 11 viagens'); });
 
 // dossiê de um alerta: o que é, de onde veio, por que, como, e as duas pontas
 await passo('painel tem avisos', async()=>{
@@ -131,6 +136,11 @@ await escolher(null);
 
 // as viagens embaixo do mapa, e o zoom que liga uma coisa na outra
 await p.evaluate(()=>location.hash='#/'); await p.waitForTimeout(1200);
+await passo('painel não repete o mesmo item', async()=>{
+  const perg = await p.evaluate(()=>[...document.querySelectorAll('.ag-q-c')].map(n=>n.textContent.trim()));
+  const linhas = await p.evaluate(()=>[...document.querySelectorAll('.ag-l-s')].map(n=>n.textContent.trim()));
+  const rep = linhas.filter((l)=>perg.some((q)=>q.startsWith(l.split(' · ')[0])));
+  if (rep.length) throw new Error('repetido: '+rep[0]); });
 await passo('viagens abaixo do mapa', async()=>{
   const n = await p.locator('[data-viagem]').count();
   if (n < 5) throw new Error('só '+n+' viagens'); });
