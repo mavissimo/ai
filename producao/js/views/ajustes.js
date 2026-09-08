@@ -254,23 +254,27 @@ export function exportarBackup() {
       ? `\n\n… mais ${((json.length - 4000) / 1024).toFixed(0)} KB. O botão copia tudo.` : ''}</pre>
   </div>`);
 
+  // Dentro do visualizador de artifact a página roda em moldura e o navegador
+  // ignora o download que ela dispara. Botão que não faz nada é pior que botão
+  // que não existe: ali só sobra copiar.
+  const naModura = (() => { try { return window.self !== window.top; } catch { return true; } })();
   const rod = el('<div style="display:flex;gap:8px;width:100%"></div>');
-  const bBaixar = el('<button class="btn gho" style="flex:1">Baixar arquivo</button>');
+  const bBaixar = naModura ? null : el('<button class="btn gho" style="flex:1">Baixar arquivo</button>');
   const bCopiar = el('<button class="btn pri" style="flex:1">Copiar tudo</button>');
-  rod.append(bBaixar, bCopiar);
+  if (bBaixar) rod.append(bBaixar);
+  rod.append(bCopiar);
 
   bCopiar.onclick = async () => {
     try { await navigator.clipboard.writeText(json); toast('Backup copiado.'); }
     catch { toast('Não consegui copiar. Selecione o texto e copie na mão.'); }
   };
-  bBaixar.onclick = () => {
+  if (bBaixar) bBaixar.onclick = () => {
     const blob = new Blob([json], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = nome;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-    toast('Se não aparecer nada, use "Copiar tudo".');
   };
 
   sheet({ titulo: 'Backup', corpo, rodape: rod });
