@@ -63,8 +63,20 @@ await p.evaluate(()=>{const b=[...document.querySelectorAll('button,a')].find(x=
 await p.waitForTimeout(900);
 await passo('backup abre para copiar', async()=>{
   if(!await p.locator('.sheet [data-json]').count()) throw new Error('sem folha de backup'); });
+// o painel: capa, caminho das fases e mapa
+await p.evaluate(()=>location.hash='#/'); await p.waitForTimeout(1400);
+await passo('painel: linha do contrato', async()=>{
+  if(!await p.locator('.pl-hoje').count()) throw new Error('sem linha'); });
+await passo('painel: caminho das fases', async()=>{
+  const n = await p.locator('[data-fase]').count();
+  if (n < 3) throw new Error('só '+n+' fases'); });
+await p.evaluate(()=>document.querySelectorAll('[data-fase]')[1].click()); await p.waitForTimeout(700);
+await passo('fase abre as etapas', async()=>{
+  if(!await p.locator('[data-etapa]').count()) throw new Error('não abriu'); });
+await passo('painel: mapa', async()=>{
+  if(!await p.locator('.pn-mapa-caixa .geo').count()) throw new Error('sem mapa'); });
+
 // dossiê de um alerta: o que é, de onde veio, por que, como, e as duas pontas
-await p.evaluate(()=>location.hash='#/'); await p.waitForTimeout(900);
 await passo('painel tem avisos', async()=>{
   if(!await p.locator('[data-alerta]').count()) throw new Error('sem avisos'); });
 await p.evaluate(()=>document.querySelectorAll('[data-alerta]')[0].click()); await p.waitForTimeout(800);

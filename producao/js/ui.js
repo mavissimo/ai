@@ -356,7 +356,14 @@ export function btnOlho(oculto) {
 /** Marca do Unit0: a palavra em texto e o zero desenhado como o anel de listras
     da claquete. O zero é dimensionado em em e alinhado pela linha de base, então
     a marca continua encaixada mesmo se a fonte de título não carregar. */
-export const MARCA = '<span class="marca-txt">unit</span><svg viewBox="0 0 41.00 41.00" aria-hidden="true"><defs><mask id="u0zero" maskUnits="userSpaceOnUse" x="0" y="0" width="41.00" height="41.00"><rect x="0" y="0" width="41.00" height="41.00" fill="#fff"/><g transform="translate(20.50 20.50) rotate(-38)"><rect x="-41.00" y="-55.45" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="-44.79" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="-34.13" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="-23.47" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="-12.81" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="-2.15" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="8.51" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="19.17" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="29.83" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="40.49" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="51.15" width="123.00" height="4.30" fill="#000"/></g></mask></defs><circle cx="20.50" cy="20.50" r="16.40" fill="none" stroke="#f4b23e" stroke-width="8.20" mask="url(#u0zero)"/></svg>';
+/* ---------------------------------------------------------------- marca ---
+   UNIT em Archivo pesado e o zero desenhado: um anel grosso cortado na
+   diagonal, com a barra âmbar ocupando o corte. É claquete e é contagem de
+   líder de filme ao mesmo tempo, e continua sendo um zero a 16px — que era
+   o problema das onze listras de antes, que viravam sujeira no tamanho
+   pequeno. Uma cor só, herdada: o anel é `currentColor`.
+   ----------------------------------------------------------------------- */
+export const MARCA = '<span class="marca-txt">unit</span><svg viewBox="0 0 44 44" aria-hidden="true" class="marca-zero"><defs><mask id="u0m" maskUnits="userSpaceOnUse" x="-4" y="-4" width="52" height="52"><rect x="-4" y="-4" width="52" height="52" fill="#fff"/><g transform="rotate(-38 22 22)"><rect x="-8" y="17.4" width="60" height="9.2" fill="#000"/></g></mask></defs><circle cx="22" cy="22" r="15.6" fill="none" stroke="currentColor" stroke-width="8.8" mask="url(#u0m)" class="marca-anel"/><g transform="rotate(-38 22 22)"><rect x="6.4" y="19.1" width="31.2" height="5.8" rx=".6" fill="var(--ac)" class="marca-barra"/></g></svg>';
 
 /* ---------------- ícones ---------------- */
 export const ICO = {

@@ -1,19 +1,23 @@
-// Painel: status do projeto, o que trava, o que vence, quanto sobra.
-// No celular os blocos empilham; a partir de 900px eles se distribuem em
-// colunas, como um quadro de produção.
+// Painel: onde o job está, não quanto ele custa.
+//
+// A versão antiga abria com o dinheiro em quatro números grandes. Mas quem abre
+// o app de manhã não precisa saber quanto sobrou — precisa saber onde a coisa
+// está, o que trava o quê e para onde a equipe vai. Então o dinheiro desceu
+// para uma faixa fina no fim (ele tem uma aba inteira só dele) e o alto da tela
+// virou três desenhos: a linha do contrato, o caminho das etapas com as
+// dependências, e o mapa do país.
 import { store } from '../store.js';
 import { can } from '../perms.js';
-import { el, btnOlho, toast } from '../ui.js';
-import { esc, fmtMoneyShort, pct, fmtData, prazoTxt, prazoTag, diasAte, valoresOcultos } from '../utils.js';
+import { el, toast } from '../ui.js';
+import { esc, fmtMoneyShort, pct, fmtData, prazoTxt, diasAte, hoje, valoresOcultos } from '../utils.js';
 import { financeiro } from '../calc.js';
-import { FASES, statusEtapa, faseSimbolo } from '../seed.js';
+import { FASES } from '../seed.js';
 import { alertas, perguntas } from '../notify.js';
 import { abrirDossie } from '../dossie.js';
+import { brasilSVG, coord } from '../geo.js';
 
-const PERIODOS = [
-  { v: 1, t: '24h' }, { v: 3, t: '3 dias' }, { v: 7, t: 'Semana' }, { v: 30, t: 'Mês' }
-];
-let periodo = 7;
+const dias = (a, b) => Math.round(
+  (new Date(String(b).slice(0, 10)) - new Date(String(a).slice(0, 10))) / 86400000);
 
 export function render() {
   const u = store.user;
@@ -24,27 +28,194 @@ export function render() {
     return { titulo: 'Painel', node };
   }
 
-  const etapas = store.doProjeto('etapas');
-  const feitas = etapas.filter((e) => e.status === 'feito').length;
-  const f = financeiro();
   const al = alertas();
   const qs = perguntas();
-  const verGrana = can(u, 'orcamento.ver');
-  const verLucro = can(u, 'lucro.ver') || can(u, 'contratos.valores');
+  const etapas = [...store.doProjeto('etapas')].sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
 
-  /* ---- cabeçalho ---- */
-  const cabecalho = `<section class="bloco largo topo">
-    <div class="card tight" style="display:flex;align-items:center;gap:12px">
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.nome)}</div>
-        <div class="small muted">${esc(p.cliente || 'sem cliente')} · ${esc(p.formato || 'audiovisual')}</div>
-      </div>
-      <span class="tag ${feitas === etapas.length && etapas.length ? 'ok' : 'info'}">${pct(feitas, etapas.length || 1)}%</span>
-    </div>
+  node.innerHTML = `
+    ${capaHTML(p, etapas)}
+    ${caminhoHTML(etapas)}
+    ${mapaHTML()}
+    ${perguntasHTML(qs)}
+    ${alertasHTML(al)}
+    ${dinheiroHTML(u)}`;
+
+  // Os desenhos precisam do tamanho real da caixa, que só existe depois de
+  // estar na tela.
+  requestAnimationFrame(() => { pintarLinha(node, p); pintarMapa(node); });
+
+  ligar(node, { al, qs, etapas });
+  return { titulo: 'Painel', sub: p.nome, node };
+}
+
+/* ------------------------------------------------------------------ capa ---
+   O job como cartaz: nome grande e, embaixo, a linha do contrato com a
+   assinatura de um lado, a entrega do outro e hoje no meio. */
+function capaHTML(p, etapas) {
+  const feitas = etapas.filter((e) => e.status === 'feito').length;
+  return `<section class="bloco largo pn-capa">
+    <div class="est-olho">O job <span>${feitas} de ${etapas.length} etapas</span></div>
+    <h2 class="capa-tit pn-capa-t">${esc(p.nome)}</h2>
+    <div class="pn-linha" data-linha></div>
   </section>`;
+}
 
-  /* ---- decisões rápidas: no máximo três, resolvidas no toque ---- */
-  const perguntasHTML = !qs.length ? '' : `<section class="bloco largo perguntas">
+/* A linha do contrato: assinatura → hoje → entrega, com as viagens marcadas. */
+function pintarLinha(node, p) {
+  const caixa = node.querySelector('[data-linha]');
+  if (!caixa) return;
+  const larg = caixa.clientWidth;
+  if (!larg) return;
+  const ctr = store.doProjeto('contratos').find((c) => c.tipo === 'cliente');
+  const de = ctr?.assinado_em || p.inicio;
+  const ate = ctr?.prazo_entrega || p.entrega;
+  if (!de || !ate) { caixa.remove(); return; }
+
+  const total = Math.max(1, dias(de, ate));
+  const x = (d) => 2 + (Math.min(1, Math.max(0, dias(de, d) / total)) * (larg - 4));
+  const h = 62;
+  const y = 30;
+  const hj = hoje();
+  const andado = Math.min(1, Math.max(0, dias(de, hj) / total));
+
+  const viagens = store.doProjeto('viagens')
+    .filter((v) => v.ida >= de && v.ida <= ate)
+    .map((v) => `<line class="pl-v ${v.ida < hj ? 'passou' : ''}"
+      x1="${x(v.ida).toFixed(1)}" y1="${y - 7}" x2="${x(v.ida).toFixed(1)}" y2="${y + 7}"/>`).join('');
+
+  caixa.innerHTML = `<svg viewBox="0 0 ${larg} ${h}" width="${larg}" height="${h}" class="pl">
+    <line class="pl-base" x1="2" y1="${y}" x2="${larg - 2}" y2="${y}"/>
+    <line class="pl-feito" x1="2" y1="${y}" x2="${x(hj).toFixed(1)}" y2="${y}"
+      style="--fim:${(x(hj) - 2).toFixed(1)}px"/>
+    ${viagens}
+    <circle class="pl-hoje" cx="${x(hj).toFixed(1)}" cy="${y}" r="5"/>
+    <text class="pl-r esq" x="2" y="14">${esc(fmtData(de, { ano: false }))} · assinatura</text>
+    <text class="pl-r dir" x="${larg - 2}" y="14" text-anchor="end">entrega · ${esc(fmtData(ate, { ano: false }))}</text>
+    <text class="pl-r hoje" x="${x(hj).toFixed(1)}" y="${y + 22}"
+      text-anchor="${andado > 0.8 ? 'end' : andado < 0.2 ? 'start' : 'middle'}">hoje · ${Math.round(andado * 100)}%</text>
+  </svg>`;
+}
+
+/* --------------------------------------------------------------- caminho ---
+   As cinco fases como um trilho: cada uma é um anel que se preenche com o que
+   já foi feito, e o fio entre elas é a dependência — nenhuma fase anda de
+   verdade antes da anterior fechar. Tocar numa abre as etapas dela. */
+function caminhoHTML(etapas) {
+  const fases = FASES.map((f) => {
+    const lista = etapas.filter((e) => e.fase === f.k);
+    const ok = lista.filter((e) => e.status === 'feito').length;
+    const fazendo = lista.filter((e) => e.status === 'fazendo').length;
+    const travado = lista.filter((e) => e.status === 'travado').length;
+    return { ...f, lista, ok, fazendo, travado, p: lista.length ? ok / lista.length : 0 };
+  }).filter((f) => f.lista.length);
+  // "Em curso" em três fases ao mesmo tempo não diz onde o job está. A marca
+  // fica só na primeira que ainda não fechou.
+  const atual = fases.findIndex((f) => f.p < 1);
+  fases.forEach((f, i) => { f.atual = i === atual; });
+
+  const R = 21, C = 2 * Math.PI * R;
+  return `<section class="bloco largo">
+    <div class="sec"><div class="sec-t">O caminho</div>
+      <a href="#/etapas" class="small">todas as etapas</a></div>
+    <div class="cam-caixa"><div class="cam" data-cam>
+      ${fases.map((f, i) => `
+        <button class="cam-f ${f.travado ? 'travado' : f.p === 1 ? 'feito' : f.atual ? 'agora' : ''}"
+          data-fase="${f.k}" style="--i:${i}">
+          ${i ? `<span class="cam-fio ${fases[i - 1].p === 1 ? 'aberto' : ''}"></span>` : ''}
+          <span class="cam-anel">
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <circle class="cam-t" cx="24" cy="24" r="${R}"/>
+              <circle class="cam-p" cx="24" cy="24" r="${R}"
+                stroke-dasharray="${C.toFixed(1)}"
+                style="--vazio:${(C * (1 - f.p)).toFixed(1)}"/>
+            </svg>
+            <span class="cam-n">${f.ok}<i>/${f.lista.length}</i></span>
+          </span>
+          <span class="cam-t2">${esc(f.nome)}</span>
+          ${f.travado ? `<span class="cam-tag">${f.travado} travado${f.travado > 1 ? 's' : ''}</span>`
+            : f.atual ? '<span class="cam-tag agora">aqui</span>' : ''}
+        </button>`).join('')}
+    </div></div>
+    <div class="cam-abre" data-cam-abre hidden></div>
+  </section>`;
+}
+
+/* O que aparece quando se toca numa fase: as etapas dela, com as tarefas
+   penduradas e o que cada uma segura depois. */
+function etapasDaFase(k, etapas) {
+  const lista = etapas.filter((e) => e.fase === k);
+  const tarefas = store.doProjeto('tarefas');
+  const aberta = (t) => (t.status || (t.feito ? 'feita' : 'aberta')) !== 'feita';
+  const idx = FASES.findIndex((f) => f.k === k);
+  const depois = FASES.slice(idx + 1).map((f) => f.nome);
+
+  return `<div class="cam-lista">
+    ${lista.map((e) => {
+      const t = tarefas.filter((x) => x.etapa_id === e.id);
+      const ab = t.filter(aberta).length;
+      const st = e.status === 'feito' ? 'feito' : e.status === 'travado' ? 'travado'
+        : e.status === 'fazendo' ? 'agora' : '';
+      return `<button class="cam-e ${st}" data-etapa="${e.id}">
+        <span class="cam-e-m"></span>
+        <span class="cam-e-g">
+          <span class="cam-e-t">${esc(e.nome)}</span>
+          <span class="cam-e-s">${esc([
+            // Etapa fechada não precisa mostrar prazo vencido: ela cumpriu.
+            e.status === 'feito' ? 'concluída' : e.prazo ? prazoTxt(e.prazo) : '',
+            t.length ? (ab ? `${ab} de ${t.length} tarefas em aberto` : `${t.length} tarefas, todas feitas`) : '',
+            e.status === 'travado' && depois.length ? `trava ${depois.length} fase(s) depois` : ''
+          ].filter(Boolean).join(' · '))}</span>
+        </span>
+      </button>`;
+    }).join('')}
+  </div>`;
+}
+
+/* ------------------------------------------------------------------ mapa --- */
+function mapaHTML() {
+  return `<section class="bloco largo">
+    <div class="sec"><div class="sec-t">Onde</div><a href="#/mapa" class="small">abrir o mapa</a></div>
+    <a class="pn-mapa-caixa" href="#/mapa" data-mapinha></a>
+  </section>`;
+}
+
+function pintarMapa(node) {
+  const caixa = node.querySelector('[data-mapinha]');
+  if (!caixa) return;
+  const larg = caixa.clientWidth;
+  if (!larg) return;
+  const hj = hoje();
+  const vs = [...store.doProjeto('viagens')].sort((a, b) => String(a.ida).localeCompare(String(b.ida)));
+  const prox = vs.find((v) => (v.volta || v.ida) >= hj) || vs[vs.length - 1];
+  const limpo = (v) => String(v?.destino || '').replace(/\s*\([A-Z]{2}\)\s*$/, '').trim();
+  const pinos = vs.map((v) => ({
+    nome: v.destino, cidade: limpo(v) || v.destino,
+    estado: (v.volta || v.ida) < hj ? 'passou' : 'futuro',
+    rotulo: v === prox ? undefined : false        // só o próximo leva nome
+  })).filter((x) => coord(x.cidade));
+  caixa.innerHTML = brasilSVG({
+    larg, alt: Math.round(larg * 0.86), pinos,
+    rota: 'São Paulo', aceso: limpo(prox) || prox?.destino
+  }) + `<div class="pn-mapa-pe">
+    <b>${esc(prox?.destino || '—')}</b>
+    <span>${esc(quandoTxt(prox, hj))} · ${esc(fmtData(prox?.ida, { ano: false }))}</span>
+  </div>`;
+}
+
+/* "em 1 dias" não é português, e "em 0 dias" muito menos. */
+function quandoTxt(v, hj) {
+  if (!v) return 'sem viagem';
+  const d = dias(hj, v.ida);
+  if (d < 0) return (v.volta || v.ida) >= hj ? 'em curso' : 'já rodou';
+  if (d === 0) return 'embarca hoje';
+  if (d === 1) return 'embarca amanhã';
+  return `em ${d} dias`;
+}
+
+/* ------------------------------------------------------- decisões rápidas --- */
+function perguntasHTML(qs) {
+  if (!qs.length) return '';
+  return `<section class="bloco largo perguntas">
     <div class="sec"><div class="sec-t">Resolve agora</div>
       <span class="small muted">${qs.length === 1 ? '1 pergunta' : qs.length + ' perguntas'}</span></div>
     <div class="grid3">${qs.map((q) => `
@@ -60,9 +231,11 @@ export function render() {
         </div>
       </div>`).join('')}</div>
   </section>`;
+}
 
-  /* ---- alertas ---- */
-  const alertaHTML = !al.length ? '' : `<section class="bloco">
+function alertasHTML(al) {
+  if (!al.length) return '';
+  return `<section class="bloco largo">
     <div class="sec"><div class="sec-t">Precisa de você</div>
       <span class="small muted">${al.length}</span></div>
     <div class="card lista">
@@ -77,144 +250,59 @@ export function render() {
         <span class="g"><span class="t" style="color:var(--ac2)">Ver os outros ${al.length - 6}</span></span></a>` : ''}
     </div>
   </section>`;
+}
 
-  /* ---- fases ---- */
-  const fasesHTML = `<section class="bloco">
-    <div class="sec"><div class="sec-t">Etapas</div><a href="#/etapas" class="small">abrir</a></div>
-    <div class="card">${FASES.map((fase) => {
-      const lista = etapas.filter((e) => e.fase === fase.k);
-      if (!lista.length) return '';
-      const ok = lista.filter((e) => e.status === 'feito').length;
-      const trav = lista.filter((e) => e.status === 'travado').length;
-      const p100 = pct(ok, lista.length);
-      return `<div style="margin-bottom:13px">
-        <div style="display:flex;align-items:center;gap:9px">
-          <span class="ico">${fase.simbolo}</span>
-          <span style="flex:1;font-weight:650;font-size:14px">${esc(fase.nome)}</span>
-          ${trav ? `<span class="tag bad">${trav} travado${trav > 1 ? 's' : ''}</span>` : ''}
-          <span class="small muted mono">${ok}/${lista.length}</span>
-        </div>
-        <div class="bar"><i class="${p100 === 100 ? 'ok' : trav ? 'bad' : ''}" style="width:${p100}%"></i></div>
-      </div>`;
-    }).join('') || '<div class="empty">Sem etapas cadastradas.</div>'}</div>
+/* O dinheiro em uma linha. O resto está na aba dele. */
+function dinheiroHTML(u) {
+  if (!can(u, 'orcamento.ver') || valoresOcultos()) return '';
+  const f = financeiro();
+  const usado = pct(f.comprometido, f.orcado || 1);
+  return `<section class="bloco largo">
+    <a class="pn-grana" href="#/financeiro">
+      <span class="pn-g-b"><i style="width:${Math.min(100, usado)}%"></i></span>
+      <span class="pn-g-l">
+        <b>${fmtMoneyShort(f.comprometido)}</b>
+        <span>de ${fmtMoneyShort(f.orcado)} orçados · ${usado}%</span>
+      </span>
+      <span class="pn-g-v">→</span>
+    </a>
   </section>`;
+}
 
-  /* ---- dinheiro ---- */
-  let granaHTML = '';
-  if (verGrana) {
-    const usado = pct(f.comprometido, f.orcado || 1);
-    granaHTML = `<section class="bloco largo dinheiro">
-      <div class="sec"><div class="sec-t">Dinheiro</div>
-        ${btnOlho(valoresOcultos())}<a href="#/financeiro" class="small" style="margin-left:8px">ver tudo</a></div>
-      <div class="grid">
-        ${verLucro ? `<div class="kpi"><div class="l">Contratado</div>
-          <div class="v">${fmtMoneyShort(f.contratado)}</div>
-          <div class="h">recebido ${fmtMoneyShort(f.recebido)}</div></div>` : ''}
-        <div class="kpi ${f.estouro > 0 ? 'bad' : ''}"><div class="l">Orçado</div>
-          <div class="v">${fmtMoneyShort(f.orcado)}</div>
-          <div class="h">${usado}% comprometido</div></div>
-        <div class="kpi"><div class="l">Já negociado</div><div class="v">${fmtMoneyShort(f.negociado)}</div>
-          <div class="h">falta fechar ${fmtMoneyShort(f.aNegociar)}</div></div>
-        <div class="kpi ${f.saldoOrcamento < 0 ? 'bad' : ''}"><div class="l">Ainda posso gastar</div>
-          <div class="v">${fmtMoneyShort(f.saldoOrcamento)}</div>
-          <div class="h">orçado − comprometido</div></div>
-        ${verLucro ? `<div class="kpi ${f.economia < 0 ? 'bad' : 'ok'}"><div class="l">Economia negociada</div>
-          <div class="v">${fmtMoneyShort(f.economia)}</div>
-          <div class="h">orçado − fechado, no que já fechou</div></div>
-        <div class="kpi ${f.lucroSeFechar < 0 ? 'bad' : 'ok'}"><div class="l">Lucro hoje</div>
-          <div class="v">${fmtMoneyShort(f.lucroSeFechar)}</div>
-          <div class="h">se o resto fechar no orçado</div></div>` : ''}
-        ${can(u, 'contas.ver') ? `<div class="kpi"><div class="l">A pagar</div>
-          <div class="v">${fmtMoneyShort(f.aPagar)}</div></div>
-        <div class="kpi"><div class="l">A receber</div>
-          <div class="v">${fmtMoneyShort(f.aReceber)}</div></div>` : ''}
-      </div>
-      <div class="bar" style="margin-top:2px"><i class="${usado > 100 ? 'bad' : usado > 85 ? 'warn' : 'ok'}"
-        style="width:${Math.min(usado, 100)}%"></i></div>
-    </section>`;
-  }
+/* ------------------------------------------------------------------ ligar --- */
+function ligar(node, { al, qs, etapas }) {
+  let faseAberta = null;
+  const abre = node.querySelector('[data-cam-abre]');
 
-  /* ---- próximos, com período escolhido ---- */
-  const eventos = store.doProjeto('eventos')
-    .map((e) => ({ ...e, d: diasAte(e.data) }))
-    .filter((e) => e.d !== null && e.d >= 0 && e.d <= periodo)
-    .sort((a, b) => a.d - b.d);
-  const entregas = store.doProjeto('entregas')
-    .map((e) => ({ ...e, d: diasAte(e.prazo) }))
-    .filter((e) => e.status !== 'entregue' && e.d !== null && e.d >= 0 && e.d <= periodo)
-    .sort((a, b) => a.d - b.d);
-
-  const agendaHTML = `<section class="bloco">
-    <div class="sec"><div class="sec-t">Próximos</div><a href="#/agenda" class="small">agenda</a></div>
-    <div class="chips">${PERIODOS.map((x) => `<button class="chip ${periodo === x.v ? 'on' : ''}"
-      data-periodo="${x.v}">${x.t}</button>`).join('')}</div>
-    <div class="card">
-      ${!eventos.length && !entregas.length
-        ? `<div class="empty">Nada marcado ${periodo === 1 ? 'para as próximas 24 horas' : `nos próximos ${periodo} dias`}.</div>` : ''}
-      ${eventos.map((e) => `<div class="row">
-        <span class="ico ${e.d === 0 ? 'urg' : e.d <= 2 ? 'med' : ''}">${
-          e.tipo === 'viagem' ? '✈️' : e.tipo === 'diaria' ? '🎬' : e.tipo === 'entrega' ? '📦' : '📍'}</span>
-        <span class="g"><span class="t">${esc(e.titulo)}</span>
-        <span class="s">${esc(fmtData(e.data, { ano: false }))} · ${esc(prazoTxt(e.data))}${e.local ? ' · ' + esc(e.local) : ''}</span></span>
-      </div>`).join('')}
-      ${entregas.map((e) => `<div class="row">
-        <span class="ico ${prazoTag(e.prazo, false) === 'bad' ? 'urg' : 'med'}">📦</span>
-        <span class="g"><span class="t">${esc(e.titulo)}</span>
-        <span class="s">entrega · ${esc(fmtData(e.prazo))} · ${esc(prazoTxt(e.prazo))}</span></span>
-      </div>`).join('')}
-    </div>
-  </section>`;
-
-  /* ---- travado e próximas etapas ---- */
-  const travadas = etapas.filter((e) => e.status === 'travado');
-  const proximas = etapas.filter((e) => e.status === 'fazendo' || (e.status === 'nao' && e.prazo))
-    .sort((a, b) => (a.ordem || 0) - (b.ordem || 0)).slice(0, 6);
-
-  const travadoHTML = !travadas.length ? '' : `<section class="bloco">
-    <div class="sec"><div class="sec-t">Travado</div></div>
-    <div class="card">${travadas.map((e) => `<div class="row">
-      <span class="ico urg">⛔</span>
-      <span class="g"><span class="t">${esc(e.nome)}</span>
-      <span class="s">${esc(e.obs || 'sem observação')}</span></span></div>`).join('')}</div>
-  </section>`;
-
-  const proximasHTML = `<section class="bloco">
-    <div class="sec"><div class="sec-t">Próximas etapas</div></div>
-    <div class="card">${proximas.length ? proximas.map((e) => `<div class="row">
-        <span class="ico">${faseSimbolo(e.fase)}</span>
-        <span class="g"><span class="t">${esc(e.nome)}</span>
-        <span class="s">${esc(statusEtapa(e.status).t)}${e.prazo ? ' · ' + esc(fmtData(e.prazo)) + ' · ' + esc(prazoTxt(e.prazo)) : ''}</span></span>
-      </div>`).join('') : '<div class="empty">Marque prazos nas etapas para aparecerem aqui.</div>'}</div>
-  </section>`;
-
-  node.innerHTML = cabecalho + perguntasHTML + alertaHTML + fasesHTML + granaHTML
-    + agendaHTML + travadoHTML + proximasHTML;
-
-  // Responder uma pergunta grava e some com o cartão, sem trocar de tela.
-  node.querySelectorAll('[data-q]').forEach((n) => {
-    const q = qs.find((x) => x.id === n.dataset.q);
-    if (!q) return;
-    const responder = async (fn) => {
-      n.classList.add('indo');
-      try { if (fn) await fn(); } catch (e) { console.error(e); toast('Não consegui salvar: ' + e.message); }
-      setTimeout(() => store.emit(), 180);
+  node.querySelectorAll('[data-fase]').forEach((b) => {
+    b.onclick = () => {
+      const k = b.dataset.fase;
+      faseAberta = faseAberta === k ? null : k;
+      node.querySelectorAll('[data-fase]').forEach((x) => {
+        x.classList.toggle('on', x.dataset.fase === faseAberta);
+      });
+      if (!faseAberta) { abre.hidden = true; abre.innerHTML = ''; return; }
+      abre.innerHTML = etapasDaFase(faseAberta, etapas);
+      abre.hidden = false;
+      abre.querySelectorAll('[data-etapa]').forEach((n) => {
+        n.onclick = () => { location.hash = '#/etapas'; };
+      });
     };
-    n.querySelector('[data-sim]').onclick = () => responder(q.aoSim);
-    n.querySelector('[data-nao]').onclick = () => responder(q.aoNao);
   });
-  // Tocar num aviso abre o dossiê dele: o que é, de onde veio, por que resolver,
-  // como, e o que está preso esperando. Ir direto para a tela é o botão de lá.
+
   node.querySelectorAll('[data-alerta]').forEach((b) => {
     b.onclick = () => abrirDossie(al[Number(b.dataset.alerta)]);
   });
-  node.querySelectorAll('[data-periodo]').forEach((b) => {
-    b.onclick = () => { periodo = Number(b.dataset.periodo); store.emit(); };
+
+  node.querySelectorAll('[data-q]').forEach((n) => {
+    const q = qs.find((x) => x.id === n.dataset.q);
+    if (!q) return;
+    const some = async (fn) => {
+      n.classList.add('indo');
+      try { await fn(); } catch (e) { toast('Falhou: ' + e.message); }
+      setTimeout(() => store.emit(), 200);
+    };
+    n.querySelector('[data-sim]').onclick = () => some(q.aoSim);
+    n.querySelector('[data-nao]').onclick = () => some(q.aoNao || (async () => {}));
   });
-
-  return { titulo: 'Painel', sub: p.nome, node };
 }
-
-export const tipoEvento = (t) => ({
-  diaria: 'Diária de gravação', reuniao: 'Reunião', entrega: 'Entrega',
-  viagem: 'Viagem', outro: 'Compromisso'
-}[t] || 'Compromisso');

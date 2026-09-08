@@ -1,11 +1,12 @@
 // Agenda: diárias, viagens, reuniões e entregas — com ordem do dia completa,
 // horário de chamada por pessoa e confirmação de presença.
 import { store, membros, nomeMembro } from '../store.js';
+import { tipoEvento } from '../seed.js';
 import { can, ehEquipe } from '../perms.js';
 import * as vViagens from './viagens.js';
 import { el, abrirForm, sheet, toast, escolher } from '../ui.js';
 import { esc, fmtData, prazoTxt, prazoTag, diaSemana, diasAte, groupBy, ordenar } from '../utils.js';
-import { tipoEvento } from './dash.js';
+
 import { custoDoEvento } from '../calc.js';
 import { fmtMoney } from '../utils.js';
 import { abrirLancamento, camposLancamento, salvarLancamento, lerNotaNoForm, conferirComprovante } from './financeiro.js';

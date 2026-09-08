@@ -62,7 +62,7 @@ const rotaAtual = () => (location.hash || '#/').slice(1).split('?')[0] || '/';
 function telaBoasVindas() {
   const node = el(`<div class="capa">
     <div class="capa-topo">
-      <span class="marca">${MARCA}</span>
+      <span class="marca viva">${MARCA}</span>
       <span class="olho-txt">Gestão de produção</span>
     </div>
     <div class="capa-meio">
@@ -104,7 +104,7 @@ function telaQuemEVoce() {
   const lista = store.all('membros');
   const node = el(`<div class="capa quem">
     <div class="capa-topo">
-      <span class="marca">${MARCA}</span>
+      <span class="marca viva">${MARCA}</span>
       <span class="olho-txt">Doc Fundação Bradesco</span>
     </div>
     <div class="capa-meio">
@@ -196,7 +196,7 @@ function tabs() {
     { r: '#/mais', i: ICO.mais, t: 'Mais' }
   ];
   const atual = '#' + rotaAtual();
-  return `<nav class="tabbar"><div class="brand"><span class="marca">${MARCA}</span></div>${itens.map((x) => `<a href="${x.r}" class="${atual === x.r || (x.r === '#/' && atual === '#/') ? 'on' : ''}">
+  return `<nav class="tabbar"><div class="brand"><span class="marca viva">${MARCA}</span></div>${itens.map((x) => `<a href="${x.r}" class="${atual === x.r || (x.r === '#/' && atual === '#/') ? 'on' : ''}">
     ${x.i}<span>${x.t}</span>${x.dot ? '<span class="dot"></span>' : ''}</a>`).join('')}</nav>`;
 }
 

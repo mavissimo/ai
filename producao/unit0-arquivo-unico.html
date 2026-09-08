@@ -56,6 +56,13 @@
   :root{ --t-inst:1ms; --t-rap:1ms; --t-norm:1ms; --t-med:1ms; --t-lento:1ms }
 }
 
+/* O "olho" é o rótulo de ficha técnica que abre um bloco: mono, caixa alta,
+   entreletra larga. Aparece em cartaz, em crédito de filme e agora aqui. */
+.olho-txt{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--tx3)}
+.fio{height:1px;background:var(--tx);opacity:.18;margin:var(--s4) 0}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--tx)}
 body{font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -275,9 +282,21 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
    coluna fixa à esquerda e o conteúdo se espalha em duas colunas, para a tela
    grande não ficar com cara de celular esticado.
    ========================================================================= */
-.marca{font-family:var(--titulo);font-weight:700;letter-spacing:-.035em;line-height:1;
+.marca{font-family:var(--titulo);font-weight:800;letter-spacing:-.05em;line-height:1;
+  text-transform:lowercase;
   white-space:nowrap;color:var(--tx);display:inline-block;font-size:30px}
-.marca svg{height:.72em;width:auto;vertical-align:baseline;margin-left:.04em}
+.marca svg{height:.78em;width:auto;vertical-align:baseline;margin-left:.02em}
+/* Na capa e no carregamento o anel se desenha e a barra entra depois — dois
+   segundos de identidade, uma vez só, sem laço. */
+.marca.viva .marca-anel{stroke-dasharray:98;stroke-dashoffset:98;
+  animation:anel .7s var(--e-entra) forwards}
+.marca.viva .marca-barra{transform-box:fill-box;transform-origin:center;
+  animation:barra .5s var(--e-folha) .34s backwards}
+@keyframes anel{to{stroke-dashoffset:0}}
+@keyframes barra{from{transform:scaleX(0);opacity:0}to{transform:scaleX(1);opacity:1}}
+@media (prefers-reduced-motion: reduce){
+  .marca.viva .marca-anel,.marca.viva .marca-barra{animation:none;stroke-dashoffset:0}
+}
 .tabbar .brand{display:none}
 
 @media (min-width:900px){
@@ -749,6 +768,111 @@ main{animation:tela var(--t-med) var(--e-entra)}
 .ds-lt{font-size:14px;font-weight:650;letter-spacing:-.01em}
 .ds-ls{font-size:12px;color:var(--tx3);line-height:1.4}
 .ds-lv{flex:none;color:var(--tx3)}
+
+/* ============================================================================
+   Painel. O dinheiro saiu do palco — ele tem uma aba inteira. No lugar dele,
+   três desenhos: a linha do contrato, o caminho das etapas com as dependências
+   e o mapa do país. Tudo entra animado uma vez e para.
+   ========================================================================= */
+.pn-capa{padding-bottom:var(--s2)}
+.pn-capa-t{font-size:clamp(26px,8.4vw,40px);margin:var(--s3) 0 var(--s4)}
+.est-olho span{color:var(--tx3)}
+
+/* a linha do contrato */
+.pn-linha{width:100%}
+.pl{display:block;overflow:visible}
+.pl-base{stroke:var(--line);stroke-width:1.5}
+.pl-feito{stroke:var(--ac);stroke-width:2.5;stroke-linecap:round;
+  stroke-dasharray:var(--fim) 9999;stroke-dashoffset:var(--fim);
+  animation:pl-corre var(--t-lento) var(--e-entra) .15s forwards}
+@keyframes pl-corre{to{stroke-dashoffset:0}}
+.pl-v{stroke:var(--tx3);stroke-width:1.5;opacity:.55}
+.pl-v.passou{opacity:.28}
+.pl-hoje{fill:var(--ac);animation:pl-pop var(--t-med) var(--e-folha) .45s backwards}
+@keyframes pl-pop{from{r:0;opacity:0}}
+.pl-r{fill:var(--tx3);font-family:var(--mono);font-size:9px;letter-spacing:.1em;
+  text-transform:uppercase}
+.pl-r.hoje{fill:var(--ac)}
+@media (prefers-reduced-motion: reduce){
+  .pl-feito{animation:none;stroke-dashoffset:0}.pl-hoje{animation:none}
+}
+
+/* o caminho: cinco anéis ligados por fio */
+/* Cinco fases não cabem em 390px sem apertar: o trilho rola e a borda direita
+   esmaece, que é o que avisa que tem mais. */
+.cam-caixa{position:relative}
+.cam-caixa::after{content:"";position:absolute;top:0;bottom:0;right:0;width:34px;
+  pointer-events:none;background:linear-gradient(90deg,transparent,var(--bg))}
+.cam{display:flex;gap:0;align-items:flex-start;overflow-x:auto;scrollbar-width:none;
+  padding:var(--s2) 0 var(--s3)}
+.cam::-webkit-scrollbar{display:none}
+.cam-f{flex:1 0 auto;min-width:86px;position:relative;display:flex;flex-direction:column;
+  align-items:center;gap:var(--s2);padding:0 var(--s1);border:0;background:none;color:var(--tx);
+  cursor:pointer;
+  opacity:0;animation:cam-entra var(--t-med) var(--e-entra) forwards;
+  animation-delay:calc(var(--i) * 70ms + 120ms)}
+@keyframes cam-entra{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.cam-f{animation:none;opacity:1}}
+.cam-fio{position:absolute;top:24px;right:50%;left:-50%;height:1.5px;background:var(--line);z-index:0}
+.cam-fio.aberto{background:var(--ac);opacity:.6}
+.cam-anel{position:relative;width:48px;height:48px;display:grid;place-items:center;z-index:1;
+  background:var(--bg);border-radius:50%}
+.cam-anel svg{position:absolute;inset:0;width:48px;height:48px;transform:rotate(-90deg)}
+.cam-t{fill:none;stroke:var(--line);stroke-width:3}
+.cam-p{fill:none;stroke:var(--tx2);stroke-width:3;stroke-linecap:round;
+  stroke-dashoffset:132;animation:cam-anel var(--t-lento) var(--e-entra) .3s forwards}
+@keyframes cam-anel{to{stroke-dashoffset:var(--vazio)}}
+@media (prefers-reduced-motion: reduce){.cam-p{animation:none;stroke-dashoffset:var(--vazio)}}
+.cam-f.feito .cam-p{stroke:var(--ok)}
+.cam-f.agora .cam-p{stroke:var(--ac)}
+.cam-f.travado .cam-p{stroke:var(--bad)}
+.cam-n{font-family:var(--mono);font-size:12px;font-weight:600;line-height:1;
+  font-variant-numeric:tabular-nums}
+.cam-n i{font-style:normal;color:var(--tx3);font-size:9px}
+.cam-t2{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--tx3);text-align:center;line-height:1.35;max-width:88px}
+.cam-f.on .cam-t2,.cam-f.agora .cam-t2{color:var(--tx)}
+.cam-tag{font-family:var(--mono);font-size:8px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--bad)}
+.cam-tag.agora{color:var(--ac)}
+.cam-f.on .cam-anel{box-shadow:0 0 0 3px var(--ac-soft)}
+
+.cam-abre{animation:as-abre var(--t-med) var(--e-entra)}
+.cam-lista{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.cam-e{display:flex;align-items:flex-start;gap:var(--s3);width:100%;text-align:left;
+  padding:var(--s3) 0;border:0;border-bottom:1px solid var(--line);background:none;
+  color:var(--tx);cursor:pointer}
+.cam-e-m{flex:none;width:7px;height:7px;border-radius:50%;margin-top:6px;
+  border:1.5px solid var(--tx3)}
+.cam-e.feito .cam-e-m{background:var(--ok);border-color:var(--ok)}
+.cam-e.agora .cam-e-m{background:var(--ac);border-color:var(--ac)}
+.cam-e.travado .cam-e-m{background:var(--bad);border-color:var(--bad)}
+.cam-e-g{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.cam-e-t{font-size:14px;font-weight:600;line-height:1.35}
+.cam-e.feito .cam-e-t{color:var(--tx3);font-weight:500}
+.cam-e-s{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--tx3)}
+
+/* o mapa do painel */
+.pn-mapa-caixa{display:block;position:relative;border:1px solid var(--line);border-radius:var(--r);
+  padding:var(--s3) var(--s3) 0;overflow:hidden;color:inherit;text-decoration:none}
+.pn-mapa-pe{display:flex;flex-direction:column;gap:2px;padding:var(--s3) var(--s1) var(--s4)}
+.pn-mapa-pe b{font-family:var(--titulo);font-size:17px;font-weight:800;letter-spacing:-.03em;
+  text-transform:uppercase}
+.pn-mapa-pe span{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tx3)}
+
+/* o dinheiro, discreto */
+.pn-grana{display:flex;align-items:center;gap:var(--s3);position:relative;
+  border:1px solid var(--line);border-radius:var(--r);padding:var(--s4);
+  color:inherit;text-decoration:none;overflow:hidden}
+.pn-g-b{position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--bg3)}
+.pn-g-b i{display:block;height:100%;background:var(--ac)}
+.pn-g-l{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.pn-g-l b{font-family:var(--titulo);font-size:18px;font-weight:800;letter-spacing:-.03em}
+.pn-g-l span{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--tx3)}
+.pn-g-v{color:var(--tx3)}
 </style>
 <div id="app" class="app"><div class="boot">Carregando…</div></div>
 <script type="module">
@@ -945,7 +1069,7 @@ const rotaAtual = () => (location.hash || '#/').slice(1).split('?')[0] || '/';
 function telaBoasVindas() {
   const node = el(`<div class="capa">
     <div class="capa-topo">
-      <span class="marca">${MARCA}</span>
+      <span class="marca viva">${MARCA}</span>
       <span class="olho-txt">Gestão de produção</span>
     </div>
     <div class="capa-meio">
@@ -987,7 +1111,7 @@ function telaQuemEVoce() {
   const lista = store.all('membros');
   const node = el(`<div class="capa quem">
     <div class="capa-topo">
-      <span class="marca">${MARCA}</span>
+      <span class="marca viva">${MARCA}</span>
       <span class="olho-txt">Doc Fundação Bradesco</span>
     </div>
     <div class="capa-meio">
@@ -1079,7 +1203,7 @@ function tabs() {
     { r: '#/mais', i: ICO.mais, t: 'Mais' }
   ];
   const atual = '#' + rotaAtual();
-  return `<nav class="tabbar"><div class="brand"><span class="marca">${MARCA}</span></div>${itens.map((x) => `<a href="${x.r}" class="${atual === x.r || (x.r === '#/' && atual === '#/') ? 'on' : ''}">
+  return `<nav class="tabbar"><div class="brand"><span class="marca viva">${MARCA}</span></div>${itens.map((x) => `<a href="${x.r}" class="${atual === x.r || (x.r === '#/' && atual === '#/') ? 'on' : ''}">
     ${x.i}<span>${x.t}</span>${x.dot ? '<span class="dot"></span>' : ''}</a>`).join('')}</nav>`;
 }
 
@@ -2581,7 +2705,7 @@ function dispararNovos() {
   novos.slice(0, 3).forEach((a) => {
     try {
       new Notification('Unit0 — ' + (store.projeto?.nome || 'Produção'), {
-        body: a.detalhe ? `${a.texto} — ${a.detalhe}` : a.texto, icon: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5NiA5NiI+PHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiByeD0iMjIiIGZpbGw9IiMxMjE1MWIiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxOC4wMCAxOC4wMCkiPjxkZWZzPjxtYXNrIGlkPSJ1MGljb24iIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI2MC4wMCIgaGVpZ2h0PSI2MC4wMCI+PHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjYwLjAwIiBoZWlnaHQ9IjYwLjAwIiBmaWxsPSIjZmZmIi8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzAuMDAgMzAuMDApIHJvdGF0ZSgtMzgpIj48cmVjdCB4PSItNjAuMDAiIHk9Ii04MS4xNSIgd2lkdGg9IjE4MC4wMCIgaGVpZ2h0PSI2LjMwIiBmaWxsPSIjMDAwIi8+PHJlY3QgeD0iLTYwLjAwIiB5PSItNjUuNTUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iLTQ5Ljk1IiB3aWR0aD0iMTgwLjAwIiBoZWlnaHQ9IjYuMzAiIGZpbGw9IiMwMDAiLz48cmVjdCB4PSItNjAuMDAiIHk9Ii0zNC4zNSIgd2lkdGg9IjE4MC4wMCIgaGVpZ2h0PSI2LjMwIiBmaWxsPSIjMDAwIi8+PHJlY3QgeD0iLTYwLjAwIiB5PSItMTguNzUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iLTMuMTUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iMTIuNDUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iMjguMDUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iNDMuNjUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iNTkuMjUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9Ii02MC4wMCIgeT0iNzQuODUiIHdpZHRoPSIxODAuMDAiIGhlaWdodD0iNi4zMCIgZmlsbD0iIzAwMCIvPjwvZz48L21hc2s+PC9kZWZzPjxjaXJjbGUgY3g9IjMwLjAwIiBjeT0iMzAuMDAiIHI9IjI0LjAwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmNGIyM2UiIHN0cm9rZS13aWR0aD0iMTIuMDAiIG1hc2s9InVybCgjdTBpY29uKSIvPjwvZz48L3N2Zz4=", tag: a.id
+        body: a.detalhe ? `${a.texto} — ${a.detalhe}` : a.texto, icon: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5NiA5NiI+PHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiByeD0iMjEiIGZpbGw9IiMwYTBhMDkiLz48ZGVmcz48bWFzayBpZD0iaSIgbWFza1VuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeD0iMCIgeT0iMCIgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2Ij48cmVjdCB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIGZpbGw9IiNmZmYiLz48ZyB0cmFuc2Zvcm09InJvdGF0ZSgtMzggNDggNDgpIj48cmVjdCB4PSItMTAiIHk9IjM3LjkiIHdpZHRoPSIxMTYiIGhlaWdodD0iMjAiIGZpbGw9IiMwMDAiLz48L2c+PC9tYXNrPjwvZGVmcz48Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSIzMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJlZWU2IiBzdHJva2Utd2lkdGg9IjE3IiBtYXNrPSJ1cmwoI2kpIi8+PGcgdHJhbnNmb3JtPSJyb3RhdGUoLTM4IDQ4IDQ4KSI+PHJlY3QgeD0iMTMiIHk9IjQxLjQiIHdpZHRoPSI3MCIgaGVpZ2h0PSIxMyIgcng9IjEuMyIgZmlsbD0iI2U4YjEzZCIvPjwvZz48L3N2Zz4=", tag: a.id
       });
     } catch (e) { console.warn(e); }
   });
@@ -4251,6 +4375,13 @@ const FASES = [
   { k: 'pos', nome: 'Pós-produção', cor: 'info', simbolo: '✂️' },
   { k: 'entrega', nome: 'Entrega e fechamento', cor: 'mut', simbolo: '📦' }
 ];
+/* O nome por extenso de cada tipo de compromisso. Morava no painel, mas quem
+   usa é a agenda: vocabulário do projeto fica aqui, junto das fases. */
+const tipoEvento = (t) => ({
+  diaria: 'Diária de gravação', reuniao: 'Reunião', entrega: 'Entrega',
+  viagem: 'Viagem', outro: 'Compromisso'
+}[t] || 'Compromisso');
+
 const faseSimbolo = (k) => FASES.find((f) => f.k === k)?.simbolo || '•';
 const faseNome = (k) => FASES.find((f) => f.k === k)?.nome || k;
 
@@ -4345,7 +4476,7 @@ async function criarProdutor(nome, email) {
   });
 }
 
-  return { FASES, faseSimbolo, faseNome, STATUS_ETAPA, statusEtapa, RUBRICAS, criarProjetoTeste, criarProdutor };
+  return { FASES, tipoEvento, faseSimbolo, faseNome, STATUS_ETAPA, statusEtapa, RUBRICAS, criarProjetoTeste, criarProdutor };
 };
 
 __defs["js/store.js"] = function () {
@@ -4880,7 +5011,14 @@ function btnOlho(oculto) {
 /** Marca do Unit0: a palavra em texto e o zero desenhado como o anel de listras
     da claquete. O zero é dimensionado em em e alinhado pela linha de base, então
     a marca continua encaixada mesmo se a fonte de título não carregar. */
-const MARCA = '<span class="marca-txt">unit</span><svg viewBox="0 0 41.00 41.00" aria-hidden="true"><defs><mask id="u0zero" maskUnits="userSpaceOnUse" x="0" y="0" width="41.00" height="41.00"><rect x="0" y="0" width="41.00" height="41.00" fill="#fff"/><g transform="translate(20.50 20.50) rotate(-38)"><rect x="-41.00" y="-55.45" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="-44.79" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="-34.13" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="-23.47" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="-12.81" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="-2.15" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="8.51" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="19.17" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="29.83" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="40.49" width="123.00" height="4.30" fill="#000"/><rect x="-41.00" y="51.15" width="123.00" height="4.30" fill="#000"/></g></mask></defs><circle cx="20.50" cy="20.50" r="16.40" fill="none" stroke="#f4b23e" stroke-width="8.20" mask="url(#u0zero)"/></svg>';
+/* ---------------------------------------------------------------- marca ---
+   UNIT em Archivo pesado e o zero desenhado: um anel grosso cortado na
+   diagonal, com a barra âmbar ocupando o corte. É claquete e é contagem de
+   líder de filme ao mesmo tempo, e continua sendo um zero a 16px — que era
+   o problema das onze listras de antes, que viravam sujeira no tamanho
+   pequeno. Uma cor só, herdada: o anel é `currentColor`.
+   ----------------------------------------------------------------------- */
+const MARCA = '<span class="marca-txt">unit</span><svg viewBox="0 0 44 44" aria-hidden="true" class="marca-zero"><defs><mask id="u0m" maskUnits="userSpaceOnUse" x="-4" y="-4" width="52" height="52"><rect x="-4" y="-4" width="52" height="52" fill="#fff"/><g transform="rotate(-38 22 22)"><rect x="-8" y="17.4" width="60" height="9.2" fill="#000"/></g></mask></defs><circle cx="22" cy="22" r="15.6" fill="none" stroke="currentColor" stroke-width="8.8" mask="url(#u0m)" class="marca-anel"/><g transform="rotate(-38 22 22)"><rect x="6.4" y="19.1" width="31.2" height="5.8" rx=".6" fill="var(--ac)" class="marca-barra"/></g></svg>';
 
 /* ---------------- ícones ---------------- */
 const ICO = {
@@ -5090,11 +5228,11 @@ __defs["js/views/agenda.js"] = function () {
 // Agenda: diárias, viagens, reuniões e entregas — com ordem do dia completa,
 // horário de chamada por pessoa e confirmação de presença.
 const { store, membros, nomeMembro } = __req("js/store.js");
+const { tipoEvento } = __req("js/seed.js");
 const { can, ehEquipe } = __req("js/perms.js");
 const vViagens = __req("js/views/viagens.js");
 const { el, abrirForm, sheet, toast, escolher } = __req("js/ui.js");
 const { esc, fmtData, prazoTxt, prazoTag, diaSemana, diasAte, groupBy, ordenar } = __req("js/utils.js");
-const { tipoEvento } = __req("js/views/dash.js");
 const { custoDoEvento } = __req("js/calc.js");
 const { fmtMoney } = __req("js/utils.js");
 const { abrirLancamento, camposLancamento, salvarLancamento, lerNotaNoForm, conferirComprovante } = __req("js/views/financeiro.js");
@@ -6931,21 +7069,25 @@ function lancarNossaNF(c) {
 };
 
 __defs["js/views/dash.js"] = function () {
-// Painel: status do projeto, o que trava, o que vence, quanto sobra.
-// No celular os blocos empilham; a partir de 900px eles se distribuem em
-// colunas, como um quadro de produção.
+// Painel: onde o job está, não quanto ele custa.
+//
+// A versão antiga abria com o dinheiro em quatro números grandes. Mas quem abre
+// o app de manhã não precisa saber quanto sobrou — precisa saber onde a coisa
+// está, o que trava o quê e para onde a equipe vai. Então o dinheiro desceu
+// para uma faixa fina no fim (ele tem uma aba inteira só dele) e o alto da tela
+// virou três desenhos: a linha do contrato, o caminho das etapas com as
+// dependências, e o mapa do país.
 const { store } = __req("js/store.js");
 const { can } = __req("js/perms.js");
-const { el, btnOlho, toast } = __req("js/ui.js");
-const { esc, fmtMoneyShort, pct, fmtData, prazoTxt, prazoTag, diasAte, valoresOcultos } = __req("js/utils.js");
+const { el, toast } = __req("js/ui.js");
+const { esc, fmtMoneyShort, pct, fmtData, prazoTxt, diasAte, hoje, valoresOcultos } = __req("js/utils.js");
 const { financeiro } = __req("js/calc.js");
-const { FASES, statusEtapa, faseSimbolo } = __req("js/seed.js");
+const { FASES } = __req("js/seed.js");
 const { alertas, perguntas } = __req("js/notify.js");
 const { abrirDossie } = __req("js/dossie.js");
-const PERIODOS = [
-  { v: 1, t: '24h' }, { v: 3, t: '3 dias' }, { v: 7, t: 'Semana' }, { v: 30, t: 'Mês' }
-];
-let periodo = 7;
+const { brasilSVG, coord } = __req("js/geo.js");
+const dias = (a, b) => Math.round(
+  (new Date(String(b).slice(0, 10)) - new Date(String(a).slice(0, 10))) / 86400000);
 
 function render() {
   const u = store.user;
@@ -6956,27 +7098,194 @@ function render() {
     return { titulo: 'Painel', node };
   }
 
-  const etapas = store.doProjeto('etapas');
-  const feitas = etapas.filter((e) => e.status === 'feito').length;
-  const f = financeiro();
   const al = alertas();
   const qs = perguntas();
-  const verGrana = can(u, 'orcamento.ver');
-  const verLucro = can(u, 'lucro.ver') || can(u, 'contratos.valores');
+  const etapas = [...store.doProjeto('etapas')].sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
 
-  /* ---- cabeçalho ---- */
-  const cabecalho = `<section class="bloco largo topo">
-    <div class="card tight" style="display:flex;align-items:center;gap:12px">
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.nome)}</div>
-        <div class="small muted">${esc(p.cliente || 'sem cliente')} · ${esc(p.formato || 'audiovisual')}</div>
-      </div>
-      <span class="tag ${feitas === etapas.length && etapas.length ? 'ok' : 'info'}">${pct(feitas, etapas.length || 1)}%</span>
-    </div>
+  node.innerHTML = `
+    ${capaHTML(p, etapas)}
+    ${caminhoHTML(etapas)}
+    ${mapaHTML()}
+    ${perguntasHTML(qs)}
+    ${alertasHTML(al)}
+    ${dinheiroHTML(u)}`;
+
+  // Os desenhos precisam do tamanho real da caixa, que só existe depois de
+  // estar na tela.
+  requestAnimationFrame(() => { pintarLinha(node, p); pintarMapa(node); });
+
+  ligar(node, { al, qs, etapas });
+  return { titulo: 'Painel', sub: p.nome, node };
+}
+
+/* ------------------------------------------------------------------ capa ---
+   O job como cartaz: nome grande e, embaixo, a linha do contrato com a
+   assinatura de um lado, a entrega do outro e hoje no meio. */
+function capaHTML(p, etapas) {
+  const feitas = etapas.filter((e) => e.status === 'feito').length;
+  return `<section class="bloco largo pn-capa">
+    <div class="est-olho">O job <span>${feitas} de ${etapas.length} etapas</span></div>
+    <h2 class="capa-tit pn-capa-t">${esc(p.nome)}</h2>
+    <div class="pn-linha" data-linha></div>
   </section>`;
+}
 
-  /* ---- decisões rápidas: no máximo três, resolvidas no toque ---- */
-  const perguntasHTML = !qs.length ? '' : `<section class="bloco largo perguntas">
+/* A linha do contrato: assinatura → hoje → entrega, com as viagens marcadas. */
+function pintarLinha(node, p) {
+  const caixa = node.querySelector('[data-linha]');
+  if (!caixa) return;
+  const larg = caixa.clientWidth;
+  if (!larg) return;
+  const ctr = store.doProjeto('contratos').find((c) => c.tipo === 'cliente');
+  const de = ctr?.assinado_em || p.inicio;
+  const ate = ctr?.prazo_entrega || p.entrega;
+  if (!de || !ate) { caixa.remove(); return; }
+
+  const total = Math.max(1, dias(de, ate));
+  const x = (d) => 2 + (Math.min(1, Math.max(0, dias(de, d) / total)) * (larg - 4));
+  const h = 62;
+  const y = 30;
+  const hj = hoje();
+  const andado = Math.min(1, Math.max(0, dias(de, hj) / total));
+
+  const viagens = store.doProjeto('viagens')
+    .filter((v) => v.ida >= de && v.ida <= ate)
+    .map((v) => `<line class="pl-v ${v.ida < hj ? 'passou' : ''}"
+      x1="${x(v.ida).toFixed(1)}" y1="${y - 7}" x2="${x(v.ida).toFixed(1)}" y2="${y + 7}"/>`).join('');
+
+  caixa.innerHTML = `<svg viewBox="0 0 ${larg} ${h}" width="${larg}" height="${h}" class="pl">
+    <line class="pl-base" x1="2" y1="${y}" x2="${larg - 2}" y2="${y}"/>
+    <line class="pl-feito" x1="2" y1="${y}" x2="${x(hj).toFixed(1)}" y2="${y}"
+      style="--fim:${(x(hj) - 2).toFixed(1)}px"/>
+    ${viagens}
+    <circle class="pl-hoje" cx="${x(hj).toFixed(1)}" cy="${y}" r="5"/>
+    <text class="pl-r esq" x="2" y="14">${esc(fmtData(de, { ano: false }))} · assinatura</text>
+    <text class="pl-r dir" x="${larg - 2}" y="14" text-anchor="end">entrega · ${esc(fmtData(ate, { ano: false }))}</text>
+    <text class="pl-r hoje" x="${x(hj).toFixed(1)}" y="${y + 22}"
+      text-anchor="${andado > 0.8 ? 'end' : andado < 0.2 ? 'start' : 'middle'}">hoje · ${Math.round(andado * 100)}%</text>
+  </svg>`;
+}
+
+/* --------------------------------------------------------------- caminho ---
+   As cinco fases como um trilho: cada uma é um anel que se preenche com o que
+   já foi feito, e o fio entre elas é a dependência — nenhuma fase anda de
+   verdade antes da anterior fechar. Tocar numa abre as etapas dela. */
+function caminhoHTML(etapas) {
+  const fases = FASES.map((f) => {
+    const lista = etapas.filter((e) => e.fase === f.k);
+    const ok = lista.filter((e) => e.status === 'feito').length;
+    const fazendo = lista.filter((e) => e.status === 'fazendo').length;
+    const travado = lista.filter((e) => e.status === 'travado').length;
+    return { ...f, lista, ok, fazendo, travado, p: lista.length ? ok / lista.length : 0 };
+  }).filter((f) => f.lista.length);
+  // "Em curso" em três fases ao mesmo tempo não diz onde o job está. A marca
+  // fica só na primeira que ainda não fechou.
+  const atual = fases.findIndex((f) => f.p < 1);
+  fases.forEach((f, i) => { f.atual = i === atual; });
+
+  const R = 21, C = 2 * Math.PI * R;
+  return `<section class="bloco largo">
+    <div class="sec"><div class="sec-t">O caminho</div>
+      <a href="#/etapas" class="small">todas as etapas</a></div>
+    <div class="cam-caixa"><div class="cam" data-cam>
+      ${fases.map((f, i) => `
+        <button class="cam-f ${f.travado ? 'travado' : f.p === 1 ? 'feito' : f.atual ? 'agora' : ''}"
+          data-fase="${f.k}" style="--i:${i}">
+          ${i ? `<span class="cam-fio ${fases[i - 1].p === 1 ? 'aberto' : ''}"></span>` : ''}
+          <span class="cam-anel">
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <circle class="cam-t" cx="24" cy="24" r="${R}"/>
+              <circle class="cam-p" cx="24" cy="24" r="${R}"
+                stroke-dasharray="${C.toFixed(1)}"
+                style="--vazio:${(C * (1 - f.p)).toFixed(1)}"/>
+            </svg>
+            <span class="cam-n">${f.ok}<i>/${f.lista.length}</i></span>
+          </span>
+          <span class="cam-t2">${esc(f.nome)}</span>
+          ${f.travado ? `<span class="cam-tag">${f.travado} travado${f.travado > 1 ? 's' : ''}</span>`
+            : f.atual ? '<span class="cam-tag agora">aqui</span>' : ''}
+        </button>`).join('')}
+    </div></div>
+    <div class="cam-abre" data-cam-abre hidden></div>
+  </section>`;
+}
+
+/* O que aparece quando se toca numa fase: as etapas dela, com as tarefas
+   penduradas e o que cada uma segura depois. */
+function etapasDaFase(k, etapas) {
+  const lista = etapas.filter((e) => e.fase === k);
+  const tarefas = store.doProjeto('tarefas');
+  const aberta = (t) => (t.status || (t.feito ? 'feita' : 'aberta')) !== 'feita';
+  const idx = FASES.findIndex((f) => f.k === k);
+  const depois = FASES.slice(idx + 1).map((f) => f.nome);
+
+  return `<div class="cam-lista">
+    ${lista.map((e) => {
+      const t = tarefas.filter((x) => x.etapa_id === e.id);
+      const ab = t.filter(aberta).length;
+      const st = e.status === 'feito' ? 'feito' : e.status === 'travado' ? 'travado'
+        : e.status === 'fazendo' ? 'agora' : '';
+      return `<button class="cam-e ${st}" data-etapa="${e.id}">
+        <span class="cam-e-m"></span>
+        <span class="cam-e-g">
+          <span class="cam-e-t">${esc(e.nome)}</span>
+          <span class="cam-e-s">${esc([
+            // Etapa fechada não precisa mostrar prazo vencido: ela cumpriu.
+            e.status === 'feito' ? 'concluída' : e.prazo ? prazoTxt(e.prazo) : '',
+            t.length ? (ab ? `${ab} de ${t.length} tarefas em aberto` : `${t.length} tarefas, todas feitas`) : '',
+            e.status === 'travado' && depois.length ? `trava ${depois.length} fase(s) depois` : ''
+          ].filter(Boolean).join(' · '))}</span>
+        </span>
+      </button>`;
+    }).join('')}
+  </div>`;
+}
+
+/* ------------------------------------------------------------------ mapa --- */
+function mapaHTML() {
+  return `<section class="bloco largo">
+    <div class="sec"><div class="sec-t">Onde</div><a href="#/mapa" class="small">abrir o mapa</a></div>
+    <a class="pn-mapa-caixa" href="#/mapa" data-mapinha></a>
+  </section>`;
+}
+
+function pintarMapa(node) {
+  const caixa = node.querySelector('[data-mapinha]');
+  if (!caixa) return;
+  const larg = caixa.clientWidth;
+  if (!larg) return;
+  const hj = hoje();
+  const vs = [...store.doProjeto('viagens')].sort((a, b) => String(a.ida).localeCompare(String(b.ida)));
+  const prox = vs.find((v) => (v.volta || v.ida) >= hj) || vs[vs.length - 1];
+  const limpo = (v) => String(v?.destino || '').replace(/\s*\([A-Z]{2}\)\s*$/, '').trim();
+  const pinos = vs.map((v) => ({
+    nome: v.destino, cidade: limpo(v) || v.destino,
+    estado: (v.volta || v.ida) < hj ? 'passou' : 'futuro',
+    rotulo: v === prox ? undefined : false        // só o próximo leva nome
+  })).filter((x) => coord(x.cidade));
+  caixa.innerHTML = brasilSVG({
+    larg, alt: Math.round(larg * 0.86), pinos,
+    rota: 'São Paulo', aceso: limpo(prox) || prox?.destino
+  }) + `<div class="pn-mapa-pe">
+    <b>${esc(prox?.destino || '—')}</b>
+    <span>${esc(quandoTxt(prox, hj))} · ${esc(fmtData(prox?.ida, { ano: false }))}</span>
+  </div>`;
+}
+
+/* "em 1 dias" não é português, e "em 0 dias" muito menos. */
+function quandoTxt(v, hj) {
+  if (!v) return 'sem viagem';
+  const d = dias(hj, v.ida);
+  if (d < 0) return (v.volta || v.ida) >= hj ? 'em curso' : 'já rodou';
+  if (d === 0) return 'embarca hoje';
+  if (d === 1) return 'embarca amanhã';
+  return `em ${d} dias`;
+}
+
+/* ------------------------------------------------------- decisões rápidas --- */
+function perguntasHTML(qs) {
+  if (!qs.length) return '';
+  return `<section class="bloco largo perguntas">
     <div class="sec"><div class="sec-t">Resolve agora</div>
       <span class="small muted">${qs.length === 1 ? '1 pergunta' : qs.length + ' perguntas'}</span></div>
     <div class="grid3">${qs.map((q) => `
@@ -6992,9 +7301,11 @@ function render() {
         </div>
       </div>`).join('')}</div>
   </section>`;
+}
 
-  /* ---- alertas ---- */
-  const alertaHTML = !al.length ? '' : `<section class="bloco">
+function alertasHTML(al) {
+  if (!al.length) return '';
+  return `<section class="bloco largo">
     <div class="sec"><div class="sec-t">Precisa de você</div>
       <span class="small muted">${al.length}</span></div>
     <div class="card lista">
@@ -7009,149 +7320,64 @@ function render() {
         <span class="g"><span class="t" style="color:var(--ac2)">Ver os outros ${al.length - 6}</span></span></a>` : ''}
     </div>
   </section>`;
+}
 
-  /* ---- fases ---- */
-  const fasesHTML = `<section class="bloco">
-    <div class="sec"><div class="sec-t">Etapas</div><a href="#/etapas" class="small">abrir</a></div>
-    <div class="card">${FASES.map((fase) => {
-      const lista = etapas.filter((e) => e.fase === fase.k);
-      if (!lista.length) return '';
-      const ok = lista.filter((e) => e.status === 'feito').length;
-      const trav = lista.filter((e) => e.status === 'travado').length;
-      const p100 = pct(ok, lista.length);
-      return `<div style="margin-bottom:13px">
-        <div style="display:flex;align-items:center;gap:9px">
-          <span class="ico">${fase.simbolo}</span>
-          <span style="flex:1;font-weight:650;font-size:14px">${esc(fase.nome)}</span>
-          ${trav ? `<span class="tag bad">${trav} travado${trav > 1 ? 's' : ''}</span>` : ''}
-          <span class="small muted mono">${ok}/${lista.length}</span>
-        </div>
-        <div class="bar"><i class="${p100 === 100 ? 'ok' : trav ? 'bad' : ''}" style="width:${p100}%"></i></div>
-      </div>`;
-    }).join('') || '<div class="empty">Sem etapas cadastradas.</div>'}</div>
+/* O dinheiro em uma linha. O resto está na aba dele. */
+function dinheiroHTML(u) {
+  if (!can(u, 'orcamento.ver') || valoresOcultos()) return '';
+  const f = financeiro();
+  const usado = pct(f.comprometido, f.orcado || 1);
+  return `<section class="bloco largo">
+    <a class="pn-grana" href="#/financeiro">
+      <span class="pn-g-b"><i style="width:${Math.min(100, usado)}%"></i></span>
+      <span class="pn-g-l">
+        <b>${fmtMoneyShort(f.comprometido)}</b>
+        <span>de ${fmtMoneyShort(f.orcado)} orçados · ${usado}%</span>
+      </span>
+      <span class="pn-g-v">→</span>
+    </a>
   </section>`;
+}
 
-  /* ---- dinheiro ---- */
-  let granaHTML = '';
-  if (verGrana) {
-    const usado = pct(f.comprometido, f.orcado || 1);
-    granaHTML = `<section class="bloco largo dinheiro">
-      <div class="sec"><div class="sec-t">Dinheiro</div>
-        ${btnOlho(valoresOcultos())}<a href="#/financeiro" class="small" style="margin-left:8px">ver tudo</a></div>
-      <div class="grid">
-        ${verLucro ? `<div class="kpi"><div class="l">Contratado</div>
-          <div class="v">${fmtMoneyShort(f.contratado)}</div>
-          <div class="h">recebido ${fmtMoneyShort(f.recebido)}</div></div>` : ''}
-        <div class="kpi ${f.estouro > 0 ? 'bad' : ''}"><div class="l">Orçado</div>
-          <div class="v">${fmtMoneyShort(f.orcado)}</div>
-          <div class="h">${usado}% comprometido</div></div>
-        <div class="kpi"><div class="l">Já negociado</div><div class="v">${fmtMoneyShort(f.negociado)}</div>
-          <div class="h">falta fechar ${fmtMoneyShort(f.aNegociar)}</div></div>
-        <div class="kpi ${f.saldoOrcamento < 0 ? 'bad' : ''}"><div class="l">Ainda posso gastar</div>
-          <div class="v">${fmtMoneyShort(f.saldoOrcamento)}</div>
-          <div class="h">orçado − comprometido</div></div>
-        ${verLucro ? `<div class="kpi ${f.economia < 0 ? 'bad' : 'ok'}"><div class="l">Economia negociada</div>
-          <div class="v">${fmtMoneyShort(f.economia)}</div>
-          <div class="h">orçado − fechado, no que já fechou</div></div>
-        <div class="kpi ${f.lucroSeFechar < 0 ? 'bad' : 'ok'}"><div class="l">Lucro hoje</div>
-          <div class="v">${fmtMoneyShort(f.lucroSeFechar)}</div>
-          <div class="h">se o resto fechar no orçado</div></div>` : ''}
-        ${can(u, 'contas.ver') ? `<div class="kpi"><div class="l">A pagar</div>
-          <div class="v">${fmtMoneyShort(f.aPagar)}</div></div>
-        <div class="kpi"><div class="l">A receber</div>
-          <div class="v">${fmtMoneyShort(f.aReceber)}</div></div>` : ''}
-      </div>
-      <div class="bar" style="margin-top:2px"><i class="${usado > 100 ? 'bad' : usado > 85 ? 'warn' : 'ok'}"
-        style="width:${Math.min(usado, 100)}%"></i></div>
-    </section>`;
-  }
+/* ------------------------------------------------------------------ ligar --- */
+function ligar(node, { al, qs, etapas }) {
+  let faseAberta = null;
+  const abre = node.querySelector('[data-cam-abre]');
 
-  /* ---- próximos, com período escolhido ---- */
-  const eventos = store.doProjeto('eventos')
-    .map((e) => ({ ...e, d: diasAte(e.data) }))
-    .filter((e) => e.d !== null && e.d >= 0 && e.d <= periodo)
-    .sort((a, b) => a.d - b.d);
-  const entregas = store.doProjeto('entregas')
-    .map((e) => ({ ...e, d: diasAte(e.prazo) }))
-    .filter((e) => e.status !== 'entregue' && e.d !== null && e.d >= 0 && e.d <= periodo)
-    .sort((a, b) => a.d - b.d);
-
-  const agendaHTML = `<section class="bloco">
-    <div class="sec"><div class="sec-t">Próximos</div><a href="#/agenda" class="small">agenda</a></div>
-    <div class="chips">${PERIODOS.map((x) => `<button class="chip ${periodo === x.v ? 'on' : ''}"
-      data-periodo="${x.v}">${x.t}</button>`).join('')}</div>
-    <div class="card">
-      ${!eventos.length && !entregas.length
-        ? `<div class="empty">Nada marcado ${periodo === 1 ? 'para as próximas 24 horas' : `nos próximos ${periodo} dias`}.</div>` : ''}
-      ${eventos.map((e) => `<div class="row">
-        <span class="ico ${e.d === 0 ? 'urg' : e.d <= 2 ? 'med' : ''}">${
-          e.tipo === 'viagem' ? '✈️' : e.tipo === 'diaria' ? '🎬' : e.tipo === 'entrega' ? '📦' : '📍'}</span>
-        <span class="g"><span class="t">${esc(e.titulo)}</span>
-        <span class="s">${esc(fmtData(e.data, { ano: false }))} · ${esc(prazoTxt(e.data))}${e.local ? ' · ' + esc(e.local) : ''}</span></span>
-      </div>`).join('')}
-      ${entregas.map((e) => `<div class="row">
-        <span class="ico ${prazoTag(e.prazo, false) === 'bad' ? 'urg' : 'med'}">📦</span>
-        <span class="g"><span class="t">${esc(e.titulo)}</span>
-        <span class="s">entrega · ${esc(fmtData(e.prazo))} · ${esc(prazoTxt(e.prazo))}</span></span>
-      </div>`).join('')}
-    </div>
-  </section>`;
-
-  /* ---- travado e próximas etapas ---- */
-  const travadas = etapas.filter((e) => e.status === 'travado');
-  const proximas = etapas.filter((e) => e.status === 'fazendo' || (e.status === 'nao' && e.prazo))
-    .sort((a, b) => (a.ordem || 0) - (b.ordem || 0)).slice(0, 6);
-
-  const travadoHTML = !travadas.length ? '' : `<section class="bloco">
-    <div class="sec"><div class="sec-t">Travado</div></div>
-    <div class="card">${travadas.map((e) => `<div class="row">
-      <span class="ico urg">⛔</span>
-      <span class="g"><span class="t">${esc(e.nome)}</span>
-      <span class="s">${esc(e.obs || 'sem observação')}</span></span></div>`).join('')}</div>
-  </section>`;
-
-  const proximasHTML = `<section class="bloco">
-    <div class="sec"><div class="sec-t">Próximas etapas</div></div>
-    <div class="card">${proximas.length ? proximas.map((e) => `<div class="row">
-        <span class="ico">${faseSimbolo(e.fase)}</span>
-        <span class="g"><span class="t">${esc(e.nome)}</span>
-        <span class="s">${esc(statusEtapa(e.status).t)}${e.prazo ? ' · ' + esc(fmtData(e.prazo)) + ' · ' + esc(prazoTxt(e.prazo)) : ''}</span></span>
-      </div>`).join('') : '<div class="empty">Marque prazos nas etapas para aparecerem aqui.</div>'}</div>
-  </section>`;
-
-  node.innerHTML = cabecalho + perguntasHTML + alertaHTML + fasesHTML + granaHTML
-    + agendaHTML + travadoHTML + proximasHTML;
-
-  // Responder uma pergunta grava e some com o cartão, sem trocar de tela.
-  node.querySelectorAll('[data-q]').forEach((n) => {
-    const q = qs.find((x) => x.id === n.dataset.q);
-    if (!q) return;
-    const responder = async (fn) => {
-      n.classList.add('indo');
-      try { if (fn) await fn(); } catch (e) { console.error(e); toast('Não consegui salvar: ' + e.message); }
-      setTimeout(() => store.emit(), 180);
+  node.querySelectorAll('[data-fase]').forEach((b) => {
+    b.onclick = () => {
+      const k = b.dataset.fase;
+      faseAberta = faseAberta === k ? null : k;
+      node.querySelectorAll('[data-fase]').forEach((x) => {
+        x.classList.toggle('on', x.dataset.fase === faseAberta);
+      });
+      if (!faseAberta) { abre.hidden = true; abre.innerHTML = ''; return; }
+      abre.innerHTML = etapasDaFase(faseAberta, etapas);
+      abre.hidden = false;
+      abre.querySelectorAll('[data-etapa]').forEach((n) => {
+        n.onclick = () => { location.hash = '#/etapas'; };
+      });
     };
-    n.querySelector('[data-sim]').onclick = () => responder(q.aoSim);
-    n.querySelector('[data-nao]').onclick = () => responder(q.aoNao);
   });
-  // Tocar num aviso abre o dossiê dele: o que é, de onde veio, por que resolver,
-  // como, e o que está preso esperando. Ir direto para a tela é o botão de lá.
+
   node.querySelectorAll('[data-alerta]').forEach((b) => {
     b.onclick = () => abrirDossie(al[Number(b.dataset.alerta)]);
   });
-  node.querySelectorAll('[data-periodo]').forEach((b) => {
-    b.onclick = () => { periodo = Number(b.dataset.periodo); store.emit(); };
-  });
 
-  return { titulo: 'Painel', sub: p.nome, node };
+  node.querySelectorAll('[data-q]').forEach((n) => {
+    const q = qs.find((x) => x.id === n.dataset.q);
+    if (!q) return;
+    const some = async (fn) => {
+      n.classList.add('indo');
+      try { await fn(); } catch (e) { toast('Falhou: ' + e.message); }
+      setTimeout(() => store.emit(), 200);
+    };
+    n.querySelector('[data-sim]').onclick = () => some(q.aoSim);
+    n.querySelector('[data-nao]').onclick = () => some(q.aoNao || (async () => {}));
+  });
 }
 
-const tipoEvento = (t) => ({
-  diaria: 'Diária de gravação', reuniao: 'Reunião', entrega: 'Entrega',
-  viagem: 'Viagem', outro: 'Compromisso'
-}[t] || 'Compromisso');
-
-  return { render, tipoEvento };
+  return { render };
 };
 
 __defs["js/views/equipe.js"] = function () {

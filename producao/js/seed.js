@@ -10,6 +10,13 @@ export const FASES = [
   { k: 'pos', nome: 'Pós-produção', cor: 'info', simbolo: '✂️' },
   { k: 'entrega', nome: 'Entrega e fechamento', cor: 'mut', simbolo: '📦' }
 ];
+/* O nome por extenso de cada tipo de compromisso. Morava no painel, mas quem
+   usa é a agenda: vocabulário do projeto fica aqui, junto das fases. */
+export const tipoEvento = (t) => ({
+  diaria: 'Diária de gravação', reuniao: 'Reunião', entrega: 'Entrega',
+  viagem: 'Viagem', outro: 'Compromisso'
+}[t] || 'Compromisso');
+
 export const faseSimbolo = (k) => FASES.find((f) => f.k === k)?.simbolo || '•';
 export const faseNome = (k) => FASES.find((f) => f.k === k)?.nome || k;
 

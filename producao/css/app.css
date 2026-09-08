@@ -50,6 +50,13 @@
   :root{ --t-inst:1ms; --t-rap:1ms; --t-norm:1ms; --t-med:1ms; --t-lento:1ms }
 }
 
+/* O "olho" é o rótulo de ficha técnica que abre um bloco: mono, caixa alta,
+   entreletra larga. Aparece em cartaz, em crédito de filme e agora aqui. */
+.olho-txt{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--tx3)}
+.fio{height:1px;background:var(--tx);opacity:.18;margin:var(--s4) 0}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--tx)}
 body{font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -269,9 +276,21 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
    coluna fixa à esquerda e o conteúdo se espalha em duas colunas, para a tela
    grande não ficar com cara de celular esticado.
    ========================================================================= */
-.marca{font-family:var(--titulo);font-weight:700;letter-spacing:-.035em;line-height:1;
+.marca{font-family:var(--titulo);font-weight:800;letter-spacing:-.05em;line-height:1;
+  text-transform:lowercase;
   white-space:nowrap;color:var(--tx);display:inline-block;font-size:30px}
-.marca svg{height:.72em;width:auto;vertical-align:baseline;margin-left:.04em}
+.marca svg{height:.78em;width:auto;vertical-align:baseline;margin-left:.02em}
+/* Na capa e no carregamento o anel se desenha e a barra entra depois — dois
+   segundos de identidade, uma vez só, sem laço. */
+.marca.viva .marca-anel{stroke-dasharray:98;stroke-dashoffset:98;
+  animation:anel .7s var(--e-entra) forwards}
+.marca.viva .marca-barra{transform-box:fill-box;transform-origin:center;
+  animation:barra .5s var(--e-folha) .34s backwards}
+@keyframes anel{to{stroke-dashoffset:0}}
+@keyframes barra{from{transform:scaleX(0);opacity:0}to{transform:scaleX(1);opacity:1}}
+@media (prefers-reduced-motion: reduce){
+  .marca.viva .marca-anel,.marca.viva .marca-barra{animation:none;stroke-dashoffset:0}
+}
 .tabbar .brand{display:none}
 
 @media (min-width:900px){
@@ -743,3 +762,108 @@ main{animation:tela var(--t-med) var(--e-entra)}
 .ds-lt{font-size:14px;font-weight:650;letter-spacing:-.01em}
 .ds-ls{font-size:12px;color:var(--tx3);line-height:1.4}
 .ds-lv{flex:none;color:var(--tx3)}
+
+/* ============================================================================
+   Painel. O dinheiro saiu do palco — ele tem uma aba inteira. No lugar dele,
+   três desenhos: a linha do contrato, o caminho das etapas com as dependências
+   e o mapa do país. Tudo entra animado uma vez e para.
+   ========================================================================= */
+.pn-capa{padding-bottom:var(--s2)}
+.pn-capa-t{font-size:clamp(26px,8.4vw,40px);margin:var(--s3) 0 var(--s4)}
+.est-olho span{color:var(--tx3)}
+
+/* a linha do contrato */
+.pn-linha{width:100%}
+.pl{display:block;overflow:visible}
+.pl-base{stroke:var(--line);stroke-width:1.5}
+.pl-feito{stroke:var(--ac);stroke-width:2.5;stroke-linecap:round;
+  stroke-dasharray:var(--fim) 9999;stroke-dashoffset:var(--fim);
+  animation:pl-corre var(--t-lento) var(--e-entra) .15s forwards}
+@keyframes pl-corre{to{stroke-dashoffset:0}}
+.pl-v{stroke:var(--tx3);stroke-width:1.5;opacity:.55}
+.pl-v.passou{opacity:.28}
+.pl-hoje{fill:var(--ac);animation:pl-pop var(--t-med) var(--e-folha) .45s backwards}
+@keyframes pl-pop{from{r:0;opacity:0}}
+.pl-r{fill:var(--tx3);font-family:var(--mono);font-size:9px;letter-spacing:.1em;
+  text-transform:uppercase}
+.pl-r.hoje{fill:var(--ac)}
+@media (prefers-reduced-motion: reduce){
+  .pl-feito{animation:none;stroke-dashoffset:0}.pl-hoje{animation:none}
+}
+
+/* o caminho: cinco anéis ligados por fio */
+/* Cinco fases não cabem em 390px sem apertar: o trilho rola e a borda direita
+   esmaece, que é o que avisa que tem mais. */
+.cam-caixa{position:relative}
+.cam-caixa::after{content:"";position:absolute;top:0;bottom:0;right:0;width:34px;
+  pointer-events:none;background:linear-gradient(90deg,transparent,var(--bg))}
+.cam{display:flex;gap:0;align-items:flex-start;overflow-x:auto;scrollbar-width:none;
+  padding:var(--s2) 0 var(--s3)}
+.cam::-webkit-scrollbar{display:none}
+.cam-f{flex:1 0 auto;min-width:86px;position:relative;display:flex;flex-direction:column;
+  align-items:center;gap:var(--s2);padding:0 var(--s1);border:0;background:none;color:var(--tx);
+  cursor:pointer;
+  opacity:0;animation:cam-entra var(--t-med) var(--e-entra) forwards;
+  animation-delay:calc(var(--i) * 70ms + 120ms)}
+@keyframes cam-entra{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.cam-f{animation:none;opacity:1}}
+.cam-fio{position:absolute;top:24px;right:50%;left:-50%;height:1.5px;background:var(--line);z-index:0}
+.cam-fio.aberto{background:var(--ac);opacity:.6}
+.cam-anel{position:relative;width:48px;height:48px;display:grid;place-items:center;z-index:1;
+  background:var(--bg);border-radius:50%}
+.cam-anel svg{position:absolute;inset:0;width:48px;height:48px;transform:rotate(-90deg)}
+.cam-t{fill:none;stroke:var(--line);stroke-width:3}
+.cam-p{fill:none;stroke:var(--tx2);stroke-width:3;stroke-linecap:round;
+  stroke-dashoffset:132;animation:cam-anel var(--t-lento) var(--e-entra) .3s forwards}
+@keyframes cam-anel{to{stroke-dashoffset:var(--vazio)}}
+@media (prefers-reduced-motion: reduce){.cam-p{animation:none;stroke-dashoffset:var(--vazio)}}
+.cam-f.feito .cam-p{stroke:var(--ok)}
+.cam-f.agora .cam-p{stroke:var(--ac)}
+.cam-f.travado .cam-p{stroke:var(--bad)}
+.cam-n{font-family:var(--mono);font-size:12px;font-weight:600;line-height:1;
+  font-variant-numeric:tabular-nums}
+.cam-n i{font-style:normal;color:var(--tx3);font-size:9px}
+.cam-t2{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--tx3);text-align:center;line-height:1.35;max-width:88px}
+.cam-f.on .cam-t2,.cam-f.agora .cam-t2{color:var(--tx)}
+.cam-tag{font-family:var(--mono);font-size:8px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--bad)}
+.cam-tag.agora{color:var(--ac)}
+.cam-f.on .cam-anel{box-shadow:0 0 0 3px var(--ac-soft)}
+
+.cam-abre{animation:as-abre var(--t-med) var(--e-entra)}
+.cam-lista{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.cam-e{display:flex;align-items:flex-start;gap:var(--s3);width:100%;text-align:left;
+  padding:var(--s3) 0;border:0;border-bottom:1px solid var(--line);background:none;
+  color:var(--tx);cursor:pointer}
+.cam-e-m{flex:none;width:7px;height:7px;border-radius:50%;margin-top:6px;
+  border:1.5px solid var(--tx3)}
+.cam-e.feito .cam-e-m{background:var(--ok);border-color:var(--ok)}
+.cam-e.agora .cam-e-m{background:var(--ac);border-color:var(--ac)}
+.cam-e.travado .cam-e-m{background:var(--bad);border-color:var(--bad)}
+.cam-e-g{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.cam-e-t{font-size:14px;font-weight:600;line-height:1.35}
+.cam-e.feito .cam-e-t{color:var(--tx3);font-weight:500}
+.cam-e-s{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--tx3)}
+
+/* o mapa do painel */
+.pn-mapa-caixa{display:block;position:relative;border:1px solid var(--line);border-radius:var(--r);
+  padding:var(--s3) var(--s3) 0;overflow:hidden;color:inherit;text-decoration:none}
+.pn-mapa-pe{display:flex;flex-direction:column;gap:2px;padding:var(--s3) var(--s1) var(--s4)}
+.pn-mapa-pe b{font-family:var(--titulo);font-size:17px;font-weight:800;letter-spacing:-.03em;
+  text-transform:uppercase}
+.pn-mapa-pe span{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tx3)}
+
+/* o dinheiro, discreto */
+.pn-grana{display:flex;align-items:center;gap:var(--s3);position:relative;
+  border:1px solid var(--line);border-radius:var(--r);padding:var(--s4);
+  color:inherit;text-decoration:none;overflow:hidden}
+.pn-g-b{position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--bg3)}
+.pn-g-b i{display:block;height:100%;background:var(--ac)}
+.pn-g-l{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.pn-g-l b{font-family:var(--titulo);font-size:18px;font-weight:800;letter-spacing:-.03em}
+.pn-g-l span{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--tx3)}
+.pn-g-v{color:var(--tx3)}
