@@ -1,34 +1,17 @@
 // O Brasil desenhado, não baixado.
 //
 // A página publicada não consegue buscar imagem de fora — nenhum tile de mapa
-// chega aqui. Então o contorno do país é um caminho vetorial nosso e as cidades
-// são coordenadas de verdade projetadas em cima dele. Custa zero de rede,
-// funciona sem sinal na estrada e ainda por cima tem a cara de cartaz que o
-// resto do app está tomando.
-
-/* Contorno simplificado, em graus (longitude, latitude), no sentido horário a
-   partir de Roraima. É silhueta, não cartografia: serve para reconhecer o país
-   e situar a cidade, não para navegar. */
-const CONTORNO = [
-  [-60.7, 5.2], [-60.0, 4.6], [-59.0, 3.9], [-56.5, 2.0], [-55.2, 2.5], [-54.2, 2.2],
-  [-51.6, 4.4], [-50.9, 2.2], [-50.0, 1.8], [-48.6, -0.2], [-48.5, -1.4], [-46.5, -0.8],
-  [-44.3, -2.5], [-43.3, -2.4], [-41.8, -2.9], [-40.5, -2.8], [-38.5, -3.7], [-37.2, -4.9],
-  [-35.2, -5.2], [-34.8, -6.9], [-34.85, -8.05], [-35.7, -9.7], [-36.4, -10.5], [-37.1, -11.3],
-  [-38.5, -13.0], [-38.9, -13.9], [-39.0, -14.8], [-38.9, -16.4], [-39.2, -17.7], [-39.7, -18.6],
-  [-40.3, -20.3], [-41.0, -21.6], [-41.9, -22.4], [-42.0, -23.0], [-43.2, -23.0], [-44.6, -23.4],
-  [-46.3, -24.0], [-47.9, -25.0], [-48.5, -25.5], [-48.5, -26.9], [-48.5, -27.6], [-48.8, -28.6],
-  [-50.0, -30.4], [-51.4, -31.9], [-52.2, -32.6], [-53.4, -33.7], [-53.5, -32.6], [-54.6, -31.5],
-  [-55.6, -30.9], [-56.9, -30.1], [-57.6, -30.2], [-56.2, -28.8], [-55.6, -27.4], [-54.3, -25.7],
-  [-54.6, -25.6], [-54.3, -24.1], [-54.7, -23.0], [-55.7, -22.6], [-57.6, -22.1], [-57.9, -20.9],
-  [-58.2, -20.0], [-58.0, -19.4], [-57.8, -19.0], [-59.0, -16.4], [-60.4, -15.1], [-60.3, -13.5],
-  [-61.9, -13.5], [-63.0, -12.6], [-64.5, -12.5], [-65.4, -10.5], [-65.3, -9.8], [-66.8, -9.8],
-  [-68.6, -11.0], [-69.6, -10.9], [-70.6, -11.0], [-70.6, -9.5], [-72.2, -9.9], [-73.2, -9.4],
-  [-72.9, -7.6], [-73.8, -7.3], [-72.9, -5.1], [-70.8, -4.2], [-70.0, -4.2], [-69.9, -2.2],
-  [-69.4, -1.1], [-69.9, 0.6], [-69.2, 0.9], [-67.9, 1.7], [-67.3, 2.0], [-67.1, 2.8],
-  [-64.5, 4.1], [-63.4, 3.9], [-61.4, 4.5], [-60.7, 5.2]
-];
-
-/* Onde ficam as cidades do job. Chave é o que aparece no cadastro. */
+// chega aqui. Então o país mora dentro do arquivo: `malhas.js` traz o Natural
+// Earth 1:50m (contorno, divisas dos estados, rios e lagoas) em vinte
+// kilobytes, e as cidades são coordenadas de verdade projetadas em cima disso.
+// Custa zero de rede, funciona sem sinal na estrada e ainda por cima tem a
+// cara de carta náutica que o resto do app está tomando.
+//
+// O detalhe entra por degraus, conforme o zoom: de longe é o país e a grade de
+// dez graus; aproximando entram as divisas, as siglas dos estados, a grade de
+// cinco, os rios; no fim, as cidades em volta, o aeroporto e a estrada. Tudo é
+// desenhado uma vez só — o zoom acende camada, não redesenha mapa.
+import { PAIS, ESTADOS, RIOS, LAGOS, SIGLAS, abrir } from './malhas.js';
 export const CIDADES = {
   'São Paulo': [-46.63, -23.55],
   'Osasco': [-46.79, -23.53],
@@ -106,7 +89,9 @@ export function curto(nome) {
     .toUpperCase();
 }
 
-const LIMITES = { o: -74.2, l: -34.0, n: 5.6, s: -34.2 };
+/* A caixa do desenho é o retângulo do Brasil continental, medido no próprio
+   dado — do Acre ao bico da Paraíba, do Chuí a Roraima. */
+const LIMITES = { o: -74.0, l: -34.8, n: 5.3, s: -33.75 };
 
 /* Projeção equiretangular com a longitude corrigida pela latitude média: numa
    faixa do tamanho do Brasil isso já basta para o desenho não achatar. */
@@ -118,6 +103,33 @@ function projetar(lon, lat, larg, alt, caixa = LIMITES) {
   const cx = larg / 2 - (((caixa.o + caixa.l) / 2) * k) * escala;
   const cy = alt / 2 + (((caixa.n + caixa.s) / 2)) * escala;
   return [lon * k * escala + cx, cy - lat * escala];
+}
+
+/** Quantos pixels vale um grau de latitude nesta caixa. Dá a barra de escala. */
+function grauEmPx(larg, alt, caixa = LIMITES) {
+  const k = Math.cos((((caixa.n + caixa.s) / 2) * Math.PI) / 180);
+  return Math.min(larg / ((caixa.l - caixa.o) * k), alt / (caixa.n - caixa.s));
+}
+
+/* As malhas vêm codificadas para caber no arquivo; abrir custa uma passada e
+   acontece uma vez só, na primeira vez que o mapa é desenhado. */
+const cache = new Map();
+const traços = (lista, nome) => {
+  if (!cache.has(nome)) cache.set(nome, lista.map(abrir));
+  return cache.get(nome);
+};
+
+/* Vários traços num caminho só: menos nós no documento, mesmo desenho. */
+function caminho(listas, P, fechar) {
+  let d = '';
+  for (const pts of listas) {
+    for (let i = 0; i < pts.length; i++) {
+      const [x, y] = P(pts[i]);
+      d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+    }
+    if (fechar) d += 'Z';
+  }
+  return d;
 }
 
 /**
@@ -132,48 +144,38 @@ function projetar(lon, lat, larg, alt, caixa = LIMITES) {
  */
 export function brasilSVG({ larg, alt, pinos = [], rota = '', aceso = '' }) {
   const P = (c) => projetar(c[0], c[1], larg, alt);
-  // Curva que passa pelos meios dos segmentos: o polígono some e sobra uma
-  // silhueta desenhada. É o que faz o país parecer traço e não gráfico.
-  // Repetir um vértice faz a curva praticamente passar por ele: é assim que os
-  // cantos que dão a cara do país — o bico do Rio Grande do Norte, o Chuí, a
-  // ponta do Acre — não viram curva mansa.
-  const CANTOS = new Set(['-35.2,-5.2', '-34.85,-8.05', '-53.4,-33.7', '-73.2,-9.4',
-    '-51.6,4.4', '-60.7,5.2', '-38.5,-3.7', '-48.5,-25.5']);
-  const pts = [];
-  for (const c of CONTORNO) {
-    const q = P(c);
-    pts.push(q);
-    if (CANTOS.has(c.join(','))) pts.push(q);
-  }
-  const md = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-  const n2 = (v) => v.toFixed(1);
-  let d = `M${n2(md(pts[pts.length - 1], pts[0])[0])} ${n2(md(pts[pts.length - 1], pts[0])[1])}`;
-  for (let i = 0; i < pts.length; i++) {
-    const a = pts[i];
-    const m = md(a, pts[(i + 1) % pts.length]);
-    d += `Q${n2(a[0])} ${n2(a[1])} ${n2(m[0])} ${n2(m[1])}`;
-  }
-  d += 'Z';
 
-  // Paralelos e meridianos: dão escala ao desenho e enchem o vazio com ordem.
-  // Duas malhas: a de 10° dá a leitura de longe, a de 2,5° só aparece quando o
-  // zoom entra. É ela que garante que aproximar nunca mostre um vazio — de
-  // perto, sertão sem litoral por perto continua tendo chão desenhado.
+  // ------------------------------------------------------------- a terra ---
+  const pais = caminho(traços(PAIS, 'pais'), P, true);
+  const divisas = caminho(traços(ESTADOS, 'estados'), P, false);
+  const rios = caminho(traços(RIOS, 'rios'), P, false);
+  const lagos = caminho(traços(LAGOS, 'lagos'), P, true);
+
+  // Paralelos e meridianos em três densidades. A de dez graus fica sempre; as
+  // outras acendem quando o zoom entra, para o vazio de perto ter ordem.
   const grade = [];
-  const linhas = (passo, classe) => {
-    for (let lat = 10; lat >= -40; lat -= passo) {
+  const malha = (passo, classe) => {
+    for (let lat = 5; lat >= -35; lat -= passo) {
       const [, y] = P([-60, lat]);
       if (y < -2 || y > alt + 2) continue;
       grade.push(`<line class="${classe}" x1="0" y1="${y.toFixed(1)}" x2="${larg}" y2="${y.toFixed(1)}"/>`);
     }
-    for (let lon = -80; lon <= -30; lon += passo) {
+    for (let lon = -75; lon <= -30; lon += passo) {
       const [x] = P([lon, 0]);
       if (x < -2 || x > larg + 2) continue;
       grade.push(`<line class="${classe}" x1="${x.toFixed(1)}" y1="0" x2="${x.toFixed(1)}" y2="${alt}"/>`);
     }
   };
-  linhas(2.5, 'geo-grade fina');
-  linhas(10, 'geo-grade');
+  malha(2.5, 'geo-grade g25');
+  malha(5, 'geo-grade g5');
+  malha(10, 'geo-grade g10');
+
+  // A sigla de cada estado, no ponto de rótulo do próprio Natural Earth.
+  const siglas = SIGLAS.map((u) => {
+    const [x, y] = P(u.c);
+    return `<g class="geo-uf" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">
+      <g class="geo-p-in"><text class="geo-uf-t" text-anchor="middle" y="3">${u.s}</text></g></g>`;
+  }).join('');
 
   const de = rota ? coord(rota) : null;
   const arcos = [];
@@ -237,25 +239,59 @@ export function brasilSVG({ larg, alt, pinos = [], rota = '', aceso = '' }) {
       data-cidade="${esc(p.cidade || p.nome)}" data-x="${x.toFixed(1)}" data-y="${y.toFixed(1)}">
       <g class="geo-p-in">
         <circle class="geo-toque" r="16"/>
-        <circle class="geo-halo" r="${on ? 15 : 0}"/>
-        <circle class="geo-pino" r="${on ? 4.5 : 3.2}"/>
+        <circle class="geo-halo" r="15"/>
+        <circle class="geo-pino" r="3.2"/>
         ${texto ? `<text class="geo-n" x="${esq ? -9 : 9}" y="${dy}"
           text-anchor="${esq ? 'end' : 'start'}">${texto}</text>` : ''}
       </g>
     </g>`);
   }
-  return `<svg class="geo" viewBox="0 0 ${larg} ${alt}" width="${larg}" height="${alt}"
+
+  // A barra de escala fica fora do grupo que anda: ela mede a tela, não o
+  // mundo, e por isso é reescrita a cada zoom em vez de acompanhar a
+  // transformação.
+  const escala = `<g class="geo-escala" data-escala
+    transform="translate(${(larg - 14).toFixed(1)} ${(alt - 13).toFixed(1)})">
+    <line class="geo-esc-b" x1="-60" y1="0" x2="0" y2="0"/>
+    <line class="geo-esc-p" x1="0" y1="-4" x2="0" y2="0"/>
+    <line class="geo-esc-p esq" x1="-60" y1="-4" x2="-60" y2="0"/>
+    <text class="geo-esc-t" x="-30" y="-7" text-anchor="middle">—</text>
+  </g>`;
+
+  return `<svg class="geo n1" viewBox="0 0 ${larg} ${alt}" width="${larg}" height="${alt}"
     style="--iz:1" data-larg="${larg}" data-alt="${alt}"
     role="img" aria-label="Mapa do Brasil com as cidades do job">
     <g class="geo-mundo" data-mundo>
       ${grade.join('')}
-      <path class="geo-pais" d="${d}"/>
+      <path class="geo-pais" d="${pais}"/>
+      <path class="geo-rio" d="${rios}"/>
+      <path class="geo-lago" d="${lagos}"/>
+      <path class="geo-div" d="${divisas}"/>
+      ${siglas}
       ${arcos.join('')}
       ${marcas.join('')}
     </g>
+    ${escala}
   </svg>`;
 }
 
+/* Uma régua que diz o tamanho do que se está vendo. O número é escolhido para
+   a barra ficar entre 48 e 120 pixels — assim ela nunca some nem toma a tela. */
+function atualizarEscala(svg, z) {
+  const g = svg.querySelector('[data-escala]');
+  if (!g) return;
+  const larg = Number(svg.dataset.larg) || 0;
+  const alt = Number(svg.dataset.alt) || 0;
+  const porKm = (grauEmPx(larg, alt) / 111) * z;
+  const km = [10, 25, 50, 100, 200, 500, 1000, 2000].find((k) => k * porKm >= 48) || 2000;
+  const w = Math.round(km * porKm);
+  g.querySelector('.geo-esc-b').setAttribute('x1', String(-w));
+  g.querySelector('.geo-esc-p.esq').setAttribute('x1', String(-w));
+  g.querySelector('.geo-esc-p.esq').setAttribute('x2', String(-w));
+  const t = g.querySelector('.geo-esc-t');
+  t.setAttribute('x', String(-Math.round(w / 2)));
+  t.textContent = km >= 1000 ? `${km / 1000} mil km` : `${km} km`;
+}
 /* ------------------------------------------------- o zoom e o arrasto ------
    O país inteiro cabe na tela, mas Gravataí e Porto Alegre viram o mesmo
    ponto. Aqui o desenho aproxima, anda com o dedo e volta, sem redesenhar
@@ -301,6 +337,13 @@ function aplicar(svg, { suave = true } = {}) {
   svg.style.setProperty('--iz', String(1 / s.z));
   svg.classList.toggle('perto', s.z > 1.25);
   svg.classList.toggle('movel', s.z > 1.02);
+  // Os degraus de detalhe. Cada nível acende uma camada que já está desenhada:
+  // 1 país e grade de dez · 2 divisas e grade de cinco · 3 siglas dos estados ·
+  // 4 rios, lagoas e grade de dois e meio · 5 o miúdo em volta da cidade.
+  const nivel = s.z < 1.5 ? 1 : s.z < 2.4 ? 2 : s.z < 3.4 ? 3 : s.z < 5 ? 4 : 5;
+  for (let i = 1; i <= 5; i++) svg.classList.toggle('n' + i, nivel >= i);
+  svg.dataset.nivel = String(nivel);
+  atualizarEscala(svg, s.z);
   svg.dataset.z = s.z.toFixed(2);
   svg.dispatchEvent(new CustomEvent('geo:mudou', { detail: { z: s.z }, bubbles: true }));
 }
@@ -451,6 +494,10 @@ export function ligarNavegacaoMapa(svg) {
     const [mx, my] = noSvg(svg, ev);
     ampliar(svg, Math.exp(-ev.deltaY * 0.0018), mx, my);
   }, { passive: false });
+
+  // Assim que o mapa entra, o estado é aplicado uma vez: é o que acerta o
+  // degrau de detalhe e escreve a barra de escala antes de qualquer gesto.
+  aplicar(svg, { suave: false });
 }
 
 /* ---------------------------------------------------- os arredores ---------
@@ -486,8 +533,10 @@ export function detalharCidade(svg, d) {
   const raioKm = [25, 50, 100, 200, 400].find((k) => k * porKm * (estado(svg).z || 1) > 26) || 400;
   partes.push(`<circle class="geo-anel" cx="${x1.toFixed(1)}" cy="${y1.toFixed(1)}"
     r="${(raioKm * porKm).toFixed(2)}"/>`);
-  partes.push(`<g class="geo-p" transform="translate(${x1.toFixed(1)} ${(y1 - raioKm * porKm).toFixed(2)})">
-    <g class="geo-p-in"><text class="geo-km" text-anchor="middle" y="-4">${raioKm} km</text></g></g>`);
+  // O rótulo do anel vai por baixo: em cima é onde costumam cair o aeroporto e
+  // a distância da estrada, e três textos no mesmo lugar não são texto nenhum.
+  partes.push(`<g class="geo-p" transform="translate(${x1.toFixed(1)} ${(y1 + raioKm * porKm).toFixed(2)})">
+    <g class="geo-p-in"><text class="geo-km" text-anchor="middle" y="11">${raioKm} km</text></g></g>`);
 
   // O que existe em volta, de verdade: cidades reais que caem dentro do anel
   // largo. Não é lista de atração turística — é o que dá para reconhecer.

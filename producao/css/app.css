@@ -625,12 +625,48 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .geo-grade{stroke:var(--tx);stroke-width:.5;opacity:.10}
 .geo-pais{fill:var(--tx);fill-opacity:.05;stroke:var(--tx);stroke-width:1.2;
   stroke-linejoin:round;opacity:.7}
+
+/* ------------------------------------------------- os degraus de detalhe ---
+   Tudo já está desenhado; o que o zoom faz é acender camada. Como só mexe em
+   `opacity`, aproximar não custa desenho nenhum — e o mapa ganha informação em
+   vez de só ganhar tamanho.
+     n1 país e grade de 10°   n2 divisas e grade de 5°   n3 siglas dos estados
+     n4 rios, lagoas e grade de 2,5°                     n5 o miúdo da cidade */
+.geo-grade.g5,.geo-grade.g25{opacity:0}
+.geo.n2 .geo-grade.g5{opacity:.07}
+.geo.n4 .geo-grade.g25{opacity:.05}
+.geo-div{fill:none;stroke:var(--tx);stroke-width:.9;stroke-linejoin:round;
+  stroke-dasharray:5 3;opacity:0;transition:opacity var(--t-med) var(--e-pad)}
+.geo.n2 .geo-div{opacity:.30}
+.geo.n3 .geo-div{opacity:.42}
+.geo-uf{opacity:0;transition:opacity var(--t-med) var(--e-pad);pointer-events:none}
+.geo.n3 .geo-uf{opacity:1}
+.geo.n5 .geo-uf{opacity:.3}
+.geo-uf-t{fill:var(--tx3);font-family:var(--mono);font-size:9px;font-weight:600;
+  letter-spacing:.18em}
+.geo-rio,.geo-lago{opacity:0;transition:opacity var(--t-med) var(--e-pad)}
+.geo-rio{fill:none;stroke:var(--info);stroke-width:.9;stroke-linecap:round;
+  stroke-linejoin:round}
+.geo-lago{fill:var(--info);fill-opacity:.5;stroke:none}
+.geo.n4 .geo-rio{opacity:.6}
+.geo.n4 .geo-lago{opacity:.55}
+
+/* a régua: mede a tela, não o mundo, e por isso não anda com o mapa */
+.geo-escala{pointer-events:none}
+.geo-esc-b,.geo-esc-p{stroke:var(--tx2);stroke-width:1;opacity:.6}
+.geo-esc-t{fill:var(--tx2);font-family:var(--mono);font-size:8.5px;font-weight:500;
+  letter-spacing:.12em;opacity:.75}
 .geo-rota{fill:none;stroke:var(--ac);stroke-width:1.4;stroke-dasharray:3 4;opacity:0;
   transition:opacity var(--t-norm) var(--e-pad)}
 .geo-rota.on{opacity:.85}
 .geo-pino{fill:var(--tx2)}
 .geo-pino.base{fill:var(--tx3)}
-.geo-halo{fill:var(--ac);opacity:.14}
+/* O aceso é estado, não desenho: raio fixo no documento e a diferença por CSS.
+   Assim apagar a cidade apaga mesmo — antes o halo ficava para trás. */
+.geo-halo{fill:var(--ac);opacity:0;transition:opacity var(--t-norm) var(--e-pad)}
+.geo-p.on .geo-halo{opacity:.14}
+.geo-pino{transition:transform var(--t-rap) var(--e-pad)}
+.geo-p.on .geo-pino{transform:scale(1.42)}
 .geo-p.passou .geo-pino{fill:var(--tx3);opacity:.5}
 .geo-p.hoje .geo-pino,.geo-p.on .geo-pino{fill:var(--ac)}
 .geo-toque{fill:transparent}
@@ -909,13 +945,11 @@ main{animation:tela var(--t-med) var(--e-entra)}
 .geo-p-in{transition:transform var(--t-lento) var(--e-folha)}
 .geo-p-in{transform:scale(var(--iz,1))}
 .geo.sem-transicao .geo-mundo,.geo.sem-transicao .geo-p-in{transition:none}
-.geo-pais,.geo-grade,.geo-rota,.geo-anel,.geo-estrada{vector-effect:non-scaling-stroke}
+.geo-pais,.geo-grade,.geo-rota,.geo-anel,.geo-estrada,.geo-div,.geo-rio{vector-effect:non-scaling-stroke}
 .geo{touch-action:pan-y}
 .geo.movel{touch-action:none;cursor:grab}
 .geo.movel.arrastando{cursor:grabbing}
-.geo-grade.fina{opacity:0;transition:opacity var(--t-norm) var(--e-pad)}
-.geo.perto .geo-grade{opacity:.14}
-.geo.perto .geo-grade.fina{opacity:.07}
+.geo.perto .geo-grade.g10{opacity:.13}
 .geo.perto .geo-p:not(.on):not(.viz):not(.aero) .geo-n{opacity:.35}
 .geo-n{transition:opacity var(--t-norm) var(--e-pad)}
 .geo-p{cursor:pointer}

@@ -239,6 +239,50 @@ await passo('o mapa se arrasta com a mão', async()=>{
 await p.evaluate(()=>{ const b=document.querySelector('[data-volta]'); if(b) b.click(); });
 await p.waitForTimeout(600);
 
+/* Os degraus de detalhe: o mapa tem de ganhar informação com o zoom, não só
+   tamanho. As camadas já estão desenhadas; o que muda é o que está aceso. */
+const camadas = () => p.evaluate(()=>{
+  const g = document.querySelector('.geo');
+  const op = (sel)=>{ const e = g.querySelector(sel); return e ? Number(getComputedStyle(e).opacity) : -1; };
+  return { nivel:Number(g.dataset.nivel||0), pais:(g.querySelector('.geo-pais')?.getAttribute('d')||'').length,
+    div:op('.geo-div'), uf:op('.geo-uf'), rio:op('.geo-rio'),
+    ufs:g.querySelectorAll('.geo-uf').length, escala:g.querySelector('.geo-esc-t')?.textContent||'' };
+});
+await passo('o país vem de dado, não de rascunho', async()=>{
+  const c = await camadas();
+  // O contorno à mão tinha 95 pontos; o Natural Earth 1:50m passa de 900.
+  if (c.pais < 6000) throw new Error('contorno curto demais: '+c.pais+' caracteres');
+  if (c.ufs !== 27) throw new Error(c.ufs+' estados, deviam ser 27'); });
+await p.evaluate(()=>{ const b=document.querySelector('[data-volta]'); if(b) b.click(); });
+await p.waitForTimeout(800);
+await passo('de longe é só o país', async()=>{
+  const c = await camadas();
+  if (c.nivel !== 1) throw new Error('nível '+c.nivel+' com o país inteiro à vista');
+  if (c.div > 0.02) throw new Error('divisa acesa de longe'); });
+const reguaLonge = (await camadas()).escala;
+await p.evaluate(()=>document.querySelector('.pn-mapa-caixa').scrollIntoView({block:'center'}));
+await p.evaluate(()=>{ for(let i=0;i<2;i++) document.querySelector('[data-zoom="mais"]').click(); });
+await p.waitForTimeout(900);
+await passo('aproximando entram divisas e siglas', async()=>{
+  const c = await camadas();
+  if (c.nivel < 3) throw new Error('dois passos de zoom e ainda no nível '+c.nivel);
+  if (c.div < 0.2) throw new Error('divisa apagada no nível '+c.nivel);
+  if (c.uf < 0.9) throw new Error('sigla apagada no nível '+c.nivel); });
+await p.evaluate(()=>{ for(let i=0;i<2;i++) document.querySelector('[data-zoom="mais"]').click(); });
+await p.waitForTimeout(900);
+await passo('mais perto ainda: rios, e a sigla recua', async()=>{
+  const c = await camadas();
+  if (c.nivel < 4) throw new Error('quatro passos e ainda no nível '+c.nivel);
+  if (c.rio < 0.3) throw new Error('rio apagado no nível '+c.nivel);
+  if (c.uf > 0.9) throw new Error('a sigla não recuou: '+c.uf);
+  if (c.uf < 0.2) throw new Error('a sigla sumiu de vez: '+c.uf); });
+await passo('a régua muda com o zoom', async()=>{
+  const c = await camadas();
+  if (!/^\d+( mil)? km$/.test(c.escala)) throw new Error('régua diz "'+c.escala+'"');
+  if (c.escala === reguaLonge) throw new Error('régua não mudou: '+c.escala); });
+await p.evaluate(()=>{ const b=document.querySelector('[data-volta]'); if(b) b.click(); });
+await p.waitForTimeout(600);
+
 /* A faixa: "precisam ser coisas clicáveis pra gente resolver ou ver com
    detalhes". Toda linha tem de ser botão, e a linha tem de abrir algo. */
 await passo('toda linha da faixa é botão', async()=>{
