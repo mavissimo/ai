@@ -677,11 +677,19 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 <script type="module">
 const __defs = {};
 const __cache = {};
+let __carregando = [];
 function __req(id) {
   if (id in __cache) return __cache[id];
   const def = __defs[id];
   if (!def) throw new Error('módulo não encontrado: ' + id);
-  return (__cache[id] = def());
+  // Rede de segurança: se um ciclo escapar do build, a página avisa em vez de
+  // estourar a pilha e abrir em branco.
+  if (__carregando.includes(id)) {
+    throw new Error('importação circular: ' + [...__carregando, id].join(' → '));
+  }
+  __carregando.push(id);
+  try { return (__cache[id] = def()); }
+  finally { __carregando.pop(); }
 }
 __defs["js/adapters/local.js"] = function () {
 // Adaptador MODO DEMO: tudo em localStorage, no próprio aparelho.
@@ -6252,7 +6260,6 @@ const { store, nomeMembro } = __req("js/store.js");
 const { can } = __req("js/perms.js");
 const { el, sheet, toast, abrirForm } = __req("js/ui.js");
 const { esc, fmtMoney, fmtData, hoje } = __req("js/utils.js");
-const { camposLancamento } = __req("js/views/financeiro.js");
 const { novaConta } = __req("js/views/contas.js");
 const { linkCobranca, textoCobranca, linkEmail, textoPedido, irmasSemNF } = __req("js/nf.js");
 /* Cada porta sabe quem pode abri-la e o que faz do outro lado. A ordem é a do
@@ -6321,8 +6328,13 @@ function abrirCriar(u = store.user) {
   return sh;
 }
 
-/* ------------------------------------------------------------ lançamento --- */
-function lancamento(u, tipo, fixo = {}) {
+/* ------------------------------------------------------------ lançamento --- *
+   O formulário de lançamento mora em `financeiro.js`, que por sua vez abre esta
+   tela. Importar de volta lá em cima fecharia um ciclo — que o navegador
+   aguenta mas o empacotador de arquivo único não. Buscar na hora do uso desata
+   o nó: quando isto roda, os dois módulos já existem. */
+async function lancamento(u, tipo, fixo = {}) {
+  const { camposLancamento } = await Promise.resolve(__req("js/views/financeiro.js"));
   abrirForm({
     titulo: tipo === 'entrada' ? 'Entrada de dinheiro'
       : fixo.fonte === 'caixinha' ? 'Gasto da caixinha' : 'Novo gasto',
@@ -7251,6 +7263,19 @@ function ligarChips(node) {
   });
 }
 
+/* A porta de criar aparece em toda aba do Dinheiro, não só no resumo: quem
+   está olhando a caixinha e lembra de uma nota fiscal não devia ter que voltar
+   para outra aba para achar por onde começar. */
+function faixaCriarHTML(u) {
+  if (!can(u, 'lanc.edit') && !can(u, 'contas.edit') && !can(u, 'contas.ver')) return '';
+  return `<button class="criar-faixa" data-criar>
+    <span><b>Criar</b><span>Gasto · entrada · conta · nota fiscal · cobrança</span></span>
+    <i>+</i></button>`;
+}
+function ligarCriar(node, u) {
+  node.querySelector('[data-criar]')?.addEventListener('click', () => abrirCriar(u));
+}
+
 function render() {
   const u = store.user;
   if (!can(u, 'orcamento.ver') && !podeVerTudo(u)) {
@@ -7269,9 +7294,7 @@ function render() {
   const node = el('<div></div>');
   node.innerHTML = `
     ${chipsHTML(u)}
-    ${aba === 'resumo' ? `<button class="criar-faixa" data-criar>
-      <span><b>Criar</b><span>Gasto · entrada · conta · nota fiscal · cobrança</span></span>
-      <i>+</i></button>` : ''}
+    ${faixaCriarHTML(u)}
     ${aba === 'resumo' ? blocoResumo(f, verLucro, u) : ''}
     ${aba === 'orcamento' ? blocoOrcamento(u) : ''}
     ${aba === 'gastos' ? blocoLancamentos(u) : ''}`;
@@ -7284,7 +7307,7 @@ function render() {
   node.querySelectorAll('[data-flanc]').forEach((b) => { b.onclick = () => { filtroLanc = b.dataset.flanc; store.emit(); }; });
   node.querySelector('[data-imposto]')?.addEventListener('click', () => editarImposto());
   node.querySelector('[data-nova-rubrica]')?.addEventListener('click', () => novaRubrica());
-  node.querySelector('[data-criar]')?.addEventListener('click', () => abrirCriar(u));
+  ligarCriar(node, u);
 
   return {
     titulo: 'Dinheiro',
@@ -7299,6 +7322,8 @@ function render() {
 
 /** Aproveita a tela de contas ou caixinha dentro do hub de Dinheiro. */
 function embutir(v, u) {
+  const faixa = faixaCriarHTML(u);
+  if (faixa) { v.node.prepend(el(faixa)); ligarCriar(v.node, u); }
   v.node.prepend(el(chipsHTML(u)));
   ligarChips(v.node);
   return { titulo: 'Dinheiro', node: v.node, fab: v.fab };

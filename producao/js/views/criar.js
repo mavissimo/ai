@@ -9,7 +9,6 @@ import { store, nomeMembro } from '../store.js';
 import { can } from '../perms.js';
 import { el, sheet, toast, abrirForm } from '../ui.js';
 import { esc, fmtMoney, fmtData, hoje } from '../utils.js';
-import { camposLancamento } from './financeiro.js';
 import { novaConta } from './contas.js';
 import { linkCobranca, textoCobranca, linkEmail, textoPedido, irmasSemNF } from '../nf.js';
 
@@ -79,8 +78,13 @@ export function abrirCriar(u = store.user) {
   return sh;
 }
 
-/* ------------------------------------------------------------ lançamento --- */
-function lancamento(u, tipo, fixo = {}) {
+/* ------------------------------------------------------------ lançamento --- *
+   O formulário de lançamento mora em `financeiro.js`, que por sua vez abre esta
+   tela. Importar de volta lá em cima fecharia um ciclo — que o navegador
+   aguenta mas o empacotador de arquivo único não. Buscar na hora do uso desata
+   o nó: quando isto roda, os dois módulos já existem. */
+async function lancamento(u, tipo, fixo = {}) {
+  const { camposLancamento } = await import('./financeiro.js');
   abrirForm({
     titulo: tipo === 'entrada' ? 'Entrada de dinheiro'
       : fixo.fonte === 'caixinha' ? 'Gasto da caixinha' : 'Novo gasto',

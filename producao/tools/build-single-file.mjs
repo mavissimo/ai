@@ -18,6 +18,32 @@ function arquivosJS(dir) {
 const chave = (p) => relative(RAIZ, p).split('\\').join('/');
 const resolver = (deQuem, spec) => chave(resolve(dirname(join(RAIZ, deQuem)), spec));
 
+/* ---------------------------------------------------------------- ciclos ---
+   O navegador aguenta importação circular; o `__req` daqui não — ele só guarda
+   o módulo no cache depois que a fábrica retorna, então um ciclo vira recursão
+   infinita e a página publicada abre em branco. Como isso passa batido no
+   servidor de módulos, o build precisa recusar antes de gerar o arquivo. */
+function ciclos(mods) {
+  const grafo = new Map();
+  for (const [id, src] of mods) {
+    const alvos = [];
+    for (const m of src.matchAll(/^import\s+(?:[^'"]*?\s+from\s+)?['"](\.[^'"]+)['"];?\s*$/gm)) {
+      alvos.push(resolver(id, m[1]));
+    }
+    grafo.set(id, alvos);
+  }
+  const achados = [];
+  const visto = new Set();
+  const anda = (n, pilha) => {
+    if (pilha.includes(n)) { achados.push([...pilha.slice(pilha.indexOf(n)), n]); return; }
+    if (visto.has(n)) return;
+    visto.add(n);
+    for (const v of grafo.get(n) || []) anda(v, [...pilha, n]);
+  };
+  for (const id of grafo.keys()) anda(id, []);
+  return achados;
+}
+
 function transformar(id, src) {
   const exportados = new Set();
   for (const m of src.matchAll(/^export\s+(?:async\s+)?(?:function|class|const|let|var)\s+(\w+)/gm)) {
@@ -48,8 +74,19 @@ function transformar(id, src) {
   return out;
 }
 
-const modulos = arquivosJS(join(RAIZ, 'js'))
-  .map((p) => [chave(p), transformar(chave(p), readFileSync(p, 'utf8'))]);
+const fontes = arquivosJS(join(RAIZ, 'js'))
+  .map((p) => [chave(p), readFileSync(p, 'utf8')]);
+
+const emCiclo = ciclos(fontes);
+if (emCiclo.length) {
+  console.error('Importação circular — o arquivo único abriria em branco:\n'
+    + emCiclo.map((c) => '  ' + c.join(' → ')).join('\n')
+    + '\n\nDesate movendo o que os dois precisam para um terceiro módulo, ou'
+    + '\nbuscando um lado com `await import()` dentro da função que usa.');
+  process.exit(1);
+}
+
+const modulos = fontes.map(([id, src]) => [id, transformar(id, src)]);
 
 const css = readFileSync(join(RAIZ, 'css/app.css'), 'utf8');
 const icone = 'data:image/svg+xml;base64,' +
@@ -66,11 +103,19 @@ ${css}</style>
 <script type="module">
 const __defs = {};
 const __cache = {};
+let __carregando = [];
 function __req(id) {
   if (id in __cache) return __cache[id];
   const def = __defs[id];
   if (!def) throw new Error('módulo não encontrado: ' + id);
-  return (__cache[id] = def());
+  // Rede de segurança: se um ciclo escapar do build, a página avisa em vez de
+  // estourar a pilha e abrir em branco.
+  if (__carregando.includes(id)) {
+    throw new Error('importação circular: ' + [...__carregando, id].join(' → '));
+  }
+  __carregando.push(id);
+  try { return (__cache[id] = def()); }
+  finally { __carregando.pop(); }
 }
 ${modulos.map(([id, corpo]) =>
   `__defs[${JSON.stringify(id)}] = function () {\n${corpo}\n};`).join('\n\n')}

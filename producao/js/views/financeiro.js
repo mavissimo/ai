@@ -71,6 +71,19 @@ function ligarChips(node) {
   });
 }
 
+/* A porta de criar aparece em toda aba do Dinheiro, não só no resumo: quem
+   está olhando a caixinha e lembra de uma nota fiscal não devia ter que voltar
+   para outra aba para achar por onde começar. */
+function faixaCriarHTML(u) {
+  if (!can(u, 'lanc.edit') && !can(u, 'contas.edit') && !can(u, 'contas.ver')) return '';
+  return `<button class="criar-faixa" data-criar>
+    <span><b>Criar</b><span>Gasto · entrada · conta · nota fiscal · cobrança</span></span>
+    <i>+</i></button>`;
+}
+function ligarCriar(node, u) {
+  node.querySelector('[data-criar]')?.addEventListener('click', () => abrirCriar(u));
+}
+
 export function render() {
   const u = store.user;
   if (!can(u, 'orcamento.ver') && !podeVerTudo(u)) {
@@ -89,9 +102,7 @@ export function render() {
   const node = el('<div></div>');
   node.innerHTML = `
     ${chipsHTML(u)}
-    ${aba === 'resumo' ? `<button class="criar-faixa" data-criar>
-      <span><b>Criar</b><span>Gasto · entrada · conta · nota fiscal · cobrança</span></span>
-      <i>+</i></button>` : ''}
+    ${faixaCriarHTML(u)}
     ${aba === 'resumo' ? blocoResumo(f, verLucro, u) : ''}
     ${aba === 'orcamento' ? blocoOrcamento(u) : ''}
     ${aba === 'gastos' ? blocoLancamentos(u) : ''}`;
@@ -104,7 +115,7 @@ export function render() {
   node.querySelectorAll('[data-flanc]').forEach((b) => { b.onclick = () => { filtroLanc = b.dataset.flanc; store.emit(); }; });
   node.querySelector('[data-imposto]')?.addEventListener('click', () => editarImposto());
   node.querySelector('[data-nova-rubrica]')?.addEventListener('click', () => novaRubrica());
-  node.querySelector('[data-criar]')?.addEventListener('click', () => abrirCriar(u));
+  ligarCriar(node, u);
 
   return {
     titulo: 'Dinheiro',
@@ -119,6 +130,8 @@ export function render() {
 
 /** Aproveita a tela de contas ou caixinha dentro do hub de Dinheiro. */
 function embutir(v, u) {
+  const faixa = faixaCriarHTML(u);
+  if (faixa) { v.node.prepend(el(faixa)); ligarCriar(v.node, u); }
   v.node.prepend(el(chipsHTML(u)));
   ligarChips(v.node);
   return { titulo: 'Dinheiro', node: v.node, fab: v.fab };
