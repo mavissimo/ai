@@ -23,7 +23,15 @@ export function alertas() {
       icone: c.membro_id === u?.id ? '🙋' : '⏳',
       texto: c.titulo,
       detalhe: c.membro_id === u?.id ? 'Confirme' : `${nome(c.membro_id)} ainda não confirmou`,
-      rota: c.membro_id === u?.id ? '#/meu' : '#/equipe'
+      rota: c.membro_id === u?.id ? '#/meu' : '#/equipe',
+      ref: { t: 'confirmacoes', id: c.id },
+      origem: 'A produção pediu esta confirmação quando montou a viagem. '
+        + 'Ela fica aqui até alguém responder — não some sozinha.',
+      porque: 'Sem a confirmação, a produção não sabe se pode contar com a pessoa. '
+        + 'Passagem, hospedagem e diária ficam presas nisso.',
+      como: c.membro_id === u?.id
+        ? 'Abra "Meu painel" e toque em confirmar. Leva um toque.'
+        : `Cobre ${nome(c.membro_id)} — em Equipe dá para ver o telefone e mandar mensagem.`
     }));
 
   // Contas vencendo
@@ -35,7 +43,18 @@ export function alertas() {
         id: 'conta_' + c.id, urg: d < 0 ? 3 : 2, icone: c.tipo === 'pagar' ? '💸' : '💰',
         texto: `${c.tipo === 'pagar' ? 'Pagar' : 'Receber'} ${fmtMoney(c.valor_cents)}`,
         detalhe: `${c.descricao} · ${prazoTxt(c.venc)}`,
-        rota: '#/contas'
+        rota: c.tipo === 'pagar' ? '#/pagamentos' : '#/contas',
+        ref: { t: 'contas', id: c.id },
+        origem: `Esta conta está em aberto e o vencimento é ${fmtData(c.venc)}. `
+          + 'Toda conta a menos de cinco dias do vencimento aparece aqui.',
+        porque: c.tipo === 'pagar'
+          ? (d < 0 ? 'Já venceu. Atraso com fornecedor e com equipe custa caro em confiança, '
+            + 'e no caso de gente que trabalhou é o que trava a próxima diária.'
+            : 'Pagar no dia combinado é o que mantém a equipe e os fornecedores do lado da produção.')
+          : 'É dinheiro que a produtora tem a receber. Enquanto não entra, o caixa aguenta o job sozinho.',
+        como: c.tipo === 'pagar'
+          ? 'Em Dinheiro → Pagamentos, abra a conta e dê baixa quando o pagamento sair.'
+          : 'Em Dinheiro → Criar → Cobrar o cliente, o e-mail sai pronto com valor, vencimento e os dados da produtora.'
       });
     });
   }
@@ -46,7 +65,13 @@ export function alertas() {
     if (pend.length) add({
       id: 'aprov_' + pend.length, urg: 2, icone: '🧾',
       texto: `${pend.length} lançamento(s) para aprovar`, detalhe: 'Gastos lançados pela equipe',
-      rota: '#/financeiro'
+      rota: '#/financeiro',
+      ref: { t: 'lancamentos', id: pend[0]?.id },
+      origem: 'Quem está em campo lança o gasto pelo celular e ele entra como pendente. '
+        + 'Fica assim até a produção olhar.',
+      porque: 'Gasto pendente não conta no orçamento. Enquanto ninguém aprova, o número de '
+        + '"quanto já gastei" está mentindo para menos.',
+      como: 'Em Dinheiro → Gastos, abra cada um, confira o comprovante e aprove ou rejeite.'
     });
   }
 
@@ -55,7 +80,12 @@ export function alertas() {
     const d = diasAte(e.prazo);
     if (d === null || d > 5) return;
     add({ id: 'entr_' + e.id, urg: d < 0 ? 3 : 2, icone: '📦', texto: e.titulo,
-      detalhe: `Entrega · ${prazoTxt(e.prazo)}`, rota: '#/agenda' });
+      detalhe: `Entrega · ${prazoTxt(e.prazo)}`, rota: '#/agenda',
+      ref: { t: 'entregas', id: e.id },
+      origem: `O prazo desta entrega é ${fmtData(e.prazo)}, e ele veio do cronograma do contrato.`,
+      porque: 'Entrega atrasada é a única coisa do job que o cliente enxerga de fora. '
+        + 'E a segunda parcela só vence 30 dias depois da entrega final.',
+      como: 'Suba a versão em Aprovações e mande para o cliente. O relógio do aceite começa aí.' });
   });
 
   // Rodadas de aprovação que passaram do prazo (silêncio = aceite pelo contrato)
@@ -66,7 +96,12 @@ export function alertas() {
       if (d < 0) add({
         id: 'apv_' + a.id, urg: 3, icone: '⏰',
         texto: a.titulo, detalhe: 'Prazo de aceite venceu sem resposta',
-        rota: '#/aprovacoes'
+        rota: '#/aprovacoes',
+        ref: { t: 'aprovacoes', id: a.id },
+        origem: `A versão foi enviada e o prazo de resposta era ${fmtData(a.prazo)}.`,
+        porque: 'Pelo contrato, silêncio depois do prazo vale como aceite. É bom registrar isso '
+          + 'agora, enquanto a data está fresca — depois vira discussão.',
+        como: 'Em Aprovações, marque como aceita por decurso de prazo. Fica gravado com a data.'
       });
       else if (d <= 2) add({
         id: 'apvp_' + a.id, urg: 1, icone: '👀',
@@ -87,7 +122,13 @@ export function alertas() {
         id: 'caixa_' + id, urg: id === u?.id ? 2 : 1, icone: '👛',
         texto: `${fmtMoney(c.saldo)} de caixinha em aberto`,
         detalhe: id === u?.id ? 'Comprove ou devolva' : `Com ${nome(id)}`,
-        rota: '#/caixa'
+        rota: '#/caixa',
+        ref: { t: 'caixa', id },
+        origem: 'A produção adiantou dinheiro vivo e a soma dos comprovantes ainda não fecha '
+          + 'com o que saiu.',
+        porque: 'Dinheiro sem comprovante não entra em rubrica nenhuma e some do orçamento. '
+          + 'Na hora de prestar contas, some da contabilidade também.',
+        como: 'Em Dinheiro → Caixinha, lance as notinhas que faltam ou devolva o troco.'
       });
     });
   }
@@ -100,7 +141,13 @@ export function alertas() {
     if (!meu && !can(u, 'lanc.ver')) return;
     if (t.cobrado_em && meu) {
       add({ id: 'tcob_' + t.id, urg: 3, icone: '⚡', texto: t.titulo,
-        detalhe: 'Cobraram você', rota: '#/tarefas' });
+        detalhe: 'Cobraram você', rota: '#/tarefas',
+        ref: { t: 'tarefas', id: t.id },
+        origem: `Alguém da produção cobrou esta tarefa em ${fmtData(t.cobrado_em)}.`,
+        porque: 'Cobrança é sinal de que outra pessoa está esperando por isto para poder tocar '
+          + 'a parte dela.',
+        como: 'Faça e marque como feita. Se não der, remarque com uma data — remarcar avisa '
+          + 'quem cobrou, sumir não.' });
       return;
     }
     const d = diasAte(t.prazo);
@@ -109,16 +156,31 @@ export function alertas() {
       id: 'tatr_' + t.id, urg: meu ? 3 : 2, icone: '⏱',
       texto: t.titulo,
       detalhe: meu ? `Atrasada · ${prazoTxt(t.prazo)}` : `${nome(t.responsavel_id)} · atrasada ${prazoTxt(t.prazo)}`,
-      rota: '#/tarefas'
+      rota: '#/tarefas',
+      ref: { t: 'tarefas', id: t.id },
+      origem: `O prazo era ${fmtData(t.prazo)} e a tarefa continua aberta.`,
+      porque: 'Tarefa de produção quase nunca está sozinha: normalmente ela é o que destrava '
+        + 'a etapa ou a viagem em que está pendurada.',
+      como: 'Marque como feita, ou remarque com uma data nova — o app guarda cada remarcação.'
     });
     else if (d === 0 && meu) add({
-      id: 'thoje_' + t.id, urg: 2, icone: '✅', texto: t.titulo, detalhe: 'Para hoje', rota: '#/tarefas'
+      id: 'thoje_' + t.id, urg: 2, icone: '✅', texto: t.titulo, detalhe: 'Para hoje', rota: '#/tarefas',
+      ref: { t: 'tarefas', id: t.id },
+      origem: 'O prazo desta tarefa é hoje.',
+      porque: 'É a última janela antes de ela virar atraso e aparecer em vermelho para todo mundo.',
+      como: 'Marque como feita quando terminar, ou remarque se o dia virou outra coisa.'
     });
   });
 
   // Etapas travadas
   store.doProjeto('etapas').filter((e) => e.status === 'travado').forEach((e) => {
-    add({ id: 'trav_' + e.id, urg: 2, icone: '⛔', texto: e.nome, detalhe: 'Etapa travada', rota: '#/etapas' });
+    add({ id: 'trav_' + e.id, urg: 2, icone: '⛔', texto: e.nome, detalhe: 'Etapa travada', rota: '#/etapas',
+      ref: { t: 'etapas', id: e.id },
+      origem: 'Alguém marcou esta etapa como travada — quase sempre porque falta uma resposta '
+        + 'de fora: cliente, fornecedor ou autorização.',
+      porque: 'Etapa travada segura tudo que vem depois dela no cronograma, e o cronograma é o '
+        + 'que sustenta a data de entrega do contrato.',
+      como: 'Em Etapas, abra e escreva o que está faltando. Quem resolver destrava.' });
   });
 
   // Compromissos de hoje/amanhã
@@ -132,7 +194,18 @@ export function alertas() {
       texto: ev.titulo,
       detalhe: `${d === 0 ? 'Hoje' : 'Amanhã'}${ev.hora_inicio ? ' às ' + ev.hora_inicio : ''}`
         + (ev.confirmado === false ? ' · data a confirmar' : ''),
-      rota: '#/agenda'
+      rota: '#/mapa',
+      ref: { t: 'eventos', id: ev.id },
+      origem: `Está na agenda do projeto para ${d === 0 ? 'hoje' : 'amanhã'}`
+        + (ev.confirmado === false
+          ? ', mas a Fundação ainda não confirmou esta data.'
+          : ', já confirmado.'),
+      porque: ev.confirmado === false
+        ? 'Pelo contrato (cláusula 4.3), a Fundação precisa confirmar cada diária com dez dias '
+          + 'úteis de antecedência. Sem isso, a equipe pode viajar para nada.'
+        : 'É o dia acontecendo. O que não estiver resolvido até agora vira problema em campo.',
+      como: 'No Mapa, abra o dia: quem vai, ordem do dia, onde é, o dinheiro e o que falta '
+        + 'estão todos ali, e dá para resolver de lá mesmo.'
     });
   });
 
@@ -142,7 +215,14 @@ export function alertas() {
       add({
         id: 'nfcob_' + conta.id, urg: 3, icone: '🧾',
         texto: `Cobrar a NF de ${conta.contraparte || conta.descricao}`,
-        detalhe: `${fmtMoney(conta.valor_cents)} · ${est.t}`, rota: '#/pedidos-nf'
+        detalhe: `${fmtMoney(conta.valor_cents)} · ${est.t}`, rota: '#/pedidos-nf',
+        ref: { t: 'contas', id: conta.id },
+        origem: `O pedido de nota foi mandado em ${fmtData(conta.nf_pedido_em)} e passaram-se `
+          + `mais de ${DIAS_FOLLOWUP} dias sem a nota chegar.`,
+        porque: 'A produtora não paga sem nota. Enquanto ela não chega, quem trabalhou não '
+          + 'recebe e o gasto não entra no fechamento do job.',
+        como: 'Em Pedidos de NF, o texto do follow-up sai pronto — dá para mandar por e-mail '
+          + 'ou WhatsApp num toque.'
       });
     }
   }
@@ -154,7 +234,14 @@ export function alertas() {
       if (!st.vencida) return;
       add({
         id: 'fonte_' + f.id, urg: 2, icone: '🔗', texto: f.titulo,
-        detalhe: `Reconferir — ${st.txt}`, rota: '#/fontes'
+        detalhe: `Reconferir — ${st.txt}`, rota: '#/fontes',
+        ref: { t: 'fontes', id: f.id },
+        origem: `Esta fonte de fora tem uma frequência de conferência combinada e a última foi `
+          + `há tempo demais — ${st.txt}.`,
+        porque: 'Tudo que este app mostra saiu de algum lugar: contrato, planilha, agenda, '
+          + 'e-mail. Se a fonte mudou e ninguém trouxe, o número na tela está velho e as '
+          + 'decisões saem em cima dele.',
+        como: 'Em Fontes, abra o link, compare com o que está aqui e marque como conferida.'
       });
     });
   }

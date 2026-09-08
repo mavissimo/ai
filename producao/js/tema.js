@@ -29,8 +29,7 @@ export function escuroAgora() {
   const t = temaAtual();
   if (t === 'escuro') return true;
   if (t === 'claro') return false;
-  const host = document.documentElement.getAttribute('data-theme');
-  if (host === 'dark') return true;
-  if (host === 'light') return false;
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches || false;
+  // O escuro é o padrão do app, e não segue o sistema: só quem escolhe "claro"
+  // em Mais é que clareia.
+  return true;
 }

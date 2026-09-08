@@ -8,6 +8,7 @@ import { esc, fmtMoneyShort, pct, fmtData, prazoTxt, prazoTag, diasAte, valoresO
 import { financeiro } from '../calc.js';
 import { FASES, statusEtapa, faseSimbolo } from '../seed.js';
 import { alertas, perguntas } from '../notify.js';
+import { abrirDossie } from '../dossie.js';
 
 const PERIODOS = [
   { v: 1, t: '24h' }, { v: 3, t: '3 dias' }, { v: 7, t: 'Semana' }, { v: 30, t: 'Mês' }
@@ -65,12 +66,13 @@ export function render() {
     <div class="sec"><div class="sec-t">Precisa de você</div>
       <span class="small muted">${al.length}</span></div>
     <div class="card lista">
-      ${al.slice(0, 6).map((a) => `
-        <a class="row act alto" href="${a.rota}" style="text-decoration:none;color:inherit">
+      ${al.slice(0, 6).map((a, i) => `
+        <button class="row act alto" data-alerta="${i}" style="width:100%;text-align:left;
+          background:none;border:0;border-bottom:1px solid var(--line);color:inherit">
           <span class="ico ${a.urg >= 3 ? 'urg' : a.urg === 2 ? 'med' : ''}">${a.icone || '•'}</span>
           <span class="g"><span class="t">${esc(a.texto)}</span>
             ${a.detalhe ? `<span class="s">${esc(a.detalhe)}</span>` : ''}</span>
-        </a>`).join('')}
+        </button>`).join('')}
       ${al.length > 6 ? `<a class="row act" href="#/tarefas" style="text-decoration:none;color:inherit">
         <span class="g"><span class="t" style="color:var(--ac2)">Ver os outros ${al.length - 6}</span></span></a>` : ''}
     </div>
@@ -199,6 +201,11 @@ export function render() {
     };
     n.querySelector('[data-sim]').onclick = () => responder(q.aoSim);
     n.querySelector('[data-nao]').onclick = () => responder(q.aoNao);
+  });
+  // Tocar num aviso abre o dossiê dele: o que é, de onde veio, por que resolver,
+  // como, e o que está preso esperando. Ir direto para a tela é o botão de lá.
+  node.querySelectorAll('[data-alerta]').forEach((b) => {
+    b.onclick = () => abrirDossie(al[Number(b.dataset.alerta)]);
   });
   node.querySelectorAll('[data-periodo]').forEach((b) => {
     b.onclick = () => { periodo = Number(b.dataset.periodo); store.emit(); };

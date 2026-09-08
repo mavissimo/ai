@@ -2,6 +2,7 @@
 // Uma tarefa pode estar solta ou pendurada numa etapa — quando está, ela também
 // aparece no checklist daquela etapa.
 import { store, membros, nomeMembro } from '../store.js';
+import { abrirDossie, dossieDaTarefa } from '../dossie.js';
 import { can, podeVerTudo } from '../perms.js';
 import { el, abrirForm, sheet, toast } from '../ui.js';
 import { esc, fmtData, prazoTxt, diasAte, hoje, ordenar, iniciais } from '../utils.js';
@@ -250,12 +251,16 @@ function abrir(t) {
         </div>`).join('')}</div>` : ''}
       ${gestor && emAberto(t) && t.responsavel_id && !meu
         ? '<button class="btn wide" data-cobrar>Cobrar quem ficou responsável</button>' : ''}
+      <button class="btn wide" style="margin-top:8px" data-entender>Por que esta tarefa existe</button>
       <button class="btn wide gho" style="margin-top:8px" data-edit>Editar tarefa</button>`;
 
     corpo.querySelectorAll('[data-st]').forEach((b) => {
       b.onclick = async () => { await marcar(t, b.dataset.st); t.status = b.dataset.st; pintar(); store.emit(); };
     });
     corpo.querySelector('[data-adiar]')?.addEventListener('click', () => { sh.close(); remarcar(t); });
+    corpo.querySelector('[data-entender]')?.addEventListener('click', () => {
+      sh.close(); abrirDossie(dossieDaTarefa(t));
+    });
     corpo.querySelector('[data-cobrar]')?.addEventListener('click', async () => {
       await store.update('tarefas', t.id, { cobrado_em: hoje() });
       t.cobrado_em = hoje();

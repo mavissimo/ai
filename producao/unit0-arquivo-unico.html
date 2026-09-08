@@ -4,15 +4,42 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
-/* ============================================================================
-   Tema. O padrão do :root é o claro; o escuro entra por três caminhos, nesta
-   ordem de precedência: escolha explícita do usuário (data-tema), tema do
-   ambiente onde a página está embutida (data-theme) e, por fim, a preferência
-   do sistema. Toda cor da interface sai daqui — nada de cor solta no CSS.
-   ========================================================================= */
 :root{
-  /* Papel osso e tinta quase preta: o contraste alto é o que dá a cara de
-     cartaz. Nada de cinza-azulado de painel. */
+  /* A24: preto de sala escura e papel osso. O contraste é o desenho — quase
+     tudo que aparece nesta interface é tinta clara sobre preto, com um único
+     âmbar (o do logo) para o que exige o olho e um vermelho só para perigo. */
+  --bg:#0a0a09; --bg2:#131211; --bg3:#1c1a18; --line:#2b2825;
+  --tx:#f4f1ea; --tx2:#a29b90; --tx3:#6d685f;
+  --ac:#e8b13d; --ac-tx:#161104; --ac-soft:rgba(232,177,61,.12); --ac-line:rgba(232,177,61,.38);
+  --ac2:#7ba6ff;
+  --ok:#5fbe7d; --warn:#e8b13d; --bad:#ef4a44; --info:#7ba6ff;
+  --ok-bg:rgba(95,190,125,.13); --warn-bg:rgba(232,177,61,.14);
+  --bad-bg:rgba(239,74,68,.14); --info-bg:rgba(123,166,255,.13);
+  --scrim:rgba(0,0,0,.72); --sombra:0 12px 34px rgba(0,0,0,.6);
+  --titulo: Archivo, 'Helvetica Neue', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --r:5px; --sp:16px;
+  /* escala de espaço: tudo no layout sai de um destes seis degraus */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:36px;
+  --r-sm:3px; --r-lg:7px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+
+  /* ---- movimento ----------------------------------------------------------
+     Seis durações e quatro curvas, e nada de valor solto pelo CSS. Rápido é
+     quase sempre melhor: nada aqui passa de 440ms, e o que responde ao dedo
+     fica abaixo de 150. */
+  --t-inst:60ms; --t-rap:140ms; --t-norm:220ms; --t-med:320ms; --t-lento:440ms;
+  --e-pad:cubic-bezier(.2,0,0,1);        /* mudança de estado no lugar        */
+  --e-entra:cubic-bezier(0,0,.2,1);      /* o que chega desacelera            */
+  --e-sai:cubic-bezier(.3,0,1,.3);       /* o que sai acelera e some          */
+  --e-folha:cubic-bezier(.32,.72,0,1);   /* folha, painel, coisa que cresce   */
+  color-scheme: dark;
+}
+
+/* O claro é a exceção e só entra por escolha explícita, em Mais → Aparência.
+   Nem o sistema nem quem hospeda a página trocam isto sozinhos: o preto é a
+   identidade do app, não uma preferência de ambiente. */
+:root[data-tema="claro"]{
   --bg:#eeeae2; --bg2:#f7f4ee; --bg3:#e3ded4; --line:#cfc8ba;
   --tx:#12100d; --tx2:#514c43; --tx3:#8b8479;
   --ac:#8a4b12; --ac-tx:#f7f4ee; --ac-soft:rgba(138,75,18,.10); --ac-line:rgba(138,75,18,.30);
@@ -21,48 +48,13 @@
   --ok-bg:rgba(47,107,60,.11); --warn-bg:rgba(138,90,9,.13);
   --bad-bg:rgba(167,38,32,.10); --info-bg:rgba(44,79,168,.10);
   --scrim:rgba(18,16,13,.55); --sombra:0 10px 30px rgba(18,16,13,.14);
-  --titulo: Archivo, 'Helvetica Neue', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
-  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --r:5px; --sp:16px;
-  /* escala de espaço: tudo no layout sai de um destes seis degraus */
-  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:36px;
-  --r-sm:3px; --r-lg:7px;
-  --safe-b: env(safe-area-inset-bottom, 0px);
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark){
-  :root:not([data-tema="claro"]):not([data-theme="light"]){
-    --bg:#0a0a09; --bg2:#141311; --bg3:#1d1b18; --line:#2e2b26;
-    --tx:#f2eee6; --tx2:#a49d91; --tx3:#726c62;
-    --ac:#e0a03a; --ac-tx:#141105; --ac-soft:rgba(224,160,58,.13); --ac-line:rgba(224,160,58,.38);
-    --ac2:#6f9dff;
-    --ok:#5fbe7d; --warn:#e0a03a; --bad:#e8615c; --info:#7aa6ff;
-    --ok-bg:rgba(95,190,125,.14); --warn-bg:rgba(224,160,58,.15);
-    --bad-bg:rgba(232,97,92,.15); --info-bg:rgba(122,166,255,.15);
-    --scrim:rgba(0,0,0,.7); --sombra:0 10px 30px rgba(0,0,0,.55);
-    color-scheme: dark;
-  }
+/* Quem pede menos movimento recebe a mesma interface, parada. Um lugar só. */
+@media (prefers-reduced-motion: reduce){
+  :root{ --t-inst:1ms; --t-rap:1ms; --t-norm:1ms; --t-med:1ms; --t-lento:1ms }
 }
-:root:not([data-tema="claro"])[data-theme="dark"],
-:root[data-tema="escuro"]{
-  --bg:#0a0a09; --bg2:#141311; --bg3:#1d1b18; --line:#2e2b26;
-  --tx:#f2eee6; --tx2:#a49d91; --tx3:#726c62;
-  --ac:#e0a03a; --ac-tx:#141105; --ac-soft:rgba(224,160,58,.13); --ac-line:rgba(224,160,58,.38);
-  --ac2:#6f9dff;
-  --ok:#5fbe7d; --warn:#e0a03a; --bad:#e8615c; --info:#7aa6ff;
-  --ok-bg:rgba(95,190,125,.14); --warn-bg:rgba(224,160,58,.15);
-  --bad-bg:rgba(232,97,92,.15); --info-bg:rgba(122,166,255,.15);
-  --scrim:rgba(0,0,0,.7); --sombra:0 10px 30px rgba(0,0,0,.55);
-  color-scheme: dark;
-}
-
-/* O "olho" é o rótulo de ficha técnica que abre um bloco: mono, caixa alta,
-   entreletra larga. Aparece em cartaz, em crédito de filme e agora aqui. */
-.olho-txt{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.16em;
-  text-transform:uppercase;color:var(--tx3)}
-.fio{height:1px;background:var(--tx);opacity:.18;margin:var(--s4) 0}
-.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--tx)}
@@ -487,11 +479,11 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
   to{opacity:1;transform:none}}
 
 /* rodapé da estação: quatro números, sem moldura */
-.est-pe{display:flex;gap:var(--s5);flex:none;padding-top:var(--s3);
+.est-pe{display:flex;gap:var(--s4);flex:none;padding-top:var(--s3);justify-content:space-between;
   border-top:1px solid var(--tx);border-top-color:color-mix(in srgb,var(--tx) 40%,transparent)}
 .pe-item{display:flex;flex-direction:column;gap:1px;min-width:0}
-.pe-item b{font-family:var(--titulo);font-size:19px;font-weight:800;letter-spacing:-.035em;
-  font-variant-numeric:tabular-nums}
+.pe-item b{font-family:var(--titulo);font-size:clamp(15px,4.4vw,19px);font-weight:800;
+  letter-spacing:-.04em;font-variant-numeric:tabular-nums;white-space:nowrap}
 .pe-item span{font-family:var(--mono);font-size:9px;color:var(--tx3);letter-spacing:.14em;
   text-transform:uppercase;margin-top:2px}
 .pe-item.atencao b{color:var(--warn)}
@@ -672,6 +664,91 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .capa-p{font-size:14.5px;line-height:1.55;color:var(--tx2);margin:var(--s5) 0 0;max-width:44ch}
 .capa-pe{flex:none}
 .capa .indice{margin-top:var(--s2)}
+
+/* ============================================================================
+   Movimento. Tudo aqui sai dos tokens de duração e curva do topo — nenhum
+   número solto. Quem pede menos movimento já recebeu as durações zeradas lá em
+   cima, então nada nesta seção precisa se repetir por isso.
+   ========================================================================= */
+
+/* O que entra na tela: sobe 14px e aparece, em cascata. */
+[data-rev]{opacity:0;transform:translateY(14px);
+  transition:opacity var(--t-med) var(--e-entra) var(--atraso,0ms),
+             transform var(--t-med) var(--e-entra) var(--atraso,0ms)}
+[data-rev].vis{opacity:1;transform:none}
+@media (prefers-reduced-motion: reduce){ [data-rev]{opacity:1;transform:none} }
+
+/* Troca de tela: a nova chega de baixo. */
+main{animation:tela var(--t-med) var(--e-entra)}
+@keyframes tela{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){ main{animation:none} }
+::view-transition-old(root){animation:sai var(--t-rap) var(--e-sai) forwards}
+::view-transition-new(root){animation:entra var(--t-norm) var(--e-entra)}
+@keyframes sai{to{opacity:0;transform:translateY(-6px)}}
+@keyframes entra{from{opacity:0;transform:translateY(10px)}}
+
+/* Resposta ao dedo: rápida e curta, senão vira lentidão. */
+.btn,.chip,.row.act,.ix,.who,.tabbar a,.olho,.fab,.criar-faixa,.seg button,.pe-item{
+  transition:transform var(--t-inst) var(--e-pad),
+             background var(--t-rap) var(--e-pad),
+             border-color var(--t-rap) var(--e-pad),
+             color var(--t-rap) var(--e-pad),
+             opacity var(--t-rap) var(--e-pad)}
+.btn:active,.chip:active,.criar-faixa:active,.fab:active{transform:scale(.97)}
+.ix:active,.who:active{transform:scale(.99);opacity:.6}
+.row.act:active{background:var(--bg3)}
+.tabbar a:active{transform:scale(.94)}
+
+/* O topo encolhe quando a página anda. */
+.topbar{transition:padding var(--t-norm) var(--e-pad),
+        box-shadow var(--t-norm) var(--e-pad), background var(--t-norm) var(--e-pad)}
+.topbar.rolou{padding-top:calc(env(safe-area-inset-top,0px) + 6px);padding-bottom:6px;
+  box-shadow:0 1px 0 var(--line),0 8px 20px -14px rgba(0,0,0,.7)}
+.topbar.rolou h1{font-size:12px}
+.topbar.rolou .sub{opacity:0;height:0;margin:0;overflow:hidden}
+.topbar h1,.topbar .sub{transition:font-size var(--t-norm) var(--e-pad),
+  opacity var(--t-rap) var(--e-pad),height var(--t-norm) var(--e-pad)}
+
+/* Folha e véu, agora nos tokens. */
+.scrim{transition:opacity var(--t-norm) var(--e-pad)}
+.sheet{transition:transform var(--t-med) var(--e-folha)}
+.toast{animation:toast-entra var(--t-norm) var(--e-folha)}
+@keyframes toast-entra{from{opacity:0;transform:translate(-50%,14px)}
+  to{opacity:1;transform:translate(-50%,0)}}
+
+/* O número que muda pisca uma vez, de leve: o olho acha sozinho o que mexeu. */
+@keyframes bateu{0%{background:var(--ac-soft)}100%{background:transparent}}
+.bateu{animation:bateu var(--t-lento) var(--e-sai)}
+
+/* ============================================================================
+   Dossiê. O aviso deixa de ser um empurrão e passa a ser uma leitura: o que é,
+   de onde veio, por que resolver, como, e as duas pontas — do que depende e o
+   que trava. Cada bloco é um olho em mono e um parágrafo, separados por fio.
+   ========================================================================= */
+.ds-cab{padding-bottom:var(--s4);border-bottom:1px solid var(--line)}
+.ds-urg{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--tx3)}
+.ds-urg.alta{color:var(--bad)}
+.ds-urg.media{color:var(--warn)}
+.ds-tit{font-family:var(--titulo);font-size:22px;font-weight:800;letter-spacing:-.035em;
+  line-height:1.1;margin:var(--s2) 0 0;text-transform:uppercase;text-wrap:balance}
+.ds-sub{font-family:var(--mono);font-size:10.5px;color:var(--tx3);margin-top:var(--s2);
+  letter-spacing:.05em;text-transform:uppercase;line-height:1.5}
+
+.ds-b{padding:var(--s4) 0;border-bottom:1px solid var(--line)}
+.ds-b:last-child{border-bottom:0}
+.ds-o{font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--tx3);margin-bottom:var(--s2)}
+.ds-p{font-size:14.5px;line-height:1.6;color:var(--tx);margin:0;max-width:52ch}
+
+.ds-lista{display:flex;flex-direction:column;margin-top:var(--s1)}
+.ds-l{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) 0;
+  border-top:1px solid var(--line);color:var(--tx);text-decoration:none}
+.ds-l:first-child{border-top:0}
+.ds-lg{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ds-lt{font-size:14px;font-weight:650;letter-spacing:-.01em}
+.ds-ls{font-size:12px;color:var(--tx3);line-height:1.4}
+.ds-lv{flex:none;color:var(--tx3)}
 </style>
 <div id="app" class="app"><div class="boot">Carregando…</div></div>
 <script type="module">
@@ -817,6 +894,7 @@ const { alertas, iniciarMonitor } = __req("js/notify.js");
 const { minhasTarefas } = __req("js/views/tarefas.js");
 const { autenticar, temSenha } = __req("js/pin.js");
 const { aplicarTema } = __req("js/tema.js");
+const { revelar, topoVivo, trocarTela } = __req("js/motion.js");
 const vDash = __req("js/views/dash.js");
 const vEtapas = __req("js/views/etapas.js");
 const vAgenda = __req("js/views/agenda.js");
@@ -1038,6 +1116,9 @@ function render() {
     <main></main>
     ${tabs()}`;
   root.querySelector('main').append(v.node);
+  // Os blocos aparecem conforme sobem, e o topo encolhe quando a página anda.
+  revelar(v.node);
+  topoVivo(root);
 
   if (v.fab) {
     const b = el(`<button class="fab" aria-label="Adicionar">${v.fab.label}</button>`);
@@ -1099,7 +1180,8 @@ async function start() {
   }
 
   store.sub(() => render());
-  window.addEventListener('hashchange', render);
+  // Trocar de tela é uma transição, não um corte — onde o navegador souber.
+  window.addEventListener('hashchange', () => trocarTela(render));
   // O botão de ocultar valores aparece em várias telas; um só ouvinte dá conta.
   app().addEventListener('click', (e) => {
     if (e.target.closest('[data-olho]')) { alternarValores(); render(); }
@@ -1365,6 +1447,226 @@ const APP = {
 const isRemote = () => Boolean(SUPABASE.url && SUPABASE.anonKey);
 
   return { SUPABASE, APP, isRemote };
+};
+
+__defs["js/dossie.js"] = function () {
+// O dossiê de uma pendência.
+//
+// Uma lista de alertas só diz *o quê*. Quem chega no app sem contexto — ou
+// volta nele depois de duas semanas de estrada — precisa saber mais: de onde
+// aquilo apareceu, por que precisa ser resolvido, como se resolve e o que está
+// preso esperando. Sem isso a pessoa toca no aviso, olha, não entende o que se
+// espera dela, e o aviso fica ali para sempre.
+//
+// Cada alerta em `notify.js` já carrega `origem`, `porque` e `como` escritos à
+// mão, porque explicação genérica não explica nada. O que este módulo faz é
+// montar a leitura e, a partir da `ref` do alerta, descobrir sozinho as duas
+// pontas que ninguém escreve: do que aquilo depende e o que trava.
+const { store, nomeMembro } = __req("js/store.js");
+const { el, sheet, toast } = __req("js/ui.js");
+const { esc, fmtMoney, fmtData, prazoTxt, diasAte } = __req("js/utils.js");
+/* ------------------------------------------------------------- as pontas ---
+   Depende = o que precisa acontecer antes desta coisa andar.
+   Trava    = o que está parado esperando por ela.
+   Sai do próprio registro, não de um campo que alguém teria que preencher. */
+function relacoes(ref) {
+  const depende = [];
+  const trava = [];
+  if (!ref?.t || !ref.id) return { depende, trava };
+  const r = store.get(ref.t, ref.id);
+  if (!r) return { depende, trava };
+
+  const item = (t, sub, rota) => ({ t, sub, rota });
+  const aberta = (x) => (x.status || (x.feito ? 'feita' : 'aberta')) !== 'feita';
+
+  if (ref.t === 'tarefas') {
+    const et = r.etapa_id && store.get('etapas', r.etapa_id);
+    const vg = r.viagem_id && store.get('viagens', r.viagem_id);
+    const ev = r.evento_id && store.get('eventos', r.evento_id);
+    if (ev) depende.push(item(ev.titulo, `acontece em ${fmtData(ev.data)}`, '#/mapa'));
+    if (vg) depende.push(item(`Viagem ${vg.numero} — ${vg.destino || ''}`,
+      `${fmtData(vg.ida)} a ${fmtData(vg.volta)}`, '#/viagens'));
+    if (et) trava.push(item(et.nome, 'a etapa só fecha quando as tarefas dela fecham', '#/etapas'));
+    if (vg) {
+      const irmas = store.doProjeto('tarefas')
+        .filter((x) => x.viagem_id === vg.id && x.id !== r.id && aberta(x));
+      if (irmas.length) {
+        trava.push(item(`Mais ${irmas.length} tarefa(s) desta viagem`,
+          'a viagem só está pronta quando todas fecham', '#/viagens'));
+      }
+    }
+  }
+
+  if (ref.t === 'contas') {
+    const vg = r.viagem_id && store.get('viagens', r.viagem_id);
+    if (r.tipo === 'pagar') {
+      if (r.nf_status === 'a_receber') {
+        depende.push(item('A nota fiscal de quem vai receber',
+          r.nf_pedido_em ? `pedida em ${fmtData(r.nf_pedido_em)}` : 'ainda não pedida',
+          '#/pedidos-nf'));
+      }
+      if (r.membro_id) {
+        trava.push(item(nomeMembro(r.membro_id), 'está esperando este pagamento', '#/equipe'));
+      }
+      if (vg) trava.push(item(`Fechamento da viagem ${vg.numero}`,
+        'a viagem não fecha com conta em aberto', '#/viagens'));
+    } else {
+      if (r.nf_status === 'a_receber' || !r.nf_numero) {
+        depende.push(item('A nossa nota fiscal', 'o cliente não paga sem ela', '#/financeiro'));
+      }
+      trava.push(item('O caixa da produtora',
+        `${fmtMoney(r.valor_cents)} que ainda não entrou`, '#/financeiro'));
+      const abertas = store.doProjeto('contas')
+        .filter((c) => c.tipo === 'pagar' && c.status === 'aberto');
+      if (abertas.length) {
+        trava.push(item(`${abertas.length} conta(s) a pagar`,
+          'é deste dinheiro que elas saem', '#/pagamentos'));
+      }
+    }
+  }
+
+  if (ref.t === 'confirmacoes') {
+    const ev = r.ref_id && store.get('eventos', r.ref_id);
+    if (ev) depende.push(item(ev.titulo, `${fmtData(ev.data)} · ${ev.local || ''}`, '#/mapa'));
+    if (r.membro_id) trava.push(item(nomeMembro(r.membro_id),
+      'a produção não fecha a logística sem esta resposta', '#/equipe'));
+  }
+
+  if (ref.t === 'eventos') {
+    const conf = store.doProjeto('confirmacoes').filter((c) => c.ref_id === r.id
+      && c.status === 'pendente');
+    if (r.confirmado === false) {
+      depende.push(item('Confirmação da Fundação',
+        'cláusula 4.3 — dez dias úteis de antecedência', '#/contratos'));
+    }
+    if (conf.length) depende.push(item(`${conf.length} confirmação(ões) da equipe`,
+      'quem ainda não respondeu', '#/equipe'));
+    const dep = store.doProjeto('entregas')
+      .filter((e) => e.status !== 'entregue' && e.prazo && e.prazo > r.data);
+    if (dep.length) trava.push(item(dep[0].titulo,
+      `entrega marcada para ${fmtData(dep[0].prazo)}`, '#/agenda'));
+  }
+
+  if (ref.t === 'entregas') {
+    const apv = store.doProjeto('aprovacoes').filter((a) => a.status === 'enviado');
+    if (apv.length) depende.push(item(apv[0].titulo, 'rodada de aprovação em aberto', '#/aprovacoes'));
+    const p2 = store.doProjeto('contas').find((c) => c.tipo === 'receber'
+      && c.status === 'aberto' && c.parcela);
+    if (p2) trava.push(item(`Parcela ${p2.parcela} — ${fmtMoney(p2.valor_cents)}`,
+      'vence 30 dias depois da entrega final', '#/contas'));
+  }
+
+  if (ref.t === 'etapas') {
+    const tar = store.doProjeto('tarefas').filter((t) => t.etapa_id === r.id && aberta(t));
+    if (tar.length) trava.push(item(`${tar.length} tarefa(s) desta etapa`,
+      'ninguém consegue tocar enquanto está travada', '#/tarefas'));
+    const seguintes = store.doProjeto('etapas')
+      .filter((e) => e.ordem > (r.ordem || 0) && e.status !== 'feito');
+    if (seguintes.length) trava.push(item(`${seguintes.length} etapa(s) depois desta`,
+      'o cronograma inteiro anda atrás', '#/etapas'));
+  }
+
+  if (ref.t === 'lancamentos') {
+    trava.push(item('O quanto já foi gasto',
+      'gasto pendente não entra na conta do orçamento', '#/financeiro'));
+  }
+
+  if (ref.t === 'caixa') {
+    trava.push(item('O fechamento da caixinha',
+      'dinheiro sem comprovante não entra em rubrica nenhuma', '#/caixa'));
+  }
+
+  if (ref.t === 'fontes') {
+    trava.push(item('Todo número que veio desta fonte',
+      'se ela mudou e ninguém trouxe, a tela está velha', '#/fontes'));
+  }
+
+  return { depende, trava };
+}
+
+/* --------------------------------------------------------------- a folha --- */
+const bloco = (olho, txt) => txt
+  ? `<section class="ds-b"><div class="ds-o">${esc(olho)}</div><p class="ds-p">${esc(txt)}</p></section>`
+  : '';
+
+const lista = (olho, itens) => !itens.length ? '' : `<section class="ds-b">
+  <div class="ds-o">${esc(olho)}</div>
+  <div class="ds-lista">${itens.map((i) => `
+    <a class="ds-l" href="${i.rota}"><span class="ds-lg">
+      <span class="ds-lt">${esc(i.t)}</span>
+      <span class="ds-ls">${esc(i.sub || '')}</span></span>
+      <span class="ds-lv">→</span></a>`).join('')}</div>
+</section>`;
+
+/**
+ * Abre o dossiê de um alerta enriquecido.
+ * @param {object} a alerta de `notify.js` — precisa de texto, e de preferência
+ *   origem / porque / como / ref
+ */
+function abrirDossie(a) {
+  if (!a) return;
+  const { depende, trava } = relacoes(a.ref);
+  const urg = a.urg >= 3 ? 'Urgente' : a.urg === 2 ? 'Precisa de você' : 'Fique de olho';
+
+  const corpo = el(`<div class="ds">
+    <div class="ds-cab">
+      <div class="ds-urg ${a.urg >= 3 ? 'alta' : a.urg === 2 ? 'media' : ''}">${esc(urg)}</div>
+      <h3 class="ds-tit">${esc(a.texto)}</h3>
+      ${a.detalhe ? `<div class="ds-sub">${esc(a.detalhe)}</div>` : ''}
+    </div>
+    ${bloco('Por que apareceu aqui', a.origem)}
+    ${bloco('Por que precisa ser resolvida', a.porque)}
+    ${bloco('Como se resolve', a.como)}
+    ${lista('Depende de', depende)}
+    ${lista('Trava', trava)}
+    ${!a.origem && !a.porque && !a.como ? `<p class="ds-p" style="color:var(--tx3)">
+      Este aviso ainda não tem explicação escrita. Abra onde ele vive para ver o que é.</p>` : ''}
+  </div>`);
+
+  const rod = el('<div style="display:flex;gap:8px;width:100%"></div>');
+  const bIr = el(`<a class="btn pri" style="flex:1">${a.rota === '#/mapa' ? 'Abrir no mapa' : 'Ir resolver'}</a>`);
+  bIr.href = a.rota || '#/';
+  bIr.onclick = () => sh.close();
+  const bFechar = el('<button class="btn gho" style="flex:0 0 34%">Depois</button>');
+  bFechar.onclick = () => sh.close();
+  rod.append(bFechar, bIr);
+
+  const sh = sheet({ titulo: 'Entender', corpo, rodape: rod });
+  // Ir para um destino de dentro do dossiê fecha a folha junto.
+  corpo.querySelectorAll('.ds-l').forEach((n) => { n.onclick = () => sh.close(); });
+  return sh;
+}
+
+/** Versão para uma tarefa qualquer, montada na hora a partir do registro. */
+function dossieDaTarefa(t) {
+  if (!t) return null;
+  const d = diasAte(t.prazo);
+  const atrasada = d !== null && d < 0;
+  return {
+    texto: t.titulo,
+    detalhe: [t.responsavel_id ? nomeMembro(t.responsavel_id) : 'sem dono',
+      t.prazo ? prazoTxt(t.prazo) : 'sem prazo'].join(' · '),
+    urg: atrasada ? 3 : d === 0 ? 2 : 1,
+    rota: '#/tarefas',
+    ref: { t: 'tarefas', id: t.id },
+    origem: t.descricao
+      || (t.viagem_id ? 'Nasceu junto com a viagem: toda viagem abre a mesma lista de '
+        + 'providências, com o prazo contado a partir do embarque.'
+        : t.etapa_id ? 'Faz parte de uma etapa do cronograma do projeto.'
+          : 'Alguém da produção criou esta tarefa.'),
+    porque: atrasada
+      ? `O prazo era ${fmtData(t.prazo)}. Tarefa de produção quase nunca está sozinha — `
+        + 'normalmente ela é o que destrava a etapa ou a viagem em que está pendurada.'
+      : 'É o que precisa estar pronto para o que vem depois não parar.',
+    como: (t.remarcacoes || []).length
+      ? `Já foi remarcada ${t.remarcacoes.length} vez(es). Marque como feita, ou remarque de novo `
+        + 'com uma data que você consiga cumprir — o app guarda cada mudança.'
+      : 'Marque como feita quando terminar. Se a data não der, remarque: remarcar avisa quem '
+        + 'está esperando, sumir não.'
+  };
+}
+
+  return { abrirDossie, dossieDaTarefa };
 };
 
 __defs["js/files.js"] = function () {
@@ -1642,6 +1944,81 @@ function brasilSVG({ larg, alt, pinos = [], rota = '', aceso = '' }) {
 }
 
   return { CIDADES, coord, curto, brasilSVG };
+};
+
+__defs["js/motion.js"] = function () {
+// O movimento do app, num lugar só.
+//
+// Três regras: serve para alguma coisa, é rápido (nada passa de 440ms) e some
+// inteiro quando o sistema pede menos movimento — o que aqui não é um `if` em
+// cada lugar, e sim as durações de `:root` zeradas no CSS. Este módulo só liga
+// os gatilhos; quem descreve o movimento é a folha de estilo.
+
+const parado = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------------------------------------------------------------- revelar ---
+   O que entra na tela ao rolar sobe um pouco e aparece, em cascata de 40ms.
+   Só uma vez por elemento: lista que pisca a cada rolagem cansa. */
+let observador = null;
+function olho() {
+  if (observador) return observador;
+  observador = new IntersectionObserver((linhas) => {
+    for (const l of linhas) {
+      if (!l.isIntersecting) continue;
+      l.target.classList.add('vis');
+      observador.unobserve(l.target);
+    }
+  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.04 });
+  return observador;
+}
+
+/** Marca os blocos de uma tela para aparecerem conforme sobem. */
+function revelar(raiz) {
+  if (!raiz || parado()) return;
+  const alvos = raiz.querySelectorAll(
+    ':scope > .card, :scope > .sec, :scope > .grid, :scope > .grid3, '
+    + ':scope > .banner, :scope > .bloco, :scope > .kpi, '
+    + ':scope > .bloco > .card, :scope > .bloco > .sec, :scope > .bloco > .grid, '
+    + ':scope > .bloco > .grid3, :scope > .tabela-caixa, :scope > .criar-faixa'
+  );
+  let i = 0;
+  for (const n of alvos) {
+    if (n.dataset.rev) continue;
+    n.dataset.rev = '1';
+    // A cascata só vale para os primeiros: depois do sexto ela vira espera.
+    n.style.setProperty('--atraso', `${Math.min(i++, 6) * 40}ms`);
+    // O que já está visível na abertura não espera rolagem nenhuma.
+    const r = n.getBoundingClientRect();
+    if (r.top < innerHeight) { n.classList.add('vis'); continue; }
+    olho().observe(n);
+  }
+}
+
+/* ------------------------------------------------------------- transição ---
+   Troca de tela: a antiga sai um pouco para cima, a nova chega de baixo. Onde
+   o navegador tem View Transitions, ele faz; onde não tem, é uma classe. */
+function trocarTela(pintar) {
+  if (parado() || !document.startViewTransition) { pintar(); return; }
+  document.startViewTransition(pintar);
+}
+
+/* ------------------------------------------------------- topo que encolhe ---
+   Ao rolar, o cabeçalho perde altura e ganha um fio: dá espaço ao conteúdo e
+   avisa que a página andou. */
+function topoVivo(raiz) {
+  const topo = raiz.querySelector('.topbar');
+  if (!topo) return;
+  const alvo = raiz.querySelector('main') || document.scrollingElement;
+  const ler = () => {
+    const y = alvo === document.scrollingElement ? scrollY : alvo.scrollTop;
+    topo.classList.toggle('rolou', y > 8);
+  };
+  (alvo === document.scrollingElement ? window : alvo)
+    .addEventListener('scroll', ler, { passive: true });
+  ler();
+}
+
+  return { revelar, trocarTela, topoVivo };
 };
 
 __defs["js/nf.js"] = function () {
@@ -1961,7 +2338,15 @@ function alertas() {
       icone: c.membro_id === u?.id ? '🙋' : '⏳',
       texto: c.titulo,
       detalhe: c.membro_id === u?.id ? 'Confirme' : `${nome(c.membro_id)} ainda não confirmou`,
-      rota: c.membro_id === u?.id ? '#/meu' : '#/equipe'
+      rota: c.membro_id === u?.id ? '#/meu' : '#/equipe',
+      ref: { t: 'confirmacoes', id: c.id },
+      origem: 'A produção pediu esta confirmação quando montou a viagem. '
+        + 'Ela fica aqui até alguém responder — não some sozinha.',
+      porque: 'Sem a confirmação, a produção não sabe se pode contar com a pessoa. '
+        + 'Passagem, hospedagem e diária ficam presas nisso.',
+      como: c.membro_id === u?.id
+        ? 'Abra "Meu painel" e toque em confirmar. Leva um toque.'
+        : `Cobre ${nome(c.membro_id)} — em Equipe dá para ver o telefone e mandar mensagem.`
     }));
 
   // Contas vencendo
@@ -1973,7 +2358,18 @@ function alertas() {
         id: 'conta_' + c.id, urg: d < 0 ? 3 : 2, icone: c.tipo === 'pagar' ? '💸' : '💰',
         texto: `${c.tipo === 'pagar' ? 'Pagar' : 'Receber'} ${fmtMoney(c.valor_cents)}`,
         detalhe: `${c.descricao} · ${prazoTxt(c.venc)}`,
-        rota: '#/contas'
+        rota: c.tipo === 'pagar' ? '#/pagamentos' : '#/contas',
+        ref: { t: 'contas', id: c.id },
+        origem: `Esta conta está em aberto e o vencimento é ${fmtData(c.venc)}. `
+          + 'Toda conta a menos de cinco dias do vencimento aparece aqui.',
+        porque: c.tipo === 'pagar'
+          ? (d < 0 ? 'Já venceu. Atraso com fornecedor e com equipe custa caro em confiança, '
+            + 'e no caso de gente que trabalhou é o que trava a próxima diária.'
+            : 'Pagar no dia combinado é o que mantém a equipe e os fornecedores do lado da produção.')
+          : 'É dinheiro que a produtora tem a receber. Enquanto não entra, o caixa aguenta o job sozinho.',
+        como: c.tipo === 'pagar'
+          ? 'Em Dinheiro → Pagamentos, abra a conta e dê baixa quando o pagamento sair.'
+          : 'Em Dinheiro → Criar → Cobrar o cliente, o e-mail sai pronto com valor, vencimento e os dados da produtora.'
       });
     });
   }
@@ -1984,7 +2380,13 @@ function alertas() {
     if (pend.length) add({
       id: 'aprov_' + pend.length, urg: 2, icone: '🧾',
       texto: `${pend.length} lançamento(s) para aprovar`, detalhe: 'Gastos lançados pela equipe',
-      rota: '#/financeiro'
+      rota: '#/financeiro',
+      ref: { t: 'lancamentos', id: pend[0]?.id },
+      origem: 'Quem está em campo lança o gasto pelo celular e ele entra como pendente. '
+        + 'Fica assim até a produção olhar.',
+      porque: 'Gasto pendente não conta no orçamento. Enquanto ninguém aprova, o número de '
+        + '"quanto já gastei" está mentindo para menos.',
+      como: 'Em Dinheiro → Gastos, abra cada um, confira o comprovante e aprove ou rejeite.'
     });
   }
 
@@ -1993,7 +2395,12 @@ function alertas() {
     const d = diasAte(e.prazo);
     if (d === null || d > 5) return;
     add({ id: 'entr_' + e.id, urg: d < 0 ? 3 : 2, icone: '📦', texto: e.titulo,
-      detalhe: `Entrega · ${prazoTxt(e.prazo)}`, rota: '#/agenda' });
+      detalhe: `Entrega · ${prazoTxt(e.prazo)}`, rota: '#/agenda',
+      ref: { t: 'entregas', id: e.id },
+      origem: `O prazo desta entrega é ${fmtData(e.prazo)}, e ele veio do cronograma do contrato.`,
+      porque: 'Entrega atrasada é a única coisa do job que o cliente enxerga de fora. '
+        + 'E a segunda parcela só vence 30 dias depois da entrega final.',
+      como: 'Suba a versão em Aprovações e mande para o cliente. O relógio do aceite começa aí.' });
   });
 
   // Rodadas de aprovação que passaram do prazo (silêncio = aceite pelo contrato)
@@ -2004,7 +2411,12 @@ function alertas() {
       if (d < 0) add({
         id: 'apv_' + a.id, urg: 3, icone: '⏰',
         texto: a.titulo, detalhe: 'Prazo de aceite venceu sem resposta',
-        rota: '#/aprovacoes'
+        rota: '#/aprovacoes',
+        ref: { t: 'aprovacoes', id: a.id },
+        origem: `A versão foi enviada e o prazo de resposta era ${fmtData(a.prazo)}.`,
+        porque: 'Pelo contrato, silêncio depois do prazo vale como aceite. É bom registrar isso '
+          + 'agora, enquanto a data está fresca — depois vira discussão.',
+        como: 'Em Aprovações, marque como aceita por decurso de prazo. Fica gravado com a data.'
       });
       else if (d <= 2) add({
         id: 'apvp_' + a.id, urg: 1, icone: '👀',
@@ -2025,7 +2437,13 @@ function alertas() {
         id: 'caixa_' + id, urg: id === u?.id ? 2 : 1, icone: '👛',
         texto: `${fmtMoney(c.saldo)} de caixinha em aberto`,
         detalhe: id === u?.id ? 'Comprove ou devolva' : `Com ${nome(id)}`,
-        rota: '#/caixa'
+        rota: '#/caixa',
+        ref: { t: 'caixa', id },
+        origem: 'A produção adiantou dinheiro vivo e a soma dos comprovantes ainda não fecha '
+          + 'com o que saiu.',
+        porque: 'Dinheiro sem comprovante não entra em rubrica nenhuma e some do orçamento. '
+          + 'Na hora de prestar contas, some da contabilidade também.',
+        como: 'Em Dinheiro → Caixinha, lance as notinhas que faltam ou devolva o troco.'
       });
     });
   }
@@ -2038,7 +2456,13 @@ function alertas() {
     if (!meu && !can(u, 'lanc.ver')) return;
     if (t.cobrado_em && meu) {
       add({ id: 'tcob_' + t.id, urg: 3, icone: '⚡', texto: t.titulo,
-        detalhe: 'Cobraram você', rota: '#/tarefas' });
+        detalhe: 'Cobraram você', rota: '#/tarefas',
+        ref: { t: 'tarefas', id: t.id },
+        origem: `Alguém da produção cobrou esta tarefa em ${fmtData(t.cobrado_em)}.`,
+        porque: 'Cobrança é sinal de que outra pessoa está esperando por isto para poder tocar '
+          + 'a parte dela.',
+        como: 'Faça e marque como feita. Se não der, remarque com uma data — remarcar avisa '
+          + 'quem cobrou, sumir não.' });
       return;
     }
     const d = diasAte(t.prazo);
@@ -2047,16 +2471,31 @@ function alertas() {
       id: 'tatr_' + t.id, urg: meu ? 3 : 2, icone: '⏱',
       texto: t.titulo,
       detalhe: meu ? `Atrasada · ${prazoTxt(t.prazo)}` : `${nome(t.responsavel_id)} · atrasada ${prazoTxt(t.prazo)}`,
-      rota: '#/tarefas'
+      rota: '#/tarefas',
+      ref: { t: 'tarefas', id: t.id },
+      origem: `O prazo era ${fmtData(t.prazo)} e a tarefa continua aberta.`,
+      porque: 'Tarefa de produção quase nunca está sozinha: normalmente ela é o que destrava '
+        + 'a etapa ou a viagem em que está pendurada.',
+      como: 'Marque como feita, ou remarque com uma data nova — o app guarda cada remarcação.'
     });
     else if (d === 0 && meu) add({
-      id: 'thoje_' + t.id, urg: 2, icone: '✅', texto: t.titulo, detalhe: 'Para hoje', rota: '#/tarefas'
+      id: 'thoje_' + t.id, urg: 2, icone: '✅', texto: t.titulo, detalhe: 'Para hoje', rota: '#/tarefas',
+      ref: { t: 'tarefas', id: t.id },
+      origem: 'O prazo desta tarefa é hoje.',
+      porque: 'É a última janela antes de ela virar atraso e aparecer em vermelho para todo mundo.',
+      como: 'Marque como feita quando terminar, ou remarque se o dia virou outra coisa.'
     });
   });
 
   // Etapas travadas
   store.doProjeto('etapas').filter((e) => e.status === 'travado').forEach((e) => {
-    add({ id: 'trav_' + e.id, urg: 2, icone: '⛔', texto: e.nome, detalhe: 'Etapa travada', rota: '#/etapas' });
+    add({ id: 'trav_' + e.id, urg: 2, icone: '⛔', texto: e.nome, detalhe: 'Etapa travada', rota: '#/etapas',
+      ref: { t: 'etapas', id: e.id },
+      origem: 'Alguém marcou esta etapa como travada — quase sempre porque falta uma resposta '
+        + 'de fora: cliente, fornecedor ou autorização.',
+      porque: 'Etapa travada segura tudo que vem depois dela no cronograma, e o cronograma é o '
+        + 'que sustenta a data de entrega do contrato.',
+      como: 'Em Etapas, abra e escreva o que está faltando. Quem resolver destrava.' });
   });
 
   // Compromissos de hoje/amanhã
@@ -2070,7 +2509,18 @@ function alertas() {
       texto: ev.titulo,
       detalhe: `${d === 0 ? 'Hoje' : 'Amanhã'}${ev.hora_inicio ? ' às ' + ev.hora_inicio : ''}`
         + (ev.confirmado === false ? ' · data a confirmar' : ''),
-      rota: '#/agenda'
+      rota: '#/mapa',
+      ref: { t: 'eventos', id: ev.id },
+      origem: `Está na agenda do projeto para ${d === 0 ? 'hoje' : 'amanhã'}`
+        + (ev.confirmado === false
+          ? ', mas a Fundação ainda não confirmou esta data.'
+          : ', já confirmado.'),
+      porque: ev.confirmado === false
+        ? 'Pelo contrato (cláusula 4.3), a Fundação precisa confirmar cada diária com dez dias '
+          + 'úteis de antecedência. Sem isso, a equipe pode viajar para nada.'
+        : 'É o dia acontecendo. O que não estiver resolvido até agora vira problema em campo.',
+      como: 'No Mapa, abra o dia: quem vai, ordem do dia, onde é, o dinheiro e o que falta '
+        + 'estão todos ali, e dá para resolver de lá mesmo.'
     });
   });
 
@@ -2080,7 +2530,14 @@ function alertas() {
       add({
         id: 'nfcob_' + conta.id, urg: 3, icone: '🧾',
         texto: `Cobrar a NF de ${conta.contraparte || conta.descricao}`,
-        detalhe: `${fmtMoney(conta.valor_cents)} · ${est.t}`, rota: '#/pedidos-nf'
+        detalhe: `${fmtMoney(conta.valor_cents)} · ${est.t}`, rota: '#/pedidos-nf',
+        ref: { t: 'contas', id: conta.id },
+        origem: `O pedido de nota foi mandado em ${fmtData(conta.nf_pedido_em)} e passaram-se `
+          + `mais de ${DIAS_FOLLOWUP} dias sem a nota chegar.`,
+        porque: 'A produtora não paga sem nota. Enquanto ela não chega, quem trabalhou não '
+          + 'recebe e o gasto não entra no fechamento do job.',
+        como: 'Em Pedidos de NF, o texto do follow-up sai pronto — dá para mandar por e-mail '
+          + 'ou WhatsApp num toque.'
       });
     }
   }
@@ -2092,7 +2549,14 @@ function alertas() {
       if (!st.vencida) return;
       add({
         id: 'fonte_' + f.id, urg: 2, icone: '🔗', texto: f.titulo,
-        detalhe: `Reconferir — ${st.txt}`, rota: '#/fontes'
+        detalhe: `Reconferir — ${st.txt}`, rota: '#/fontes',
+        ref: { t: 'fontes', id: f.id },
+        origem: `Esta fonte de fora tem uma frequência de conferência combinada e a última foi `
+          + `há tempo demais — ${st.txt}.`,
+        porque: 'Tudo que este app mostra saiu de algum lugar: contrato, planilha, agenda, '
+          + 'e-mail. Se a fonte mudou e ninguém trouxe, o número na tela está velho e as '
+          + 'decisões saem em cima dele.',
+        como: 'Em Fontes, abra o link, compare com o que está aqui e marque como conferida.'
       });
     });
   }
@@ -4050,10 +4514,9 @@ function escuroAgora() {
   const t = temaAtual();
   if (t === 'escuro') return true;
   if (t === 'claro') return false;
-  const host = document.documentElement.getAttribute('data-theme');
-  if (host === 'dark') return true;
-  if (host === 'light') return false;
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches || false;
+  // O escuro é o padrão do app, e não segue o sistema: só quem escolhe "claro"
+  // em Mais é que clareia.
+  return true;
 }
 
   return { TEMAS, temaAtual, aplicarTema, definirTema, escuroAgora };
@@ -6478,6 +6941,7 @@ const { esc, fmtMoneyShort, pct, fmtData, prazoTxt, prazoTag, diasAte, valoresOc
 const { financeiro } = __req("js/calc.js");
 const { FASES, statusEtapa, faseSimbolo } = __req("js/seed.js");
 const { alertas, perguntas } = __req("js/notify.js");
+const { abrirDossie } = __req("js/dossie.js");
 const PERIODOS = [
   { v: 1, t: '24h' }, { v: 3, t: '3 dias' }, { v: 7, t: 'Semana' }, { v: 30, t: 'Mês' }
 ];
@@ -6534,12 +6998,13 @@ function render() {
     <div class="sec"><div class="sec-t">Precisa de você</div>
       <span class="small muted">${al.length}</span></div>
     <div class="card lista">
-      ${al.slice(0, 6).map((a) => `
-        <a class="row act alto" href="${a.rota}" style="text-decoration:none;color:inherit">
+      ${al.slice(0, 6).map((a, i) => `
+        <button class="row act alto" data-alerta="${i}" style="width:100%;text-align:left;
+          background:none;border:0;border-bottom:1px solid var(--line);color:inherit">
           <span class="ico ${a.urg >= 3 ? 'urg' : a.urg === 2 ? 'med' : ''}">${a.icone || '•'}</span>
           <span class="g"><span class="t">${esc(a.texto)}</span>
             ${a.detalhe ? `<span class="s">${esc(a.detalhe)}</span>` : ''}</span>
-        </a>`).join('')}
+        </button>`).join('')}
       ${al.length > 6 ? `<a class="row act" href="#/tarefas" style="text-decoration:none;color:inherit">
         <span class="g"><span class="t" style="color:var(--ac2)">Ver os outros ${al.length - 6}</span></span></a>` : ''}
     </div>
@@ -6668,6 +7133,11 @@ function render() {
     };
     n.querySelector('[data-sim]').onclick = () => responder(q.aoSim);
     n.querySelector('[data-nao]').onclick = () => responder(q.aoNao);
+  });
+  // Tocar num aviso abre o dossiê dele: o que é, de onde veio, por que resolver,
+  // como, e o que está preso esperando. Ir direto para a tela é o botão de lá.
+  node.querySelectorAll('[data-alerta]').forEach((b) => {
+    b.onclick = () => abrirDossie(al[Number(b.dataset.alerta)]);
   });
   node.querySelectorAll('[data-periodo]').forEach((b) => {
     b.onclick = () => { periodo = Number(b.dataset.periodo); store.emit(); };
@@ -9486,6 +9956,7 @@ __defs["js/views/tarefas.js"] = function () {
 // Uma tarefa pode estar solta ou pendurada numa etapa — quando está, ela também
 // aparece no checklist daquela etapa.
 const { store, membros, nomeMembro } = __req("js/store.js");
+const { abrirDossie, dossieDaTarefa } = __req("js/dossie.js");
 const { can, podeVerTudo } = __req("js/perms.js");
 const { el, abrirForm, sheet, toast } = __req("js/ui.js");
 const { esc, fmtData, prazoTxt, diasAte, hoje, ordenar, iniciais } = __req("js/utils.js");
@@ -9733,12 +10204,16 @@ function abrir(t) {
         </div>`).join('')}</div>` : ''}
       ${gestor && emAberto(t) && t.responsavel_id && !meu
         ? '<button class="btn wide" data-cobrar>Cobrar quem ficou responsável</button>' : ''}
+      <button class="btn wide" style="margin-top:8px" data-entender>Por que esta tarefa existe</button>
       <button class="btn wide gho" style="margin-top:8px" data-edit>Editar tarefa</button>`;
 
     corpo.querySelectorAll('[data-st]').forEach((b) => {
       b.onclick = async () => { await marcar(t, b.dataset.st); t.status = b.dataset.st; pintar(); store.emit(); };
     });
     corpo.querySelector('[data-adiar]')?.addEventListener('click', () => { sh.close(); remarcar(t); });
+    corpo.querySelector('[data-entender]')?.addEventListener('click', () => {
+      sh.close(); abrirDossie(dossieDaTarefa(t));
+    });
     corpo.querySelector('[data-cobrar]')?.addEventListener('click', async () => {
       await store.update('tarefas', t.id, { cobrado_em: hoje() });
       t.cobrado_em = hoje();

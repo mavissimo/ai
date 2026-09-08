@@ -63,6 +63,37 @@ await p.evaluate(()=>{const b=[...document.querySelectorAll('button,a')].find(x=
 await p.waitForTimeout(900);
 await passo('backup abre para copiar', async()=>{
   if(!await p.locator('.sheet [data-json]').count()) throw new Error('sem folha de backup'); });
+// dossiê de um alerta: o que é, de onde veio, por que, como, e as duas pontas
+await p.evaluate(()=>location.hash='#/'); await p.waitForTimeout(900);
+await passo('painel tem avisos', async()=>{
+  if(!await p.locator('[data-alerta]').count()) throw new Error('sem avisos'); });
+await p.evaluate(()=>document.querySelectorAll('[data-alerta]')[0].click()); await p.waitForTimeout(800);
+await passo('dossiê do aviso', async()=>{
+  const b = await p.locator('.ds-b').count();
+  if (b < 3) throw new Error('só '+b+' blocos'); });
+await p.evaluate(()=>{const s=document.querySelector('.scrim'); s&&s.click();}); await p.waitForTimeout(400);
+
+// dossiê de uma tarefa
+await p.evaluate(()=>location.hash='#/tarefas'); await p.waitForTimeout(900);
+await p.evaluate(()=>document.querySelector('[data-tarefa]').click()); await p.waitForTimeout(800);
+await p.evaluate(()=>document.querySelector('[data-entender]').click()); await p.waitForTimeout(800);
+await passo('dossiê da tarefa', async()=>{
+  if(await p.locator('.ds-b').count() < 3) throw new Error('sem blocos'); });
+await p.evaluate(()=>{const s=document.querySelector('.scrim'); s&&s.click();}); await p.waitForTimeout(400);
+
+// tema: escuro por padrão, claro só por escolha
+await passo('escuro é o padrão', async()=>{
+  const bg = await p.evaluate(()=>getComputedStyle(document.body).backgroundColor);
+  const [r,g,bl] = bg.match(/\d+/g).map(Number);
+  if (r+g+bl > 120) throw new Error('fundo claro: '+bg); });
+await p.evaluate(()=>document.documentElement.setAttribute('data-tema','claro'));
+await p.waitForTimeout(300);
+await passo('claro por escolha', async()=>{
+  const bg = await p.evaluate(()=>getComputedStyle(document.body).backgroundColor);
+  const [r,g,bl] = bg.match(/\d+/g).map(Number);
+  if (r+g+bl < 500) throw new Error('não clareou: '+bg); });
+await p.evaluate(()=>document.documentElement.removeAttribute('data-tema'));
+
 await p.screenshot({path:'f-bundle.png'});
 console.log(errs.length ? 'ERROS: ' + errs.slice(0,4).join(' | ') : 'sem erros de JS');
 if (falhou || errs.length) process.exitCode = 1;

@@ -1,12 +1,39 @@
-/* ============================================================================
-   Tema. O padrão do :root é o claro; o escuro entra por três caminhos, nesta
-   ordem de precedência: escolha explícita do usuário (data-tema), tema do
-   ambiente onde a página está embutida (data-theme) e, por fim, a preferência
-   do sistema. Toda cor da interface sai daqui — nada de cor solta no CSS.
-   ========================================================================= */
 :root{
-  /* Papel osso e tinta quase preta: o contraste alto é o que dá a cara de
-     cartaz. Nada de cinza-azulado de painel. */
+  /* A24: preto de sala escura e papel osso. O contraste é o desenho — quase
+     tudo que aparece nesta interface é tinta clara sobre preto, com um único
+     âmbar (o do logo) para o que exige o olho e um vermelho só para perigo. */
+  --bg:#0a0a09; --bg2:#131211; --bg3:#1c1a18; --line:#2b2825;
+  --tx:#f4f1ea; --tx2:#a29b90; --tx3:#6d685f;
+  --ac:#e8b13d; --ac-tx:#161104; --ac-soft:rgba(232,177,61,.12); --ac-line:rgba(232,177,61,.38);
+  --ac2:#7ba6ff;
+  --ok:#5fbe7d; --warn:#e8b13d; --bad:#ef4a44; --info:#7ba6ff;
+  --ok-bg:rgba(95,190,125,.13); --warn-bg:rgba(232,177,61,.14);
+  --bad-bg:rgba(239,74,68,.14); --info-bg:rgba(123,166,255,.13);
+  --scrim:rgba(0,0,0,.72); --sombra:0 12px 34px rgba(0,0,0,.6);
+  --titulo: Archivo, 'Helvetica Neue', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --r:5px; --sp:16px;
+  /* escala de espaço: tudo no layout sai de um destes seis degraus */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:36px;
+  --r-sm:3px; --r-lg:7px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+
+  /* ---- movimento ----------------------------------------------------------
+     Seis durações e quatro curvas, e nada de valor solto pelo CSS. Rápido é
+     quase sempre melhor: nada aqui passa de 440ms, e o que responde ao dedo
+     fica abaixo de 150. */
+  --t-inst:60ms; --t-rap:140ms; --t-norm:220ms; --t-med:320ms; --t-lento:440ms;
+  --e-pad:cubic-bezier(.2,0,0,1);        /* mudança de estado no lugar        */
+  --e-entra:cubic-bezier(0,0,.2,1);      /* o que chega desacelera            */
+  --e-sai:cubic-bezier(.3,0,1,.3);       /* o que sai acelera e some          */
+  --e-folha:cubic-bezier(.32,.72,0,1);   /* folha, painel, coisa que cresce   */
+  color-scheme: dark;
+}
+
+/* O claro é a exceção e só entra por escolha explícita, em Mais → Aparência.
+   Nem o sistema nem quem hospeda a página trocam isto sozinhos: o preto é a
+   identidade do app, não uma preferência de ambiente. */
+:root[data-tema="claro"]{
   --bg:#eeeae2; --bg2:#f7f4ee; --bg3:#e3ded4; --line:#cfc8ba;
   --tx:#12100d; --tx2:#514c43; --tx3:#8b8479;
   --ac:#8a4b12; --ac-tx:#f7f4ee; --ac-soft:rgba(138,75,18,.10); --ac-line:rgba(138,75,18,.30);
@@ -15,48 +42,13 @@
   --ok-bg:rgba(47,107,60,.11); --warn-bg:rgba(138,90,9,.13);
   --bad-bg:rgba(167,38,32,.10); --info-bg:rgba(44,79,168,.10);
   --scrim:rgba(18,16,13,.55); --sombra:0 10px 30px rgba(18,16,13,.14);
-  --titulo: Archivo, 'Helvetica Neue', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
-  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --r:5px; --sp:16px;
-  /* escala de espaço: tudo no layout sai de um destes seis degraus */
-  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:36px;
-  --r-sm:3px; --r-lg:7px;
-  --safe-b: env(safe-area-inset-bottom, 0px);
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark){
-  :root:not([data-tema="claro"]):not([data-theme="light"]){
-    --bg:#0a0a09; --bg2:#141311; --bg3:#1d1b18; --line:#2e2b26;
-    --tx:#f2eee6; --tx2:#a49d91; --tx3:#726c62;
-    --ac:#e0a03a; --ac-tx:#141105; --ac-soft:rgba(224,160,58,.13); --ac-line:rgba(224,160,58,.38);
-    --ac2:#6f9dff;
-    --ok:#5fbe7d; --warn:#e0a03a; --bad:#e8615c; --info:#7aa6ff;
-    --ok-bg:rgba(95,190,125,.14); --warn-bg:rgba(224,160,58,.15);
-    --bad-bg:rgba(232,97,92,.15); --info-bg:rgba(122,166,255,.15);
-    --scrim:rgba(0,0,0,.7); --sombra:0 10px 30px rgba(0,0,0,.55);
-    color-scheme: dark;
-  }
+/* Quem pede menos movimento recebe a mesma interface, parada. Um lugar só. */
+@media (prefers-reduced-motion: reduce){
+  :root{ --t-inst:1ms; --t-rap:1ms; --t-norm:1ms; --t-med:1ms; --t-lento:1ms }
 }
-:root:not([data-tema="claro"])[data-theme="dark"],
-:root[data-tema="escuro"]{
-  --bg:#0a0a09; --bg2:#141311; --bg3:#1d1b18; --line:#2e2b26;
-  --tx:#f2eee6; --tx2:#a49d91; --tx3:#726c62;
-  --ac:#e0a03a; --ac-tx:#141105; --ac-soft:rgba(224,160,58,.13); --ac-line:rgba(224,160,58,.38);
-  --ac2:#6f9dff;
-  --ok:#5fbe7d; --warn:#e0a03a; --bad:#e8615c; --info:#7aa6ff;
-  --ok-bg:rgba(95,190,125,.14); --warn-bg:rgba(224,160,58,.15);
-  --bad-bg:rgba(232,97,92,.15); --info-bg:rgba(122,166,255,.15);
-  --scrim:rgba(0,0,0,.7); --sombra:0 10px 30px rgba(0,0,0,.55);
-  color-scheme: dark;
-}
-
-/* O "olho" é o rótulo de ficha técnica que abre um bloco: mono, caixa alta,
-   entreletra larga. Aparece em cartaz, em crédito de filme e agora aqui. */
-.olho-txt{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.16em;
-  text-transform:uppercase;color:var(--tx3)}
-.fio{height:1px;background:var(--tx);opacity:.18;margin:var(--s4) 0}
-.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--tx)}
@@ -481,11 +473,11 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
   to{opacity:1;transform:none}}
 
 /* rodapé da estação: quatro números, sem moldura */
-.est-pe{display:flex;gap:var(--s5);flex:none;padding-top:var(--s3);
+.est-pe{display:flex;gap:var(--s4);flex:none;padding-top:var(--s3);justify-content:space-between;
   border-top:1px solid var(--tx);border-top-color:color-mix(in srgb,var(--tx) 40%,transparent)}
 .pe-item{display:flex;flex-direction:column;gap:1px;min-width:0}
-.pe-item b{font-family:var(--titulo);font-size:19px;font-weight:800;letter-spacing:-.035em;
-  font-variant-numeric:tabular-nums}
+.pe-item b{font-family:var(--titulo);font-size:clamp(15px,4.4vw,19px);font-weight:800;
+  letter-spacing:-.04em;font-variant-numeric:tabular-nums;white-space:nowrap}
 .pe-item span{font-family:var(--mono);font-size:9px;color:var(--tx3);letter-spacing:.14em;
   text-transform:uppercase;margin-top:2px}
 .pe-item.atencao b{color:var(--warn)}
@@ -666,3 +658,88 @@ main{flex:1;padding:var(--s4) var(--s4) calc(96px + var(--safe-b));max-width:760
 .capa-p{font-size:14.5px;line-height:1.55;color:var(--tx2);margin:var(--s5) 0 0;max-width:44ch}
 .capa-pe{flex:none}
 .capa .indice{margin-top:var(--s2)}
+
+/* ============================================================================
+   Movimento. Tudo aqui sai dos tokens de duração e curva do topo — nenhum
+   número solto. Quem pede menos movimento já recebeu as durações zeradas lá em
+   cima, então nada nesta seção precisa se repetir por isso.
+   ========================================================================= */
+
+/* O que entra na tela: sobe 14px e aparece, em cascata. */
+[data-rev]{opacity:0;transform:translateY(14px);
+  transition:opacity var(--t-med) var(--e-entra) var(--atraso,0ms),
+             transform var(--t-med) var(--e-entra) var(--atraso,0ms)}
+[data-rev].vis{opacity:1;transform:none}
+@media (prefers-reduced-motion: reduce){ [data-rev]{opacity:1;transform:none} }
+
+/* Troca de tela: a nova chega de baixo. */
+main{animation:tela var(--t-med) var(--e-entra)}
+@keyframes tela{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){ main{animation:none} }
+::view-transition-old(root){animation:sai var(--t-rap) var(--e-sai) forwards}
+::view-transition-new(root){animation:entra var(--t-norm) var(--e-entra)}
+@keyframes sai{to{opacity:0;transform:translateY(-6px)}}
+@keyframes entra{from{opacity:0;transform:translateY(10px)}}
+
+/* Resposta ao dedo: rápida e curta, senão vira lentidão. */
+.btn,.chip,.row.act,.ix,.who,.tabbar a,.olho,.fab,.criar-faixa,.seg button,.pe-item{
+  transition:transform var(--t-inst) var(--e-pad),
+             background var(--t-rap) var(--e-pad),
+             border-color var(--t-rap) var(--e-pad),
+             color var(--t-rap) var(--e-pad),
+             opacity var(--t-rap) var(--e-pad)}
+.btn:active,.chip:active,.criar-faixa:active,.fab:active{transform:scale(.97)}
+.ix:active,.who:active{transform:scale(.99);opacity:.6}
+.row.act:active{background:var(--bg3)}
+.tabbar a:active{transform:scale(.94)}
+
+/* O topo encolhe quando a página anda. */
+.topbar{transition:padding var(--t-norm) var(--e-pad),
+        box-shadow var(--t-norm) var(--e-pad), background var(--t-norm) var(--e-pad)}
+.topbar.rolou{padding-top:calc(env(safe-area-inset-top,0px) + 6px);padding-bottom:6px;
+  box-shadow:0 1px 0 var(--line),0 8px 20px -14px rgba(0,0,0,.7)}
+.topbar.rolou h1{font-size:12px}
+.topbar.rolou .sub{opacity:0;height:0;margin:0;overflow:hidden}
+.topbar h1,.topbar .sub{transition:font-size var(--t-norm) var(--e-pad),
+  opacity var(--t-rap) var(--e-pad),height var(--t-norm) var(--e-pad)}
+
+/* Folha e véu, agora nos tokens. */
+.scrim{transition:opacity var(--t-norm) var(--e-pad)}
+.sheet{transition:transform var(--t-med) var(--e-folha)}
+.toast{animation:toast-entra var(--t-norm) var(--e-folha)}
+@keyframes toast-entra{from{opacity:0;transform:translate(-50%,14px)}
+  to{opacity:1;transform:translate(-50%,0)}}
+
+/* O número que muda pisca uma vez, de leve: o olho acha sozinho o que mexeu. */
+@keyframes bateu{0%{background:var(--ac-soft)}100%{background:transparent}}
+.bateu{animation:bateu var(--t-lento) var(--e-sai)}
+
+/* ============================================================================
+   Dossiê. O aviso deixa de ser um empurrão e passa a ser uma leitura: o que é,
+   de onde veio, por que resolver, como, e as duas pontas — do que depende e o
+   que trava. Cada bloco é um olho em mono e um parágrafo, separados por fio.
+   ========================================================================= */
+.ds-cab{padding-bottom:var(--s4);border-bottom:1px solid var(--line)}
+.ds-urg{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--tx3)}
+.ds-urg.alta{color:var(--bad)}
+.ds-urg.media{color:var(--warn)}
+.ds-tit{font-family:var(--titulo);font-size:22px;font-weight:800;letter-spacing:-.035em;
+  line-height:1.1;margin:var(--s2) 0 0;text-transform:uppercase;text-wrap:balance}
+.ds-sub{font-family:var(--mono);font-size:10.5px;color:var(--tx3);margin-top:var(--s2);
+  letter-spacing:.05em;text-transform:uppercase;line-height:1.5}
+
+.ds-b{padding:var(--s4) 0;border-bottom:1px solid var(--line)}
+.ds-b:last-child{border-bottom:0}
+.ds-o{font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--tx3);margin-bottom:var(--s2)}
+.ds-p{font-size:14.5px;line-height:1.6;color:var(--tx);margin:0;max-width:52ch}
+
+.ds-lista{display:flex;flex-direction:column;margin-top:var(--s1)}
+.ds-l{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) 0;
+  border-top:1px solid var(--line);color:var(--tx);text-decoration:none}
+.ds-l:first-child{border-top:0}
+.ds-lg{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ds-lt{font-size:14px;font-weight:650;letter-spacing:-.01em}
+.ds-ls{font-size:12px;color:var(--tx3);line-height:1.4}
+.ds-lv{flex:none;color:var(--tx3)}

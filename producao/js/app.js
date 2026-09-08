@@ -9,6 +9,7 @@ import { alertas, iniciarMonitor } from './notify.js';
 import { minhasTarefas } from './views/tarefas.js';
 import { autenticar, temSenha } from './pin.js';
 import { aplicarTema } from './tema.js';
+import { revelar, topoVivo, trocarTela } from './motion.js';
 
 import * as vDash from './views/dash.js';
 import * as vEtapas from './views/etapas.js';
@@ -232,6 +233,9 @@ export function render() {
     <main></main>
     ${tabs()}`;
   root.querySelector('main').append(v.node);
+  // Os blocos aparecem conforme sobem, e o topo encolhe quando a página anda.
+  revelar(v.node);
+  topoVivo(root);
 
   if (v.fab) {
     const b = el(`<button class="fab" aria-label="Adicionar">${v.fab.label}</button>`);
@@ -293,7 +297,8 @@ async function start() {
   }
 
   store.sub(() => render());
-  window.addEventListener('hashchange', render);
+  // Trocar de tela é uma transição, não um corte — onde o navegador souber.
+  window.addEventListener('hashchange', () => trocarTela(render));
   // O botão de ocultar valores aparece em várias telas; um só ouvinte dá conta.
   app().addEventListener('click', (e) => {
     if (e.target.closest('[data-olho]')) { alternarValores(); render(); }
