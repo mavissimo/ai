@@ -1260,6 +1260,8 @@ function telaBoasVindas() {
       <p class="olho-txt" style="margin-top:14px;text-align:center">${isRemote()
         ? 'Os dados ficam no Supabase do projeto'
         : 'Os dados ficam neste aparelho · dá para exportar um backup'}</p>
+      <p class="olho-txt" style="margin-top:6px;text-align:center;opacity:.6"
+        >versão de ${esc(APP.build)}</p>
     </div>
   </div>`);
   // Trocar a cor aqui na porta, antes de entrar: quem vai passar o dia dentro
@@ -1748,7 +1750,12 @@ const SUPABASE = {
 const APP = {
   nome: 'Unit0',
   versao: '2.0.0',
-  moeda: 'BRL'
+  moeda: 'BRL',
+  /* Carimbo da build. Quando o app é publicado num link aberto, o link fica
+     preso numa versão e quem abre não tem como saber se está vendo a de ontem.
+     O empacotador troca isto pela data e pelo commit reais; no servidor de
+     módulos fica "dev", que também é uma informação. */
+  build: "2026-09-08 · 22a53d8"
 };
 
 const isRemote = () => Boolean(SUPABASE.url && SUPABASE.anonKey);
@@ -6279,7 +6286,8 @@ function render() {
       ${store.remoto ? '' : '<button class="btn wide danger gho sm" style="margin-top:8px" data-reset>Apagar tudo deste aparelho</button>'}
     </div>
     <div class="center small muted" style="padding:18px 0">${esc(APP.nome)} v${esc(APP.versao)} ·
-      ${isRemote() ? 'nuvem' : 'demo'}</div>`;
+      ${isRemote() ? 'nuvem' : 'demo'}<br>
+      <span class="olho-txt">versão de ${esc(APP.build)}</span></div>`;
 
   node.querySelector('[data-trocar]')?.addEventListener('click', () => { store.setUser(null); location.hash = '#/'; });
   node.querySelector('[data-senha]')?.addEventListener('click', async () => {

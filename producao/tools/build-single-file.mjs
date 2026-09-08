@@ -2,6 +2,7 @@
 // que roda em qualquer lugar: abrir direto do celular, hospedar estático, anexar.
 // Uso: node producao/tools/build-single-file.mjs saida.html
 import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { join, dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -86,7 +87,22 @@ if (emCiclo.length) {
   process.exit(1);
 }
 
-const modulos = fontes.map(([id, src]) => [id, transformar(id, src)]);
+/* O carimbo da build entra aqui, não no repositório: assim o arquivo publicado
+   sabe de que dia e de que commit ele veio, e dá para conferir se o link aberto
+   está mostrando a versão certa. */
+const carimbo = (() => {
+  const dia = new Date().toISOString().slice(0, 10);
+  let hash = '';
+  try {
+    hash = execSync('git rev-parse --short HEAD', { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString().trim();
+  } catch { /* fora de um repositório, a data já basta */ }
+  return dia + (hash ? ' · ' + hash : '');
+})();
+
+const modulos = fontes.map(([id, src]) => [
+  id, transformar(id, src).replace("build: 'dev'", `build: ${JSON.stringify(carimbo)}`)
+]);
 
 const css = readFileSync(join(RAIZ, 'css/app.css'), 'utf8');
 const icone = 'data:image/svg+xml;base64,' +

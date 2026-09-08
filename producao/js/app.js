@@ -88,6 +88,8 @@ function telaBoasVindas() {
       <p class="olho-txt" style="margin-top:14px;text-align:center">${isRemote()
         ? 'Os dados ficam no Supabase do projeto'
         : 'Os dados ficam neste aparelho · dá para exportar um backup'}</p>
+      <p class="olho-txt" style="margin-top:6px;text-align:center;opacity:.6"
+        >versão de ${esc(APP.build)}</p>
     </div>
   </div>`);
   // Trocar a cor aqui na porta, antes de entrar: quem vai passar o dia dentro

@@ -98,7 +98,8 @@ export function render() {
       ${store.remoto ? '' : '<button class="btn wide danger gho sm" style="margin-top:8px" data-reset>Apagar tudo deste aparelho</button>'}
     </div>
     <div class="center small muted" style="padding:18px 0">${esc(APP.nome)} v${esc(APP.versao)} ·
-      ${isRemote() ? 'nuvem' : 'demo'}</div>`;
+      ${isRemote() ? 'nuvem' : 'demo'}<br>
+      <span class="olho-txt">versão de ${esc(APP.build)}</span></div>`;
 
   node.querySelector('[data-trocar]')?.addEventListener('click', () => { store.setUser(null); location.hash = '#/'; });
   node.querySelector('[data-senha]')?.addEventListener('click', async () => {

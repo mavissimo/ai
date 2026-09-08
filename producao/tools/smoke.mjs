@@ -24,6 +24,11 @@ const passo = async (n, fn) => {
 
 await p.goto('http://localhost:8123/unit0-arquivo-unico.html'); await p.waitForTimeout(1500);
 await passo('capa abre', async()=>{ if(!await p.locator('.capa-tit').count()) throw new Error('sem capa'); });
+// O link publicado fica preso numa versão; sem carimbo ninguém sabe qual está
+// vendo. Ele tem de existir e não pode ser "dev" num arquivo empacotado.
+await passo('a build se identifica', async()=>{
+  const t = await p.evaluate(() => document.body.innerText.match(/vers[ãa]o de ([^\n]+)/i)?.[1] || '');
+  if (!t || /dev/.test(t)) throw new Error('carimbo ausente: "'+t+'"'); });
 await p.getByText('Entrar',{exact:true}).click(); await p.waitForTimeout(4000);
 await passo('projeto carrega', async()=>{ if(!await p.locator('.ix').count()) throw new Error('sem lista de gente'); });
 await p.locator('.ix').first().click(); await p.waitForTimeout(800);
