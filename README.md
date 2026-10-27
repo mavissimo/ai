@@ -3,7 +3,7 @@
 Site acessado pelo QR Code do livro *Fundação Bradesco 70 anos*. É estático (HTML + CSS + JS, sem build): basta publicar a pasta em qualquer hospedagem (Netlify, Vercel, GitHub Pages, S3…).
 
 **Fluxo:** abertura com o selo → apresentação do projeto → mapa do Brasil.
-No mapa, os pontos vermelhos são as escolas visitadas e os círculos são os fotógrafos, ligados às escolas que retrataram. Tocar numa escola abre a **Visita**; tocar num fotógrafo abre as **Pílulas**. O **Documentário** e o **Trailer** ficam fixos na parte de baixo, e "Todos os filmes" lista os 41.
+No mapa, os pontos coloridos grandes são as 6 escolas visitadas pelo making of, os pontos menores são as demais escolas retratadas no livro (39 no total) e os círculos com foto são os fotógrafos, ligados às escolas que retrataram. Tocar numa escola abre a **Visita**; tocar num fotógrafo abre as **Pílulas**. O **Documentário** e o **Trailer** ficam fixos na parte de baixo, e "Todos os filmes" lista os 41.
 
 ## Conteúdo: tudo em `data.js`
 
@@ -14,7 +14,7 @@ No mapa, os pontos vermelhos são as escolas visitadas e os círculos são os fo
 | Fotógrafos (bio, pílulas, escolas ligadas) | `FOTOGRAFOS` |
 | Documentário e trailer | `DOCUMENTARIO` |
 
-- **Vídeos:** preencha `url` com um link do YouTube, do Vimeo ou de um `.mp4`. Enquanto o campo estiver vazio, o player mostra "Filme em finalização".
+- **Vídeos:** preencha `url` com um link do YouTube, do Vimeo ou de um `.mp4`. Enquanto o campo estiver vazio, o player toca o vídeo provisório (`VIDEO_PLACEHOLDER`). Os links finais são definidos pela equipe na página compartilhada "Controle dos Filmes" (cada vídeo tem o mesmo `id` lá e aqui); o Claude lê essa página e atualiza o `data.js`.
 - **Escolas e ligações:** as 39 escolas vêm da relação "Escolas por fotógrafo" da curadoria; o array `cidades` de cada fotógrafo define as linhas no mapa. As 6 escolas onde o making of filmou (com `visita`) ficam em destaque; as demais aparecem como pontos menores, com o nome surgindo ao tocar.
 - **Endereços:** cada escola tem `fonte` (`site` = página da escola em fundacao.bradesco, `email` = curadoria, `diretorio` = cadastro público). As escolas sem CEP, sem endereço ou vindas de diretório mostram "Endereço a confirmar" no painel. A planilha `escolas.csv` traz tudo para conferência.
 - **Posição dos nós:** `pos` (viewBox 1000×1000), já ajustada à mão para não cobrir os nomes das escolas visitadas. As escolas são posicionadas por `lat`/`lon`.

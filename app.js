@@ -203,21 +203,27 @@
     let m;
     if ((m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/)))
       return `<iframe src="https://www.youtube-nocookie.com/embed/${m[1]}?autoplay=1&rel=0&playsinline=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="Vídeo"></iframe>`;
-    if ((m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/)))
-      return `<iframe src="https://player.vimeo.com/video/${m[1]}?autoplay=1&title=0&byline=0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="Vídeo"></iframe>`;
+    // aceita vimeo.com/123, vimeo.com/123/hash, vimeo.com/manage/123/..., player.vimeo.com/video/123?h=hash
+    if ((m = url.match(/vimeo\.com\/(?:manage\/|video\/|channels\/[^/]+\/)?(?:videos\/)?(\d{5,})(?:\/([0-9a-f]{6,}))?/i))) {
+      const h = m[2] || new URL(url, location.href).searchParams.get("h");
+      return `<iframe src="https://player.vimeo.com/video/${m[1]}?autoplay=1&title=0&byline=0&portrait=0${h ? `&h=${h}` : ""}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="Vídeo"></iframe>`;
+    }
     return `<video src="${esc(url)}" controls autoplay playsinline></video>`;
   }
   const PLAYER_DOTS = '<span class="dot" style="--c:var(--yellow);--s:12px;top:18%;right:12%"></span><span class="dot" style="--c:var(--red);--s:12px;top:30%;right:22%"></span><span class="dot" style="--c:var(--white);--s:10px;top:40%;right:9%"></span>';
+  const PLACEHOLDER = window.VIDEO_PLACEHOLDER || "";
   function playerHTML(v, badge, cor) {
-    const ready = !!v.url;
-    return `<div class="player" data-url="${esc(v.url || "")}" style="--pc:${cor || "var(--purple)"}">
+    const final = (window.VIDEO_LINKS || {})[v.id] || v.url;
+    const url = final || PLACEHOLDER;
+    const ready = !!url;
+    return `<div class="player" data-url="${esc(url)}" style="--pc:${cor || "var(--purple)"}">
       <div class="player-empty">${PLAYER_DOTS}
         <span class="pe-badge">${esc(badge)} · ${esc(v.duracao)}</span>
         ${ready
           ? `<button class="pe-icon" type="button" data-start aria-label="Assistir ${esc(v.titulo)}">${ICON_PLAY}</button>`
           : `<span class="pe-icon" aria-hidden="true">${ICON_PLAY}</span>`}
         <span class="pe-title">${esc(v.titulo)}</span>
-        <span class="pe-note">${ready ? "Toque para assistir" : "Filme em finalização"}</span>
+        <span class="pe-note">${!ready ? "Filme em finalização" : final ? "Toque para assistir" : "Toque para assistir · versão provisória"}</span>
       </div>
     </div>`;
   }
