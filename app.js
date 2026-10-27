@@ -19,7 +19,8 @@
   const fotoById = Object.fromEntries(FOTOGRAFOS.map((f) => [f.id, f]));
   const ICON_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
 
-  const totalFilmes = FOTOGRAFOS.reduce((n, f) => n + f.pilulas.length, 0) + ESCOLAS.length + 2;
+  const VISITADAS = ESCOLAS.filter((e) => e.visita);
+  const totalFilmes = FOTOGRAFOS.reduce((n, f) => n + f.pilulas.length, 0) + VISITADAS.length + 2;
   const regioes = new Set(ESCOLAS.map((e) => e.regiao)).size;
 
   // ── Apresentação ──────────────────────────────────────────
@@ -54,11 +55,16 @@
   confetti($('[data-confetti="splash"]'), 14, 7, [80, 95, 12, 88]);
   confetti($('[data-confetti="title"]'), 16, 3, [80, 95, 6, 94]);
 
-  // Capa do fotógrafo (assets/capas/, gerada a partir do PDF). Sem a imagem, fica a cor da lombada + iniciais.
+  // Imagem do fotógrafo: retrato (assets/retratos/) se houver; senão o recorte da capa do livro
+  // (assets/capas/, gerada a partir do PDF). Sem nenhuma, fica a cor da lombada + iniciais.
   const capa = (f, tipo = "thumb") => f.capa?.[tipo] ?? `assets/capas/${f.id}${tipo === "thumb" ? "-thumb" : ""}.jpg`;
-  const withImage = (node, src) => {
+  const retrato = (f) => f.retrato;
+  const withImage = (node, ...srcs) => {
+    const [src, ...rest] = srcs.filter(Boolean);
+    if (!src) return;
     const im = new Image();
     im.onload = () => { node.style.backgroundImage = `url("${src}")`; node.classList.add("has-img"); };
+    im.onerror = () => withImage(node, ...rest);
     im.src = src;
   };
 
@@ -67,6 +73,18 @@
   const layer = $("#map-layer");
   const linksG = $("#links");
   $("#land").setAttribute("d", BRASIL_PATH);
+
+  // lat/long → viewBox 1000×1000 (Mercator, mesmos parâmetros de brasil-path.js)
+  const { escala, tx, ty } = window.PROJECAO;
+  const project = (lat, lon) => [
+    escala * (lon * Math.PI / 180) + tx,
+    -escala * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI / 180) / 2)) + ty,
+  ];
+  ESCOLAS.forEach((e) => {
+    if (e.pos) return;
+    const [x, y] = project(e.lat, e.lon), [dx, dy] = e.ajuste || [0, 0];
+    e.pos = [Math.round(x + dx), Math.round(y + dy)];
+  });
 
   // Posiciona os nós dos fotógrafos: começa no centro das escolas que retratou
   // e separa os nós entre si e das escolas com uma relaxação simples (determinística).
@@ -86,11 +104,11 @@
         for (let j = 0; j < pts.length; j++) {
           if (i === j) continue;
           const dx = p.x - pts[j].x, dy = p.y - pts[j].y, d = Math.hypot(dx, dy) || 0.01;
-          if (d < 125) { fx += (dx / d) * (125 - d) * 0.12; fy += (dy / d) * (125 - d) * 0.12; }
+          if (d < 120) { fx += (dx / d) * (120 - d) * 0.12; fy += (dy / d) * (120 - d) * 0.12; }
         }
         for (const [qx, qy] of cities) {
           const dx = p.x - qx, dy = p.y - qy, d = Math.hypot(dx, dy) || 0.01;
-          if (d < 85) { fx += (dx / d) * (85 - d) * 0.2; fy += (dy / d) * (85 - d) * 0.2; }
+          if (d < 60) { fx += (dx / d) * (60 - d) * 0.2; fy += (dy / d) * (60 - d) * 0.2; }
         }
         p.x = Math.min(900, Math.max(90, p.x + fx));
         p.y = Math.min(930, Math.max(70, p.y + fy));
@@ -104,12 +122,12 @@
 
   ESCOLAS.forEach((e, i) => {
     const b = el("button", {
-      class: `city lab-${e.rotulo || "r"}`,
-      style: `${pct(e.pos)};--d:${(i * 0.45).toFixed(2)}s;--c:${e.cor}`,
+      class: `city lab-${e.rotulo || (e.pos[0] > 760 ? "l" : "r")}${e.visita ? " visitada" : ""}`,
+      style: `${pct(e.pos)};--d:${(i * 0.45).toFixed(2)}s;--c:${e.cor || "var(--purple)"}`,
       type: "button",
       "data-city": e.id,
       "aria-label": `Escola de ${e.cidade}, ${e.uf}`,
-    }, `<span class="city-dot"></span><span class="city-label"><b>${esc(e.ano)} · ${esc(e.uf)}</b>${esc(e.nomeMapa || e.cidade)}</span>`);
+    }, `<span class="city-dot"></span><span class="city-label"><b>${e.ano ? `${esc(e.ano)} · ` : ""}${esc(e.uf)}</b>${esc(e.nomeMapa || e.cidade)}</span>`);
     layer.append(b);
     e.btn = b;
   });
@@ -123,7 +141,7 @@
       "aria-label": `Fotógrafo ${f.nome}`,
     }, `<span class="node-inner">${esc(initials(f.nome))}</span><span class="node-name">${esc(f.nome)}</span>`);
     layer.append(b);
-    withImage(b.firstElementChild, capa(f));
+    withImage(b.firstElementChild, retrato(f), capa(f));
     f.btn = b;
     f.links = f.cidades.map((cid, k) => {
       const [x1, y1] = f.pos, [x2, y2] = escolaById[cid].pos;
@@ -233,7 +251,7 @@
     const fresh = old.cloneNode(false); // remove listeners antigos
     old.replaceWith(fresh);
     fresh.innerHTML = html;
-    fresh.querySelectorAll("[data-bg]").forEach((n) => withImage(n, n.dataset.bg));
+    fresh.querySelectorAll("[data-bg]").forEach((n) => withImage(n, n.dataset.bg2, n.dataset.bg));
     panel.hidden = false; scrim.hidden = false;
     document.body.classList.add("panel-open");
     panel.scrollTop = 0;
@@ -252,8 +270,8 @@
   scrim.addEventListener("click", () => go("#/mapa"));
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !panel.hidden) go("#/mapa"); });
 
-  const chipFoto = (f, tbc) => `<button class="chip${tbc ? " tbc" : ""}" type="button" data-go="#/fotografo/${f.id}"><span class="ch-av" style="--c:${f.cor}" data-bg="${capa(f)}">${esc(initials(f.nome))}</span>${esc(f.nome)}</button>`;
-  const chipCity = (e, tbc) => `<button class="chip${tbc ? " tbc" : ""}" type="button" data-go="#/escola/${e.id}"><span class="ch-dot" style="--c:${e.cor}"></span>${esc(e.cidade)} · ${esc(e.uf)}</button>`;
+  const chipFoto = (f, tbc) => `<button class="chip${tbc ? " tbc" : ""}" type="button" data-go="#/fotografo/${f.id}"><span class="ch-av" style="--c:${f.cor}" data-bg="${capa(f)}" data-bg2="${retrato(f) || ""}">${esc(initials(f.nome))}</span>${esc(f.nome)}</button>`;
+  const chipCity = (e, tbc) => `<button class="chip${tbc ? " tbc" : ""}" type="button" data-go="#/escola/${e.id}"><span class="ch-dot" style="--c:${e.cor || "var(--purple)"}"></span>${esc(e.cidade)} · ${esc(e.uf)}</button>`;
   const notaRevisao = (has) => MODO_REVISAO && has ? `<p class="p-sub" style="margin-top:10px">Contorno tracejado: ligação a confirmar.</p>` : "";
   panel.addEventListener("click", (ev) => { const g = ev.target.closest("[data-go]"); if (g) go(g.dataset.go); });
 
@@ -282,17 +300,24 @@
   function showEscola(e) {
     selected = { city: e.id }; focusOn(selected);
     const fs = FOTOGRAFOS.filter((f) => f.cidades.includes(e.id));
-    const tbc = (f) => MODO_REVISAO && f.aConfirmar?.includes(e.id);
+    const sub = [e.uf, e.ano && `inaugurada em ${e.ano}`].filter(Boolean).join(" · ");
+    const endereco = e.endereco
+      ? `${esc(e.endereco)}<br>${esc(e.cidade === "Jardim Conceição" ? "Osasco" : e.cidade)} – ${esc(e.uf)}${e.cep ? ` · CEP ${esc(e.cep)}` : ""}`
+      : "Endereço a confirmar";
     openPanel(`
-      <p class="p-kicker"><span class="p-dot" style="--c:${e.cor}"></span>Escola · ${esc(e.regiao)}</p>
-      <h2 class="p-title" id="panel-title">${esc(e.cidade)}</h2>
-      <p class="p-sub">${esc(e.uf)} · inaugurada em ${esc(e.ano)}</p>
-      <div data-player-slot></div>
-      <p class="p-text">${esc(e.sobre)}</p>
-      <h3 class="p-h">Fotógrafos nesta escola <span class="count">${fs.length}</span></h3>
-      <div class="chips">${fs.map((f) => chipFoto(f, tbc(f))).join("")}</div>
-      ${notaRevisao(fs.some(tbc))}
-    `, (b) => wireVideos(b, [e.visita], "Visita", "var(--green)"));
+      <p class="p-kicker"><span class="p-dot" style="--c:${e.cor || "var(--purple)"}"></span>${e.visita ? "Escola visitada" : "Escola retratada"} · ${esc(e.regiao)}</p>
+      <h2 class="p-title" id="panel-title">${esc(e.conhecida)}</h2>
+      <p class="p-sub">${esc(sub)}</p>
+      ${e.visita ? `<div data-player-slot></div>` : ""}
+      ${e.sobre ? `<p class="p-text" style="margin-top:${e.visita ? 0 : 18}px">${esc(e.sobre)}</p>` : ""}
+      <dl class="p-info">
+        <div><dt>Nome oficial</dt><dd>${esc(e.nome)}</dd></div>
+        <div><dt>Endereço</dt><dd>${endereco}</dd></div>
+      </dl>
+      ${MODO_REVISAO && e.confirmar ? `<p class="p-sub">Endereço a confirmar${e.fonte === "diretorio" ? " (veio de cadastro público)" : ""}.</p>` : ""}
+      <h3 class="p-h">Fotografada por</h3>
+      <div class="chips">${fs.map((f) => chipFoto(f)).join("")}</div>
+    `, (b) => e.visita && wireVideos(b, [e.visita], "Visita", "var(--green)"));
   }
 
   function showDoc(which) {
@@ -319,12 +344,15 @@
         ${row("#/filme/documentario", "Documentário", DOCUMENTARIO.filme.duracao)}
         ${row("#/filme/trailer", "Trailer", DOCUMENTARIO.trailer.duracao)}
       </ul></div>
-      <div class="idx-group"><h3 class="p-h">Visitas às escolas <span class="count">${ESCOLAS.length}</span></h3><ul class="vlist">
-        ${ESCOLAS.map((e) => row(`#/escola/${e.id}`, `${e.cidade} · ${e.uf}`, e.visita.duracao)).join("")}
+      <div class="idx-group"><h3 class="p-h">Visitas às escolas <span class="count">${VISITADAS.length}</span></h3><ul class="vlist">
+        ${VISITADAS.map((e) => row(`#/escola/${e.id}`, `${e.cidade} · ${e.uf}`, e.visita.duracao)).join("")}
       </ul></div>
       <div class="idx-group"><h3 class="p-h">Pílulas dos fotógrafos <span class="count">${FOTOGRAFOS.reduce((n, f) => n + f.pilulas.length, 0)}</span></h3><ul class="vlist">
         ${FOTOGRAFOS.map((f) => row(`#/fotografo/${f.id}`, f.nome, `${f.pilulas.length} × 1 min`)).join("")}
       </ul></div>
+      <div class="idx-group"><h3 class="p-h">Escolas retratadas no livro <span class="count">${ESCOLAS.length}</span></h3>
+        <div class="chips">${[...ESCOLAS].sort((a, b) => a.cidade.localeCompare(b.cidade, "pt")).map((e) => chipCity(e)).join("")}</div>
+      </div>
     `);
   }
 

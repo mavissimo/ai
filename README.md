@@ -10,13 +10,15 @@ No mapa, os pontos vermelhos são as escolas visitadas e os círculos são os fo
 | O quê | Onde |
 |---|---|
 | Textos da apresentação e créditos | `PROJETO` |
-| Escolas (texto, posição, vídeo da visita) | `ESCOLAS` |
+| Escolas (39: nome oficial, endereço, CEP, ano; as 6 visitadas têm texto e vídeo) | `LISTA` e `VISITADAS` |
 | Fotógrafos (bio, pílulas, escolas ligadas) | `FOTOGRAFOS` |
 | Documentário e trailer | `DOCUMENTARIO` |
 
 - **Vídeos:** preencha `url` com um link do YouTube, do Vimeo ou de um `.mp4`. Enquanto o campo estiver vazio, o player mostra "Filme em finalização".
-- **Ligações no mapa:** o array `cidades` de cada fotógrafo define as linhas. As ligações listadas em `aConfirmar` são **provisórias** e aparecem com contorno tracejado no painel. Para esconder esse aviso na versão final, adicione `window.MODO_REVISAO = false;` em `data.js`.
-- **Posição dos nós:** `pos` (viewBox 1000×1000). Ajuste à mão se mudar as ligações. Sem `pos`, o site calcula a posição sozinho.
+- **Escolas e ligações:** as 39 escolas vêm da relação "Escolas por fotógrafo" da curadoria; o array `cidades` de cada fotógrafo define as linhas no mapa. As 6 escolas onde o making of filmou (com `visita`) ficam em destaque; as demais aparecem como pontos menores, com o nome surgindo ao tocar.
+- **Endereços:** cada escola tem `fonte` (`site` = página da escola em fundacao.bradesco, `email` = curadoria, `diretorio` = cadastro público). As escolas sem CEP, sem endereço ou vindas de diretório mostram "Endereço a confirmar" no painel. A planilha `escolas.csv` traz tudo para conferência.
+- **Posição dos nós:** `pos` (viewBox 1000×1000), já ajustada à mão para não cobrir os nomes das escolas visitadas. As escolas são posicionadas por `lat`/`lon`.
+- **Retrato do fotógrafo:** por enquanto o nó usa um recorte da capa do livro. Para usar um retrato, salve a foto em `assets/retratos/<id>.jpg` e preencha `retrato: "assets/retratos/<id>.jpg"` no fotógrafo.
 
 ## Identidade visual (do projeto gráfico do livro)
 
