@@ -25,6 +25,7 @@
   // ── Apresentação ──────────────────────────────────────────
   $('[data-bind="kicker"]').textContent = PROJETO.kicker;
   $('[data-bind="titulo"]').textContent = PROJETO.titulo;
+  $('[data-bind="subtitulo"]').textContent = PROJETO.subtitulo;
   $('[data-bind="intro"]').innerHTML = PROJETO.intro.map((p) => `<p>${esc(p)}</p>`).join("");
   $("#stats").innerHTML = [
     [totalFilmes, "filmes"],
@@ -33,8 +34,33 @@
     [regioes, "regiões"],
   ].map(([n, l]) => `<div><dt>${l}</dt><dd>${n}</dd></div>`).join("");
   $("#formatos").innerHTML = PROJETO.formatos.map((f) =>
-    `<li><strong>${esc(f.nome)}</strong><span>${esc(f.duracao)}</span><p>${esc(f.texto)}</p></li>`).join("");
+    `<li style="--c:${f.cor}"><strong>${esc(f.nome)}</strong><span>${esc(f.duracao)}</span><p>${esc(f.texto)}</p></li>`).join("");
   $("#creditos").innerHTML = PROJETO.creditos.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("");
+
+  // Pontos coloridos do livro, espalhados de forma determinística (mesmo desenho a cada visita)
+  const PALETA = ["var(--purple)", "var(--red)", "var(--yellow)", "var(--blue)", "var(--orange)", "var(--cream)"];
+  function confetti(box, n, seed, area) {
+    let r = seed;
+    const rnd = () => ((r = (r * 9301 + 49297) % 233280) / 233280);
+    const [x0, x1, y0, y1] = area;
+    for (let i = 0; i < n; i++) {
+      const d = el("span", { class: "dot" });
+      d.style.cssText = `left:${(x0 + rnd() * (x1 - x0)).toFixed(1)}%;top:${(y0 + rnd() * (y1 - y0)).toFixed(1)}%;` +
+        `--c:${PALETA[i % PALETA.length]};--s:${Math.round(12 + rnd() * 10)}px;--d:${(0.3 + i * 0.08).toFixed(2)}s;` +
+        `--dx:${Math.round(rnd() * 10 - 5)}px;--dy:${Math.round(rnd() * 10 - 8)}px`;
+      box.append(d);
+    }
+  }
+  confetti($('[data-confetti="splash"]'), 14, 7, [80, 95, 12, 88]);
+  confetti($('[data-confetti="title"]'), 16, 3, [80, 95, 6, 94]);
+
+  // Capa do fotógrafo (assets/capas/, gerada a partir do PDF). Sem a imagem, fica a cor da lombada + iniciais.
+  const capa = (f, tipo = "thumb") => f.capa?.[tipo] ?? `assets/capas/${f.id}${tipo === "thumb" ? "-thumb" : ""}.jpg`;
+  const withImage = (node, src) => {
+    const im = new Image();
+    im.onload = () => { node.style.backgroundImage = `url("${src}")`; node.classList.add("has-img"); };
+    im.src = src;
+  };
 
   // ── Mapa ──────────────────────────────────────────────────
   const map = $("#map");
@@ -79,11 +105,11 @@
   ESCOLAS.forEach((e, i) => {
     const b = el("button", {
       class: `city lab-${e.rotulo || "r"}`,
-      style: `${pct(e.pos)};--d:${(i * 0.45).toFixed(2)}s`,
+      style: `${pct(e.pos)};--d:${(i * 0.45).toFixed(2)}s;--c:${e.cor}`,
       type: "button",
       "data-city": e.id,
       "aria-label": `Escola de ${e.cidade}, ${e.uf}`,
-    }, `<span class="city-dot"></span><span class="city-label">${esc(e.nomeMapa || e.cidade)}<small>${esc(e.uf)} · ${esc(e.regiao)}</small></span>`);
+    }, `<span class="city-dot"></span><span class="city-label"><b>${esc(e.ano)} · ${esc(e.uf)}</b>${esc(e.nomeMapa || e.cidade)}</span>`);
     layer.append(b);
     e.btn = b;
   });
@@ -91,12 +117,13 @@
   FOTOGRAFOS.forEach((f, i) => {
     const b = el("button", {
       class: "node",
-      style: `${pct(f.pos)};--d:${(-i * 0.7).toFixed(2)}s`,
+      style: `${pct(f.pos)};--d:${(-i * 0.7).toFixed(2)}s;--c:${f.cor}`,
       type: "button",
       "data-photo": f.id,
       "aria-label": `Fotógrafo ${f.nome}`,
     }, `<span class="node-inner">${esc(initials(f.nome))}</span><span class="node-name">${esc(f.nome)}</span>`);
     layer.append(b);
+    withImage(b.firstElementChild, capa(f));
     f.btn = b;
     f.links = f.cidades.map((cid, k) => {
       const [x1, y1] = f.pos, [x2, y2] = escolaById[cid].pos;
@@ -162,10 +189,11 @@
       return `<iframe src="https://player.vimeo.com/video/${m[1]}?autoplay=1&title=0&byline=0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="Vídeo"></iframe>`;
     return `<video src="${esc(url)}" controls autoplay playsinline></video>`;
   }
-  function playerHTML(v, badge) {
+  const PLAYER_DOTS = '<span class="dot" style="--c:var(--yellow);--s:12px;top:18%;right:12%"></span><span class="dot" style="--c:var(--red);--s:12px;top:30%;right:22%"></span><span class="dot" style="--c:var(--white);--s:10px;top:40%;right:9%"></span>';
+  function playerHTML(v, badge, cor) {
     const ready = !!v.url;
-    return `<div class="player" data-url="${esc(v.url || "")}">
-      <div class="player-empty">
+    return `<div class="player" data-url="${esc(v.url || "")}" style="--pc:${cor || "var(--purple)"}">
+      <div class="player-empty">${PLAYER_DOTS}
         <span class="pe-badge">${esc(badge)} · ${esc(v.duracao)}</span>
         ${ready
           ? `<button class="pe-icon" type="button" data-start aria-label="Assistir ${esc(v.titulo)}">${ICON_PLAY}</button>`
@@ -181,10 +209,10 @@
     </button></li>`).join("")}</ul>`;
   }
   // liga player + lista de vídeos dentro do painel
-  function wireVideos(body, videos, badge) {
+  function wireVideos(body, videos, badge, cor) {
     const slot = $("[data-player-slot]", body);
     const render = (i) => {
-      slot.innerHTML = playerHTML(videos[i], badge);
+      slot.innerHTML = playerHTML(videos[i], badge, cor);
       body.querySelectorAll(".vitem").forEach((b) => b.classList.toggle("on", +b.dataset.vi === i));
     };
     body.addEventListener("click", (ev) => {
@@ -205,6 +233,7 @@
     const fresh = old.cloneNode(false); // remove listeners antigos
     old.replaceWith(fresh);
     fresh.innerHTML = html;
+    fresh.querySelectorAll("[data-bg]").forEach((n) => withImage(n, n.dataset.bg));
     panel.hidden = false; scrim.hidden = false;
     document.body.classList.add("panel-open");
     panel.scrollTop = 0;
@@ -223,8 +252,8 @@
   scrim.addEventListener("click", () => go("#/mapa"));
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !panel.hidden) go("#/mapa"); });
 
-  const chipFoto = (f, tbc) => `<button class="chip${tbc ? " tbc" : ""}" type="button" data-go="#/fotografo/${f.id}"><span class="ch-av">${esc(initials(f.nome))}</span>${esc(f.nome)}</button>`;
-  const chipCity = (e, tbc) => `<button class="chip${tbc ? " tbc" : ""}" type="button" data-go="#/escola/${e.id}"><span class="ch-dot"></span>${esc(e.cidade)} · ${esc(e.uf)}</button>`;
+  const chipFoto = (f, tbc) => `<button class="chip${tbc ? " tbc" : ""}" type="button" data-go="#/fotografo/${f.id}"><span class="ch-av" style="--c:${f.cor}" data-bg="${capa(f)}">${esc(initials(f.nome))}</span>${esc(f.nome)}</button>`;
+  const chipCity = (e, tbc) => `<button class="chip${tbc ? " tbc" : ""}" type="button" data-go="#/escola/${e.id}"><span class="ch-dot" style="--c:${e.cor}"></span>${esc(e.cidade)} · ${esc(e.uf)}</button>`;
   const notaRevisao = (has) => MODO_REVISAO && has ? `<p class="p-sub" style="margin-top:10px">Contorno tracejado: ligação a confirmar.</p>` : "";
   panel.addEventListener("click", (ev) => { const g = ev.target.closest("[data-go]"); if (g) go(g.dataset.go); });
 
@@ -232,8 +261,13 @@
     selected = { photo: f.id }; focusOn(selected);
     const tbc = (id) => MODO_REVISAO && f.aConfirmar?.includes(id);
     openPanel(`
-      <p class="p-kicker">Fotografia</p>
-      <h2 class="p-title" id="panel-title">${esc(f.nome)}</h2>
+      <div class="p-head">
+        <img class="p-cover" src="${capa(f, "capa")}" alt="Capa do livro com foto de ${esc(f.nome)}" onerror="this.remove()">
+        <div>
+          <p class="p-kicker">Fotografia</p>
+          <h2 class="p-title" id="panel-title">${esc(f.nome)}</h2>
+        </div>
+      </div>
       <p class="p-sub">Depoimento gravado em ${esc(f.filmagem)}</p>
       <div data-player-slot></div>
       ${listHTML(f.pilulas, 0)}
@@ -242,7 +276,7 @@
       ${notaRevisao(f.cidades.some(tbc))}
       <h3 class="p-h">Sobre</h3>
       <p class="p-text">${esc(f.bio)}</p>
-    `, (b) => wireVideos(b, f.pilulas, "Pílula"));
+    `, (b) => wireVideos(b, f.pilulas, "Pílula", f.cor));
   }
 
   function showEscola(e) {
@@ -250,15 +284,15 @@
     const fs = FOTOGRAFOS.filter((f) => f.cidades.includes(e.id));
     const tbc = (f) => MODO_REVISAO && f.aConfirmar?.includes(e.id);
     openPanel(`
-      <p class="p-kicker">Escola · ${esc(e.regiao)}</p>
+      <p class="p-kicker"><span class="p-dot" style="--c:${e.cor}"></span>Escola · ${esc(e.regiao)}</p>
       <h2 class="p-title" id="panel-title">${esc(e.cidade)}</h2>
-      <p class="p-sub">${esc(e.uf)}</p>
+      <p class="p-sub">${esc(e.uf)} · inaugurada em ${esc(e.ano)}</p>
       <div data-player-slot></div>
       <p class="p-text">${esc(e.sobre)}</p>
       <h3 class="p-h">Fotógrafos nesta escola <span class="count">${fs.length}</span></h3>
       <div class="chips">${fs.map((f) => chipFoto(f, tbc(f))).join("")}</div>
       ${notaRevisao(fs.some(tbc))}
-    `, (b) => wireVideos(b, [e.visita], "Visita"));
+    `, (b) => wireVideos(b, [e.visita], "Visita", "var(--green)"));
   }
 
   function showDoc(which) {
@@ -272,7 +306,7 @@
       <div data-player-slot></div>
       ${listHTML(vids, start)}
       <p class="p-text" style="margin-top:20px">${esc(PROJETO.formatos.find((f) => f.tipo === "documentario").texto)}</p>
-    `, (b) => { wireVideos(b, vids, "Documentário"); if (start) b.querySelector('[data-vi="1"]').click(); });
+    `, (b) => { wireVideos(b, vids, "Documentário", "var(--blue)"); if (start) b.querySelector('[data-vi="1"]').click(); });
   }
 
   function showIndex() {
