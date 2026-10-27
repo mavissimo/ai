@@ -18,9 +18,22 @@ No mapa, os pontos vermelhos são as escolas visitadas e os círculos são os fo
 - **Ligações no mapa:** o array `cidades` de cada fotógrafo define as linhas. As ligações listadas em `aConfirmar` são **provisórias** e aparecem com contorno tracejado no painel. Para esconder esse aviso na versão final, adicione `window.MODO_REVISAO = false;` em `data.js`.
 - **Posição dos nós:** `pos` (viewBox 1000×1000). Ajuste à mão se mudar as ligações. Sem `pos`, o site calcula a posição sozinho.
 
-## Logo
+## Identidade visual (do projeto gráfico do livro)
 
-`assets/logo-fb70.svg` é um **placeholder**. Substitua pelo arquivo oficial do selo, mantendo o mesmo nome. Se o oficial for PNG, troque também as referências em `index.html`.
+- **Fonte:** Sen (OFL), hospedada em `assets/fonts/`, sem depender do Google Fonts.
+- **Cores:** roxo `#613CAD`; pontos em vermelho `#AB3438`, amarelo `#F5D775`, laranja `#E6AC5A`, azul `#4E9DBE` e creme `#FDEED9`; painéis em verde `#2F6246`, roxo e azul; card azul-claro `#A4CBD3`. Todas ficam como variáveis no topo de `styles.css`.
+- **Selo 70 anos:** `assets/selo-70-branco.svg` e `assets/selo-70-roxo.svg`, vetorizados a partir da imagem do livro. Se a agência mandar o vetor oficial, substitua os dois mantendo os nomes.
+- **Fotógrafos:** cada nó do mapa mostra um recorte da capa do livro daquele fotógrafo, com anel na cor da lombada (`cor` em `data.js`). O painel mostra a capa inteira.
+
+## Fotos das capas (fora do git)
+
+O repositório é público e o livro ainda não foi lançado, então `assets/capas/` está no `.gitignore`. Para gerar as imagens:
+
+```sh
+python3 tools/extrair-capas.py "Apr__Fundacao_Bradesco_Livro_capas.pdf"   # requer poppler + Pillow
+```
+
+Sem essas imagens, o site continua funcionando e usa a cor da lombada com as iniciais. Na hora de publicar, suba a pasta `assets/capas/` junto com o site.
 
 ## Links diretos (QR por página do livro)
 
