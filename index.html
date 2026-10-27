@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Fundação Bradesco 70 anos · Filmes</title>
+  <meta name="description" content="Os filmes do livro Fundação Bradesco 70 anos: fotógrafos, escolas e o documentário.">
+  <meta name="theme-color" content="#F6F2EA">
+  <link rel="icon" href="assets/logo-fb70.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- 1. Abertura -->
+  <section id="splash" class="screen splash" aria-label="Abertura">
+    <img class="splash-logo" src="assets/logo-fb70.svg" alt="Fundação Bradesco 70 anos">
+  </section>
+
+  <!-- 2. Apresentação do projeto -->
+  <section id="intro" class="screen intro" aria-labelledby="intro-title" hidden>
+    <div class="intro-inner">
+      <img class="intro-logo" src="assets/logo-fb70.svg" alt="Fundação Bradesco 70 anos">
+      <p class="kicker" data-bind="kicker"></p>
+      <h1 id="intro-title" class="display" data-bind="titulo"></h1>
+      <div class="intro-text" data-bind="intro"></div>
+
+      <dl class="stats" id="stats"></dl>
+
+      <ul class="formatos" id="formatos"></ul>
+
+      <button class="btn-primary" id="enter-map" type="button">
+        Explorar o mapa
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+
+      <dl class="creditos" id="creditos"></dl>
+    </div>
+  </section>
+
+  <!-- 3. Mapa -->
+  <section id="map-screen" class="screen map-screen" aria-label="Mapa dos filmes" hidden>
+    <header class="topbar">
+      <button class="brand" id="to-intro" type="button" aria-label="Sobre o projeto">
+        <img src="assets/logo-fb70.svg" alt="">
+      </button>
+      <nav class="topnav">
+        <button type="button" id="open-about">O projeto</button>
+        <button type="button" id="open-index">Todos os filmes</button>
+      </nav>
+    </header>
+
+    <div class="map-hint" id="map-hint">Toque em uma escola ou em um fotógrafo</div>
+
+    <div class="map-wrap">
+      <div class="map" id="map">
+        <svg class="map-svg" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <path class="land" id="land"/>
+          <g id="links"></g>
+        </svg>
+        <div class="map-layer" id="map-layer"></div>
+      </div>
+    </div>
+
+    <div class="legend" aria-hidden="true">
+      <span><i class="lg-city"></i>Escola visitada</span>
+      <span><i class="lg-photo"></i>Fotógrafo</span>
+    </div>
+
+    <div class="doc-dock">
+      <button class="doc-card" type="button" data-play="documentario">
+        <span class="doc-play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span>
+        <span class="doc-text"><strong>Documentário</strong><small>15 min</small></span>
+      </button>
+      <button class="doc-card ghost" type="button" data-play="trailer">
+        <span class="doc-text"><strong>Trailer</strong><small>2 min</small></span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Painel lateral / bottom sheet -->
+  <div class="scrim" id="scrim" hidden></div>
+  <aside class="panel" id="panel" aria-modal="true" role="dialog" aria-labelledby="panel-title" hidden>
+    <button class="panel-close" id="panel-close" type="button" aria-label="Fechar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <div class="panel-grip" aria-hidden="true"></div>
+    <div class="panel-body" id="panel-body"></div>
+  </aside>
+
+  <script src="brasil-path.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
