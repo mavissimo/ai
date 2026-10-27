@@ -2,7 +2,8 @@
 // Conteúdo do site. Tudo o que muda (textos, vídeos, escolas, fotógrafos) fica aqui.
 //
 // VÍDEOS: preencha `url` com um link do YouTube, Vimeo ou um arquivo .mp4.
-//   Enquanto `url` estiver vazio, o player mostra "Filme em finalização".
+//   Os links finais vêm de videos.js (gerado a partir da página "Controle dos Filmes",
+//   pelo `id` de cada vídeo); sem link, o player toca o vídeo provisório.
 // ESCOLAS: as 39 escolas retratadas no livro (relação "Escolas por fotógrafo").
 //   As 6 com `visita` são as escolas onde o making of filmou; elas ganham
 //   destaque no mapa e o filme "Visita".
@@ -111,7 +112,7 @@ window.ESCOLAS = LISTA.map(([id, cidade, uf, lat, lon, ano, nome, endereco, cep,
     conhecida: `FB ${cidade}`, // como o livro e a rede chamam a escola
     confirmar: !endereco || !cep || fonte === "diretorio",
     ajuste: AJUSTE[id],
-    ...(v && { ...v, visita: { titulo: `Visita · ${cidade}`, duracao: "2 min", url: "" } }),
+    ...(v && { ...v, visita: { id: `visita-${id}`, titulo: `Visita · ${cidade}`, duracao: "2 min", url: "" } }),
   };
 });
 
@@ -121,7 +122,8 @@ window.ESCOLAS = LISTA.map(([id, cidade, uf, lat, lon, ano, nome, endereco, cep,
 // Imagem do nó: `retrato` (ex.: "assets/retratos/elza-lima.jpg") se preenchido;
 // senão, o recorte da capa em assets/capas/<id>-thumb.jpg (gerado por tools/extrair-capas.py).
 // `pos` (opcional) fixa o nó no mapa; sem `pos`, o site calcula a posição.
-const pilulas = (nome) => [1, 2, 3].map((n) => ({
+const pilulas = (fid, nome) => [1, 2, 3].map((n) => ({
+  id: `pilula-${fid}-${n}`,
   titulo: `${nome} · Pílula ${n}`,
   duracao: "1 min",
   url: "",
@@ -141,13 +143,13 @@ window.FOTOGRAFOS = [
   { id: "maira-erlich",    cor: "#00ACA5", pos: [580, 770], nome: "Maíra Erlich",    filmagem: "Estúdio em São Paulo (SP)",              cidades: ["registro", "marilia"] },
 ].map((f) => ({
   bio: "Minibiografia em breve.",
-  pilulas: pilulas(f.nome),
+  pilulas: pilulas(f.id, f.nome),
   ...f,
 }));
 
 window.DOCUMENTARIO = {
-  filme:   { titulo: "Documentário · Fundação Bradesco 70 anos", duracao: "15 min", url: "" },
-  trailer: { titulo: "Trailer", duracao: "2 min", url: "" },
+  filme:   { id: "documentario", titulo: "Documentário · Fundação Bradesco 70 anos", duracao: "15 min", url: "" },
+  trailer: { id: "trailer", titulo: "Trailer", duracao: "2 min", url: "" },
 };
 
 // Projeção do mapa (Mercator, a mesma usada para gerar brasil-path.js).
