@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Cronograma da pós · Fundação Bradesco 70 anos</title>
+  <meta name="description" content="Quando cada filme chega, quando precisamos do seu retorno e a entrega final.">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#613CAD">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Cronograma da pós · Fundação Bradesco 70 anos">
+  <meta property="og:description" content="Quando cada filme chega, quando precisamos do seu retorno e a entrega final. Produzido por Têmpora studio.">
+  <meta property="og:image" content="https://mavissimo.github.io/ai/fundacao-bradesco-70/assets/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="assets/selo-70-roxo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="cronograma.css?v=1">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="./" aria-label="Site dos filmes"><img src="assets/selo-70-roxo.svg" alt="Fundação Bradesco 70 anos"></a>
+    <div class="confetti" aria-hidden="true"></div>
+    <div class="hero">
+      <p class="kicker">Pós-produção · os filmes do livro</p>
+      <h1>Cronograma dos filmes</h1>
+      <p class="lead">Você recebe cada filme na <b>V2</b>. A partir daí, este cronograma mostra quando ele chega, quando precisamos do seu retorno e quando fica pronto. A entrega final dos 41 vídeos é em <b data-bind="fim"></b>.</p>
+      <dl class="stats" id="stats"></dl>
+    </div>
+  </header>
+
+  <!-- link direto de um filme (enviado junto com a V2) -->
+  <section class="focus" id="focus" hidden></section>
+
+  <section class="how" aria-labelledby="how-title">
+    <h2 id="how-title" class="h-sec">Como cada filme anda</h2>
+    <ol class="steps" id="steps"></ol>
+  </section>
+
+  <nav class="navbar" aria-label="Formas de ver">
+    <div class="tabs" role="tablist">
+      <button role="tab" data-view="agenda">Agenda</button>
+      <button role="tab" data-view="linha">Linha do tempo</button>
+      <button role="tab" data-view="calendario">Calendário</button>
+      <button role="tab" data-view="filmes">Por filme</button>
+    </div>
+    <div class="filters" role="group" aria-label="Filtrar">
+      <button data-f="" class="on">Todos</button>
+      <button data-f="pilula">Pílulas</button>
+      <button data-f="visita">Visitas</button>
+      <button data-f="doc">Documentário e trailer</button>
+    </div>
+  </nav>
+
+  <main id="view"></main>
+
+  <footer class="foot">
+    <p>Atualizado em <span data-bind="atualizado"></span>. Datas em dias úteis; sem atividades nos feriados de 02/11 e 20/11.</p>
+    <p class="made-by">Produzido por <b>Têmpora</b> studio</p>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="cronograma-dados.js?v=1"></script>
+  <script src="cronograma.js?v=1"></script>
+</body>
+</html>

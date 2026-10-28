@@ -1,0 +1,297 @@
+// Cronograma da pós para o cliente: Agenda, Linha do tempo, Calendário e Por filme.
+// Dados em cronograma-dados.js. Link direto de um filme: cronograma.html#filme/<id>
+(() => {
+  const C = window.CRONO;
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // ── Datas (sempre locais, sem fuso) ──
+  const D = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const WD = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+  const WDL = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+  const MES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const dm = (s) => { const d = D(s); return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`; };
+  const wd = (s) => WD[D(s).getDay()];
+  const TODAY = iso(new Date());
+  const isOff = (d) => d.getDay() === 0 || d.getDay() === 6;
+
+  // ── Etapas (cores das bolinhas do livro) ──
+  const STEP = {
+    ed: { label: "Edição", c: "var(--c-ed)", bar: true, desc: "Montagem, V1 e ajustes internos" },
+    v2: { label: "V2 chega para você", short: "V2", c: "var(--c-v2)", desc: "O filme montado, para a sua revisão" },
+    rev: { label: "Seu retorno da V2", short: "Seu retorno", c: "var(--c-rev)", you: true, desc: "Uma devolutiva consolidada, em 1 dia útil" },
+    off: { label: "Offline aprovado", short: "Offline", c: "var(--c-off)", desc: "Montagem travada: só ajustes pontuais e o aceite" },
+    fin: { label: "Finalização", short: "Cor e som", c: "var(--c-fin)", bar: true, desc: "Cor, som, grafismos e legendas" },
+    on: { label: "Online para conferência", short: "Online", c: "var(--c-on)", desc: "O filme finalizado, para você conferir" },
+  };
+  const ORDER = ["ed", "v2", "rev", "off", "fin", "on"];
+
+  const nomeFilme = (f) => ({
+    pilula: `${f.nome} · 3 pílulas`,
+    visita: `Visita · ${f.nome}${f.uf ? ` (${f.uf})` : ""}`,
+    documentario: "Documentário · 15 min",
+    trailer: "Trailer · 2 min",
+  })[f.tipo];
+  const subFilme = (f) => ({
+    pilula: "Pílulas 1, 2 e 3 · 1 min cada",
+    visita: "Visita à escola · até 2 min",
+    documentario: "De geração em geração · 15 min",
+    trailer: "Trailer do documentário · 2 min",
+  })[f.tipo];
+  const grupo = (f) => (f.tipo === "documentario" || f.tipo === "trailer" ? "doc" : f.tipo);
+
+  // eventos de cada filme
+  const stepsOf = (f) => ORDER.map((k) => {
+    const v = f[k];
+    const [start, end] = Array.isArray(v) ? v : [v, v];
+    return { k, start, end, f };
+  });
+  const status = (st) => (st.end < TODAY ? "done" : st.start <= TODAY ? "now" : "todo");
+
+  // ── Estado ──
+  const state = { view: "agenda", filtro: "" };
+  const filmes = () => C.filmes.filter((f) => !state.filtro || grupo(f) === state.filtro);
+
+  // ── Topo ──
+  document.querySelectorAll('[data-bind="fim"]').forEach((n) => (n.textContent = `${wd(C.fim)}, ${dm(C.fim)}`));
+  document.querySelectorAll('[data-bind="atualizado"]').forEach((n) => (n.textContent = dm(C.atualizado) + "/" + C.atualizado.slice(0, 4)));
+  $(".confetti").innerHTML = "86,14,y 93,27,r 78,58,b 95,66,p 89,82,o 4,88,r 12,94,y"
+    .split(" ").map((t) => { const [x, y, c] = t.split(","); return `<i style="left:${x}%;top:${y}%;--c:var(--${{ y: "yellow", r: "red", b: "blue", p: "purple", o: "orange" }[c]})"></i>`; }).join("");
+
+  function stats() {
+    const nextV2 = C.filmes.filter((f) => f.v2 >= TODAY).sort((a, b) => a.v2.localeCompare(b.v2))[0];
+    const nextRev = C.filmes.filter((f) => f.rev >= TODAY).sort((a, b) => a.rev.localeCompare(b.rev))[0];
+    const recebidos = C.filmes.filter((f) => f.v2 < TODAY).length;
+    $("#stats").innerHTML = `
+      <div><dt>Vídeos</dt><dd>41<small>33 pílulas · 6 visitas · doc · trailer</small></dd></div>
+      <div><dt>Próxima V2</dt><dd>${nextV2 ? `${dm(nextV2.v2)}<small>${esc(nomeFilme(nextV2))}</small>` : "Todas entregues"}</dd></div>
+      <div><dt>Seu próximo retorno</dt><dd>${nextRev ? `${dm(nextRev.rev)}<small>${esc(nomeFilme(nextRev))}</small>` : `${dm("2026-12-01")}<small>Retorno técnico</small>`}</dd></div>
+      <div><dt>Entrega final</dt><dd>${dm(C.fim)}<small>${recebidos} de ${C.filmes.length} filmes já na V2</small></dd></div>`;
+  }
+  stats();
+
+  // como cada filme anda
+  $("#steps").innerHTML = ["v2", "rev", "off", "fin", "on"].map((k) => {
+    const s = STEP[k];
+    return `<li class="${s.you ? "you" : ""}${s.bar ? " range" : ""}" style="--c:${s.c}"><i></i><strong>${esc(s.label)}${s.you ? '<span class="tag-you">Sua vez</span>' : ""}</strong><span>${esc(s.desc)}</span></li>`;
+  }).join("") + `<li style="--c:var(--c-fim)"><i></i><strong>Entrega final</strong><span>Os 41 vídeos em ${dm(C.fim)}, depois do retorno técnico de ${dm("2026-12-01")}</span></li>`;
+
+  // ── Eventos pontuais (agenda e calendário) ──
+  function eventos() {
+    const ev = [];
+    filmes().forEach((f) => ["v2", "rev", "off", "on"].forEach((k) => ev.push({ date: f[k], k, f })));
+    C.fechamento.forEach((x) => ev.push({ date: x.data, k: "fecho", x }));
+    return ev.sort((a, b) => a.date.localeCompare(b.date));
+  }
+  const evColor = (e) => (e.k === "fecho" ? (e.x.cliente ? "var(--c-rev)" : e.x.marco ? "var(--c-fim)" : "var(--ink-3)") : STEP[e.k].c);
+  const evYou = (e) => (e.k === "fecho" ? !!e.x.cliente : !!STEP[e.k].you);
+  const link = (f) => `<a href="#filme/${f.id}">${esc(nomeFilme(f))}</a>`;
+
+  // ── Agenda: semana a semana ──
+  function viewAgenda() {
+    const byDay = new Map();
+    eventos().forEach((e) => { if (!byDay.has(e.date)) byDay.set(e.date, []); byDay.get(e.date).push(e); });
+    const weeks = new Map();
+    [...byDay.keys()].forEach((d) => {
+      const x = D(d), mon = addDays(x, -((x.getDay() + 6) % 7));
+      const k = iso(mon);
+      if (!weeks.has(k)) weeks.set(k, []);
+      weeks.get(k).push(d);
+    });
+    let html = "";
+    weeks.forEach((days, mon) => {
+      const fri = addDays(D(mon), 4);
+      const a = D(mon), same = a.getMonth() === fri.getMonth();
+      html += `<section class="week"><h3>Semana de ${a.getDate()}${same ? "" : ` de ${MES[a.getMonth()].slice(0, 3)}.`} a ${fri.getDate()} de ${MES[fri.getMonth()]}</h3>`;
+      days.forEach((d) => {
+        const list = byDay.get(d);
+        // agrupa a mesma etapa no mesmo dia
+        const groups = new Map();
+        list.forEach((e) => { const k = e.k === "fecho" ? "fecho:" + e.x.titulo : e.k; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(e); });
+        const items = [...groups.values()].map((g) => {
+          const e = g[0];
+          if (e.k === "fecho") {
+            return `<li class="item${e.x.cliente ? " you" : ""}" style="--c:${evColor(e)}"><i></i><div><strong>${esc(e.x.titulo)}${e.x.cliente ? '<span class="tag-you">Sua vez</span>' : ""}</strong><p>${esc(e.x.texto)}${e.x.fim ? ` Até ${dm(e.x.fim)}.` : ""}</p></div></li>`;
+          }
+          const s = STEP[e.k];
+          const nomes = g.map((x) => link(x.f));
+          const lista = nomes.length > 1 ? nomes.slice(0, -1).join(", ") + " e " + nomes.at(-1) : nomes[0];
+          return `<li class="item${s.you ? " you" : ""}" style="--c:${s.c}"><i></i><div><strong>${esc(s.label)}${s.you ? '<span class="tag-you">Sua vez</span>' : ""}</strong><p>${lista}</p></div></li>`;
+        }).join("");
+        const cls = d < TODAY ? " past" : d === TODAY ? " today" : "";
+        html += `<div class="day${cls}"><div class="day-date"><strong>${dm(d)}</strong><span>${WDL[D(d).getDay()]}</span></div><ul class="items">${items}</ul></div>`;
+      });
+      html += `</section>`;
+    });
+    return html || `<p>Nada neste filtro.</p>`;
+  }
+
+  // ── Linha do tempo (Gantt) ──
+  function viewLinha() {
+    const start = D(C.inicio), end = D(C.fim);
+    const days = [];
+    for (let d = new Date(start); d <= end; d = addDays(d, 1)) days.push(new Date(d));
+    const N = days.length, col = (s) => Math.round((D(s) - start) / 864e5); // índice da coluna
+    const pos = (s) => `calc(${col(s)} * var(--col) + var(--col) / 2)`;
+    let head = `<div class="g-name g-head" style="grid-row:1 / 3">Filme</div>`;
+    let m = -1;
+    days.forEach((d, i) => {
+      if (d.getMonth() !== m) {
+        m = d.getMonth();
+        const span = days.filter((x, j) => j >= i && x.getMonth() === m).length;
+        head += `<div class="g-month g-head" style="grid-column:${i + 2} / span ${span}">${MES[m]}</div>`;
+      }
+      head += `<div class="g-day g-head${isOff(d) || C.feriados[iso(d)] ? " off" : ""}" style="grid-column:${i + 2}"><b>${WD[d.getDay()][0]}</b>${d.getDate()}</div>`;
+    });
+    const shades = days.map((d, i) => {
+      if (C.feriados[iso(d)]) return `<div class="g-hol" style="left:calc(${i} * var(--col));width:var(--col)" title="Feriado: ${esc(C.feriados[iso(d)])}"></div>`;
+      return isOff(d) ? `<div class="g-shade" style="left:calc(${i} * var(--col));width:var(--col)"></div>` : "";
+    }).join("");
+    const inRange = TODAY >= C.inicio && TODAY <= C.fim;
+    const todayLine = inRange ? `<div class="g-today" style="left:${pos(TODAY)}"></div>` : "";
+    if (inRange) head += `<div class="g-todayhead" style="grid-column:2 / -1"><div class="g-today lbl" style="left:${pos(TODAY)};top:auto;bottom:0;height:10px"><span style="top:auto;bottom:12px;left:-18px">hoje</span></div></div>`;
+    const row = (name, inner) => `<div class="g-row">${name}<div class="g-track">${shades}${inner}${todayLine}</div></div>`;
+    const bar = (a, b, c, tip, cls = "") => `<div class="g-bar ${cls}" style="--c:${c};left:calc(${col(a)} * var(--col) + 3px);width:calc(${col(b) - col(a) + 1} * var(--col) - 6px)" data-tip="${esc(tip)}"></div>`;
+    const dot = (s, c, tip, cls = "") => `<div class="g-dot ${cls}" style="--c:${c};left:${pos(s)}" data-tip="${esc(tip)}"></div>`;
+    const filmRow = (f) => row(
+      `<div class="g-name"><a href="#filme/${f.id}" title="${esc(nomeFilme(f))}">${esc(f.tipo === "pilula" ? f.nome : f.tipo === "visita" ? f.nome : nomeFilme(f))}</a></div>`,
+      bar(f.ed[0], f.ed[1], "var(--c-ed)", `Edição interna · ${dm(f.ed[0])} a ${dm(f.ed[1])}`, "ed") +
+      bar(f.fin[0], f.fin[1], STEP.fin.c, `Cor e som · ${dm(f.fin[0])} a ${dm(f.fin[1])}`) +
+      ["v2", "rev", "off", "on"].map((k) => dot(f[k], STEP[k].c, `${STEP[k].label} · ${wd(f[k])} ${dm(f[k])}`)).join(""));
+    const gr = (t, list) => (list.length ? `<div class="g-group">${t}</div>` + list.map(filmRow).join("") : "");
+    const fs = filmes();
+    const body =
+      gr("Pílulas · 3 por fotógrafo", fs.filter((f) => f.tipo === "pilula")) +
+      gr("Visitas às escolas", fs.filter((f) => f.tipo === "visita")) +
+      gr("Documentário e trailer", fs.filter((f) => grupo(f) === "doc")) +
+      `<div class="g-group">Fechamento</div>` +
+      row(`<div class="g-name">Todos os 41</div>`,
+        C.fechamento.map((x) => x.fim ? bar(x.data, x.fim, "var(--line)", `${x.titulo} · ${dm(x.data)} a ${dm(x.fim)}`)
+          : dot(x.data, x.cliente ? "var(--c-rev)" : x.marco ? "var(--c-fim)" : "var(--ink-3)", `${x.titulo} · ${wd(x.data)} ${dm(x.data)}`, x.marco ? "big" : "")).join(""));
+    const legend = `<div class="legend">
+      <span><i class="bar ed"></i>Edição interna</span>
+      ${["v2", "rev", "off"].map((k) => `<span><i style="--c:${STEP[k].c}"></i>${STEP[k].label}</span>`).join("")}
+      <span><i class="bar" style="--c:${STEP.fin.c}"></i>Cor e som</span>
+      <span><i style="--c:${STEP.on.c}"></i>${STEP.on.label}</span>
+      <span><i style="--c:var(--c-fim)"></i>Entrega final</span></div>`;
+    // no computador a linha do tempo cabe inteira na largura; no celular rola para o lado
+    const avail = Math.min(document.querySelector("main").clientWidth - 2 * parseFloat(getComputedStyle(document.querySelector("main")).paddingLeft || 0), 1100);
+    const nameW = innerWidth <= 720 ? 132 : 180;
+    const colW = Math.max(innerWidth <= 720 ? 26 : 16, Math.floor((avail - nameW - 2) / N));
+    return `${legend}<div class="gantt-wrap"><div class="gantt" style="--days:${N};--col:${colW}px;--name:${nameW}px">${head}${body}</div></div>
+      <p class="hint">Passe o mouse (ou toque) nas bolinhas para ver a data. Fins de semana listrados; feriados em rosa. Clique no nome para ver o filme.</p>`;
+  }
+
+  // ── Calendário ──
+  let selDay = null;
+  function viewCalendario() {
+    const evs = eventos();
+    const byDay = new Map();
+    evs.forEach((e) => { if (!byDay.has(e.date)) byDay.set(e.date, []); byDay.get(e.date).push(e); });
+    const label = (e) => (e.k === "fecho" ? e.x.titulo : `${STEP[e.k].short} · ${e.f.tipo === "pilula" || e.f.tipo === "visita" ? e.f.nome : nomeFilme(e.f).split(" · ")[0]}`);
+    // só as semanas do projeto, numa grade contínua (seg a dom; fim de semana mais estreito)
+    const first = D(C.inicio), last = D(C.fim);
+    const mon = addDays(first, -((first.getDay() + 6) % 7)), sun = addDays(last, 6 - ((last.getDay() + 6) % 7));
+    let cells = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"].map((w) => `<div class="wd">${w}</div>`).join("");
+    for (let dt = new Date(mon); dt <= sun; dt = addDays(dt, 1)) {
+      const s = iso(dt), d = dt.getDate();
+      const list = byDay.get(s) || [];
+      const out = s < C.inicio || s > C.fim;
+      const cls = ["cell", out ? "out" : "", isOff(dt) ? "we" : "", C.feriados[s] ? "hol" : "", s === TODAY ? "today" : "", s < TODAY ? "past" : "", s === selDay ? "sel" : ""].join(" ");
+      const max = 4;
+      const num = d === 1 || s === iso(mon) ? `${d} <small>${MES[dt.getMonth()].slice(0, 3)}</small>` : d;
+      const lis = list.slice(0, max).map((e) => `<li class="${evYou(e) ? "you" : ""}" style="--c:${evColor(e)}"><i></i><span>${esc(label(e))}</span></li>`).join("");
+      const inner = `<span class="n">${num}</span>${C.feriados[s] ? `<span class="hn">${esc(C.feriados[s])}</span>` : ""}<ul>${lis}</ul>${list.length > max ? `<span class="more">+${list.length - max}</span>` : ""}<span class="dots">${list.map((e) => `<i style="--c:${evColor(e)}"></i>`).join("")}</span>`;
+      cells += list.length ? `<button class="${cls}" data-day="${s}" aria-label="${d} de ${MES[dt.getMonth()]}: ${list.length} itens">${inner}</button>` : `<div class="${cls}">${inner}</div>`;
+    }
+    const cap = (t) => t[0].toUpperCase() + t.slice(1);
+    const html = `<section class="month"><h3>${cap(MES[first.getMonth()])} a ${MES[last.getMonth()]} de ${last.getFullYear()}</h3><div class="cal">${cells}</div></section>`;
+    const sel = selDay && byDay.get(selDay);
+    const box = sel ? `<div class="daybox"><h4>${WDL[D(selDay).getDay()]}, ${dm(selDay)}</h4><ul class="items">${sel.map((e) => e.k === "fecho"
+      ? `<li class="item${e.x.cliente ? " you" : ""}" style="--c:${evColor(e)}"><i></i><div><strong>${esc(e.x.titulo)}</strong><p>${esc(e.x.texto)}</p></div></li>`
+      : `<li class="item${STEP[e.k].you ? " you" : ""}" style="--c:${STEP[e.k].c}"><i></i><div><strong>${esc(STEP[e.k].label)}</strong><p>${link(e.f)}</p></div></li>`).join("")}</ul></div>` : "";
+    return `<p class="hint" style="margin:0 0 14px">Clique num dia para ver tudo o que acontece nele.</p><div class="months">${html}</div><div id="daybox-anchor">${box}</div>`;
+  }
+
+  // ── Por filme ──
+  function trackHTML(f) {
+    const steps = stepsOf(f);
+    const next = steps.find((s) => status(s) !== "done");
+    return `<ol class="track">${steps.map((s) => {
+      const st = STEP[s.k], stt = status(s);
+      const when = s.start === s.end ? `${wd(s.start)} ${dm(s.start)}` : `${dm(s.start)} a ${dm(s.end)}`;
+      return `<li class="${stt === "done" ? "done" : ""}${s === next ? " next" : ""}${st.you ? " you" : ""}" style="--c:${st.c}"><i></i><span>${esc(st.label)}${st.you ? '<span class="tag-you">Sua vez</span>' : ""}</span><time>${when}</time></li>`;
+    }).join("")}<li style="--c:var(--c-fim)"><i></i><span>Entrega final</span><time>${wd(C.fim)} ${dm(C.fim)}</time></li></ol>`;
+  }
+  function viewFilmes() {
+    return `<div class="cards">${filmes().map((f) => `
+      <article class="card" id="card-${f.id}">
+        <button class="copy" data-copy="${f.id}" type="button">Copiar link</button>
+        <h3>${esc(f.tipo === "pilula" ? f.nome : f.tipo === "visita" ? `${f.nome}` : nomeFilme(f).split(" · ")[0])}</h3>
+        <p class="sub">${esc(subFilme(f))}${f.uf ? ` · ${f.uf}` : ""}</p>
+        ${trackHTML(f)}
+      </article>`).join("")}</div>`;
+  }
+
+  // ── Destaque de um filme (link enviado com a V2) ──
+  function renderFocus(id) {
+    const box = $("#focus");
+    const f = C.filmes.find((x) => x.id === id);
+    if (!f) { box.hidden = true; return; }
+    const chegou = f.v2 <= TODAY;
+    box.hidden = false;
+    box.innerHTML = `<div class="focus-box">
+      <p class="k">${chegou ? "Sua V2 chegou" : `V2 em ${dm(f.v2)}`}</p>
+      <h2>${esc(nomeFilme(f))}</h2>
+      <p class="s">${chegou ? `Precisamos do seu retorno até <b>${wd(f.rev)}, ${dm(f.rev)}</b>, numa devolutiva única. Depois disso a montagem trava e o filme segue para cor e som.` : `A V2 chega ${WDL[D(f.v2).getDay()]}, ${dm(f.v2)}. O seu retorno fica para ${dm(f.rev)}.`}</p>
+      ${trackHTML(f)}
+      <a class="all" href="#agenda">Ver o cronograma de todos os filmes →</a>
+    </div>`;
+  }
+
+  // ── Render e navegação ──
+  const VIEWS = { agenda: viewAgenda, linha: viewLinha, calendario: viewCalendario, filmes: viewFilmes };
+  function render() {
+    document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.view === state.view)));
+    document.querySelectorAll(".filters button").forEach((b) => b.classList.toggle("on", b.dataset.f === state.filtro));
+    $("#view").innerHTML = VIEWS[state.view]();
+  }
+  function route() {
+    const [, a, b] = (location.hash || "#agenda").split(/[#/]/);
+    if (a === "filme") {
+      renderFocus(b);
+      state.view = "filmes"; render();
+      const card = $(`#card-${CSS.escape(b || "")}`);
+      if (card) card.classList.add("hl");
+      $("#focus").scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    $("#focus").hidden = true;
+    state.view = VIEWS[a] ? a : "agenda";
+    render();
+  }
+  document.querySelector(".tabs").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-view]"); if (!b) return;
+    location.hash = b.dataset.view;
+  });
+  document.querySelector(".filters").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-f]"); if (!b) return;
+    state.filtro = b.dataset.f; render();
+  });
+  $("#view").addEventListener("click", async (e) => {
+    const day = e.target.closest("[data-day]");
+    if (day) { selDay = selDay === day.dataset.day ? null : day.dataset.day; render(); $("#daybox-anchor")?.scrollIntoView({ behavior: "smooth", block: "nearest" }); return; }
+    const cp = e.target.closest("[data-copy]");
+    if (cp) {
+      const url = `${location.origin}${location.pathname}#filme/${cp.dataset.copy}`;
+      try { await navigator.clipboard.writeText(url); toast("Link copiado: é só mandar junto com a V2"); }
+      catch { prompt("Copie o link:", url); }
+    }
+  });
+  function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 2400); }
+  addEventListener("hashchange", route);
+  let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => state.view === "linha" && render(), 150); });
+  route();
+})();
