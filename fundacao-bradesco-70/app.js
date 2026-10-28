@@ -372,10 +372,11 @@
     `, (b) => e.visita && wireVideos(b, [e.visita], "Visita", "var(--green)"));
   }
 
-  function showDoc(which) {
+  function showDoc() {
     selected = null; focusOn(); zoomReset();
-    const vids = [DOCUMENTARIO.filme, DOCUMENTARIO.trailer];
-    const start = which === "trailer" ? 1 : 0;
+    // a página do documentário sempre abre pelo trailer; o filme completo vem em seguida
+    const vids = [DOCUMENTARIO.trailer, DOCUMENTARIO.filme];
+    const start = 0;
     openPanel.cinema = true;
     openPanel(`
       <p class="p-kicker">Documentário · Fundação Bradesco 70 anos</p>
@@ -427,7 +428,7 @@
     showScreen("map");
     if (a === "fotografo" && fotoById[b]) showFotografo(fotoById[b]);
     else if (a === "escola" && escolaById[b]) showEscola(escolaById[b]);
-    else if (a === "filme") showDoc(b);
+    else if (a === "filme") showDoc();
     else if (a === "filmes") showIndex();
     else if (a === "projeto") { closePanel(); setAbout(true); }
     else closePanel();

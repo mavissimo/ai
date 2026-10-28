@@ -424,7 +424,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .doc-poster::before { content: ""; position: absolute; inset: 0; background: rgba(62, 36, 117, .25); }
 .doc-play { position: relative; width: 34px; height: 34px; border-radius: 50%; background: var(--yellow); display: grid; place-items: center; }
 .doc-play svg { width: 14px; height: 14px; fill: var(--purple); margin-left: 2px; }
-.doc-text { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.doc-text { transition: opacity .35s var(--ease), color .35s var(--ease); display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
 .doc-text small { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--yellow); }
 .doc-text strong { font-size: 16px; font-weight: 800; margin-top: 2px; }
 .doc-text em { font-style: normal; font-size: 12px; opacity: .8; margin-top: 2px; }
@@ -539,9 +539,30 @@ p, li, dd, dt, small, em, .pe-title, .pe-note, .vi-title, .about-text, .p-text, 
 
 /* Documentário no canto esquerdo: bem esmaecido no desktop; aparece inteiro com o mouse (ou foco do teclado) */
 @media (min-width: 1000px) and (hover: hover) {
-  .doc-dock { opacity: .14; filter: saturate(.3); transition: opacity .35s var(--ease), filter .35s var(--ease); }
-  .doc-dock:hover, .doc-dock:focus-within { opacity: 1; filter: none; }
+  .doc-feature, .doc-feature > *, .doc-trailer { transition: opacity .35s var(--ease), filter .35s var(--ease), background .35s var(--ease), box-shadow .35s var(--ease); }
+  .doc-dock:not(:hover):not(:focus-within) .doc-feature { background: rgba(97, 60, 173, .07); box-shadow: none; }
+  .doc-dock:not(:hover):not(:focus-within) .doc-poster { opacity: .45; filter: saturate(.4); }
+  .doc-dock:not(:hover):not(:focus-within) .doc-text { opacity: .7; color: var(--purple); }
+  .doc-dock:not(:hover):not(:focus-within) .doc-text small { color: var(--purple); }
+  .doc-dock:not(:hover):not(:focus-within) .doc-trailer { opacity: .45; }
 }
+
+/* Borda viva nas cores do livro: marca a presença do documentário mesmo esmaecido */
+@property --ang { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.doc-feature { position: relative; isolation: isolate; }
+.doc-feature::before {
+  content: ""; position: absolute; inset: -3px; border-radius: calc(18px + 3px); padding: 3px; pointer-events: none;
+  background: conic-gradient(from var(--ang), var(--purple), var(--red), var(--yellow), var(--blue), var(--purple));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: doc-spin 6s linear infinite;
+}
+@media (min-width: 1000px) { .doc-feature::before { border-radius: calc(22px + 3px); } }
+@keyframes doc-spin { to { --ang: 360deg; } }
+.doc-play { animation: doc-pulse 2.4s var(--ease) infinite; }
+@keyframes doc-pulse { 0% { box-shadow: 0 0 0 0 rgba(245, 215, 117, .7); } 70%, 100% { box-shadow: 0 0 0 14px rgba(245, 215, 117, 0); } }
+.doc-dock:hover .doc-play { animation: none; }
+@media (prefers-reduced-motion: reduce) { .doc-feature::before, .doc-play { animation: none; } }
 
 @media (prefers-reduced-motion: reduce) { .map, .city, .node { transition: none; } }
 
