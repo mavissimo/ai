@@ -236,34 +236,20 @@
   document.querySelectorAll("[data-play]").forEach((b) => b.addEventListener("click", () => go(`#/filme/${b.dataset.play}`)));
 
   // ── Player ────────────────────────────────────────────────
-  function embedFor(url) {
-    let m;
-    if ((m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/)))
-      return `<iframe src="https://www.youtube-nocookie.com/embed/${m[1]}?autoplay=1&rel=0&playsinline=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="Vídeo"></iframe>`;
-    // aceita vimeo.com/123, vimeo.com/123/hash, vimeo.com/manage/123/..., player.vimeo.com/video/123?h=hash
-    if ((m = url.match(/vimeo\.com\/(?:manage\/|video\/|channels\/[^/]+\/)?(?:videos\/)?(\d{5,})(?:\/([0-9a-f]{6,}))?/i))) {
-      const h = m[2] || new URL(url, location.href).searchParams.get("h");
-      return `<iframe src="https://player.vimeo.com/video/${m[1]}?autoplay=1&title=0&byline=0&portrait=0${h ? `&h=${h}` : ""}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="Vídeo"></iframe>`;
-    }
-    // Dropbox: o link de compartilhamento vira arquivo direto com raw=1 (no lugar de dl=0/dl=1)
-    try {
-      const u = new URL(url, location.href);
-      if (/(^|\.)dropbox\.com$/i.test(u.hostname)) { u.searchParams.delete("dl"); u.searchParams.set("raw", "1"); url = u.toString(); }
-    } catch {}
-    return `<video src="${esc(url)}" controls autoplay playsinline></video>`;
-  }
-  const PLAYER_DOTS = '<span class="dot" style="--c:var(--yellow);--s:12px;top:18%;right:12%"></span><span class="dot" style="--c:var(--red);--s:12px;top:30%;right:22%"></span><span class="dot" style="--c:var(--white);--s:10px;top:40%;right:9%"></span>';
+  const PLAYER_DOTS = '<span class="dot" style="--c:var(--yellow);top:18%;right:12%"></span><span class="dot" style="--c:var(--red);top:30%;right:22%"></span><span class="dot" style="--c:var(--white);top:40%;right:9%"></span>';
   const PLACEHOLDER = window.VIDEO_PLACEHOLDER || "";
+  // link final (página de controle) ou o vídeo provisório
+  const fonte = (v) => { const final = (window.VIDEO_LINKS || {})[v.id] || v.url; return { final, url: final || PLACEHOLDER }; };
+
   function playerHTML(v, badge, cor, poster) {
     badge = v.badge || badge;
-    const final = (window.VIDEO_LINKS || {})[v.id] || v.url;
-    const url = final || PLACEHOLDER;
+    const { final, url } = fonte(v);
     const ready = !!url;
-    return `<div class="player${poster ? " has-poster" : ""}" data-url="${esc(url)}" style="--pc:${cor || "var(--purple)"}${poster ? `;--poster:url('${poster}')` : ""}">
+    return `<div class="player${poster ? " has-poster" : ""}${ready ? " is-ready" : ""}" ${ready ? `data-start role="button" tabindex="0" aria-label="Assistir ${esc(v.titulo)}"` : ""} style="--pc:${cor || "var(--purple)"}${poster ? `;--poster:url('${poster}')` : ""}">
       <div class="player-empty">${PLAYER_DOTS}
         <span class="pe-badge">${esc(badge)} · ${esc(v.duracao)}</span>
         ${ready
-          ? `<button class="pe-icon" type="button" data-start aria-label="Assistir ${esc(v.titulo)}">${ICON_PLAY}</button>`
+          ? `<span class="pe-icon is-btn" aria-hidden="true">${ICON_PLAY}</span>`
           : `<span class="pe-icon" aria-hidden="true">${ICON_PLAY}</span>`}
         <span class="pe-title">${esc(v.titulo)}</span>
         <span class="pe-note">${!ready ? "Filme em finalização" : final ? "Toque para assistir" : "Toque para assistir · versão provisória"}</span>
@@ -282,11 +268,19 @@
       slot.innerHTML = playerHTML(videos[i], badge, videos[i].cor || cor, poster);
       body.querySelectorAll(".vitem").forEach((b) => b.classList.toggle("on", +b.dataset.vi === i));
     };
+    // o vídeo abre no player do projeto, por cima de tudo, com a sequência do painel
+    let current = 0;
+    const play = (i) => window.FBPlayer.open(videos.map((v) => ({
+      titulo: v.titulo, duracao: v.duracao, kicker: v.badge || badge, cor: v.cor || cor,
+      url: fonte(v).url, provisorio: !fonte(v).final,
+    })), i);
     body.addEventListener("click", (ev) => {
-      const start = ev.target.closest("[data-start]");
-      if (start) { const p = start.closest(".player"); p.innerHTML = embedFor(p.dataset.url); return; }
+      if (ev.target.closest("[data-start]")) return play(current);
       const vi = ev.target.closest("[data-vi]");
-      if (vi) render(+vi.dataset.vi);
+      if (vi) { current = +vi.dataset.vi; render(current); play(current); }
+    });
+    body.addEventListener("keydown", (ev) => {
+      if ((ev.key === "Enter" || ev.key === " ") && ev.target.closest?.("[data-start]")) { ev.preventDefault(); play(current); }
     });
     render(0);
   }
@@ -390,7 +384,7 @@
       <div data-player-slot></div>
       ${listHTML(vids, start)}
       <p class="p-text">${esc(PROJETO.formatos.find((f) => f.tipo === "documentario").texto)}</p>
-    `, (b) => { wireVideos(b, vids, "Documentário", "var(--purple-ink)", POSTER); if (start) b.querySelector('[data-vi="1"]').click(); });
+    `, (b) => { wireVideos(b, vids, "Documentário", "var(--purple-ink)", POSTER); b.querySelector(`[data-vi="${start}"]`).click(); }); // o filme já abre no player
   }
 
 

@@ -24,6 +24,7 @@ assert old in app, "app.js mudou: atualize a substituição de `capa` neste scri
 app = app.replace(old, 'const capa = (f, tipo = "thumb") => { const k = `${f.id}${tipo === "thumb" ? "-thumb" : ""}.jpg`; return (window.__CAPAS || {})[k] || `assets/capas/${k}`; };')
 for name in ("brasil-path.js", "data.js", "videos.js"):
     html = html.replace(f'<script src="{name}"></script>', f"<script>{(root / name).read_text()}</script>")
+html = html.replace('<script src="player.js"></script>', f"<script>{(root / 'player.js').read_text()}</script>")
 html = html.replace('<script src="app.js"></script>', f"<script>window.__CAPAS={json.dumps(caps)};</script>\n<script>{app}</script>")
 assert not re.search(r'(?:src|href)="assets', html)
 pathlib.Path(sys.argv[1]).write_text(html)
