@@ -236,8 +236,14 @@
     map.style.setProperty("--z", z.toFixed(3));
     map.style.setProperty("--tx", `${tx.toFixed(1)}px`);
     map.style.setProperty("--ty", `${ty.toFixed(1)}px`);
+    labelsLater();
   }
-  function zoomReset() { ["--z", "--tx", "--ty"].forEach((v) => map.style.removeProperty(v)); }
+  // volta ao Brasil inteiro com valores explícitos (apagar as variáveis deixava o Safari/iPhone preso no zoom anterior)
+  function zoomReset() { map.style.setProperty("--z", "1"); map.style.setProperty("--tx", "0px"); map.style.setProperty("--ty", "0px"); labelsLater(); }
+  // reposiciona os nomes ao fim do zoom mesmo se o navegador não avisar o fim da animação
+  let labelsT; const labelsLater = () => { clearTimeout(labelsT); labelsT = setTimeout(() => placeLabels(), 1200); };
+  // navegador sem @property (Safari antigo): anima o transform direto, para o zoom não pular
+  if (!window.CSS?.registerProperty) map.classList.add("no-prop");
   // Rótulos sem atropelo: cada nome procura, em volta da sua bolinha, o lugar que menos cobre
   // outras bolinhas, fotógrafos e nomes já colocados. Refeito ao mudar zoom ou tamanho da tela.
   function placeLabels() {
