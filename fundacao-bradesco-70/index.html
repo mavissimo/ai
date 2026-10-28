@@ -84,8 +84,9 @@
       <button class="doc-trailer" type="button" data-play="trailer">Trailer<span class="dur"> · 2 min</span></button>
     </div>
 
-    <!-- Sobre o projeto (desktop: canto inferior direito; celular: botão "O projeto") -->
-    <aside class="about-card" id="about-card" aria-label="Sobre o projeto">
+    <!-- Sobre o projeto: abre no "?" do canto inferior direito; fecha no X, clicando nele ou fora -->
+    <button class="about-toggle" id="about-toggle" type="button" aria-expanded="false" aria-controls="about-card" aria-label="Sobre o projeto">?</button>
+    <aside class="about-card" id="about-card" aria-label="Sobre o projeto" hidden>
       <button class="about-close" id="about-close" type="button" aria-label="Recolher">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>

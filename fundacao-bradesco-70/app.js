@@ -362,10 +362,6 @@
     `, (b) => { wireVideos(b, vids, "Documentário", "var(--purple-ink)", POSTER); if (start) b.querySelector('[data-vi="1"]').click(); });
   }
 
-  function showAbout() {
-    selected = null; focusOn();
-    openPanel(`<h2 class="p-title" id="panel-title">De geração em geração</h2>${aboutHTML(true)}`);
-  }
 
   function showIndex() {
     selected = null; focusOn();
@@ -408,19 +404,24 @@
     else if (a === "escola" && escolaById[b]) showEscola(escolaById[b]);
     else if (a === "filme") showDoc(b);
     else if (a === "filmes") showIndex();
-    else if (a === "projeto") showAbout();
+    else if (a === "projeto") { closePanel(); setAbout(true); }
     else closePanel();
   }
 
   $("#enter-map").addEventListener("click", () => go("#/mapa"));
   $("#to-intro").addEventListener("click", () => go("#/"));
-  $("#open-about").addEventListener("click", () => {
-    // desktop: mostra o card do projeto no mapa; celular: abre o painel
-    if (matchMedia("(min-width: 1000px)").matches) { $("#about-card").hidden = false; closePanelRoute(); }
-    else go("#/projeto");
+  // "O projeto": card que abre no "?" (ou no menu) e fecha no X, ao clicar nele ou fora dele
+  const aboutCard = $("#about-card"), aboutBtn = $("#about-toggle");
+  const setAbout = (open) => { aboutCard.hidden = !open; aboutBtn.setAttribute("aria-expanded", String(open)); };
+  aboutBtn.addEventListener("click", (e) => { e.stopPropagation(); setAbout(aboutCard.hidden); });
+  aboutCard.addEventListener("click", (e) => { e.stopPropagation(); setAbout(false); });
+  document.addEventListener("click", (e) => { if (!aboutCard.hidden && !aboutCard.contains(e.target)) setAbout(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !aboutCard.hidden) setAbout(false); });
+  $("#open-about").addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!panel.hidden) go("#/mapa");
+    setAbout(aboutCard.hidden);
   });
-  const closePanelRoute = () => { if (!panel.hidden) go("#/mapa"); };
-  $("#about-close").addEventListener("click", () => ($("#about-card").hidden = true));
   $("#watch-doc").addEventListener("click", () => go("#/filme/documentario"));
   $("#open-index").addEventListener("click", () => go("#/filmes"));
   window.addEventListener("hashchange", route);
