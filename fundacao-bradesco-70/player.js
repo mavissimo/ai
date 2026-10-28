@@ -145,6 +145,7 @@
         <div class="lb-end" hidden>
           <button class="lb-pill" type="button" data-act="replay">${svg("replay")}<span>Assistir de novo</span></button>
           <button class="lb-pill lb-pill-next" type="button" data-act="next">${svg("next")}<span class="lb-next-label"></span></button>
+          <button class="lb-pill lb-pill-next lb-pill-final" type="button" data-act="final" hidden>${svg("next")}<span class="lb-final-label"></span></button>
         </div>
         <div class="lb-error" hidden>Não foi possível carregar este vídeo. Tente de novo em instantes.</div>
         <div class="lb-controls">
@@ -180,7 +181,7 @@
 
   const $ = (s) => lb.querySelector(s);
   const frame = $(".lb-frame"), media = $(".lb-media"), progress = $(".lb-progress"), tip = $(".lb-tip"), menu = $(".lb-menu");
-  const state = { list: [], i: 0, ad: null, d: 0, t: 0, playing: false, rate: 1, vol: 1, muted: false, tracks: [], track: null, qualities: [], lastFocus: null, hideT: 0 };
+  const state = { list: [], i: 0, ad: null, d: 0, t: 0, playing: false, rate: 1, vol: 1, muted: false, tracks: [], track: null, qualities: [], lastFocus: null, hideT: 0, opts: {} };
 
   function setPlaying(on) {
     state.playing = on;
@@ -248,6 +249,9 @@
     const next = state.list[state.i + 1];
     $(".lb-pill-next").hidden = !next;
     if (next) $(".lb-next-label").textContent = `Próximo: ${next.titulo}`;
+    const fin = !next && state.opts.final; // fim da sequência: um convite para seguir pelo site
+    $(".lb-pill-final").hidden = !fin;
+    if (fin) $(".lb-final-label").textContent = fin.label;
     $(".lb-end").hidden = false;
     poke(true);
   }
@@ -338,6 +342,7 @@
       fs: toggleFs, pip: () => Promise.resolve(state.ad.pip?.()).catch(() => {}),
       prev: () => state.i > 0 && load(state.i - 1), next: () => state.i < state.list.length - 1 && load(state.i + 1),
       replay: () => { state.ad.seek(0); state.ad.play(); },
+      final: () => close(),
     })[act]?.();
   });
   $(".lb-big").addEventListener("click", toggle);
@@ -364,8 +369,9 @@
     }
   }, true);
 
-  function open(list, i = 0) {
-    state.list = list; state.lastFocus = document.activeElement;
+  // opts.final = { label }: botão no fim do último filme, que fecha o player; opts.onClose: o que fazer ao fechar
+  function open(list, i = 0, opts = {}) {
+    state.list = list; state.opts = opts; state.lastFocus = document.activeElement;
     lb.hidden = false; document.body.classList.add("lb-open");
     requestAnimationFrame(() => lb.classList.add("in"));
     load(i);
@@ -377,6 +383,8 @@
     lb.classList.remove("in", "is-playing", "show-ui"); lb.hidden = true; menu.hidden = true;
     document.body.classList.remove("lb-open");
     state.lastFocus?.focus?.({ preventScroll: true });
+    const done = state.opts?.onClose; state.opts = {};
+    done?.();
   }
 
   window.FBPlayer = { open, close };

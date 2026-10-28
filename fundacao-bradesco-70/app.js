@@ -313,7 +313,7 @@
     </button></li>`).join("")}</ul>`;
   }
   // liga player + lista de vídeos dentro do painel
-  function wireVideos(body, videos, badge, cor, poster) {
+  function wireVideos(body, videos, badge, cor, poster, opts) {
     const slot = $("[data-player-slot]", body);
     const render = (i) => {
       slot.innerHTML = playerHTML(videos[i], badge, videos[i].cor || cor, poster);
@@ -324,7 +324,7 @@
     const play = (i) => window.FBPlayer.open(videos.map((v) => ({
       titulo: v.titulo, duracao: v.duracao, kicker: v.badge || badge, cor: v.cor || cor,
       url: fonte(v).url, provisorio: !fonte(v).final,
-    })), i);
+    })), i, opts);
     body.addEventListener("click", (ev) => {
       if (ev.target.closest("[data-start]")) return play(current);
       const vi = ev.target.closest("[data-vi]");
@@ -423,6 +423,8 @@
     `, (b) => e.visita && wireVideos(b, [e.visita], "Visita", "var(--green)"));
   }
 
+  // o documentário termina (ou é fechado) levando direto ao mapa
+  const DOC_PLAYER = { final: { label: "Explorar o mapa" }, onClose: () => go("#/mapa") };
   function showDoc() {
     selected = null; focusOn(); zoomReset();
     // a página do documentário sempre abre pelo trailer; o filme completo vem em seguida
@@ -436,7 +438,7 @@
       <div data-player-slot></div>
       ${listHTML(vids, start)}
       <p class="p-text">${esc(PROJETO.formatos.find((f) => f.tipo === "documentario").texto)}</p>
-    `, (b) => { wireVideos(b, vids, "Documentário", "var(--purple-ink)", POSTER); b.querySelector(`[data-vi="${start}"]`).click(); }); // o filme já abre no player
+    `, (b) => { wireVideos(b, vids, "Documentário", "var(--purple-ink)", POSTER, DOC_PLAYER); b.querySelector(`[data-vi="${start}"]`).click(); }); // o filme já abre no player
   }
 
 
