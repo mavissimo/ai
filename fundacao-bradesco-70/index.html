@@ -13,13 +13,13 @@
 </head>
 <body>
 
-  <!-- 1. Abertura -->
+  <!-- 1. Abertura: selo da Fundação -->
   <section id="splash" class="screen splash" aria-label="Abertura">
     <div class="confetti" data-confetti="splash" aria-hidden="true"></div>
     <img class="splash-logo" src="assets/selo-70-branco.svg" alt="Fundação Bradesco 70 anos">
   </section>
 
-  <!-- 2. Apresentação do projeto -->
+  <!-- 2. Folha de rosto: De geração em geração -->
   <section id="intro" class="screen intro" aria-labelledby="intro-title" hidden>
     <div class="title-page">
       <div class="confetti" data-confetti="title" aria-hidden="true"></div>
@@ -27,40 +27,24 @@
         <p class="kicker" data-bind="kicker"></p>
         <h1 id="intro-title" class="display" data-bind="titulo"></h1>
         <p class="display-sub" data-bind="subtitulo"></p>
+        <div class="title-actions">
+          <button class="btn-primary" id="watch-doc" type="button">
+            <span class="btn-play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span>
+            Assistir ao documentário
+          </button>
+          <button class="btn-secondary" id="enter-map" type="button">
+            Explorar o mapa
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </div>
       </div>
-      <a class="scroll-cue" href="#sobre" aria-label="Ler sobre o projeto">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-      </a>
-    </div>
-
-    <div class="intro-inner" id="sobre">
-      <div class="card-blue">
-        <span class="dot" style="--c:var(--purple);top:22px;right:34px"></span>
-        <span class="dot" style="--c:var(--red);top:52px;right:76px"></span>
-        <span class="dot" style="--c:var(--yellow);top:70px;right:30px"></span>
-        <div class="intro-text" data-bind="intro"></div>
-      </div>
-
-      <dl class="stats" id="stats"></dl>
-
-      <ul class="formatos" id="formatos"></ul>
-
-      <button class="btn-primary" id="enter-map" type="button">
-        Explorar o mapa
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-      </button>
-
-      <footer class="intro-footer">
-        <dl class="creditos" id="creditos"></dl>
-        <img class="footer-seal" src="assets/selo-70-roxo.svg" alt="Fundação Bradesco 70 anos">
-      </footer>
     </div>
   </section>
 
   <!-- 3. Mapa -->
   <section id="map-screen" class="screen map-screen" aria-label="Mapa dos filmes" hidden>
     <header class="topbar">
-      <button class="brand" id="to-intro" type="button" aria-label="Sobre o projeto">
+      <button class="brand" id="to-intro" type="button" aria-label="Voltar à abertura">
         <img src="assets/selo-70-roxo.svg" alt="">
       </button>
       <nav class="topnav">
@@ -83,21 +67,33 @@
 
     <div class="legend" aria-hidden="true">
       <span><i class="lg-city"></i>Escola visitada</span>
+      <span><i class="lg-school"></i>Escola retratada</span>
       <span><i class="lg-photo"></i>Fotógrafo</span>
     </div>
 
+    <!-- Documentário: o filme principal, em destaque -->
     <div class="doc-dock">
-      <button class="doc-card" type="button" data-play="documentario">
-        <span class="doc-play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span>
-        <span class="doc-text"><strong>Documentário</strong><small>15 min</small></span>
+      <button class="doc-feature" type="button" data-play="documentario">
+        <span class="doc-poster" id="doc-poster"><span class="doc-play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></span>
+        <span class="doc-text">
+          <small>Documentário<span class="dur"> · 15 min</span></small>
+          <strong>De geração em geração</strong>
+          <em>Assista ao filme principal</em>
+        </span>
       </button>
-      <button class="doc-card ghost" type="button" data-play="trailer">
-        <span class="doc-text"><strong>Trailer</strong><small>2 min</small></span>
-      </button>
+      <button class="doc-trailer" type="button" data-play="trailer">Trailer<span class="dur"> · 2 min</span></button>
     </div>
+
+    <!-- Sobre o projeto (desktop: canto inferior direito; celular: botão "O projeto") -->
+    <aside class="about-card" id="about-card" aria-label="Sobre o projeto">
+      <button class="about-close" id="about-close" type="button" aria-label="Recolher">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <div id="about-card-body"></div>
+    </aside>
   </section>
 
-  <!-- Painel lateral / bottom sheet -->
+  <!-- Painel lateral / bottom sheet (e modo cinema do documentário) -->
   <div class="scrim" id="scrim" hidden></div>
   <aside class="panel" id="panel" aria-modal="true" role="dialog" aria-labelledby="panel-title" hidden>
     <button class="panel-close" id="panel-close" type="button" aria-label="Fechar">

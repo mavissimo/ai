@@ -27,16 +27,17 @@
   $('[data-bind="kicker"]').textContent = PROJETO.kicker;
   $('[data-bind="titulo"]').textContent = PROJETO.titulo;
   $('[data-bind="subtitulo"]').textContent = PROJETO.subtitulo;
-  $('[data-bind="intro"]').innerHTML = PROJETO.intro.map((p) => `<p>${esc(p)}</p>`).join("");
-  $("#stats").innerHTML = [
-    [totalFilmes, "filmes"],
-    [FOTOGRAFOS.length, "fotógrafos"],
-    [ESCOLAS.length, "escolas"],
-    [regioes, "regiões"],
-  ].map(([n, l]) => `<div><dt>${l}</dt><dd>${n}</dd></div>`).join("");
-  $("#formatos").innerHTML = PROJETO.formatos.map((f) =>
-    `<li style="--c:${f.cor}"><strong>${esc(f.nome)}</strong><span>${esc(f.duracao)}</span><p>${esc(f.texto)}</p></li>`).join("");
-  $("#creditos").innerHTML = PROJETO.creditos.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("");
+
+  // "O projeto": texto, números, formatos e créditos (card no mapa e painel no celular)
+  const STATS = [[totalFilmes, "filmes"], [FOTOGRAFOS.length, "fotógrafos"], [ESCOLAS.length, "escolas"], [regioes, "regiões"]];
+  const aboutHTML = (full) => `
+    <p class="p-kicker">O projeto</p>
+    ${(full ? PROJETO.intro : PROJETO.intro.slice(0, 1)).map((p) => `<p class="about-text">${esc(p)}</p>`).join("")}
+    <dl class="about-stats">${STATS.map(([n, l]) => `<div><dt>${l}</dt><dd>${n}</dd></div>`).join("")}</dl>
+    <ul class="about-formats">${PROJETO.formatos.map((f) =>
+      `<li style="--c:${f.cor}"><i></i><strong>${esc(f.nome)}</strong><span>${esc(f.duracao)}</span>${full ? `<p>${esc(f.texto)}</p>` : ""}</li>`).join("")}</ul>
+    ${full ? `<dl class="creditos">${PROJETO.creditos.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>` : ""}`;
+  $("#about-card-body").innerHTML = aboutHTML(false);
 
   // Pontos coloridos do livro, espalhados de forma determinística (mesmo desenho a cada visita)
   const PALETA = ["var(--purple)", "var(--red)", "var(--yellow)", "var(--blue)", "var(--orange)", "var(--cream)"];
@@ -47,7 +48,7 @@
     for (let i = 0; i < n; i++) {
       const d = el("span", { class: "dot" });
       d.style.cssText = `left:${(x0 + rnd() * (x1 - x0)).toFixed(1)}%;top:${(y0 + rnd() * (y1 - y0)).toFixed(1)}%;` +
-        `--c:${PALETA[i % PALETA.length]};--s:${Math.round(12 + rnd() * 10)}px;--d:${(0.3 + i * 0.08).toFixed(2)}s;` +
+        `--c:${PALETA[i % PALETA.length]};--d:${(0.3 + i * 0.08).toFixed(2)}s;` + // regra da identidade: bolinhas sempre do mesmo tamanho
         `--dx:${Math.round(rnd() * 10 - 5)}px;--dy:${Math.round(rnd() * 10 - 8)}px`;
       box.append(d);
     }
@@ -67,6 +68,10 @@
     im.onerror = () => withImage(node, ...rest);
     im.src = src;
   };
+
+  // Pôster do documentário: a capa principal do livro
+  const POSTER = "assets/capas/mariana-valente.jpg";
+  withImage($("#doc-poster"), POSTER);
 
   // ── Mapa ──────────────────────────────────────────────────
   const map = $("#map");
@@ -217,11 +222,12 @@
   }
   const PLAYER_DOTS = '<span class="dot" style="--c:var(--yellow);--s:12px;top:18%;right:12%"></span><span class="dot" style="--c:var(--red);--s:12px;top:30%;right:22%"></span><span class="dot" style="--c:var(--white);--s:10px;top:40%;right:9%"></span>';
   const PLACEHOLDER = window.VIDEO_PLACEHOLDER || "";
-  function playerHTML(v, badge, cor) {
+  function playerHTML(v, badge, cor, poster) {
+    badge = v.badge || badge;
     const final = (window.VIDEO_LINKS || {})[v.id] || v.url;
     const url = final || PLACEHOLDER;
     const ready = !!url;
-    return `<div class="player" data-url="${esc(url)}" style="--pc:${cor || "var(--purple)"}">
+    return `<div class="player${poster ? " has-poster" : ""}" data-url="${esc(url)}" style="--pc:${cor || "var(--purple)"}${poster ? `;--poster:url('${poster}')` : ""}">
       <div class="player-empty">${PLAYER_DOTS}
         <span class="pe-badge">${esc(badge)} · ${esc(v.duracao)}</span>
         ${ready
@@ -238,10 +244,10 @@
     </button></li>`).join("")}</ul>`;
   }
   // liga player + lista de vídeos dentro do painel
-  function wireVideos(body, videos, badge, cor) {
+  function wireVideos(body, videos, badge, cor, poster) {
     const slot = $("[data-player-slot]", body);
     const render = (i) => {
-      slot.innerHTML = playerHTML(videos[i], badge, cor);
+      slot.innerHTML = playerHTML(videos[i], badge, videos[i].cor || cor, poster);
       body.querySelectorAll(".vitem").forEach((b) => b.classList.toggle("on", +b.dataset.vi === i));
     };
     body.addEventListener("click", (ev) => {
@@ -262,6 +268,7 @@
     const fresh = old.cloneNode(false); // remove listeners antigos
     old.replaceWith(fresh);
     fresh.innerHTML = html;
+    panel.classList.toggle("cinema", !!openPanel.cinema); openPanel.cinema = false;
     fresh.querySelectorAll("[data-bg]").forEach((n) => withImage(n, n.dataset.bg2, n.dataset.bg));
     panel.hidden = false; scrim.hidden = false;
     document.body.classList.add("panel-open");
@@ -286,6 +293,12 @@
   const notaRevisao = (has) => MODO_REVISAO && has ? `<p class="p-sub" style="margin-top:10px">Contorno tracejado: ligação a confirmar.</p>` : "";
   panel.addEventListener("click", (ev) => { const g = ev.target.closest("[data-go]"); if (g) go(g.dataset.go); });
 
+  // Pílulas do fotógrafo + a Visita da escola onde o making of o acompanhou
+  const videosDe = (f) => {
+    const e = f.visita && escolaById[f.visita];
+    return e?.visita ? [...f.pilulas, { ...e.visita, badge: "Visita", cor: "var(--green)" }] : f.pilulas;
+  };
+
   function showFotografo(f) {
     selected = { photo: f.id }; focusOn(selected);
     const tbc = (id) => MODO_REVISAO && f.aConfirmar?.includes(id);
@@ -299,13 +312,13 @@
       </div>
       <p class="p-sub">Depoimento gravado em ${esc(f.filmagem)}</p>
       <div data-player-slot></div>
-      ${listHTML(f.pilulas, 0)}
+      ${listHTML(videosDe(f), 0)}
       <h3 class="p-h">Escolas retratadas</h3>
       <div class="chips">${f.cidades.map((id) => chipCity(escolaById[id], tbc(id))).join("")}</div>
       ${notaRevisao(f.cidades.some(tbc))}
       <h3 class="p-h">Sobre</h3>
       <p class="p-text">${esc(f.bio)}</p>
-    `, (b) => wireVideos(b, f.pilulas, "Pílula", f.cor));
+    `, (b) => wireVideos(b, videosDe(f), "Pílula", f.cor));
   }
 
   function showEscola(e) {
@@ -335,14 +348,20 @@
     selected = null; focusOn();
     const vids = [DOCUMENTARIO.filme, DOCUMENTARIO.trailer];
     const start = which === "trailer" ? 1 : 0;
+    openPanel.cinema = true;
     openPanel(`
-      <p class="p-kicker">Documentário</p>
-      <h2 class="p-title" id="panel-title">Fundação Bradesco 70 anos</h2>
-      <p class="p-sub">${ESCOLAS.length} escolas · ${FOTOGRAFOS.length} fotógrafos · ${regioes} regiões</p>
+      <p class="p-kicker">Documentário · Fundação Bradesco 70 anos</p>
+      <h2 class="p-title" id="panel-title">De geração em geração</h2>
+      <p class="p-sub">${ESCOLAS.length} escolas · ${FOTOGRAFOS.length} fotógrafos · ${regioes} regiões do Brasil</p>
       <div data-player-slot></div>
       ${listHTML(vids, start)}
-      <p class="p-text" style="margin-top:20px">${esc(PROJETO.formatos.find((f) => f.tipo === "documentario").texto)}</p>
-    `, (b) => { wireVideos(b, vids, "Documentário", "var(--blue)"); if (start) b.querySelector('[data-vi="1"]').click(); });
+      <p class="p-text">${esc(PROJETO.formatos.find((f) => f.tipo === "documentario").texto)}</p>
+    `, (b) => { wireVideos(b, vids, "Documentário", "var(--purple-ink)", POSTER); if (start) b.querySelector('[data-vi="1"]').click(); });
+  }
+
+  function showAbout() {
+    selected = null; focusOn();
+    openPanel(`<h2 class="p-title" id="panel-title">De geração em geração</h2>${aboutHTML(true)}`);
   }
 
   function showIndex() {
@@ -386,12 +405,20 @@
     else if (a === "escola" && escolaById[b]) showEscola(escolaById[b]);
     else if (a === "filme") showDoc(b);
     else if (a === "filmes") showIndex();
+    else if (a === "projeto") showAbout();
     else closePanel();
   }
 
   $("#enter-map").addEventListener("click", () => go("#/mapa"));
   $("#to-intro").addEventListener("click", () => go("#/"));
-  $("#open-about").addEventListener("click", () => go("#/"));
+  $("#open-about").addEventListener("click", () => {
+    // desktop: mostra o card do projeto no mapa; celular: abre o painel
+    if (matchMedia("(min-width: 1000px)").matches) { $("#about-card").hidden = false; closePanelRoute(); }
+    else go("#/projeto");
+  });
+  const closePanelRoute = () => { if (!panel.hidden) go("#/mapa"); };
+  $("#about-close").addEventListener("click", () => ($("#about-card").hidden = true));
+  $("#watch-doc").addEventListener("click", () => go("#/filme/documentario"));
   $("#open-index").addEventListener("click", () => go("#/filmes"));
   window.addEventListener("hashchange", route);
 

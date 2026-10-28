@@ -120,6 +120,7 @@ window.ESCOLAS = LISTA.map(([id, cidade, uf, lat, lon, ano, nome, endereco, cep,
 
 // Fotógrafos. `cidades` = escolas que retratou (relação da curadoria).
 // `filmagem` = onde o making of gravou o depoimento.
+// `visita` = escola visitada pelo making of com esse fotógrafo (o filme Visita aparece no painel dele).
 // `cor` = cor da lombada da capa do fotógrafo no livro.
 // Imagem do nó: `retrato` (ex.: "assets/retratos/elza-lima.jpg") se preenchido;
 // senão, o recorte da capa em assets/capas/<id>-thumb.jpg (gerado por tools/extrair-capas.py).
@@ -132,16 +133,16 @@ const pilulas = (fid, nome) => [1, 2, 3].map((n) => ({
 }));
 
 window.FOTOGRAFOS = [
-  { id: "elza-lima",       cor: "#C70E0C", pos: [650, 135], nome: "Elza Lima",       filmagem: "Escola de Conceição do Araguaia (PA)",   cidades: ["paragominas", "macapa", "conceicao-do-araguaia", "garanhuns"] },
-  { id: "nti-uira",        cor: "#5E5E99", pos: [440, 250], nome: "Ntí Uirá",        filmagem: "Escola de Jaboatão dos Guararapes (PE)", cidades: ["cacoal", "jaboatao", "boa-vista", "irece"] },
+  { id: "elza-lima", visita: "conceicao-do-araguaia",       cor: "#C70E0C", pos: [650, 135], nome: "Elza Lima",       filmagem: "Escola de Conceição do Araguaia (PA)",   cidades: ["paragominas", "macapa", "conceicao-do-araguaia", "garanhuns"] },
+  { id: "nti-uira", visita: "jaboatao",        cor: "#5E5E99", pos: [440, 250], nome: "Ntí Uirá",        filmagem: "Escola de Jaboatão dos Guararapes (PE)", cidades: ["cacoal", "jaboatao", "boa-vista", "irece"] },
   { id: "patricia-brasil", cor: "#00ABA6", pos: [950, 200], nome: "Patricia Brasil", filmagem: "Estúdio em Belém (PA)",                  cidades: ["joao-pessoa", "natal", "teresina", "caucaia", "feira-de-santana"] },
-  { id: "renato-parada",   cor: "#5D5F99", pos: [872, 772], nome: "Renato Parada",   filmagem: "Escola de Gravataí (RS)",                cidades: ["vila-velha", "itajuba", "sao-joao-del-rei", "gravatai", "campinas"] },
+  { id: "renato-parada", visita: "gravatai",   cor: "#5D5F99", pos: [872, 772], nome: "Renato Parada",   filmagem: "Escola de Gravataí (RS)",                cidades: ["vila-velha", "itajuba", "sao-joao-del-rei", "gravatai", "campinas"] },
   { id: "vilma-slomp",     cor: "#A70C4F", pos: [400, 780], nome: "Vilma Slomp",     filmagem: "Estúdio em Curitiba (PR)",               cidades: ["paranavai", "laguna", "bage", "rosario-do-sul"] },
-  { id: "mariana-valente", cor: "#1C1F3E", pos: [750, 525], nome: "Mariana Valente", filmagem: "Escola de Canuanã (TO)",                 cidades: ["canuana", "salvador", "rio-de-janeiro"] },
-  { id: "pedro-kok",       cor: "#A80B4C", pos: [540, 580], nome: "Pedro Kok",       filmagem: "Escola de Bodoquena (MS)",               cidades: ["ceilandia", "aparecida-de-goiania", "cuiaba", "bodoquena"] },
+  { id: "mariana-valente", visita: "canuana", cor: "#1C1F3E", pos: [750, 525], nome: "Mariana Valente", filmagem: "Escola de Canuanã (TO)",                 cidades: ["canuana", "salvador", "rio-de-janeiro"] },
+  { id: "pedro-kok", visita: "bodoquena",       cor: "#A80B4C", pos: [540, 580], nome: "Pedro Kok",       filmagem: "Escola de Bodoquena (MS)",               cidades: ["ceilandia", "aparecida-de-goiania", "cuiaba", "bodoquena"] },
   { id: "lalo-de-almeida", cor: "#C80D06", pos: [280, 300], nome: "Lalo de Almeida", filmagem: "Estúdio em São Paulo (SP)",              cidades: ["manaus", "rio-branco"] },
   { id: "edgar-azevedo",   cor: "#17301B", pos: [790, 165], nome: "Edgar Azevedo",   filmagem: "Estúdio em Salvador (BA)",               cidades: ["maceio", "pinheiro", "propria", "sao-luis"] },
-  { id: "fabio-bartelt",   cor: "#1F2042", pos: [720, 810], nome: "Fábio Bartelt",   filmagem: "Escola de Osasco (SP)",                  cidades: ["jardim-conceicao", "osasco-2", "osasco"] },
+  { id: "fabio-bartelt", visita: "osasco",   cor: "#1F2042", pos: [720, 810], nome: "Fábio Bartelt",   filmagem: "Escola de Osasco (SP)",                  cidades: ["jardim-conceicao", "osasco-2", "osasco"] },
   { id: "maira-erlich",    cor: "#00ACA5", pos: [580, 770], nome: "Maíra Erlich",    filmagem: "Estúdio em São Paulo (SP)",              cidades: ["registro", "marilia"] },
 ].map((f) => ({
   bio: "Minibiografia em breve.",
@@ -150,7 +151,7 @@ window.FOTOGRAFOS = [
 }));
 
 window.DOCUMENTARIO = {
-  filme:   { id: "documentario", titulo: "Documentário · Fundação Bradesco 70 anos", duracao: "15 min", url: "" },
+  filme:   { id: "documentario", titulo: "Documentário", duracao: "15 min", url: "" },
   trailer: { id: "trailer", titulo: "Trailer", duracao: "2 min", url: "" },
 };
 
