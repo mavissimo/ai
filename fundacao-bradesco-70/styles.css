@@ -512,3 +512,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .doc-dock .dur { display: none; }
   .doc-text strong { font-size: 15px; }
 }
+
+/* Sem palavras órfãs: quebras equilibradas em todo o texto (pedido da direção de arte) */
+h1, h2, h3, .p-title, .display, .display-sub, .doc-text strong { text-wrap: balance; }
+p, li, dd, dt, small, em, .pe-title, .pe-note, .vi-title, .about-text, .p-text, .p-sub { text-wrap: pretty; }

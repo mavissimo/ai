@@ -13,7 +13,10 @@
     if (html) n.innerHTML = html;
     return n;
   };
-  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // escapa HTML e prende número + unidade ("2 min", "70 anos") para não sobrar palavra órfã na linha
+  const esc = (s) => String(s)
+    .replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]))
+    .replace(/(\d) (?=(min|anos|km|alunos|escolas|fotógrafos|regiões)\b)/g, "$1\u00a0");
   const initials = (nome) => nome.split(/\s+/).filter((w) => w.length > 2 || /^[A-ZÀ-Ú]/.test(w)).filter((w) => !/^(de|da|do|dos|das)$/i.test(w)).map((w) => w[0]).slice(0, 2).join("");
   const escolaById = Object.fromEntries(ESCOLAS.map((e) => [e.id, e]));
   const fotoById = Object.fromEntries(FOTOGRAFOS.map((f) => [f.id, f]));
