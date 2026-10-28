@@ -545,7 +545,7 @@ p, li, dd, dt, small, em, .pe-title, .pe-note, .vi-title, .about-text, .p-text, 
 @media (min-width: 1000px) { .doc-feature { --r: 22px; } }
 .doc-feature::before {
   content: ""; position: absolute; pointer-events: none;
-  inset: -1.5px; border-radius: calc(var(--r) + 1.5px); padding: 1.5px;
+  inset: -1px; border-radius: calc(var(--r) + 1px); padding: 1px;
   background: conic-gradient(from var(--ang), var(--purple), var(--red), var(--yellow), var(--blue), var(--purple));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);

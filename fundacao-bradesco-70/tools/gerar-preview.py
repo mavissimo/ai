@@ -10,7 +10,7 @@ import base64, json, pathlib, re, sys
 root = pathlib.Path(__file__).resolve().parent.parent
 b64 = lambda p, mime: f"data:{mime};base64," + base64.b64encode((root / p).read_bytes()).decode()
 
-html = (root / "index.html").read_text()
+html = re.sub(r"\?v=[\w-]+\"", "\"", (root / "index.html").read_text())  # tira o ?v= (só serve para o cache do navegador)
 css = re.sub(r'url\("(assets/fonts/[^"]+)"\)', lambda m: f'url("{b64(m.group(1), "font/woff2")}")', (root / "styles.css").read_text())
 html = re.sub(r'\s*<link rel="preload"[^>]+>\n', "\n", html)
 html = html.replace('<link rel="stylesheet" href="styles.css">', f"<style>{css}</style>")
