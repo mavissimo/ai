@@ -17,7 +17,8 @@ window.PROJETO = {
   subtitulo: "Fundação Bradesco 70 anos",
   kicker: "Os filmes do livro",
   intro: [
-    "Em 2026, a Fundação Bradesco completa 70 anos. Para celebrar, onze fotógrafas e fotógrafos brasileiros percorreram 39 escolas da Fundação de norte a sul do país e registraram, cada um com seu olhar, as pessoas e as histórias que fazem a educação acontecer. Essas imagens formam o livro comemorativo que você tem em mãos.",
+    // 1º parágrafo adaptado da abertura da seção "Fotógrafos" do livro.
+    "Para celebrar os 70 anos da Fundação Bradesco, onze fotógrafas e fotógrafos fizeram registros nas unidades escolares de todo o Brasil entre agosto e outubro de 2026. O resultado é um retrato atual dessas escolas, pelo olhar cuidadoso e sensível de cada um deles, e forma o livro que você tem em mãos.",
     "Esta série de filmes acompanha esse percurso: das salas de aula de Conceição do Araguaia, Jaboatão dos Guararapes, Gravataí, Bodoquena, Canuanã e Osasco até os estúdios onde cada artista conta como enxergou esse encontro.",
   ],
   formatos: [
