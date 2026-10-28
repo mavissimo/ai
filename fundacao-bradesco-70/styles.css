@@ -140,6 +140,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   transition: opacity .5s;
 }
 .map-hint.gone { opacity: 0; }
+@media (max-width: 999px) { .map-hint { top: 86px; } }
 
 .map-wrap { position: relative; min-height: 0; display: grid; place-items: center; padding: 8px 16px; container-type: size; overflow: hidden; }
 @media (max-width: 899px) { .map-wrap { overflow: visible; } .map-screen { overflow: hidden; } }
@@ -250,14 +251,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .city-label { font-size: 13px; }
 }
 
-.legend {
-  position: absolute; left: 16px; top: 92px; z-index: 4;
-  display: flex; gap: 16px; font-size: 12px; color: var(--ink-2);
-}
-.legend span { display: inline-flex; align-items: center; gap: 7px; }
-.lg-city { width: var(--dot); height: var(--dot); border-radius: 50%; background: var(--red); box-shadow: calc(var(--dot) + 4px) 0 0 var(--yellow), calc(2 * var(--dot) + 8px) 0 0 var(--blue); margin-right: calc(2 * var(--dot) + 8px); }
-.lg-school { width: var(--dot); height: var(--dot); border-radius: 50%; background: var(--purple); }
-.lg-photo { width: 12px; height: 12px; border-radius: 50%; background: var(--card-blue); box-shadow: 0 0 0 1.5px var(--white), 0 0 0 3px var(--purple); }
 @media (min-width: 900px) {
   .map-wrap { transition: padding .45s var(--ease); }
   .panel-open .map-wrap { padding-right: 476px; }
@@ -467,34 +460,14 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .about-toggle[aria-expanded="true"] { box-shadow: inset 0 0 0 2.5px var(--purple), 0 10px 26px -14px rgba(43, 35, 64, .6); }
 .about-toggle[aria-expanded="true"] svg { transform: rotate(60deg); }
 .about-card {
-  position: absolute; right: 24px; bottom: calc(96px + var(--safe-b)); z-index: 6;
+  position: absolute; right: 24px; bottom: calc(84px + var(--safe-b)); z-index: 6;
   width: 340px; max-width: calc(100vw - 32px); max-height: calc(100dvh - 180px); overflow: auto;
   padding: 20px 22px; background: var(--white); border-radius: 20px; cursor: pointer;
   box-shadow: 0 18px 44px -24px rgba(43, 35, 64, .5), inset 0 0 0 1px var(--line);
   transform-origin: bottom right; animation: about-in .25s var(--ease);
 }
 @keyframes about-in { from { opacity: 0; transform: translateY(8px) scale(.97); } }
-.panel-open .about-toggle, .panel-open .about-card, .panel-open .corner { display: none; }
-/* legenda e botão do projeto num só bloco no canto inferior direito (desktop); abaixo disso cada um no seu lugar */
-.corner { display: contents; }
-@media (min-width: 1000px) {
-  .corner {
-    position: absolute; right: 24px; bottom: calc(24px + var(--safe-b)); z-index: 6;
-    display: flex; align-items: center; gap: 18px; padding: 6px 6px 6px 22px;
-    background: rgba(255, 255, 255, .92); border-radius: 999px;
-    box-shadow: 0 12px 30px -20px rgba(43, 35, 64, .5), inset 0 0 0 1px var(--line);
-  }
-  .corner .legend { position: static; }
-  .corner .about-toggle { position: static; }
-}
-/* celular e tablet: a legenda sai do mapa e fica dentro do card do projeto */
-.about-legend { display: none; }
-@media (max-width: 999px) {
-  .corner .legend { display: none; }
-  .about-legend { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-2); }
-  .about-legend span { display: inline-flex; align-items: center; gap: 7px; }
-  .map-hint { top: 88px; }
-}
+.panel-open .about-toggle, .panel-open .about-card { display: none; }
 @media (max-width: 999px) {
   .about-toggle { right: 16px; bottom: calc(108px + var(--safe-b)); width: 44px; height: 44px; font-size: 20px; }
   .about-card { right: 16px; bottom: calc(162px + var(--safe-b)); }
@@ -546,8 +519,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .panel.cinema .p-text { max-width: 60ch; margin-top: 18px; }
 
 @media (max-width: 719px) {
-  /* legenda no topo (no lugar da dica), para não colidir com o card do documentário */
-  .legend { top: 88px; bottom: auto; left: 0; right: 0; justify-content: center; gap: 12px; font-size: 11px; }
   .doc-feature { flex: 1; }
   .doc-text small { white-space: nowrap; letter-spacing: .06em; font-size: 10px; }
   .doc-dock .dur { display: none; }
