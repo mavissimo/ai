@@ -43,24 +43,13 @@
   $("#about-card-body").innerHTML = aboutHTML(false);
 
   // Pontos coloridos do livro, espalhados de forma determinística (mesmo desenho a cada visita)
-  // Bolinhas como nas páginas do livro: poucas, soltas pelas margens, às vezes um grupinho num canto.
-  // Todas do mesmo tamanho (proporcional à tela, como no livro). Três desenhos para comparar: ?pontos=a|b|c
+  // Bolinhas como nas páginas do livro: poucas, soltas pelas margens, e um grupinho solto embaixo à direita.
+  // Todas do mesmo tamanho (proporcional à tela, como no livro). Posições em % da tela: "x,y,cor".
   const P = { r: "var(--red)", y: "var(--yellow)", b: "var(--blue)", p: "var(--purple)", o: "var(--orange)", c: "var(--cream)" };
-  const PONTOS = {
-    a: { // "página do livro": soltas nas margens + um grupinho solto embaixo à direita
-      title: "22,9,y 9,31,r 17,60,p 30,86,o 79,13,b 88,22,r 92,25,p 84,47,p 92,61,r 71,80,r 69,87,p 64,90,b 77,86,p 66,95,y",
-      splash: "20,13,y 11,40,r 25,72,o 79,18,b 87,43,r 75,74,y 69,83,c 78,88,r 64,90,b",
-    },
-    b: { // "constelação": um grupo num canto e duas soltas bem longe
-      title: "13,15,y 89,11,b 76,70,p 84,73,r 79,80,b 88,83,p 73,87,y 83,91,r",
-      splash: "14,16,y 87,12,b 74,70,r 82,74,c 78,81,b 87,84,o 72,88,y",
-    },
-    c: { // "respiro": só quatro, uma em cada canto
-      title: "10,12,y 90,21,b 8,85,r 88,80,p",
-      splash: "14,18,y 86,24,b 12,82,r 84,78,o",
-    },
+  const desenho = {
+    title: "22,9,y 9,31,r 17,60,p 30,86,o 79,13,b 88,22,r 92,25,p 84,47,p 92,61,r 71,80,r 69,87,p 64,90,b 77,86,p 66,95,y",
+    splash: "20,13,y 11,40,r 25,72,o 79,18,b 87,43,r 75,74,y 69,83,c 78,88,r 64,90,b",
   };
-  const desenho = PONTOS[new URLSearchParams(location.search).get("pontos")] || PONTOS.a;
   function confetti(box, spec) {
     spec.split(" ").forEach((t, i) => {
       const [x, y, c] = t.split(",");
