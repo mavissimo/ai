@@ -39,7 +39,8 @@
     <dl class="about-stats">${STATS.map(([n, l]) => `<div><dt>${l}</dt><dd>${n}</dd></div>`).join("")}</dl>
     <ul class="about-formats">${PROJETO.formatos.map((f) =>
       `<li style="--c:${f.cor}"><i></i><strong>${esc(f.nome)}</strong><span>${esc(f.duracao)}</span>${full ? `<p>${esc(f.texto)}</p>` : ""}</li>`).join("")}</ul>
-    ${full ? `<dl class="creditos">${PROJETO.creditos.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>` : ""}`;
+    ${full ? `<dl class="creditos">${PROJETO.creditos.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>` : ""}
+    <p class="made-by">Produzido por <b>Têmpora</b> studio</p>`;
   $("#about-card-body").innerHTML = aboutHTML(false);
 
   // Pontos coloridos do livro, espalhados de forma determinística (mesmo desenho a cada visita)
@@ -66,7 +67,7 @@
     const hit = (a, b) => a.left < b.right + 8 && b.left < a.right + 8 && a.top < b.bottom + 8 && b.top < a.bottom + 8;
     // mede o que de fato ocupa a tela: o texto (não a caixa inteira), o logo e cada botão
     const area = (n) => { if (n.matches("img, button")) return n.getBoundingClientRect(); const r = document.createRange(); r.selectNodeContents(n); return r.getBoundingClientRect(); };
-    [["splash", ".splash-logo"], ["title", ".title-block .kicker, .title-block .display, .title-block .display-sub, .title-actions > *"]].forEach(([k, sel]) => {
+    [["splash", ".splash-logo"], ["title", ".title-block .kicker, .title-block .display, .title-block .display-sub, .title-actions > *, .title-page > .made-by"]].forEach(([k, sel]) => {
       const box = $(`[data-confetti="${k}"]`);
       const blocks = [...document.querySelectorAll(sel)].map(area).filter((b) => b.width);
       if (!blocks.length) return; // tela escondida: confere quando aparecer
