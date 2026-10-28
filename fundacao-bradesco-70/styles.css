@@ -487,6 +487,14 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .corner .legend { position: static; }
   .corner .about-toggle { position: static; }
 }
+/* celular e tablet: a legenda sai do mapa e fica dentro do card do projeto */
+.about-legend { display: none; }
+@media (max-width: 999px) {
+  .corner .legend { display: none; }
+  .about-legend { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-2); }
+  .about-legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .map-hint { top: 88px; }
+}
 @media (max-width: 999px) {
   .about-toggle { right: 16px; bottom: calc(108px + var(--safe-b)); width: 44px; height: 44px; font-size: 20px; }
   .about-card { right: 16px; bottom: calc(162px + var(--safe-b)); }
@@ -540,7 +548,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 @media (max-width: 719px) {
   /* legenda no topo (no lugar da dica), para não colidir com o card do documentário */
   .legend { top: 88px; bottom: auto; left: 0; right: 0; justify-content: center; gap: 12px; font-size: 11px; }
-  .map-hint { top: 114px; }
   .doc-feature { flex: 1; }
   .doc-text small { white-space: nowrap; letter-spacing: .06em; font-size: 10px; }
   .doc-dock .dur { display: none; }
