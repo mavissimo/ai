@@ -208,6 +208,11 @@
       const h = m[2] || new URL(url, location.href).searchParams.get("h");
       return `<iframe src="https://player.vimeo.com/video/${m[1]}?autoplay=1&title=0&byline=0&portrait=0${h ? `&h=${h}` : ""}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="Vídeo"></iframe>`;
     }
+    // Dropbox: o link de compartilhamento vira arquivo direto com raw=1 (no lugar de dl=0/dl=1)
+    try {
+      const u = new URL(url, location.href);
+      if (/(^|\.)dropbox\.com$/i.test(u.hostname)) { u.searchParams.delete("dl"); u.searchParams.set("raw", "1"); url = u.toString(); }
+    } catch {}
     return `<video src="${esc(url)}" controls autoplay playsinline></video>`;
   }
   const PLAYER_DOTS = '<span class="dot" style="--c:var(--yellow);--s:12px;top:18%;right:12%"></span><span class="dot" style="--c:var(--red);--s:12px;top:30%;right:22%"></span><span class="dot" style="--c:var(--white);--s:10px;top:40%;right:9%"></span>';
