@@ -308,7 +308,7 @@
     const fs = FOTOGRAFOS.filter((f) => f.cidades.includes(e.id));
     const sub = [e.uf, e.ano && `inaugurada em ${e.ano}`].filter(Boolean).join(" · ");
     const endereco = e.endereco
-      ? `${esc(e.endereco)}<br>${esc(e.cidade === "Jardim Conceição" ? "Osasco" : e.cidade)} – ${esc(e.uf)}${e.cep ? ` · CEP ${esc(e.cep)}` : ""}`
+      ? `${esc(e.endereco)}<br>${esc(/^(Jardim Conceição|Osasco II)$/.test(e.cidade) ? "Osasco" : e.cidade)} – ${esc(e.uf)}${e.cep ? ` · CEP ${esc(e.cep)}` : ""}`
       : "Endereço a confirmar";
     openPanel(`
       <p class="p-kicker"><span class="p-dot" style="--c:${e.cor || "var(--purple)"}"></span>${e.visita ? "Escola visitada" : "Escola retratada"} · ${esc(e.regiao)}</p>
