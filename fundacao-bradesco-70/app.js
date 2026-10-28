@@ -192,31 +192,27 @@
   let selected = null;
 
   // Zoom dinâmico: enquadra os pontos em foco; zoom 1 = Brasil inteiro.
+  // O mapa nunca muda de tamanho (isso brigava com o zoom e dava trancos): só um transform, em px,
+  // que leva a seleção para a área livre da tela (ao lado do painel no desktop, acima dele no celular).
   function zoomTo(points) {
     if (!points?.length) return zoomReset();
     const xs = points.map((p) => p[0]), ys = points.map((p) => p[1]);
     const pad = 120;
     const w = Math.max(...xs) - Math.min(...xs) + pad * 2, h = Math.max(...ys) - Math.min(...ys) + pad * 2;
     const cx = (Math.max(...xs) + Math.min(...xs)) / 2, cy = (Math.max(...ys) + Math.min(...ys)) / 2;
-    if (matchMedia("(max-width: 899px)").matches) {
-      // celular: o painel cobre a parte de baixo; enquadra o foco na faixa visível entre o topo e o painel
-      const S = map.offsetWidth, wrap = map.parentElement.getBoundingClientRect();
-      const baseX = wrap.left + (wrap.width - S) / 2, baseY = wrap.top + (wrap.height - S) / 2;
-      const top = 96, bottom = innerHeight * 0.38, visH = Math.max(120, bottom - top);
-      const z = Math.max(0.9, Math.min(2.6, innerWidth / (w * S / 1000), visH / (h * S / 1000)));
-      const tx = innerWidth / 2 - baseX - (cx / 1000) * S * z;
-      const ty = (top + bottom) / 2 - baseY - (cy / 1000) * S * z;
-      map.style.setProperty("--z", z.toFixed(3));
-      map.style.setProperty("--tx", `${tx.toFixed(1)}px`);
-      map.style.setProperty("--ty", `${ty.toFixed(1)}px`);
-      return;
-    }
-    const z = Math.max(1, Math.min(2.6, 1000 / w, 1000 / h));
-    const tx = Math.min(0, Math.max(100 - 100 * z, 50 - (cx / 10) * z));
-    const ty = Math.min(0, Math.max(100 - 100 * z, 50 - (cy / 10) * z));
+    const S = map.offsetWidth, wrap = map.parentElement.getBoundingClientRect();
+    const baseX = wrap.left + map.offsetLeft, baseY = wrap.top + map.offsetTop; // posição sem transform
+    const phone = matchMedia("(max-width: 899px)").matches;
+    const area = phone
+      ? { l: 0, r: innerWidth, t: 96, b: innerHeight * 0.38, min: 0.9 }
+      : { l: Math.max(wrap.left + 16, 370), r: innerWidth - 476, t: Math.max(wrap.top + 8, 110), b: innerHeight - 24, min: 1 }; // livre do card do documentário e da dica
+    const visW = area.r - area.l, visH = Math.max(120, area.b - area.t);
+    const z = Math.max(area.min, Math.min(2.6, visW / (w * S / 1000), visH / (h * S / 1000)));
+    const tx = (area.l + area.r) / 2 - baseX - (cx / 1000) * S * z;
+    const ty = (area.t + area.b) / 2 - baseY - (cy / 1000) * S * z;
     map.style.setProperty("--z", z.toFixed(3));
-    map.style.setProperty("--tx", `${tx.toFixed(2)}%`);
-    map.style.setProperty("--ty", `${ty.toFixed(2)}%`);
+    map.style.setProperty("--tx", `${tx.toFixed(1)}px`);
+    map.style.setProperty("--ty", `${ty.toFixed(1)}px`);
   }
   function zoomReset() { ["--z", "--tx", "--ty"].forEach((v) => map.style.removeProperty(v)); }
   // Rótulos sem atropelo: cada nome procura, em volta da sua bolinha, o lugar que menos cobre
@@ -424,7 +420,7 @@
   }
 
   // o documentário termina (ou é fechado) levando direto ao mapa
-  const DOC_PLAYER = { final: { label: "Explorar o mapa" }, onClose: () => go("#/mapa") };
+  const DOC_PLAYER = { final: { label: "Explorar o mapa" }, onClose: () => go("#/mapa"), onMinimize: () => go("#/mapa") };
   function showDoc() {
     selected = null; focusOn(); zoomReset();
     // a página do documentário sempre abre pelo trailer; o filme completo vem em seguida

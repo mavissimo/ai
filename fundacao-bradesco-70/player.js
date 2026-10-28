@@ -1,7 +1,8 @@
 // Player do projeto: abre por cima de tudo, grande, com controles próprios na identidade do livro.
 // Fontes: Vimeo (pela API oficial player.js, com os controles do Vimeo escondidos), Dropbox e .mp4
 // (vídeo nativo). YouTube abre com os controles do próprio YouTube.
-// Uso: FBPlayer.open([{ titulo, kicker, url, cor, provisorio }], indice)
+// Uso: FBPlayer.open([{ titulo, kicker, url, cor, provisorio }], indice, { final, onClose, onMinimize })
+// Minimizar deixa o vídeo tocando num miniplayer flutuante dentro do site, para seguir explorando o mapa.
 (() => {
   const ICON = {
     play: '<path d="M8 5v14l11-7z"/>',
@@ -18,6 +19,9 @@
     fs: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
     fsx: '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
+    mini: '<path d="M6 9l6 6 6-6"/>',
+    expand: '<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>',
+    cast: '<path d="M6.5 17H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-2.5"/><path class="fill" d="M12 14.5l5 6H7z"/>',
     replay: '<path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v5h5"/>',
   };
   const svg = (k) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
@@ -59,7 +63,11 @@
   function nativeAdapter(box, url, emit) {
     const v = document.createElement("video");
     v.src = directUrl(url); v.playsInline = true; v.preload = "auto";
+    v.setAttribute("x-webkit-airplay", "allow");
     box.append(v);
+    // AirPlay (Safari) ou transmitir para TV (Chrome): o botão só aparece quando há aparelho por perto
+    if (window.WebKitPlaybackTargetAvailabilityEvent) v.addEventListener("webkitplaybacktargetavailabilitychanged", (e) => emit("cast", e.availability === "available"));
+    else v.remote?.watchAvailability?.((a) => emit("cast", a)).catch(() => {});
     const on = (e, f) => v.addEventListener(e, f);
     on("loadedmetadata", () => emit("ready", { duration: v.duration }));
     on("timeupdate", () => emit("time", { t: v.currentTime, d: v.duration }));
@@ -69,13 +77,13 @@
     on("error", () => emit("error"));
     on("volumechange", () => emit("volume", { v: v.volume, muted: v.muted }));
     return {
-      caps: { rate: true, pip: !!document.pictureInPictureEnabled, captions: false, quality: false },
+      caps: { rate: true, captions: false, quality: false },
       play: () => v.play(), pause: () => v.pause(), seek: (t) => { v.currentTime = t; },
       setVolume: (x) => { v.volume = x; v.muted = x === 0; }, setMuted: (m) => { v.muted = m; },
       setRate: (r) => { v.playbackRate = r; },
-      pip: () => (document.pictureInPictureElement ? document.exitPictureInPicture() : v.requestPictureInPicture()),
+      cast: () => (v.webkitShowPlaybackTargetPicker ? v.webkitShowPlaybackTargetPicker() : v.remote?.prompt().catch(() => {})),
       iosFullscreen: () => v.webkitEnterFullscreen?.(),
-      destroy: () => { v.pause(); v.removeAttribute("src"); v.load(); v.remove(); },
+      destroy: () => { v.remote?.cancelWatchAvailability?.().catch(() => {}); v.pause(); v.removeAttribute("src"); v.load(); v.remove(); },
     };
   }
 
@@ -105,14 +113,13 @@
     }).catch(() => emit("error"));
     const call = (fn) => ready.then((pl) => pl && fn(pl)).catch(() => {});
     return {
-      caps: { rate: true, pip: true, captions: true, quality: true },
+      caps: { rate: true, captions: true, quality: true },
       play: () => call((pl) => pl.play()), pause: () => call((pl) => pl.pause()),
       seek: (t) => call((pl) => pl.setCurrentTime(t)),
       setVolume: (x) => call((pl) => pl.setVolume(x)), setMuted: (m) => call((pl) => pl.setMuted ? pl.setMuted(m) : pl.setVolume(m ? 0 : 1)),
       setRate: (r) => call((pl) => pl.setPlaybackRate(r)),
       setTrack: (lang) => call((pl) => (lang ? pl.enableTextTrack(lang) : pl.disableTextTrack())),
       setQuality: (q) => call((pl) => pl.setQuality(q)),
-      pip: () => call((pl) => pl.requestPictureInPicture()),
       destroy: () => { dead = true; call((pl) => pl.destroy()); f.remove(); },
     };
   }
@@ -134,6 +141,7 @@
     <div class="lb-bg" data-close></div>
     <header class="lb-top">
       <div class="lb-titles"><p class="lb-kicker"></p><h2 class="lb-title"></h2></div>
+      <button class="lb-btn lb-close" type="button" data-act="mini" aria-label="Minimizar e continuar navegando">${svg("mini")}</button>
       <button class="lb-btn lb-close" type="button" data-close aria-label="Fechar (Esc)">${svg("close")}</button>
     </header>
     <div class="lb-stage">
@@ -141,7 +149,6 @@
         <div class="lb-media"></div>
         <div class="lb-hit" aria-hidden="true"></div>
         <div class="lb-loading" aria-hidden="true"><i></i><i></i><i></i></div>
-        <button class="lb-big" type="button" aria-label="Reproduzir">${svg("play")}</button>
         <div class="lb-end" hidden>
           <button class="lb-pill" type="button" data-act="replay">${svg("replay")}<span>Assistir de novo</span></button>
           <button class="lb-pill lb-pill-next" type="button" data-act="next">${svg("next")}<span class="lb-next-label"></span></button>
@@ -153,26 +160,36 @@
             <div class="lb-rail"><div class="lb-buffer"></div><div class="lb-played"></div></div>
             <div class="lb-thumb"></div><div class="lb-tip" hidden></div>
           </div>
+          <div class="lb-times"><span class="lb-cur">0:00</span><span class="lb-dur">0:00</span></div>
           <div class="lb-row">
-            <button class="lb-btn" type="button" data-act="toggle" aria-label="Reproduzir (espaço)">${svg("play")}</button>
-            <button class="lb-btn lb-sm" type="button" data-act="prev" aria-label="Vídeo anterior">${svg("prev")}</button>
-            <button class="lb-btn lb-sm" type="button" data-act="next" aria-label="Próximo vídeo">${svg("next")}</button>
-            <button class="lb-btn lb-sm lb-skip" type="button" data-act="back" aria-label="Voltar 10 segundos">${svg("back")}<b>10</b></button>
-            <button class="lb-btn lb-sm lb-skip" type="button" data-act="fwd" aria-label="Avançar 10 segundos">${svg("fwd")}<b>10</b></button>
-            <span class="lb-time"><span class="lb-cur">0:00</span> / <span class="lb-dur">0:00</span></span>
-            <span class="lb-flex"></span>
-            <div class="lb-vol">
-              <button class="lb-btn lb-sm" type="button" data-act="mute" aria-label="Som (M)">${svg("vol")}</button>
-              <input class="lb-volume" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume">
+            <button class="lb-nav lb-prev" type="button" data-act="prev" aria-label="Vídeo anterior">${svg("prev")}<span>Anterior</span></button>
+            <div class="lb-center">
+              <button class="lb-btn lb-skip" type="button" data-act="back" aria-label="Voltar 10 segundos">${svg("back")}<b>10</b></button>
+              <button class="lb-btn lb-main" type="button" data-act="toggle" aria-label="Reproduzir (espaço)">${svg("play")}</button>
+              <button class="lb-btn lb-skip" type="button" data-act="fwd" aria-label="Avançar 10 segundos">${svg("fwd")}<b>10</b></button>
             </div>
-            <button class="lb-btn lb-sm" type="button" data-act="cc" aria-label="Legendas (C)" hidden>${svg("cc")}</button>
-            <div class="lb-menu-wrap">
-              <button class="lb-btn lb-sm" type="button" data-act="settings" aria-label="Velocidade e qualidade" aria-expanded="false">${svg("gear")}</button>
-              <div class="lb-menu" hidden></div>
-            </div>
-            <button class="lb-btn lb-sm" type="button" data-act="pip" aria-label="Janela flutuante" hidden>${svg("pip")}</button>
-            <button class="lb-btn lb-sm" type="button" data-act="fs" aria-label="Tela cheia (F)">${svg("fs")}</button>
+            <button class="lb-nav lb-next" type="button" data-act="next" aria-label="Próximo vídeo"><span>Próximo</span>${svg("next")}</button>
           </div>
+        </div>
+        <div class="lb-tools">
+          <div class="lb-vol">
+            <button class="lb-btn lb-sm" type="button" data-act="mute" aria-label="Som (M)">${svg("vol")}</button>
+            <input class="lb-volume" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume">
+          </div>
+          <button class="lb-btn lb-sm" type="button" data-act="cc" aria-label="Legendas (C)" hidden>${svg("cc")}</button>
+          <div class="lb-menu-wrap">
+            <button class="lb-btn lb-sm" type="button" data-act="settings" aria-label="Velocidade e qualidade" aria-expanded="false">${svg("gear")}</button>
+            <div class="lb-menu" hidden></div>
+          </div>
+          <button class="lb-btn lb-sm" type="button" data-act="cast" aria-label="AirPlay ou transmitir para a TV" hidden>${svg("cast")}</button>
+          <button class="lb-btn lb-sm" type="button" data-act="mini" aria-label="Miniplayer: continuar navegando">${svg("pip")}</button>
+          <button class="lb-btn lb-sm" type="button" data-act="fs" aria-label="Tela cheia (F)">${svg("fs")}</button>
+        </div>
+        <div class="lb-minibar" aria-hidden="true"><i></i></div>
+        <div class="lb-minictl">
+          <button class="lb-btn lb-sm" type="button" data-act="expand" aria-label="Abrir o player grande">${svg("expand")}</button>
+          <button class="lb-btn lb-main" type="button" data-act="toggle" aria-label="Reproduzir">${svg("play")}</button>
+          <button class="lb-btn lb-sm" type="button" data-close aria-label="Fechar o vídeo">${svg("close")}</button>
         </div>
       </div>
     </div>
@@ -186,8 +203,7 @@
   function setPlaying(on) {
     state.playing = on;
     lb.classList.toggle("is-playing", on);
-    $('[data-act="toggle"]').innerHTML = svg(on ? "pause" : "play");
-    $('[data-act="toggle"]').setAttribute("aria-label", on ? "Pausar (espaço)" : "Reproduzir (espaço)");
+    lb.querySelectorAll('[data-act="toggle"]').forEach((b) => { b.innerHTML = svg(on ? "pause" : "play"); b.setAttribute("aria-label", on ? "Pausar (espaço)" : "Reproduzir (espaço)"); });
     if (on) $(".lb-end").hidden = true;
     poke();
   }
@@ -195,6 +211,7 @@
     const p = state.d ? Math.min(1, state.t / state.d) : 0;
     $(".lb-played").style.width = `${p * 100}%`;
     $(".lb-thumb").style.left = `${p * 100}%`;
+    $(".lb-minibar i").style.width = `${p * 100}%`;
     $(".lb-cur").textContent = fmt(state.t);
     $(".lb-dur").textContent = fmt(state.d);
     progress.setAttribute("aria-valuemax", String(Math.round(state.d)));
@@ -213,6 +230,7 @@
     else if (type === "volume") { state.muted = data.muted; $('[data-act="mute"]').innerHTML = svg(data.muted ? "mute" : "vol"); }
     else if (type === "tracks") { state.tracks = data || []; $('[data-act="cc"]').hidden = !state.tracks.length; }
     else if (type === "qualities") state.qualities = data || [];
+    else if (type === "cast") $('[data-act="cast"]').hidden = !data;
   }
 
   function load(i) {
@@ -229,14 +247,15 @@
     const make = parseVimeo(url) ? vimeoAdapter : parseYouTube(url) ? youtubeAdapter : nativeAdapter;
     state.ad = make(media, url, emit);
     lb.classList.toggle("is-external", !!state.ad.caps.external);
-    $('[data-act="pip"]').hidden = !state.ad.caps.pip;
+    $('[data-act="cast"]').hidden = true;
     state.ad.setRate?.(state.rate);
     if (state.muted) state.ad.setMuted(true); else state.ad.setVolume(state.vol);
     // autoplay depende do navegador: se recusar, o botão grande fica visível
     Promise.resolve(state.ad.play()).catch(() => setPlaying(false));
-    const multi = state.list.length > 1;
-    $('[data-act="prev"]').hidden = !multi; $('[data-act="next"]').hidden = !multi;
-    $('[data-act="prev"]').disabled = i === 0; $('[data-act="next"]').disabled = i === state.list.length - 1;
+    // anterior e próximo nos cantos, só quando existem (com o nome do filme)
+    const prev = state.list[i - 1], next = state.list[i + 1];
+    $(".lb-prev").classList.toggle("off", !prev); $(".lb-next").classList.toggle("off", !next);
+    $(".lb-prev span").textContent = prev ? prev.titulo : ""; $(".lb-next span").textContent = next ? next.titulo : "";
     renderList();
   }
   function renderList() {
@@ -339,16 +358,17 @@
     }
     ({
       toggle, back: () => seekBy(-10), fwd: () => seekBy(10), mute: toggleMute, cc: toggleCC, settings: openMenu,
-      fs: toggleFs, pip: () => Promise.resolve(state.ad.pip?.()).catch(() => {}),
+      fs: toggleFs, cast: () => Promise.resolve(state.ad.cast?.()).catch(() => {}),
+      mini: minimize, expand,
       prev: () => state.i > 0 && load(state.i - 1), next: () => state.i < state.list.length - 1 && load(state.i + 1),
       replay: () => { state.ad.seek(0); state.ad.play(); },
       final: () => close(),
     })[act]?.();
   });
-  $(".lb-big").addEventListener("click", toggle);
   // toque/clique no vídeo: no celular mostra os controles; no desktop pausa/toca. Duplo clique: tela cheia.
   const hit = $(".lb-hit");
   hit.addEventListener("click", (e) => {
+    if (lb.classList.contains("mini")) return expand();
     if (e.pointerType === "touch" || matchMedia("(hover: none)").matches) {
       if (!lb.classList.contains("show-ui")) return poke();
     }
@@ -359,7 +379,7 @@
 
   // atalhos de teclado (como no Vimeo/YouTube)
   window.addEventListener("keydown", (e) => {
-    if (lb.hidden || e.target.matches?.("input[type=range]")) return;
+    if (lb.hidden || lb.classList.contains("mini") || e.target.matches?.("input[type=range]")) return;
     const k = e.key.toLowerCase();
     const map = { " ": toggle, k: toggle, arrowleft: () => seekBy(-5), arrowright: () => seekBy(5), j: () => seekBy(-10), l: () => seekBy(10),
       m: toggleMute, f: toggleFs, c: toggleCC, arrowup: () => setVol(Math.min(1, state.vol + 0.1)), arrowdown: () => setVol(Math.max(0, state.vol - 0.1)), escape: close };
@@ -372,7 +392,7 @@
   // opts.final = { label }: botão no fim do último filme, que fecha o player; opts.onClose: o que fazer ao fechar
   function open(list, i = 0, opts = {}) {
     state.list = list; state.opts = opts; state.lastFocus = document.activeElement;
-    lb.hidden = false; document.body.classList.add("lb-open");
+    lb.hidden = false; setMini(false);
     requestAnimationFrame(() => lb.classList.add("in"));
     load(i);
     $(".lb-close").focus({ preventScroll: true });
@@ -381,11 +401,26 @@
     if (isFs()) (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
     state.ad?.destroy(); state.ad = null; media.replaceChildren();
     lb.classList.remove("in", "is-playing", "show-ui"); lb.hidden = true; menu.hidden = true;
-    document.body.classList.remove("lb-open");
+    setMini(false); document.body.classList.remove("lb-open");
     state.lastFocus?.focus?.({ preventScroll: true });
     const done = state.opts?.onClose; state.opts = {};
     done?.();
   }
+
+  // miniplayer: o vídeo segue tocando num cantinho, e o site fica livre por baixo
+  function setMini(on) {
+    lb.classList.toggle("mini", on);
+    lb.setAttribute("aria-modal", String(!on));
+    document.body.classList.toggle("lb-open", !on && !lb.hidden);
+  }
+  function minimize() {
+    if (isFs()) (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+    menu.hidden = true;
+    setMini(true);
+    state.lastFocus?.focus?.({ preventScroll: true });
+    state.opts.onMinimize?.();
+  }
+  function expand() { setMini(false); poke(); $(".lb-close").focus({ preventScroll: true }); }
 
   window.FBPlayer = { open, close };
 })();
