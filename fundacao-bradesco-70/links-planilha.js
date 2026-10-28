@@ -2,7 +2,7 @@
 // Colou o link na planilha, o site já usa na próxima visita; não precisa publicar nada.
 // A planilha precisa estar como "Qualquer pessoa com o link: leitor".
 // Colunas: A = id do filme (ou "placeholder"), E = link. Se a planilha falhar, valem os links de videos.js.
-window.VIDEO_SHEET = ""; // ID da planilha: o trecho entre /d/ e /edit no endereço dela
+window.VIDEO_SHEET = "1dZp8HV-64v5ewc0LzdnE4A7Luu1ikMGapbtg848Mnh4"; // ID da planilha: o trecho entre /d/ e /edit no endereço dela
 
 (function () {
   const id = window.VIDEO_SHEET;
