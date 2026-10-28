@@ -607,9 +607,8 @@ p, li, dd, dt, small, em, .pe-title, .pe-note, .vi-title, .about-text, .p-text, 
 .lb-pill-next svg { fill: currentColor; stroke: none; }
 .lb-pill-next[hidden] { display: none; }
 
-/* controles: progresso e tempos em cima; embaixo, anterior | « ▶ » | próximo.
-   Três arranjos para comparar, por ?player=a|b|c (a = padrão):
-   a: tudo numa faixa no pé do vídeo; b: « ▶ » no meio do vídeo; c: controles abaixo do vídeo, sem cobrir a imagem. */
+/* controles no pé do vídeo: progresso e tempos em cima; embaixo, anterior | « ▶ » | próximo.
+   Som, velocidade, AirPlay, miniplayer e tela cheia numa pílula no canto de cima. */
 .lb-controls {
   position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 18px 12px;
   background: linear-gradient(180deg, transparent, rgba(20, 12, 40, .88));
@@ -651,9 +650,8 @@ p, li, dd, dt, small, em, .pe-title, .pe-note, .vi-title, .about-text, .p-text, 
 .lb-btn:disabled { opacity: .35; pointer-events: none; }
 .lb-btn svg { width: 22px; height: 22px; fill: currentColor; }
 .lb-sm svg { width: 20px; height: 20px; }
-.lb-main { width: 56px; height: 56px; background: var(--yellow); color: var(--purple); }
-.lb-main:hover { background: #F8E08F; transform: scale(1.05); }
-.lb-main svg { width: 24px; height: 24px; }
+.lb-main { width: 56px; height: 56px; }
+.lb-main svg { width: 30px; height: 30px; }
 .lb-btn[data-act="back"] svg, .lb-btn[data-act="fwd"] svg, .lb-btn[data-act="mute"] svg, .lb-btn[data-act="cc"] svg, .lb-btn[data-act="settings"] svg,
 .lb-btn[data-act="mini"] svg, .lb-btn[data-act="expand"] svg, .lb-btn[data-act="cast"] svg, .lb-btn[data-act="fs"] svg, .lb-close svg, .lb-minictl [data-close] svg {
   fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
@@ -676,34 +674,6 @@ p, li, dd, dt, small, em, .pe-title, .pe-note, .vi-title, .about-text, .p-text, 
 .lb-opts button.on { background: var(--purple); color: var(--white); box-shadow: none; }
 .lb-close { flex: none; background: rgba(255, 255, 255, .12); }
 .lb-minibar, .lb-minictl { display: none; }
-
-/* b: « ▶ » grande no meio do vídeo, anterior/próximo nas laterais, ferramentas no pé */
-[data-player="b"] .lb-controls { inset: 0; padding: 0; background: radial-gradient(closest-side, rgba(20, 12, 40, .35), transparent), linear-gradient(180deg, transparent 60%, rgba(20, 12, 40, .85)); pointer-events: none; }
-[data-player="b"] .lb-controls > * { pointer-events: auto; }
-[data-player="b"] .lb-progress { position: absolute; left: 18px; right: 18px; bottom: 50px; }
-[data-player="b"] .lb-times { position: absolute; left: 18px; bottom: 18px; gap: 6px; justify-content: flex-start; }
-[data-player="b"] .lb-dur::before { content: "/ "; }
-[data-player="b"] .lb-row { display: contents; }
-[data-player="b"] .lb-row > * { pointer-events: auto; }
-[data-player="b"] .lb-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); gap: 28px; }
-[data-player="b"] .lb-main { width: 76px; height: 76px; }
-[data-player="b"] .lb-main svg { width: 30px; height: 30px; }
-[data-player="b"] .lb-skip { width: 54px; height: 54px; }
-[data-player="b"] .lb-prev, [data-player="b"] .lb-next { position: absolute; top: 50%; transform: translateY(-50%); max-width: 28%; }
-[data-player="b"] .lb-prev { left: 12px; } [data-player="b"] .lb-next { right: 12px; }
-[data-player="b"] .lb-tools { top: auto; bottom: 8px; right: 12px; background: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
-[data-player="b"] .lb-menu { top: auto; bottom: 52px; }
-
-/* c: vídeo limpo; controles sempre visíveis logo abaixo dele */
-[data-player="c"] .lb-frame { overflow: visible; background: none; box-shadow: none; margin-bottom: 128px; width: min(100%, 1280px, calc((100dvh - 340px) * 16 / 9)); }
-[data-player="c"] .lb-media { border-radius: 6px; overflow: hidden; background: #000; box-shadow: 0 40px 120px -40px rgba(0, 0, 0, .8); }
-[data-player="c"] .lb-end, [data-player="c"] .lb-error { border-radius: 6px; }
-[data-player="c"] .lb-hit { inset: 0; }
-[data-player="c"] .lb-controls { top: 100%; bottom: auto; padding: 16px 0 0; background: none; opacity: 1; transform: none; }
-[data-player="c"] .lb-tools { top: calc(100% + 28px); right: auto; left: 50%; translate: -50% 0; background: none; backdrop-filter: none; -webkit-backdrop-filter: none; opacity: 1; transform: none; }
-[data-player="c"] .lb-menu { top: auto; bottom: 52px; right: auto; left: 50%; translate: -50% 0; }
-[data-player="c"] .lb-row { margin-top: 10px; }
-[data-player="c"] .lb.is-playing:not(.show-ui) .lb-frame { cursor: auto; }
 
 /* miniplayer: o vídeo flutua no canto e o site fica livre por baixo */
 .lb.mini { pointer-events: none; padding: 0; background: none; }
@@ -748,12 +718,6 @@ p, li, dd, dt, small, em, .pe-title, .pe-note, .vi-title, .about-text, .p-text, 
   .lb-main { width: 46px; height: 46px; }
   .lb-nav { padding: 6px; } .lb-nav span { display: none; }
   .lb-tools { top: 8px; right: 8px; }
-  [data-player="b"] .lb-main { width: 60px; height: 60px; }
-  [data-player="b"] .lb-center { gap: 14px; }
-  [data-player="c"] .lb-frame { width: 100%; margin-bottom: 120px; }
-  [data-player="c"] .lb-controls { padding: 12px 12px 0; }
-  [data-player="c"] .lb-tools { top: calc(100% + 22px); }
-  [data-player="c"] .lb-row { margin-right: 0; }
   .lb.mini .lb-frame { right: 12px; left: auto; bottom: calc(12px + var(--safe-b)); width: min(62vw, 300px); border-radius: 12px; }
   .lb-list { justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
   .lb-chip { flex: none; }
