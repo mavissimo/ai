@@ -539,16 +539,12 @@ p, li, dd, dt, small, em, .pe-title, .pe-note, .vi-title, .about-text, .p-text, 
   .doc-dock:not(:hover):not(:focus-within) .doc-trailer { opacity: .45; }
 }
 
-/* Presença do documentário no canto. Quatro propostas lado a lado, escolhidas por ?borda=a|b|c|d
-   (a = padrão). Depois da escolha, as outras saem daqui. */
+/* Linha fina girando nas cores do livro: marca a presença do documentário mesmo esmaecido */
 @property --ang { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
 .doc-feature { position: relative; isolation: isolate; --r: 18px; }
 @media (min-width: 1000px) { .doc-feature { --r: 22px; } }
-.doc-feature::before, .doc-feature::after { content: ""; position: absolute; pointer-events: none; }
-.doc-mark { display: none; }
-
-/* A: linha fina girando nas cores do livro */
-:root:not([data-borda]) .doc-feature::before, [data-borda="a"] .doc-feature::before {
+.doc-feature::before {
+  content: ""; position: absolute; pointer-events: none;
   inset: -1.5px; border-radius: calc(var(--r) + 1.5px); padding: 1.5px;
   background: conic-gradient(from var(--ang), var(--purple), var(--red), var(--yellow), var(--blue), var(--purple));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
@@ -557,42 +553,10 @@ p, li, dd, dt, small, em, .pe-title, .pe-note, .vi-title, .about-text, .p-text, 
 }
 @keyframes doc-spin { to { --ang: 360deg; } }
 
-/* B: contorno roxo fino e parado + as três bolinhas da marca pousadas no canto */
-[data-borda="b"] .doc-feature::before { inset: 0; border-radius: var(--r); box-shadow: inset 0 0 0 1.5px var(--purple); }
-[data-borda="b"] .doc-mark { display: flex; gap: 5px; position: absolute; top: calc(var(--dot) / -2); right: 18px; z-index: 2; }
-[data-borda="b"] .doc-mark i { width: var(--dot); height: var(--dot); border-radius: 50%; box-shadow: 0 0 0 3px var(--white); animation: doc-hop 3.2s var(--ease) infinite; }
-[data-borda="b"] .doc-mark i:nth-child(1) { background: var(--red); }
-[data-borda="b"] .doc-mark i:nth-child(2) { background: var(--yellow); animation-delay: .18s; }
-[data-borda="b"] .doc-mark i:nth-child(3) { background: var(--blue); animation-delay: .36s; }
-@keyframes doc-hop { 0%, 70%, 100% { transform: none; } 80% { transform: translateY(-5px); } }
-
-/* C: sem linha; o card "respira" com o mesmo pulso das escolas visitadas no mapa */
-[data-borda="c"] .doc-feature::before {
-  inset: 0; border-radius: var(--r); border: 2px solid var(--purple); opacity: 0;
-  animation: doc-ring 2.8s var(--ease) infinite;
-}
-@keyframes doc-ring { 0% { transform: scale(1); opacity: .55; } 80%, 100% { transform: scale(1.06, 1.08); opacity: 0; } }
-
-/* D: contorno fino e uma bolinha amarela que percorre a borda devagar */
-[data-borda="d"] .doc-feature::before { inset: 0; border-radius: var(--r); box-shadow: inset 0 0 0 1px rgba(97, 60, 173, .45); }
-[data-borda="d"] .doc-mark { display: block; position: absolute; inset: 0; z-index: 2; }
-[data-borda="d"] .doc-mark i { display: none; }
-[data-borda="d"] .doc-mark i:first-child {
-  display: block; position: absolute; width: var(--dot); height: var(--dot); margin: calc(var(--dot) / -2) 0 0 calc(var(--dot) / -2);
-  border-radius: 50%; background: var(--yellow); box-shadow: 0 0 0 3px var(--white);
-  animation: doc-run 14s linear infinite;
-}
-@keyframes doc-run {
-  0% { left: var(--r); top: 0; } 22% { left: calc(100% - var(--r)); top: 0; }
-  25% { left: 100%; top: var(--r); } 47% { left: 100%; top: calc(100% - var(--r)); }
-  50% { left: calc(100% - var(--r)); top: 100%; } 72% { left: var(--r); top: 100%; }
-  75% { left: 0; top: calc(100% - var(--r)); } 97% { left: 0; top: var(--r); } 100% { left: var(--r); top: 0; }
-}
-
 .doc-play { animation: doc-pulse 2.4s var(--ease) infinite; }
 @keyframes doc-pulse { 0% { box-shadow: 0 0 0 0 rgba(245, 215, 117, .7); } 70%, 100% { box-shadow: 0 0 0 14px rgba(245, 215, 117, 0); } }
 .doc-dock:hover .doc-play { animation: none; }
-@media (prefers-reduced-motion: reduce) { .doc-feature::before, .doc-play, .doc-mark i { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .doc-feature::before, .doc-play { animation: none; } }
 
 @media (prefers-reduced-motion: reduce) { .map, .city, .node { transition: none; } }
 
