@@ -176,6 +176,7 @@
             <button class="lb-btn lb-sm" type="button" data-act="mute" aria-label="Som (M)">${svg("vol")}</button>
             <input class="lb-volume" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume">
           </div>
+          <button class="lb-auto" type="button" data-act="auto" role="switch" aria-checked="true" aria-label="Reprodução automática do próximo filme" title="Reprodução automática"><i></i></button>
           <button class="lb-btn lb-sm" type="button" data-act="cc" aria-label="Legendas (C)" hidden>${svg("cc")}</button>
           <div class="lb-menu-wrap">
             <button class="lb-btn lb-sm" type="button" data-act="settings" aria-label="Velocidade e qualidade" aria-expanded="false">${svg("gear")}</button>
@@ -188,7 +189,10 @@
         <div class="lb-minibar" aria-hidden="true"><i></i></div>
         <div class="lb-minictl">
           <button class="lb-btn lb-sm" type="button" data-act="expand" aria-label="Abrir o player grande">${svg("expand")}</button>
-          <button class="lb-btn lb-main" type="button" data-act="toggle" aria-label="Reproduzir">${svg("play")}</button>
+          <div class="lb-minimid">
+            <button class="lb-btn lb-main" type="button" data-act="toggle" aria-label="Reproduzir">${svg("play")}</button>
+            <button class="lb-btn lb-sm lb-mininext" type="button" data-act="next" aria-label="Próximo vídeo">${svg("next")}</button>
+          </div>
           <button class="lb-btn lb-sm" type="button" data-close aria-label="Fechar o vídeo">${svg("close")}</button>
         </div>
       </div>
@@ -198,7 +202,16 @@
 
   const $ = (s) => lb.querySelector(s);
   const frame = $(".lb-frame"), media = $(".lb-media"), progress = $(".lb-progress"), tip = $(".lb-tip"), menu = $(".lb-menu");
-  const state = { list: [], i: 0, ad: null, d: 0, t: 0, playing: false, rate: 1, vol: 1, muted: false, tracks: [], track: null, qualities: [], lastFocus: null, hideT: 0, opts: {} };
+  const state = { list: [], i: 0, ad: null, d: 0, t: 0, playing: false, rate: 1, vol: 1, muted: false, tracks: [], track: null, qualities: [], lastFocus: null, hideT: 0, opts: {}, endT: 0, auto: true };
+  // reprodução automática do próximo: ligada por padrão; a escolha fica guardada neste navegador
+  try { state.auto = localStorage.getItem("fb-autoplay") !== "0"; } catch {}
+  function setAuto(on) {
+    state.auto = on;
+    const sw = $('[data-act="auto"]'); sw.setAttribute("aria-checked", String(on)); sw.classList.toggle("on", on);
+    try { localStorage.setItem("fb-autoplay", on ? "1" : "0"); } catch {}
+    if (!on) cancelCountdown();
+  }
+  function cancelCountdown() { clearTimeout(state.endT); $(".lb-pill-next").classList.remove("counting"); }
 
   function setPlaying(on) {
     state.playing = on;
@@ -234,6 +247,7 @@
   }
 
   function load(i) {
+    cancelCountdown();
     state.ad?.destroy(); media.replaceChildren();
     Object.assign(state, { i, t: 0, d: 0, tracks: [], track: null, qualities: [] });
     const v = state.list[i];
@@ -256,6 +270,8 @@
     const prev = state.list[i - 1], next = state.list[i + 1];
     $(".lb-prev").classList.toggle("off", !prev); $(".lb-next").classList.toggle("off", !next);
     $(".lb-prev span").textContent = prev ? prev.titulo : ""; $(".lb-next span").textContent = next ? next.titulo : "";
+    $(".lb-mininext").hidden = !next;
+    $('[data-act="auto"]').hidden = state.list.length < 2;
     renderList();
   }
   function renderList() {
@@ -273,6 +289,11 @@
     if (fin) $(".lb-final-label").textContent = fin.label;
     $(".lb-end").hidden = false;
     poke(true);
+    // contagem de 5 s no botão "Próximo" (no miniplayer, segue direto também)
+    if (next && state.auto) {
+      const pill = $(".lb-pill-next"); pill.classList.remove("counting"); void pill.offsetWidth; pill.classList.add("counting");
+      state.endT = setTimeout(() => load(state.i + 1), 5000);
+    }
   }
 
   // controles somem depois de alguns segundos tocando; voltam ao mexer o mouse ou tocar
@@ -363,7 +384,8 @@
       fs: toggleFs, cast: () => Promise.resolve(state.ad.cast?.()).catch(() => {}),
       mini: minimize, expand,
       prev: () => state.i > 0 && load(state.i - 1), next: () => state.i < state.list.length - 1 && load(state.i + 1),
-      replay: () => { state.ad.seek(0); state.ad.play(); },
+      replay: () => { cancelCountdown(); state.ad.seek(0); state.ad.play(); },
+      auto: () => setAuto(!state.auto),
       final: () => close(),
     })[act]?.();
   });
@@ -401,6 +423,7 @@
     $(".lb-close").focus({ preventScroll: true });
   }
   function close() {
+    cancelCountdown();
     if (isFs()) (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
     state.ad?.destroy(); state.ad = null; media.replaceChildren();
     lb.classList.remove("in", "is-playing", "show-ui"); lb.hidden = true; menu.hidden = true;
@@ -425,5 +448,6 @@
   }
   function expand() { setMini(false); poke(); $(".lb-close").focus({ preventScroll: true }); }
 
+  setAuto(state.auto);
   window.FBPlayer = { open, close };
 })();

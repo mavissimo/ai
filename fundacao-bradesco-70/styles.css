@@ -674,6 +674,18 @@ p, li, dd, dt, small, em, .pe-title, .pe-note, .vi-title, .about-text, .p-text, 
 .lb-opts button.on { background: var(--purple); color: var(--white); box-shadow: none; }
 .lb-close { flex: none; background: rgba(255, 255, 255, .12); }
 .lb-minibar, .lb-minictl { display: none; }
+/* reprodução automática: chave pequena na pílula de ferramentas */
+.lb-auto { position: relative; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; }
+.lb-auto[hidden] { display: none; }
+.lb-auto:hover { background: rgba(255, 255, 255, .14); }
+.lb-auto i { position: relative; width: 30px; height: 16px; border-radius: 999px; background: rgba(255, 255, 255, .3); transition: background .2s; }
+.lb-auto i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--white); transition: transform .2s var(--ease); }
+.lb-auto.on i { background: var(--purple); }
+.lb-auto.on i::after { transform: translateX(14px); }
+/* contagem para o próximo filme: o botão se preenche em 5 s */
+.lb-pill-next { position: relative; overflow: hidden; isolation: isolate; }
+.lb-pill-next.counting::before { content: ""; position: absolute; inset: 0; z-index: -1; background: rgba(255, 255, 255, .45); transform-origin: left; animation: lb-count 5s linear forwards; }
+@keyframes lb-count { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 /* miniplayer: o vídeo flutua no canto e o site fica livre por baixo */
 .lb.mini { pointer-events: none; padding: 0; background: none; }
@@ -693,10 +705,12 @@ p, li, dd, dt, small, em, .pe-title, .pe-note, .vi-title, .about-text, .p-text, 
   background: rgba(20, 12, 40, .45); opacity: 0; transition: opacity .2s; pointer-events: none;
 }
 .lb.mini .lb-minictl > * { pointer-events: auto; align-self: flex-start; }
-.lb.mini .lb-minictl .lb-main { align-self: center; width: 48px; height: 48px; }
+.lb.mini .lb-minimid { align-self: center; display: flex; align-items: center; gap: 4px; margin-left: 44px; }
+.lb.mini .lb-minimid .lb-main { width: 48px; height: 48px; }
+.lb.mini .lb-mininext[hidden] { visibility: hidden; display: grid; }
 .lb.mini .lb-frame:hover .lb-minictl, .lb.mini .lb-minictl:focus-within, .lb.mini:not(.is-playing) .lb-minictl { opacity: 1; }
 @keyframes lb-mini-in { from { opacity: 0; transform: translateY(24px) scale(.96); } }
-@media (hover: none) { .lb.mini .lb-minictl { opacity: 1; background: linear-gradient(180deg, rgba(20, 12, 40, .55), transparent 45%); } .lb.mini .lb-minictl .lb-main { width: 40px; height: 40px; } }
+@media (hover: none) { .lb.mini .lb-minictl { opacity: 1; background: linear-gradient(180deg, rgba(20, 12, 40, .55), transparent 45%); } .lb.mini .lb-minimid .lb-main { width: 40px; height: 40px; } }
 
 /* sequência (pílulas, visita, trailer) */
 .lb-list { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding-top: 14px; max-width: 1280px; margin: 0 auto; }
