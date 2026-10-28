@@ -674,6 +674,23 @@ p, li, dd, dt, small, em, .pe-title, .pe-note, .vi-title, .about-text, .p-text, 
 .lb-opts button.on { background: var(--purple); color: var(--white); box-shadow: none; }
 .lb-close { flex: none; background: rgba(255, 255, 255, .12); }
 .lb-minibar, .lb-minictl { display: none; }
+/* dicas no hover: aparecem rápido, com um leve deslize; acima nos controles de baixo, abaixo nos de cima */
+.lb [data-tip] { position: relative; }
+.lb [data-tip]::after {
+  content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 8px); z-index: 5;
+  padding: 6px 10px; border-radius: 8px; background: var(--white); color: var(--purple);
+  font: 700 12px/1.2 var(--font); white-space: nowrap; letter-spacing: 0; pointer-events: none;
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, .6);
+  opacity: 0; transform: translate(-50%, 4px); transition: opacity .12s ease-out, transform .12s ease-out;
+}
+.lb-tools [data-tip]::after, .lb-top [data-tip]::after, .lb-minictl [data-tip]::after { bottom: auto; top: calc(100% + 8px); transform: translate(-50%, -4px); }
+.lb-tools [data-tip]:last-child::after, .lb-top [data-tip]:last-child::after, .lb-minictl > [data-close]::after { left: auto; right: 0; transform: translateY(-4px); }
+@media (hover: hover) {
+  .lb [data-tip]:hover::after, .lb [data-tip]:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
+  .lb-tools [data-tip]:last-child:hover::after, .lb-top [data-tip]:last-child:hover::after, .lb-minictl > [data-close]:hover::after,
+  .lb-tools [data-tip]:last-child:focus-visible::after, .lb-top [data-tip]:last-child:focus-visible::after { transform: none; }
+}
+.lb-menu-wrap:has(.lb-menu:not([hidden])) [data-tip]::after { display: none; }
 /* reprodução automática: chave pequena na pílula de ferramentas */
 .lb-auto { position: relative; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; }
 .lb-auto[hidden] { display: none; }

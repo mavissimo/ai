@@ -176,7 +176,7 @@
             <button class="lb-btn lb-sm" type="button" data-act="mute" aria-label="Som (M)">${svg("vol")}</button>
             <input class="lb-volume" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume">
           </div>
-          <button class="lb-auto" type="button" data-act="auto" role="switch" aria-checked="true" aria-label="Reprodução automática do próximo filme" title="Reprodução automática"><i></i></button>
+          <button class="lb-auto" type="button" data-act="auto" role="switch" aria-checked="true" aria-label="Reprodução automática do próximo filme"><i></i></button>
           <button class="lb-btn lb-sm" type="button" data-act="cc" aria-label="Legendas (C)" hidden>${svg("cc")}</button>
           <div class="lb-menu-wrap">
             <button class="lb-btn lb-sm" type="button" data-act="settings" aria-label="Velocidade e qualidade" aria-expanded="false">${svg("gear")}</button>
@@ -200,6 +200,18 @@
     <nav class="lb-list" aria-label="Sequência"></nav>`;
   document.body.append(lb);
 
+  // dicas no hover: rápidas, na identidade do projeto (no lugar do title do navegador, que demora)
+  const TIP = { mute: "Som (M)", cc: "Legendas (C)", settings: "Velocidade", cast: "AirPlay / transmitir para a TV",
+    fs: "Tela cheia (F)", back: "Voltar 10 s", fwd: "Avançar 10 s", expand: "Abrir o player grande" };
+  lb.querySelectorAll("[data-act], [data-close]").forEach((b) => {
+    const a = b.dataset.act;
+    if (TIP[a]) b.dataset.tip = TIP[a];
+    else if (a === "mini") b.dataset.tip = b.closest(".lb-top") ? "Minimizar e continuar navegando" : "Miniplayer";
+    else if (b.matches(".lb-top [data-close]")) b.dataset.tip = "Fechar (Esc)";
+    else if (b.matches(".lb-minictl [data-close]")) b.dataset.tip = "Fechar";
+    else if (b.matches(".lb-mininext")) b.dataset.tip = "Próximo";
+  });
+
   const $ = (s) => lb.querySelector(s);
   const frame = $(".lb-frame"), media = $(".lb-media"), progress = $(".lb-progress"), tip = $(".lb-tip"), menu = $(".lb-menu");
   const state = { list: [], i: 0, ad: null, d: 0, t: 0, playing: false, rate: 1, vol: 1, muted: false, tracks: [], track: null, qualities: [], lastFocus: null, hideT: 0, opts: {}, endT: 0, auto: true };
@@ -208,6 +220,7 @@
   function setAuto(on) {
     state.auto = on;
     const sw = $('[data-act="auto"]'); sw.setAttribute("aria-checked", String(on)); sw.classList.toggle("on", on);
+    sw.dataset.tip = `Próximo filme automático: ${on ? "ligado" : "desligado"}`;
     try { localStorage.setItem("fb-autoplay", on ? "1" : "0"); } catch {}
     if (!on) cancelCountdown();
   }
@@ -216,7 +229,7 @@
   function setPlaying(on) {
     state.playing = on;
     lb.classList.toggle("is-playing", on);
-    lb.querySelectorAll('[data-act="toggle"]').forEach((b) => { b.innerHTML = svg(on ? "pause" : "play"); b.setAttribute("aria-label", on ? "Pausar (espaço)" : "Reproduzir (espaço)"); });
+    lb.querySelectorAll('[data-act="toggle"]').forEach((b) => { b.innerHTML = svg(on ? "pause" : "play"); b.setAttribute("aria-label", on ? "Pausar (espaço)" : "Reproduzir (espaço)"); b.dataset.tip = on ? "Pausar" : "Reproduzir"; });
     if (on) $(".lb-end").hidden = true;
     poke();
   }
