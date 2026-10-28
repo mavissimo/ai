@@ -190,6 +190,35 @@
     map.classList.toggle("focus", !!(photo || city));
   }
   let selected = null;
+
+  // Zoom dinâmico: enquadra os pontos em foco; zoom 1 = Brasil inteiro.
+  function zoomTo(points) {
+    if (!points?.length) return zoomReset();
+    const xs = points.map((p) => p[0]), ys = points.map((p) => p[1]);
+    const pad = 120;
+    const w = Math.max(...xs) - Math.min(...xs) + pad * 2, h = Math.max(...ys) - Math.min(...ys) + pad * 2;
+    const cx = (Math.max(...xs) + Math.min(...xs)) / 2, cy = (Math.max(...ys) + Math.min(...ys)) / 2;
+    if (matchMedia("(max-width: 899px)").matches) {
+      // celular: o painel cobre a parte de baixo; enquadra o foco na faixa visível entre o topo e o painel
+      const S = map.offsetWidth, wrap = map.parentElement.getBoundingClientRect();
+      const baseX = wrap.left + (wrap.width - S) / 2, baseY = wrap.top + (wrap.height - S) / 2;
+      const top = 96, bottom = innerHeight * 0.38, visH = Math.max(120, bottom - top);
+      const z = Math.max(0.9, Math.min(2.6, innerWidth / (w * S / 1000), visH / (h * S / 1000)));
+      const tx = innerWidth / 2 - baseX - (cx / 1000) * S * z;
+      const ty = (top + bottom) / 2 - baseY - (cy / 1000) * S * z;
+      map.style.setProperty("--z", z.toFixed(3));
+      map.style.setProperty("--tx", `${tx.toFixed(1)}px`);
+      map.style.setProperty("--ty", `${ty.toFixed(1)}px`);
+      return;
+    }
+    const z = Math.max(1, Math.min(2.6, 1000 / w, 1000 / h));
+    const tx = Math.min(0, Math.max(100 - 100 * z, 50 - (cx / 10) * z));
+    const ty = Math.min(0, Math.max(100 - 100 * z, 50 - (cy / 10) * z));
+    map.style.setProperty("--z", z.toFixed(3));
+    map.style.setProperty("--tx", `${tx.toFixed(2)}%`);
+    map.style.setProperty("--ty", `${ty.toFixed(2)}%`);
+  }
+  function zoomReset() { ["--z", "--tx", "--ty"].forEach((v) => map.style.removeProperty(v)); }
   layer.addEventListener("pointerover", (ev) => {
     if (ev.pointerType !== "mouse") return;
     const t = ev.target.closest("[data-photo],[data-city]");
@@ -284,7 +313,7 @@
     panel.hidden = true; scrim.hidden = true;
     document.body.classList.remove("panel-open");
     $("#panel-body").innerHTML = "";
-    selected = null; focusOn();
+    selected = null; focusOn(); zoomReset();
     lastFocus?.focus?.({ preventScroll: true });
   }
   $("#panel-close").addEventListener("click", () => go("#/mapa"));
@@ -304,6 +333,7 @@
 
   function showFotografo(f) {
     selected = { photo: f.id }; focusOn(selected);
+    zoomTo([f.pos, ...f.cidades.map((id) => escolaById[id].pos)]);
     const tbc = (id) => MODO_REVISAO && f.aConfirmar?.includes(id);
     openPanel(`
       <div class="p-head">
@@ -327,6 +357,7 @@
   function showEscola(e) {
     selected = { city: e.id }; focusOn(selected);
     const fs = FOTOGRAFOS.filter((f) => f.cidades.includes(e.id));
+    zoomTo([e.pos, ...fs.map((f) => f.pos)]);
     const sub = [e.uf, e.ano && `inaugurada em ${e.ano}`].filter(Boolean).join(" · ");
     const endereco = e.endereco
       ? `${esc(e.endereco)}<br>${esc(/^(Jardim Conceição|Osasco II)$/.test(e.cidade) ? "Osasco" : e.cidade)} – ${esc(e.uf)}${e.cep ? ` · CEP ${esc(e.cep)}` : ""}`
@@ -348,7 +379,7 @@
   }
 
   function showDoc(which) {
-    selected = null; focusOn();
+    selected = null; focusOn(); zoomReset();
     const vids = [DOCUMENTARIO.filme, DOCUMENTARIO.trailer];
     const start = which === "trailer" ? 1 : 0;
     openPanel.cinema = true;
@@ -364,7 +395,7 @@
 
 
   function showIndex() {
-    selected = null; focusOn();
+    selected = null; focusOn(); zoomReset();
     const row = (href, title, dur) => `<li><button class="vitem" type="button" data-go="${href}"><span class="vi-icon">${ICON_PLAY}</span><span class="vi-title">${esc(title)}</span><span class="vi-dur">${esc(dur)}</span></button></li>`;
     openPanel(`
       <p class="p-kicker">Índice</p>
