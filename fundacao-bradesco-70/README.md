@@ -63,3 +63,10 @@ Nos links diretos, a abertura é mais curta e pula a apresentação.
 ```sh
 python3 -m http.server 8000   # depois abra http://localhost:8000
 ```
+
+## Links dos filmes ao vivo (planilha)
+
+`links-planilha.js` lê os links direto de uma planilha Google ("Qualquer pessoa com o link: leitor"),
+com colunas A = id do filme (ou `placeholder`) e E = link. Basta preencher `window.VIDEO_SHEET` com o ID
+da planilha uma vez; daí em diante, colar um link na planilha já muda o site, sem publicar nada.
+Links do Dropbox viram `raw=1` sozinhos. Se a planilha falhar, valem os links de `videos.js`.

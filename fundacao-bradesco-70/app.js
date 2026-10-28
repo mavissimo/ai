@@ -289,9 +289,8 @@
 
   // ── Player ────────────────────────────────────────────────
   const PLAYER_DOTS = '<span class="dot" style="--c:var(--yellow);top:18%;right:12%"></span><span class="dot" style="--c:var(--red);top:30%;right:22%"></span><span class="dot" style="--c:var(--white);top:40%;right:9%"></span>';
-  const PLACEHOLDER = window.VIDEO_PLACEHOLDER || "";
-  // link final (página de controle) ou o vídeo provisório
-  const fonte = (v) => { const final = (window.VIDEO_LINKS || {})[v.id] || v.url; return { final, url: final || PLACEHOLDER }; };
+  // link final (planilha de controle ou videos.js) ou o vídeo provisório; lido na hora, pois a planilha chega depois
+  const fonte = (v) => { const final = (window.VIDEO_LINKS || {})[v.id] || v.url; return { final, url: final || window.VIDEO_PLACEHOLDER || "" }; };
 
   function playerHTML(v, badge, cor, poster) {
     badge = v.badge || badge;
@@ -504,6 +503,8 @@
   $("#watch-doc").addEventListener("click", () => go("#/filme/documentario"));
   $("#open-index").addEventListener("click", () => go("#/filmes"));
   window.addEventListener("hashchange", route);
+  // links da planilha chegaram depois da página: atualiza o painel aberto (sem interromper um filme tocando)
+  document.addEventListener("fb:links", () => { if (!document.body.classList.contains("lb-open") && /^#\/(fotografo|escola)\//.test(location.hash)) route(); });
 
   // dica some depois da primeira interação
   const hint = $("#map-hint");
