@@ -210,6 +210,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   text-shadow: 0 0 3px var(--white), 0 0 6px var(--white), 0 0 10px var(--white);
   pointer-events: none;
 }
+.city.lab-off:not(.on) .city-label { opacity: 0; }
 .city-label b { display: block; font-weight: 600; font-size: 10.5px; color: var(--ink-2); letter-spacing: .02em; }
 .city.lab-l .city-label { left: auto; right: 28px; text-align: right; }
 .city.lab-bl .city-label { left: auto; right: 6px; top: 30px; transform: none; text-align: right; }

@@ -219,6 +219,58 @@
     map.style.setProperty("--ty", `${ty.toFixed(2)}%`);
   }
   function zoomReset() { ["--z", "--tx", "--ty"].forEach((v) => map.style.removeProperty(v)); }
+  // Rótulos sem atropelo: cada nome procura, em volta da sua bolinha, o lugar que menos cobre
+  // outras bolinhas, fotógrafos e nomes já colocados. Refeito ao mudar zoom ou tamanho da tela.
+  function placeLabels() {
+    if (!map.offsetWidth) return;
+    const box = (r, pad = 0) => ({ x1: r.left - pad, y1: r.top - pad, x2: r.right + pad, y2: r.bottom + pad });
+    const hit = (a, b) => Math.max(0, Math.min(a.x2, b.x2) - Math.max(a.x1, b.x1)) * Math.max(0, Math.min(a.y2, b.y2) - Math.max(a.y1, b.y1));
+    const view = box(map.parentElement.getBoundingClientRect());
+    const dots = ESCOLAS.map((e) => ({ id: e.id, b: box(e.btn.firstElementChild.getBoundingClientRect(), 5) }));
+    const fixed = [...dots.map((d) => d.b)];
+    FOTOGRAFOS.forEach((f) => {
+      fixed.push(box(f.btn.firstElementChild.getBoundingClientRect(), 6));
+      const n = f.btn.querySelector(".node-name");
+      if (getComputedStyle(n).opacity !== "0") fixed.push(box(n.getBoundingClientRect(), 2));
+    });
+    const placed = [];
+    const rank = (e) => (e.btn.classList.contains("on") ? 2 : 0) + (e.visita ? 1 : 0);
+    const order = [...ESCOLAS].sort((a, b) => rank(b) - rank(a)); // a escola em foco e as visitadas escolhem primeiro
+    order.forEach((e) => {
+      const lab = e.btn.querySelector(".city-label");
+      const w = lab.offsetWidth, h = lab.offsetHeight, g = 13;
+      const c = e.btn.getBoundingClientRect(), cx = c.left + c.width / 2, cy = c.top + c.height / 2;
+      const pref = e.rotulo || (e.pos[0] > 760 ? "l" : "r");
+      const cands = {
+        r: [g, -h / 2], l: [-g - w, -h / 2], t: [-w / 2, -g - h], b: [-w / 2, g],
+        tr: [g * .6, -g * .6 - h], tl: [-g * .6 - w, -g * .6 - h], br: [g * .6, g * .6], bl: [-g * .6 - w, g * .6],
+      };
+      let best = null;
+      for (const [k, [dx, dy]] of Object.entries(cands)) {
+        const r = { x1: cx + dx, y1: cy + dy, x2: cx + dx + w, y2: cy + dy + h };
+        let clash = 0;
+        fixed.forEach((o, i) => { if (dots[i]?.id !== e.id) clash += hit(r, o) * 3; });
+        placed.forEach((o) => { clash += hit(r, o) * 3; });
+        clash += (w * h - hit(r, view)) * 4; // não sair da área do mapa
+        const cost = clash + (k === pref ? 0 : k.length === 1 ? 6 : 10);
+        if (!best || cost < best.cost) best = { cost, clash, k, dx, dy, r };
+      }
+      lab.style.left = `${best.dx + c.width / 2}px`;
+      lab.style.top = `${best.dy + c.height / 2}px`;
+      lab.style.right = "auto"; lab.style.transform = "none";
+      lab.style.textAlign = best.k.includes("l") ? "right" : best.k.length === 1 && "tb".includes(best.k) ? "center" : "left";
+      // sem lugar livre (celular, mapa inteiro): o nome some e volta com o zoom ou ao tocar na escola
+      const off = best.clash > 30;
+      e.btn.classList.toggle("lab-off", off);
+      if (!off) placed.push(best.r);
+    });
+  }
+  let labelTimer;
+  const queueLabels = () => { clearTimeout(labelTimer); labelTimer = setTimeout(placeLabels, 60); };
+  map.addEventListener("transitionend", (ev) => { if (ev.target === map) queueLabels(); });
+  addEventListener("resize", queueLabels);
+  document.fonts?.ready.then(queueLabels);
+
   layer.addEventListener("pointerover", (ev) => {
     if (ev.pointerType !== "mouse") return;
     const t = ev.target.closest("[data-photo],[data-city]");
@@ -418,6 +470,7 @@
     intro.hidden = name !== "intro";
     mapScreen.hidden = name !== "map";
     if (name === "map" && !measured) { measured = true; requestAnimationFrame(measureLinks); }
+    if (name === "map") requestAnimationFrame(queueLabels);
     if (name === "intro") window.scrollTo(0, 0);
   }
   function go(hash) { if (location.hash === hash) route(); else location.hash = hash; }
