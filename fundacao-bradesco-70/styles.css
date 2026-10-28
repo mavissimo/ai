@@ -612,12 +612,12 @@ p, li, dd, dt, small, em, .pe-title, .pe-note, .vi-title, .about-text, .p-text, 
 .lb-controls {
   position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 18px 12px;
   background: linear-gradient(180deg, transparent, rgba(20, 12, 40, .88));
-  opacity: 0; transform: translateY(14px); transition: opacity .3s, transform .35s var(--ease);
+  opacity: 0; transform: translateY(14px); transition: opacity .22s ease-out, transform .25s ease-out;
 }
 .lb-tools {
   position: absolute; top: 12px; right: 12px; display: flex; align-items: center; gap: 2px; padding: 2px;
   border-radius: 999px; background: rgba(20, 12, 40, .55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-  opacity: 0; transform: translateY(-8px); transition: opacity .3s, transform .35s var(--ease);
+  opacity: 0; transform: translateY(-8px); transition: opacity .22s ease-out, transform .25s ease-out;
 }
 /* tocando, os controles descem e somem; voltam ao mexer o mouse ou tocar */
 .lb.show-ui .lb-controls, .lb:not(.is-playing) .lb-controls, .lb-controls:focus-within,
@@ -628,7 +628,7 @@ p, li, dd, dt, small, em, .pe-title, .pe-note, .vi-title, .about-text, .p-text, 
 .lb-progress:hover .lb-rail { height: 6px; }
 .lb-buffer { position: absolute; inset: 0 auto 0 0; background: rgba(255, 255, 255, .3); }
 .lb-played { position: absolute; inset: 0 auto 0 0; background: var(--yellow); }
-.lb-thumb { position: absolute; top: 50%; width: var(--dot); height: var(--dot); border-radius: 50%; background: var(--yellow); transform: translate(-50%, -50%); box-shadow: 0 0 0 3px rgba(28, 16, 54, .5); pointer-events: none; }
+.lb-thumb { position: absolute; top: 50%; width: var(--dot); height: var(--dot); border-radius: 50%; background: var(--white); transform: translate(-50%, -50%); box-shadow: 0 0 0 3px rgba(28, 16, 54, .5); pointer-events: none; }
 .lb-tip { position: absolute; bottom: 22px; transform: translateX(-50%); padding: 4px 8px; border-radius: 6px; background: var(--white); color: var(--purple); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; pointer-events: none; }
 .lb-tip[hidden] { display: none; }
 .lb-times { display: flex; justify-content: space-between; margin-top: 2px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; opacity: .85; }

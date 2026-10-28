@@ -279,8 +279,10 @@
   function poke(stay) {
     lb.classList.add("show-ui");
     clearTimeout(state.hideT);
-    if (!stay && state.playing) state.hideT = setTimeout(() => { if (menu.hidden) lb.classList.remove("show-ui"); }, 2600);
+    if (!stay && state.playing) state.hideT = setTimeout(hideUi, 1200);
   }
+  // tocando, nada fica sobre o filme: os controles saem logo que o mouse para ou sai do vídeo
+  function hideUi() { if (state.playing && menu.hidden && !dragging) lb.classList.remove("show-ui"); }
 
   const toggle = () => (state.playing ? state.ad.pause() : Promise.resolve(state.ad.play()).catch(() => {}));
   const seekBy = (s) => { const t = Math.max(0, Math.min(state.d || 0, state.t + s)); state.t = t; paint(); state.ad.seek(t); poke(); };
@@ -375,7 +377,8 @@
     toggle();
   });
   hit.addEventListener("dblclick", toggleFs);
-  lb.addEventListener("pointermove", () => poke());
+  lb.addEventListener("pointermove", (e) => { if (e.pointerType !== "mouse" || frame.contains(e.target)) poke(); });
+  frame.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") { clearTimeout(state.hideT); hideUi(); } });
 
   // atalhos de teclado (como no Vimeo/YouTube)
   window.addEventListener("keydown", (e) => {
