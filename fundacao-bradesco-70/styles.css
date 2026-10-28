@@ -54,7 +54,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .screen { min-height: 100dvh; }
 
 /* Pontos coloridos (confete do livro) */
-.confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; --dot: clamp(14px, 2.5vmin, 28px); } /* tamanho como no livro */
 .dot {
   position: absolute; width: var(--dot); height: var(--dot); border-radius: 50%;
   background: var(--c);

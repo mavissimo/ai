@@ -43,21 +43,54 @@
   $("#about-card-body").innerHTML = aboutHTML(false);
 
   // Pontos coloridos do livro, espalhados de forma determinística (mesmo desenho a cada visita)
-  const PALETA = ["var(--purple)", "var(--red)", "var(--yellow)", "var(--blue)", "var(--orange)", "var(--cream)"];
-  function confetti(box, n, seed, area) {
-    let r = seed;
-    const rnd = () => ((r = (r * 9301 + 49297) % 233280) / 233280);
-    const [x0, x1, y0, y1] = area;
-    for (let i = 0; i < n; i++) {
+  // Bolinhas como nas páginas do livro: poucas, soltas pelas margens, às vezes um grupinho num canto.
+  // Todas do mesmo tamanho (proporcional à tela, como no livro). Três desenhos para comparar: ?pontos=a|b|c
+  const P = { r: "var(--red)", y: "var(--yellow)", b: "var(--blue)", p: "var(--purple)", o: "var(--orange)", c: "var(--cream)" };
+  const PONTOS = {
+    a: { // "página do livro": soltas nas margens + um grupinho solto embaixo à direita
+      title: "22,9,y 9,31,r 17,60,p 30,86,o 79,13,b 88,22,r 92,25,p 84,47,p 92,61,r 71,80,r 69,87,p 64,90,b 77,86,p 66,95,y",
+      splash: "20,13,y 11,40,r 25,72,o 79,18,b 87,43,r 75,74,y 69,83,c 78,88,r 64,90,b",
+    },
+    b: { // "constelação": um grupo num canto e duas soltas bem longe
+      title: "13,15,y 89,11,b 76,70,p 84,73,r 79,80,b 88,83,p 73,87,y 83,91,r",
+      splash: "14,16,y 87,12,b 74,70,r 82,74,c 78,81,b 87,84,o 72,88,y",
+    },
+    c: { // "respiro": só quatro, uma em cada canto
+      title: "10,12,y 90,21,b 8,85,r 88,80,p",
+      splash: "14,18,y 86,24,b 12,82,r 84,78,o",
+    },
+  };
+  const desenho = PONTOS[new URLSearchParams(location.search).get("pontos")] || PONTOS.a;
+  function confetti(box, spec) {
+    spec.split(" ").forEach((t, i) => {
+      const [x, y, c] = t.split(",");
       const d = el("span", { class: "dot" });
-      d.style.cssText = `left:${(x0 + rnd() * (x1 - x0)).toFixed(1)}%;top:${(y0 + rnd() * (y1 - y0)).toFixed(1)}%;` +
-        `--c:${PALETA[i % PALETA.length]};--d:${(0.3 + i * 0.08).toFixed(2)}s;` + // regra da identidade: bolinhas sempre do mesmo tamanho
-        `--dx:${Math.round(rnd() * 10 - 5)}px;--dy:${Math.round(rnd() * 10 - 8)}px`;
+      d.style.cssText = `left:${x}%;top:${y}%;--c:${P[c]};--d:${(0.3 + i * 0.09).toFixed(2)}s;` +
+        `--dx:${(i % 3) * 3 - 3}px;--dy:${(i % 2 ? -1 : 1) * (3 + (i % 4))}px`;
       box.append(d);
-    }
+    });
   }
-  confetti($('[data-confetti="splash"]'), 14, 7, [80, 95, 12, 88]);
-  confetti($('[data-confetti="title"]'), 16, 3, [80, 95, 6, 94]);
+  confetti($('[data-confetti="splash"]'), desenho.splash);
+  confetti($('[data-confetti="title"]'), desenho.title);
+  // bolinha nunca em cima de texto, logo ou botão: a que cairia em cima some (importa no celular)
+  function clearDots() {
+    const hit = (a, b) => a.left < b.right + 8 && b.left < a.right + 8 && a.top < b.bottom + 8 && b.top < a.bottom + 8;
+    // mede o que de fato ocupa a tela: o texto (não a caixa inteira), o logo e cada botão
+    const area = (n) => { if (n.matches("img, button")) return n.getBoundingClientRect(); const r = document.createRange(); r.selectNodeContents(n); return r.getBoundingClientRect(); };
+    [["splash", ".splash-logo"], ["title", ".title-block .kicker, .title-block .display, .title-block .display-sub, .title-actions > *"]].forEach(([k, sel]) => {
+      const box = $(`[data-confetti="${k}"]`);
+      const blocks = [...document.querySelectorAll(sel)].map(area).filter((b) => b.width);
+      if (!blocks.length) return; // tela escondida: confere quando aparecer
+      box.querySelectorAll(".dot").forEach((d) => {
+        d.style.display = "";
+        const r = d.getBoundingClientRect();
+        d.style.display = blocks.some((b) => hit(r, b)) ? "none" : "";
+      });
+    });
+  }
+  clearDots();
+  addEventListener("resize", clearDots);
+  document.fonts?.ready.then(clearDots);
 
   // Imagem do fotógrafo: retrato (assets/retratos/) se houver; senão o recorte da capa do livro
   // (assets/capas/, gerada a partir do PDF). Sem nenhuma, fica a cor da lombada + iniciais.
@@ -468,7 +501,7 @@
     mapScreen.hidden = name !== "map";
     if (name === "map" && !measured) { measured = true; requestAnimationFrame(measureLinks); }
     if (name === "map") requestAnimationFrame(queueLabels);
-    if (name === "intro") window.scrollTo(0, 0);
+    if (name === "intro") { window.scrollTo(0, 0); requestAnimationFrame(clearDots); }
   }
   function go(hash) { if (location.hash === hash) route(); else location.hash = hash; }
 
