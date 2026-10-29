@@ -20,6 +20,8 @@ function boot() {
   const TODAY = iso(new Date());
   const isOff = (d) => d.getDay() === 0 || d.getDay() === 6;
 
+  // selo de quem faz a etapa: o símbolo do Bradesco e "Equipe" (vem do selo de 70 anos do livro)
+  const TAG_EQUIPE = `<span class="tag-you" title="Equipe Bradesco"><svg class="bd" viewBox="94 1550 250 247" aria-hidden="true"><path fill="currentColor" d="M 204 1555.995 C 186.943 1560.145, 170.838 1569.141, 158.533 1581.390 C 151.279 1588.612, 142.475 1600.856, 140.307 1606.737 C 137.792 1613.559, 133.210 1618.872, 129.231 1619.581 C 127.179 1619.946, 123.925 1621.071, 122 1622.081 C 120.075 1623.090, 116.894 1624.553, 114.930 1625.332 C 112.967 1626.110, 109.479 1627.935, 107.180 1629.386 C 98.001 1635.181, 104.666 1641.962, 115.210 1637.557 C 117.110 1636.763, 120.946 1635.811, 123.735 1635.441 C 130.482 1634.546, 131 1635.635, 131 1650.724 C 131 1658.478, 131.556 1664.642, 132.608 1668.540 C 133.492 1671.818, 134.630 1676.234, 135.136 1678.354 C 136.759 1685.149, 144.995 1700.722, 150.979 1708.311 C 158.182 1717.447, 171.223 1729, 174.332 1729 C 180.776 1729, 180.417 1723.735, 173.433 1715.814 C 157.937 1698.239, 151.206 1671.776, 155.499 1645.309 C 157.366 1633.796, 158.488 1631.324, 162.439 1630.020 C 168.084 1628.157, 189.083 1627.099, 200.597 1628.098 C 220.723 1629.843, 237.715 1631.941, 240.596 1633.036 C 242.167 1633.634, 246.511 1634.766, 250.248 1635.552 C 253.984 1636.338, 258.045 1637.616, 259.271 1638.392 C 260.497 1639.169, 263.075 1640.121, 265 1640.510 C 266.925 1640.898, 269.850 1642.016, 271.500 1642.994 C 273.150 1643.972, 275.589 1645.103, 276.921 1645.507 C 290.487 1649.630, 305.443 1667.439, 305.467 1679.500 C 305.489 1691.053, 292.493 1706.991, 276.250 1715.331 C 274.462 1716.249, 271.537 1717.741, 269.750 1718.646 C 262.551 1722.293, 260.649 1726.972, 265.474 1729.170 C 267.535 1730.109, 268.929 1729.856, 273.849 1727.648 C 277.094 1726.192, 280.144 1724.998, 280.625 1724.995 C 281.455 1724.990, 288.766 1721.346, 299.269 1715.702 C 314.819 1707.344, 327.870 1693.551, 332.627 1680.447 C 340.373 1659.108, 326.471 1636.031, 297.500 1622.137 C 293.650 1620.290, 289.375 1618.222, 288 1617.540 C 281.433 1614.285, 261.778 1609.375, 241 1605.799 C 236.388 1605.005, 193.147 1605.312, 179.593 1606.234 C 174.039 1606.612, 173.961 1604.653, 179.326 1599.512 C 194.676 1584.804, 212.916 1577.078, 233.007 1576.773 C 247.664 1576.551, 267.106 1582.854, 278.435 1591.502 C 285.080 1596.575, 287.283 1597.454, 289.874 1596.068 C 293.111 1594.335, 292.519 1590.588, 288.250 1585.798 C 277.003 1573.178, 262.427 1563.879, 244.500 1557.886 C 236.927 1555.354, 211.513 1554.168, 204 1555.995 M 229.500 1711.966 C 220.398 1717.566, 218.004 1720.956, 218.002 1728.250 C 218.001 1730.862, 217.550 1733, 217 1733 C 216.450 1733, 216 1731.907, 216 1730.571 C 216 1724.366, 210.342 1723.431, 203.662 1728.532 C 196.907 1733.690, 197 1733.236, 197 1760.934 C 197 1784.667, 197.106 1786.106, 199 1788 C 201.586 1790.586, 209.933 1790.744, 214.096 1788.284 C 216.864 1786.649, 217.152 1786.659, 220.250 1788.490 C 222.870 1790.039, 225.147 1790.369, 232 1790.197 C 244.910 1789.873, 244 1793.027, 244 1748.612 C 244 1701.811, 244.393 1702.803, 229.500 1711.966"/></svg><span>Equipe</span></span>`;
   // ── Etapas (cores das bolinhas do livro) ──
   const STEP = {
     ed: { label: "Edição", c: "var(--c-ed)", bar: true, desc: "Montagem, V1 e ajustes internos" },
@@ -251,7 +253,7 @@ function boot() {
   // como cada filme anda
   $("#steps").innerHTML = ["v2", "rev", "off", "fin", "on"].map((k) => {
     const s = STEP[k];
-    return `<li class="${s.you ? "you" : ""}${s.bar ? " range" : ""}" style="--c:${s.c}"><i></i><strong>${esc(s.label)}${s.you ? '<span class="tag-you">Equipe Bradesco</span>' : ""}</strong><span>${esc(s.desc)}</span></li>`;
+    return `<li class="${s.you ? "you" : ""}${s.bar ? " range" : ""}" style="--c:${s.c}"><i></i><strong>${esc(s.label)}${s.you ? TAG_EQUIPE : ""}</strong><span>${esc(s.desc)}</span></li>`;
   }).join("") + `<li style="--c:var(--c-fim)"><i></i><strong>Entrega final</strong><span>Os 41 vídeos em ${dm(C.fim)}, depois do retorno técnico de ${dm(TECNICO)}</span></li>`;
 
   // ── Eventos pontuais (agenda e calendário) ──
@@ -294,7 +296,7 @@ function boot() {
           const e = g[0];
           if (e.k === "fecho") {
             const checks = e.x.cliente ? `<div class="rcs">${filmes().map((f) => checkHTML(f, "on")).join("")}</div>` : ""; // retorno técnico: o check de cada online
-            return `<li class="item${e.x.cliente ? " you" : ""}" style="--c:${evColor(e)}"><i></i><div><strong>${esc(e.x.titulo)}${e.x.cliente ? '<span class="tag-you">Equipe Bradesco</span>' : ""}</strong><p>${esc(e.x.texto)}${e.x.fim ? ` Até ${dm(e.x.fim)}.` : ""}</p>${checks}</div></li>`;
+            return `<li class="item${e.x.cliente ? " you" : ""}" style="--c:${evColor(e)}"><i></i><div><strong>${esc(e.x.titulo)}${e.x.cliente ? TAG_EQUIPE : ""}</strong><p>${esc(e.x.texto)}${e.x.fim ? ` Até ${dm(e.x.fim)}.` : ""}</p>${checks}</div></li>`;
           }
           const s = STEP[e.k];
           // o filme em destaque; a etapa vira um rótulo pequeno em cima.
@@ -303,7 +305,7 @@ function boot() {
           const corpo = receb ? `<div class="rcs">${g.map((x) => recebHTML(x.f, e.k)).join("")}</div>`
             : e.k === "rev" ? `<div class="rcs">${g.map((x) => checkHTML(x.f, "v2")).join("")}</div>`
             : `<div class="films">${g.map((x) => filmChip(x.f)).join("")}</div>`;
-          return `<li class="item${s.you ? " you" : ""}${receb ? " receb" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? '<span class="tag-you">Equipe Bradesco</span>' : ""}${receb ? '<span class="tag-rc">Recebimento</span>' : ""}${g.some((x) => estadoEv(x) === "late") ? '<span class="st-tag st-late">Atrasado</span>' : ""}</span>${corpo}</div></li>`;
+          return `<li class="item${s.you ? " you" : ""}${receb ? " receb" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? TAG_EQUIPE : ""}${receb ? '<span class="tag-rc">Recebimento</span>' : ""}${g.some((x) => estadoEv(x) === "late") ? '<span class="st-tag st-late">Atrasado</span>' : ""}</span>${corpo}</div></li>`;
         }).join("");
         const cls = d < TODAY ? " past" : d === TODAY ? " today" : "";
         html += `<div class="day${cls}"><div class="day-date"><strong>${dm(d)}</strong><span>${WDL[D(d).getDay()]}</span></div><ul class="items">${items}</ul></div>`;
@@ -415,7 +417,7 @@ function boot() {
     return `<ol class="track">${steps.map((s) => {
       const st = STEP[s.k], stt = status(s);
       const when = s.start === s.end ? `${wd(s.start)} ${dm(s.start)}` : `${dm(s.start)} a ${dm(s.end)}`;
-      return `<li class="${stt === "done" ? "done" : ""}${s === next ? " next" : ""}${st.you ? " you" : ""}" style="--c:${st.c}"><i></i><span>${esc(st.label)}${st.you ? '<span class="tag-you">Equipe Bradesco</span>' : ""}</span><time>${when}</time></li>`;
+      return `<li class="${stt === "done" ? "done" : ""}${s === next ? " next" : ""}${st.you ? " you" : ""}" style="--c:${st.c}"><i></i><span>${esc(st.label)}${st.you ? TAG_EQUIPE : ""}</span><time>${when}</time></li>`;
     }).join("")}<li style="--c:var(--c-fim)"><i></i><span>Entrega final</span><time>${wd(C.fim)} ${dm(C.fim)}</time></li></ol>`;
   }
   function viewFilmes() {

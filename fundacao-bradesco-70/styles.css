@@ -598,3 +598,34 @@ p, li, dd, dt, small, em, .pe-title, .pe-note, .vi-title, .about-text, .p-text, 
 }
 .map-reset svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .map-reset[hidden] { display: none; }
+
+/* ── Celular deitado: o mapa ocupa a altura toda; topo e documentário flutuam nos cantos ── */
+@media (orientation: landscape) and (max-height: 500px) {
+  .map-screen { grid-template-rows: 1fr; }
+  .map-screen > .topbar { position: absolute; inset: 0 0 auto 0; padding: calc(8px + env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) 0 max(12px, env(safe-area-inset-left, 0px)); pointer-events: none; }
+  .map-screen > .topbar > * { pointer-events: auto; }
+  .map-screen .brand img { height: 40px; }
+  .map-hint { display: none; }
+  .map-wrap { grid-row: 1; padding: 6px 16px; }
+  .doc-dock {
+    position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); bottom: calc(10px + var(--safe-b)); padding: 0;
+    flex-direction: column; align-items: flex-start; gap: 6px; width: auto;
+  }
+  .doc-feature { flex: none; padding: 5px 14px 5px 5px; border-radius: 14px; gap: 10px; }
+  .doc-poster { width: 64px; }
+  .doc-play { width: 26px; height: 26px; }
+  .doc-play svg { width: 11px; height: 11px; }
+  .doc-text em { display: none; }
+  .doc-text strong { font-size: 13px; }
+  .doc-trailer { padding: 7px 12px; font-size: 12px; }
+  .about-toggle { right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(10px + var(--safe-b)); width: 40px; height: 40px; }
+  .map-reset { top: calc(56px + env(safe-area-inset-top, 0px)); }
+  .panel {
+    left: auto; top: 0; right: 0; bottom: 0; width: min(420px, 55vw); max-height: none;
+    border-radius: 20px 0 0 20px; box-shadow: -20px 0 60px -30px rgba(43, 35, 64, .4);
+    padding-right: env(safe-area-inset-right, 0px); animation-name: drawer-in;
+  }
+  @keyframes drawer-in { from { transform: translateX(100%); } }
+  .panel-grip { display: none; }
+  .scrim { background: rgba(43, 35, 64, .1); }
+}

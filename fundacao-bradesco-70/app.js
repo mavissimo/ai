@@ -229,7 +229,10 @@
     const S = map.offsetWidth, wrap = map.parentElement.getBoundingClientRect();
     const baseX = wrap.left + map.offsetLeft, baseY = wrap.top + map.offsetTop; // posição sem transform
     const phone = matchMedia("(max-width: 899px)").matches;
-    const area = phone
+    const deitado = matchMedia("(orientation: landscape) and (max-height: 500px)").matches; // ficha vira gaveta à direita
+    const area = deitado
+      ? { l: 8, r: innerWidth - Math.min(420, innerWidth * 0.55) - 8, t: 56, b: innerHeight - 8, min: 0.9 }
+      : phone
       ? { l: 0, r: innerWidth, t: 96, b: innerHeight * 0.38, min: 0.9 }
       : { l: Math.max(wrap.left + 16, 370), r: innerWidth - 476, t: Math.max(wrap.top + 8, 110), b: innerHeight - 24, min: 1 }; // livre do card do documentário e da dica
     const visW = area.r - area.l, visH = Math.max(120, area.b - area.t);
