@@ -72,10 +72,13 @@ function boot() {
   const ANDA_I = Object.fromEntries(ANDA.map(([k, l], i) => [l.toLowerCase(), i]));
   const ANTIGO = { "provisório": 0, "em edição": 0, "em revisão": 1, "aprovado": 6 }; // nomes antigos do Controle
   const live = (window.__fbLive = {}); // id do filme no cronograma -> índice de andamento (o menos adiantado do grupo)
+  const links = {}; // id do filme no cronograma -> vídeos com link (as 3 pílulas, a visita…)
   const grupoDoVideo = (vid) => vid.startsWith("pilula-") ? vid.replace(/^pilula-/, "").replace(/-\d+$/, "") : vid.replace(/^visita-/, "");
   window.__fbCrono = (res) => {
     (res?.table?.rows || []).forEach((r) => {
       const vid = String(r.c?.[0]?.v || "").trim(), st = String(r.c?.[5]?.v || "").trim().toLowerCase();
+      const url = String(r.c?.[4]?.v || "").trim();
+      if (vid && vid !== "placeholder" && url && byId[grupoDoVideo(vid)]) (links[grupoDoVideo(vid)] ||= []).push({ vid, url, titulo: String(r.c?.[2]?.v || ""), duracao: String(r.c?.[3]?.v || "") });
       if (!vid || vid === "placeholder" || !st) return;
       const i = ANDA_I[st] ?? ANTIGO[st];
       const g = grupoDoVideo(vid);
@@ -93,11 +96,31 @@ function boot() {
   const FEITO = { ed: 1, v2: 1, rev: 2, off: 3, fin: 5, on: 6 };
   const siteLink = (f) => SITE + ({ pilula: `#/fotografo/${f.id}`, visita: `#/escola/${f.id}`, documentario: "#/filme/documentario", trailer: "#/filme/trailer" })[f.tipo];
   const AGORA = ["Em edição", "V2 com você · aguardando seu retorno", "Retorno recebido · ajustes em andamento", "Offline aprovado", "Em cor e som", "Online para você conferir", "Aprovado", "Entregue"];
-  function liveBox(f, dark) {
+  // ── Assistir à versão atual: abre no player do projeto; link do Frame.io abre numa nova janela ──
+  const VERSAO = [null, "à V2", "à V2", "ao offline aprovado", "ao offline aprovado", "ao online", "à versão aprovada", "à versão final"];
+  const isFrameio = (u) => /(^|\.)(frame\.io|f\.io)\//i.test(u.replace(/^https?:\/\//, ""));
+  function watchBtn(f, dark) {
+    const i = live[f.id], vs = links[f.id] || [];
+    if (!i || !vs.length) return ""; // antes da V2 o cliente não vê nada
+    const fio = vs.find((v) => isFrameio(v.url));
+    const label = `▶ Assistir ${VERSAO[i]}`;
+    return fio
+      ? `<a class="watch${dark ? " dark" : ""}" href="${esc(fio.url)}" target="_blank" rel="noopener">${label} <span aria-hidden="true">↗</span><small>abre no Frame.io</small></a>`
+      : `<button type="button" class="watch${dark ? " dark" : ""}" data-watch="${f.id}">${label}</button>`;
+  }
+  function assistir(id) {
+    const f = byId[id], vs = links[id] || [], i = live[id];
+    if (!f || !vs.length || !window.FBPlayer) return;
+    const ord = vs.slice().sort((a, b) => a.vid.localeCompare(b.vid));
+    window.FBPlayer.open(ord.map((v) => ({ titulo: v.titulo || nomeFilme(f), kicker: `${f.nome} · ${VERSAO[i].replace(/^(à|ao) /, "")}`, duracao: v.duracao, url: v.url, cor: "var(--purple)" })), 0);
+  }
+  document.addEventListener("click", (e) => { const b = e.target.closest("[data-watch]"); if (b) { e.preventDefault(); assistir(b.dataset.watch); } });
+
+  function liveBox(f, dark, comBotao = true) {
     const i = live[f.id];
     if (i == null) return "";
-    const ver = i === 1 || i >= 5; // o cliente tem algo para assistir
-    return `<div class="live${dark ? " dark" : ""}"><span class="live-dot" style="--c:${["var(--c-ed)", "var(--c-v2)", "var(--c-rev)", "var(--c-off)", "var(--c-fin)", "var(--c-on)", "var(--c-fim)", "var(--c-fim)"][i]}"></span><span><small>Agora</small>${esc(AGORA[i])}</span>${ver ? `<a class="watch" href="${siteLink(f)}" target="_blank" rel="noopener">▶ Assistir no site</a>` : ""}</div>`;
+    const txt = i === 0 ? `Preparando a V2 · chega ${wd(f.v2)}, ${dm(f.v2)}` : AGORA[i];
+    return `<div class="live${dark ? " dark" : ""}"><span class="live-dot" style="--c:${["var(--c-v2)", "var(--c-v2)", "var(--c-rev)", "var(--c-off)", "var(--c-fin)", "var(--c-on)", "var(--c-fim)", "var(--c-fim)"][i]}"></span><span><small>Agora</small>${esc(txt)}</span>${comBotao ? watchBtn(f, dark) : ""}</div>`;
   }
 
   // ── Topo ──
@@ -272,7 +295,7 @@ function boot() {
 
   // ── Por filme ──
   function trackHTML(f) {
-    const steps = stepsOf(f);
+    const steps = stepsOf(f).filter((s) => s.k !== "ed"); // para o cliente, tudo começa na V2
     const next = steps.find((s) => status(s) !== "done");
     return `<ol class="track">${steps.map((s) => {
       const st = STEP[s.k], stt = status(s);
@@ -320,9 +343,13 @@ function boot() {
       <button class="peek-x" type="button" aria-label="Fechar">×</button>
       <p class="k">${esc(subFilme(f))}${f.uf ? ` · ${f.uf}` : ""}</p>
       <h4>${esc(f.tipo === "pilula" || f.tipo === "visita" ? f.nome : nomeFilme(f).split(" · ")[0])}</h4>
-      ${juntoHTML(f)}${liveBox(f)}
+      ${juntoHTML(f)}${liveBox(f, false, false)}
       ${trackHTML(f)}
-      <div class="peek-acts"><button class="copy" data-copy="${f.id}" type="button">Copiar link deste filme</button></div>
+      ${(() => { // o botão de assistir; sem versão para ver, só um aviso (quando o "Agora" já não diz)
+        const i = live[f.id], btn = watchBtn(f);
+        const aviso = btn ? "" : i >= 1 ? "O link da versão atual ainda não está no ar" : i == null ? `A V2 chega ${wd(f.v2)}, ${dm(f.v2)}` : "";
+        return btn || aviso ? `<div class="peek-acts">${btn || `<span class="soon">${aviso}</span>`}</div>` : "";
+      })()}
     </div></div>`;
   }
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
