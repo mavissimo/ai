@@ -571,3 +571,17 @@ p, li, dd, dt, small, em, .pe-title, .pe-note, .vi-title, .about-text, .p-text, 
 .player.is-ready { cursor: pointer; }
 .player.is-ready:hover .pe-icon { transform: translate(-50%, -62%) scale(1.06); }
 .player-empty .pe-icon { transition: transform .25s var(--ease); }
+
+/* ── Zoom livre no celular (pinça e arrasto) ── */
+@media (max-width: 899px) {
+  .map-wrap, .scrim { touch-action: none; }
+}
+.map.arrastando, .map.arrastando .city, .map.arrastando .node { transition: none !important; }
+.map-reset {
+  position: fixed; top: calc(96px + env(safe-area-inset-top, 0px)); right: 12px; z-index: 22;
+  width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--white); color: var(--purple); box-shadow: 0 6px 20px -8px rgba(43, 35, 64, .45), inset 0 0 0 1.5px var(--line);
+  animation: fade .25s var(--ease);
+}
+.map-reset svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.map-reset[hidden] { display: none; }

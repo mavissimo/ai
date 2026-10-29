@@ -101,6 +101,7 @@
 
   // ── Mapa ──────────────────────────────────────────────────
   const map = $("#map");
+  const scrimEl = $("#scrim");
   const layer = $("#map-layer");
   const linksG = $("#links");
   $("#land").setAttribute("d", BRASIL_PATH);
@@ -217,8 +218,10 @@
   // Zoom dinâmico: enquadra os pontos em foco; zoom 1 = Brasil inteiro.
   // O mapa nunca muda de tamanho (isso brigava com o zoom e dava trancos): só um transform, em px,
   // que leva a seleção para a área livre da tela (ao lado do painel no desktop, acima dele no celular).
+  let ultimoZoom = null; // pontos do último enquadramento pré-definido (para o botão de voltar)
   function zoomTo(points) {
     if (!points?.length) return zoomReset();
+    ultimoZoom = points; livre(false);
     const xs = points.map((p) => p[0]), ys = points.map((p) => p[1]);
     const pad = 120;
     const w = Math.max(...xs) - Math.min(...xs) + pad * 2, h = Math.max(...ys) - Math.min(...ys) + pad * 2;
@@ -239,7 +242,62 @@
     labelsLater();
   }
   // volta ao Brasil inteiro com valores explícitos (apagar as variáveis deixava o Safari/iPhone preso no zoom anterior)
-  function zoomReset() { map.style.setProperty("--z", "1"); map.style.setProperty("--tx", "0px"); map.style.setProperty("--ty", "0px"); labelsLater(); }
+  function zoomReset() { ultimoZoom = null; livre(false); map.style.setProperty("--z", "1"); map.style.setProperty("--tx", "0px"); map.style.setProperty("--ty", "0px"); labelsLater(); }
+  // Zoom livre no celular: pinça para aproximar, um dedo para arrastar (também por cima da ficha aberta).
+  // Tocar numa escola ou num fotógrafo volta ao enquadramento pré-definido; o botão ⤢ desfaz o zoom livre.
+  const resetBtn = document.createElement("button");
+  resetBtn.type = "button"; resetBtn.className = "map-reset"; resetBtn.hidden = true;
+  resetBtn.setAttribute("aria-label", "Voltar ao enquadramento"); resetBtn.title = "Voltar ao enquadramento";
+  resetBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+  resetBtn.addEventListener("click", (e) => { e.stopPropagation(); ultimoZoom ? zoomTo(ultimoZoom) : zoomReset(); });
+  map.parentElement.append(resetBtn);
+  function livre(on) { map.classList.toggle("livre", on); resetBtn.hidden = !on; if (on) $("#map-hint")?.classList.add("gone"); }
+  (() => {
+    const pts = new Map(); let g = null, arrastou = false;
+    const val = (k) => parseFloat(map.style.getPropertyValue(k)) || (k === "--z" ? 1 : 0);
+    const meio = () => { const [a, b] = [...pts.values()]; return b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) } : { x: a.x, y: a.y, d: 0 }; };
+    const inicio = () => {
+      const w = map.parentElement.getBoundingClientRect();
+      g = { m: meio(), z: val("--z"), tx: val("--tx"), ty: val("--ty"), bx: w.left + map.offsetLeft, by: w.top + map.offsetTop };
+    };
+    const aplica = () => {
+      const m = meio(), S = map.offsetWidth;
+      const z = Math.max(0.8, Math.min(5, g.m.d && m.d ? g.z * (m.d / g.m.d) : g.z));
+      // o ponto do mapa que estava sob os dedos continua sob os dedos
+      const px = (g.m.x - g.bx - g.tx) / g.z, py = (g.m.y - g.by - g.ty) / g.z;
+      let tx = m.x - g.bx - px * z, ty = m.y - g.by - py * z;
+      // não deixa o mapa sumir da tela: sobra sempre um pedaço à vista
+      const keep = 80;
+      tx = Math.min(innerWidth - keep - g.bx, Math.max(keep - g.bx - S * z, tx));
+      ty = Math.min(innerHeight - keep - g.by, Math.max(keep - g.by - S * z, ty));
+      map.style.setProperty("--z", z.toFixed(3)); map.style.setProperty("--tx", `${tx.toFixed(1)}px`); map.style.setProperty("--ty", `${ty.toFixed(1)}px`);
+    };
+    const toque = (e) => e.pointerType !== "mouse" && matchMedia("(max-width: 899px)").matches;
+    [map.parentElement, scrimEl].forEach((el) => {
+      el.addEventListener("pointerdown", (e) => {
+        if (!toque(e) || e.target.closest(".map-reset")) return;
+        pts.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY });
+        if (pts.size === 1) arrastou = false;
+        inicio();
+      });
+      el.addEventListener("pointermove", (e) => {
+        const p = pts.get(e.pointerId); if (!p) return;
+        p.x = e.clientX; p.y = e.clientY;
+        if (!arrastou && Math.hypot(p.x - p.x0, p.y - p.y0) < 8 && pts.size < 2) return; // ainda é um toque
+        if (!arrastou) { arrastou = true; map.classList.add("arrastando"); livre(true); try { el.setPointerCapture(e.pointerId); } catch {} }
+        aplica();
+      });
+      const fim = (e) => {
+        if (!pts.delete(e.pointerId)) return;
+        if (pts.size) { inicio(); return; } // sobrou um dedo: segue arrastando dali
+        map.classList.remove("arrastando");
+        if (arrastou) { placeLabels(); setTimeout(() => (arrastou = false), 60); } // o clique logo após soltar ainda é ignorado
+      };
+      el.addEventListener("pointerup", fim); el.addEventListener("pointercancel", fim);
+      // depois de arrastar, o dedo solto não conta como toque (não abre nem fecha nada)
+      el.addEventListener("click", (e) => { if (arrastou) { e.stopPropagation(); e.preventDefault(); arrastou = false; } }, true);
+    });
+  })();
   // reposiciona os nomes ao fim do zoom mesmo se o navegador não avisar o fim da animação
   let labelsT; const labelsLater = () => { clearTimeout(labelsT); labelsT = setTimeout(() => placeLabels(), 1200); };
   // navegador sem @property (Safari antigo): anima o transform direto, para o zoom não pular
