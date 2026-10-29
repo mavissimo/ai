@@ -15,7 +15,7 @@
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/selo-70-roxo.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="cronograma.css?v=2">
+  <link rel="stylesheet" href="cronograma.css?v=3">
 </head>
 <body>
   <header class="top">
@@ -55,13 +55,14 @@
   <main id="view"></main>
 
   <footer class="foot">
-    <p>Atualizado em <span data-bind="atualizado"></span>. Datas em dias úteis; sem atividades nos feriados de 02/11 e 20/11.</p>
+    <p>Atualizado em <span data-bind="atualizado"></span>. Datas em dias úteis; sem atividades nos feriados (<span data-bind="feriados"></span>). O andamento de cada filme vem direto do nosso controle de produção.</p>
     <p class="made-by">Produzido por <b>Têmpora</b> studio</p>
   </footer>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="cronograma-dados.js?v=1"></script>
-  <script src="cronograma.js?v=2"></script>
+  <script>window.VIDEO_SHEET_ID = "1dZp8HV-64v5ewc0LzdnE4A7Luu1ikMGapbtg848Mnh4"; // planilha do Controle dos Filmes</script>
+  <script src="cronograma-dados.js?v=2"></script>
+  <script src="cronograma.js?v=3"></script>
 </body>
 </html>

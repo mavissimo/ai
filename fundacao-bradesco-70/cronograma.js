@@ -27,6 +27,7 @@
     on: { label: "Online para conferência", short: "Online", c: "var(--c-on)", desc: "O filme finalizado, para você conferir" },
   };
   const ORDER = ["ed", "v2", "rev", "off", "fin", "on"];
+  window.__liveI = (f) => window.__fbLive?.[f.id];
 
   const nomeFilme = (f) => ({
     pilula: `${f.nome} · 3 pílulas`,
@@ -48,14 +49,57 @@
     const [start, end] = Array.isArray(v) ? v : [v, v];
     return { k, start, end, f };
   });
-  const status = (st) => (st.end < TODAY ? "done" : st.start <= TODAY ? "now" : "todo");
+  // cumprida pela data ou pelo andamento real que o Controle informa
+  const status = (st) => (st.end < TODAY || (window.__liveI?.(st.f) ?? -1) >= FEITO[st.k] ? "done" : st.start <= TODAY ? "now" : "todo");
 
   // ── Estado ──
   const state = { view: "agenda", filtro: "" };
   const filmes = () => C.filmes.filter((f) => !state.filtro || grupo(f) === state.filtro);
 
+  const TECNICO = (C.fechamento.find((x) => x.cliente) || {}).data;
+  const SITE = "./"; // site dos filmes, na mesma pasta
+  const byId = Object.fromEntries(C.filmes.map((f) => [f.id, f]));
+
+  // ── Andamento real, vindo do Controle dos Filmes (planilha pública: coluna A = id, F = status) ──
+  // Os mesmos status do Controle; o índice diz até onde o filme já andou.
+  const ANDA = [
+    ["edicao", "Em edição"], ["v2", "V2 com o cliente"], ["ajustes", "Ajustes do retorno"], ["offline", "Offline aprovado"],
+    ["finalizacao", "Em finalização"], ["online", "Online com o cliente"], ["aprovado", "Aprovado"], ["entregue", "Entregue"],
+  ];
+  const ANDA_I = Object.fromEntries(ANDA.map(([k, l], i) => [l.toLowerCase(), i]));
+  const ANTIGO = { "provisório": 0, "em edição": 0, "em revisão": 1, "aprovado": 6 }; // nomes antigos do Controle
+  const live = (window.__fbLive = {}); // id do filme no cronograma -> índice de andamento (o menos adiantado do grupo)
+  const grupoDoVideo = (vid) => vid.startsWith("pilula-") ? vid.replace(/^pilula-/, "").replace(/-\d+$/, "") : vid.replace(/^visita-/, "");
+  window.__fbCrono = (res) => {
+    (res?.table?.rows || []).forEach((r) => {
+      const vid = String(r.c?.[0]?.v || "").trim(), st = String(r.c?.[5]?.v || "").trim().toLowerCase();
+      if (!vid || vid === "placeholder" || !st) return;
+      const i = ANDA_I[st] ?? ANTIGO[st];
+      const g = grupoDoVideo(vid);
+      if (i == null || !byId[g]) return;
+      live[g] = live[g] == null ? i : Math.min(live[g], i);
+    });
+    render(); if (focusId) renderFocus(focusId);
+  };
+  if (window.VIDEO_SHEET_ID) {
+    const sc = document.createElement("script");
+    sc.src = `https://docs.google.com/spreadsheets/d/${window.VIDEO_SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:__fbCrono&headers=1&t=${Date.now()}`;
+    sc.async = true; document.head.append(sc);
+  }
+  // etapa do cronograma -> andamento mínimo que a dá por cumprida
+  const FEITO = { ed: 1, v2: 1, rev: 2, off: 3, fin: 5, on: 6 };
+  const siteLink = (f) => SITE + ({ pilula: `#/fotografo/${f.id}`, visita: `#/escola/${f.id}`, documentario: "#/filme/documentario", trailer: "#/filme/trailer" })[f.tipo];
+  const AGORA = ["Em edição", "V2 com você · aguardando seu retorno", "Retorno recebido · ajustes em andamento", "Offline aprovado", "Em cor e som", "Online para você conferir", "Aprovado", "Entregue"];
+  function liveBox(f, dark) {
+    const i = live[f.id];
+    if (i == null) return "";
+    const ver = i === 1 || i >= 5; // o cliente tem algo para assistir
+    return `<div class="live${dark ? " dark" : ""}"><span class="live-dot" style="--c:${["var(--c-ed)", "var(--c-v2)", "var(--c-rev)", "var(--c-off)", "var(--c-fin)", "var(--c-on)", "var(--c-fim)", "var(--c-fim)"][i]}"></span><span><small>Agora</small>${esc(AGORA[i])}</span>${ver ? `<a class="watch" href="${siteLink(f)}" target="_blank" rel="noopener">▶ Assistir no site</a>` : ""}</div>`;
+  }
+
   // ── Topo ──
   document.querySelectorAll('[data-bind="fim"]').forEach((n) => (n.textContent = `${wd(C.fim)}, ${dm(C.fim)}`));
+  document.querySelectorAll('[data-bind="feriados"]').forEach((n) => (n.textContent = Object.entries(C.feriados).map(([d, nome]) => `${dm(d)} ${nome}`).join(", ")));
   document.querySelectorAll('[data-bind="atualizado"]').forEach((n) => (n.textContent = dm(C.atualizado) + "/" + C.atualizado.slice(0, 4)));
   $(".confetti").innerHTML = "86,14,y 93,27,r 78,58,b 95,66,p 89,82,o 4,88,r 12,94,y"
     .split(" ").map((t) => { const [x, y, c] = t.split(","); return `<i style="left:${x}%;top:${y}%;--c:var(--${{ y: "yellow", r: "red", b: "blue", p: "purple", o: "orange" }[c]})"></i>`; }).join("");
@@ -67,7 +111,7 @@
     $("#stats").innerHTML = `
       <div><dt>Vídeos</dt><dd>41<small>33 pílulas · 6 visitas · doc · trailer</small></dd></div>
       <div><dt>Próxima V2</dt><dd>${nextV2 ? `${dm(nextV2.v2)}<small>${esc(nomeFilme(nextV2))}</small>` : "Todas entregues"}</dd></div>
-      <div><dt>Seu próximo retorno</dt><dd>${nextRev ? `${dm(nextRev.rev)}<small>${esc(nomeFilme(nextRev))}</small>` : `${dm("2026-12-01")}<small>Retorno técnico</small>`}</dd></div>
+      <div><dt>Seu próximo retorno</dt><dd>${nextRev ? `${dm(nextRev.rev)}<small>${esc(nomeFilme(nextRev))}</small>` : `${dm(TECNICO)}<small>Retorno técnico</small>`}</dd></div>
       <div><dt>Entrega final</dt><dd>${dm(C.fim)}<small>${recebidos} de ${C.filmes.length} filmes já na V2</small></dd></div>`;
   }
   stats();
@@ -76,7 +120,7 @@
   $("#steps").innerHTML = ["v2", "rev", "off", "fin", "on"].map((k) => {
     const s = STEP[k];
     return `<li class="${s.you ? "you" : ""}${s.bar ? " range" : ""}" style="--c:${s.c}"><i></i><strong>${esc(s.label)}${s.you ? '<span class="tag-you">Sua vez</span>' : ""}</strong><span>${esc(s.desc)}</span></li>`;
-  }).join("") + `<li style="--c:var(--c-fim)"><i></i><strong>Entrega final</strong><span>Os 41 vídeos em ${dm(C.fim)}, depois do retorno técnico de ${dm("2026-12-01")}</span></li>`;
+  }).join("") + `<li style="--c:var(--c-fim)"><i></i><strong>Entrega final</strong><span>Os 41 vídeos em ${dm(C.fim)}, depois do retorno técnico de ${dm(TECNICO)}</span></li>`;
 
   // ── Eventos pontuais (agenda e calendário) ──
   function eventos() {
@@ -107,7 +151,8 @@
     weeks.forEach((days, mon) => {
       const fri = addDays(D(mon), 4);
       const a = D(mon), same = a.getMonth() === fri.getMonth();
-      html += `<section class="week"><h3>Semana de ${a.getDate()}${same ? "" : ` de ${MES[a.getMonth()].slice(0, 3)}.`} a ${fri.getDate()} de ${MES[fri.getMonth()]}</h3>`;
+      const ano = fri.getFullYear() !== D(C.inicio).getFullYear() && a.getMonth() === 0 && a.getDate() <= 7 ? ` de ${fri.getFullYear()}` : "";
+      html += `<section class="week"><h3>Semana de ${a.getDate()}${same ? "" : ` de ${MES[a.getMonth()].slice(0, 3)}.`} a ${fri.getDate()} de ${MES[fri.getMonth()]}${ano}</h3>`;
       days.forEach((d) => {
         const list = byDay.get(d);
         // agrupa a mesma etapa no mesmo dia
@@ -137,15 +182,18 @@
     for (let d = new Date(start); d <= end; d = addDays(d, 1)) days.push(new Date(d));
     const N = days.length, col = (s) => Math.round((D(s) - start) / 864e5); // índice da coluna
     const pos = (s) => `calc(${col(s)} * var(--col) + var(--col) / 2)`;
+    const avail0 = Math.min(document.querySelector("main").clientWidth - 2 * parseFloat(getComputedStyle(document.querySelector("main")).paddingLeft || 0), 1100);
+    const compact = (avail0 - 180) / N < 20 && innerWidth > 720;
     let head = `<div class="g-name g-head" style="grid-row:1 / 3">Filme</div>`;
     let m = -1;
     days.forEach((d, i) => {
       if (d.getMonth() !== m) {
         m = d.getMonth();
         const span = days.filter((x, j) => j >= i && x.getMonth() === m).length;
-        head += `<div class="g-month g-head" style="grid-column:${i + 2} / span ${span}">${MES[m]}</div>`;
+        head += `<div class="g-month g-head" style="grid-column:${i + 2} / span ${span}">${compact && span < 10 ? MES[m].slice(0, 3) + "." : MES[m]}</div>`;
       }
-      head += `<div class="g-day g-head${isOff(d) || C.feriados[iso(d)] ? " off" : ""}" style="grid-column:${i + 2}"><b>${WD[d.getDay()][0]}</b>${d.getDate()}</div>`;
+      const show = !compact || (d.getDay() === 1 && d.getDate() !== 1) || i === 0; // colunas estreitas: só as segundas
+      head += `<div class="g-day g-head${isOff(d) || C.feriados[iso(d)] ? " off" : ""}" style="grid-column:${i + 2}">${show ? `${compact ? "" : `<b>${WD[d.getDay()][0]}</b>`}${d.getDate()}` : ""}</div>`;
     });
     const shades = days.map((d, i) => {
       if (C.feriados[iso(d)]) return `<div class="g-hol" style="left:calc(${i} * var(--col));width:var(--col)" title="Feriado: ${esc(C.feriados[iso(d)])}"></div>`;
@@ -181,9 +229,9 @@
     // no computador a linha do tempo cabe inteira na largura; no celular rola para o lado
     const avail = Math.min(document.querySelector("main").clientWidth - 2 * parseFloat(getComputedStyle(document.querySelector("main")).paddingLeft || 0), 1100);
     const nameW = innerWidth <= 720 ? 132 : 180;
-    const colW = Math.max(innerWidth <= 720 ? 26 : 16, Math.floor((avail - nameW - 2) / N));
-    return `${legend}<div class="gantt-wrap"><div class="gantt" style="--days:${N};--col:${colW}px;--name:${nameW}px">${head}${body}</div></div>
-      <p class="hint">Passe o mouse (ou toque) nas bolinhas para ver a data. Fins de semana listrados; feriados em rosa. Clique no nome para ver o filme.</p>`;
+    const colW = Math.max(innerWidth <= 720 ? 22 : 9, Math.floor((avail - nameW - 2) / N));
+    return `${legend}<div class="gantt-wrap"><div class="gantt${compact ? " compact" : ""}" style="--days:${N};--col:${colW}px;--name:${nameW}px">${head}${body}</div></div>
+      <p class="hint">Passe o mouse (ou toque) nas bolinhas para ver a data. Fins de semana listrados; feriados em rosa. Clique no nome para ver o filme.${compact ? " Os números do topo marcam as segundas-feiras." : ""}</p>`;
   }
 
   // ── Calendário ──
@@ -210,7 +258,8 @@
       cells += list.length ? `<button class="${cls}" data-day="${s}" aria-label="${d} de ${MES[dt.getMonth()]}: ${list.length} itens">${inner}</button>` : `<div class="${cls}">${inner}</div>`;
     }
     const cap = (t) => t[0].toUpperCase() + t.slice(1);
-    const html = `<section class="month"><h3>${cap(MES[first.getMonth()])} a ${MES[last.getMonth()]} de ${last.getFullYear()}</h3><div class="cal">${cells}</div></section>`;
+    const anos = first.getFullYear() === last.getFullYear() ? `${cap(MES[first.getMonth()])} a ${MES[last.getMonth()]} de ${last.getFullYear()}` : `${cap(MES[first.getMonth()])} de ${first.getFullYear()} a ${MES[last.getMonth()]} de ${last.getFullYear()}`;
+    const html = `<section class="month"><h3>${anos}</h3><div class="cal">${cells}</div></section>`;
     const sel = selDay && byDay.get(selDay);
     const box = sel ? `<div class="daybox"><h4>${WDL[D(selDay).getDay()]}, ${dm(selDay)}</h4><ul class="items">${sel.map((e) => e.k === "fecho"
       ? `<li class="item${e.x.cliente ? " you" : ""}" style="--c:${evColor(e)}"><i></i><div><strong>${esc(e.x.titulo)}</strong><p>${esc(e.x.texto)}</p></div></li>`
@@ -234,20 +283,28 @@
         <button class="copy" data-copy="${f.id}" type="button">Copiar link</button>
         <h3>${esc(f.tipo === "pilula" ? f.nome : f.tipo === "visita" ? `${f.nome}` : nomeFilme(f).split(" · ")[0])}</h3>
         <p class="sub">${esc(subFilme(f))}${f.uf ? ` · ${f.uf}` : ""}</p>
+        ${juntoHTML(f)}${liveBox(f)}
         ${trackHTML(f)}
       </article>`).join("")}</div>`;
   }
 
+  // filmes que chegam no mesmo pacote (pílulas do fotógrafo + visita da escola dele)
+  const parceiros = (f) => C.filmes.filter((x) => x !== f && (x.junto === f.id || f.junto === x.id));
+  const juntoHTML = (f) => { const p = parceiros(f); return p.length ? `<p class="junto">Chega junto com ${p.map((x) => `<a href="#filme/${x.id}">${esc(nomeFilme(x))}</a>`).join(" e ")}</p>` : ""; };
+
   // ── Destaque de um filme (link enviado com a V2) ──
+  let focusId = null;
   function renderFocus(id) {
+    focusId = id;
     const box = $("#focus");
     const f = C.filmes.find((x) => x.id === id);
     if (!f) { box.hidden = true; return; }
-    const chegou = f.v2 <= TODAY;
+    const chegou = f.v2 <= TODAY || (live[f.id] ?? 0) >= 1; // pela data ou pelo Controle
     box.hidden = false;
     box.innerHTML = `<div class="focus-box">
       <p class="k">${chegou ? "Sua V2 chegou" : `V2 em ${dm(f.v2)}`}</p>
       <h2>${esc(nomeFilme(f))}</h2>
+      ${juntoHTML(f)}${liveBox(f, true)}
       <p class="s">${chegou ? `Precisamos do seu retorno até <b>${wd(f.rev)}, ${dm(f.rev)}</b>, numa devolutiva única. Depois disso a montagem trava e o filme segue para cor e som.` : `A V2 chega ${WDL[D(f.v2).getDay()]}, ${dm(f.v2)}. O seu retorno fica para ${dm(f.rev)}.`}</p>
       ${trackHTML(f)}
       <a class="all" href="#agenda">Ver o cronograma de todos os filmes →</a>
@@ -271,7 +328,7 @@
       $("#focus").scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
-    $("#focus").hidden = true;
+    $("#focus").hidden = true; focusId = null;
     state.view = VIEWS[a] ? a : "agenda";
     render();
   }

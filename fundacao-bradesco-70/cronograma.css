@@ -224,3 +224,30 @@ button.cell:hover { background: #F1ECFA; }
   .tabs button { border-radius: 14px; }
   .confetti i:nth-child(n+4) { display: none; } /* no celular, só as bolinhas do canto de cima */
 }
+
+/* andamento real (vem do Controle dos Filmes) e filmes que chegam juntos */
+.junto { margin: -6px 0 10px; font-size: 13px; color: var(--ink-2); }
+.junto a { color: var(--purple); font-weight: 700; text-decoration: none; }
+.junto a:hover { text-decoration: underline; }
+.live { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 12px; padding: 10px 12px; border-radius: 14px; background: var(--paper-2); }
+.live > span:nth-child(2) { flex: 1; min-width: 140px; font-size: 14px; font-weight: 800; color: var(--ink); line-height: 1.2; }
+.live small { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.live-dot { width: var(--dot); height: var(--dot); border-radius: 50%; background: var(--c); box-shadow: 0 0 0 4px rgba(97, 60, 173, .12); animation: live-pulse 2s ease-in-out infinite; }
+@keyframes live-pulse { 50% { box-shadow: 0 0 0 7px rgba(97, 60, 173, 0); } }
+.watch { padding: 8px 14px; border-radius: 999px; background: var(--purple); color: #fff; font-size: 13px; font-weight: 800; text-decoration: none; white-space: nowrap; }
+.watch:hover { background: var(--purple-ink); }
+.live.dark { background: rgba(255, 255, 255, .12); max-width: 560px; }
+.live.dark > span:nth-child(2) { color: #fff; }
+.live.dark small { color: rgba(255, 255, 255, .7); }
+.live.dark .watch { background: var(--yellow); color: var(--purple-ink); }
+.focus-box .junto { color: rgba(255, 255, 255, .85); margin: 8px 0 12px; }
+.focus-box .junto a { color: var(--yellow); }
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+
+/* linha do tempo longa (três meses): colunas estreitas, números das segundas à mostra, bolinhas menores (todas iguais) */
+.gantt.compact { --dot: 10px; }
+.gantt.compact .g-dot.big { --dot: 14px; top: 13px; }
+.gantt.compact .g-dot { top: 15px; }
+.gantt.compact .g-day { overflow: visible; white-space: nowrap; text-align: left; padding-left: 1px; font-size: 11px; }
+.gantt.compact .g-month { overflow: visible; }
+.gantt.compact .g-day:not(:empty) { z-index: 4; }
