@@ -3,7 +3,7 @@
 // A planilha precisa estar como "Qualquer pessoa com o link: leitor".
 // Colunas: A = id do filme (ou "placeholder"), E = link. Se a planilha falhar, valem os links de videos.js.
 window.VIDEO_SHEET = "1dZp8HV-64v5ewc0LzdnE4A7Luu1ikMGapbtg848Mnh4"; // ID da planilha: o trecho entre /d/ e /edit no endereço dela
-// true: só tocam os filmes aprovados (check no cronograma, ou status Offline aprovado / Aprovado / Entregue no Controle).
+// true: só tocam os filmes aprovados (check no cronograma, ou status Aprovado / Entregue no Controle).
 // Os outros mostram o status. No lançamento, mude para false e tudo toca.
 window.SO_APROVADOS = true;
 

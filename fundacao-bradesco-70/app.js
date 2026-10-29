@@ -381,7 +381,7 @@
   const liberado = (v) => {
     if (!window.SO_APROVADOS || window.VIDEO_STATUS === false) return true; // planilha fora do ar: não trava o site
     const st = (window.VIDEO_STATUS || {})[v.id] || "";
-    return /^(offline aprovado|aprovado|entregue)$/.test(st) || !!window.FB_REGISTRO?.aprovado?.(blocoDo(v.id));
+    return /^(aprovado|entregue)$/.test(st) || !!window.FB_REGISTRO?.aprovado?.(blocoDo(v.id));
   };
   const statusDe = (v) => (!window.VIDEO_STATUS ? "Carregando…" : STATUS_SITE[window.VIDEO_STATUS[v.id] || ""] || "Aguardando a V2");
   const fonte = (v) => {
