@@ -23,11 +23,11 @@ function boot() {
   // ── Etapas (cores das bolinhas do livro) ──
   const STEP = {
     ed: { label: "Edição", c: "var(--c-ed)", bar: true, desc: "Montagem, V1 e ajustes internos" },
-    v2: { label: "V2 chega para você", short: "V2", c: "var(--c-v2)", desc: "O filme montado, para a sua revisão" },
-    rev: { label: "Seu retorno da V2", short: "Seu retorno", c: "var(--c-rev)", you: true, desc: "Uma devolutiva consolidada, em 1 dia útil" },
+    v2: { label: "V2 chega para a Equipe Bradesco", short: "V2", c: "var(--c-v2)", desc: "O filme montado, para a revisão da Equipe Bradesco" },
+    rev: { label: "Retorno da V2", short: "Retorno", c: "var(--c-rev)", you: true, desc: "Uma devolutiva consolidada, em 1 dia útil" },
     off: { label: "Offline aprovado", short: "Offline", c: "var(--c-off)", desc: "Montagem travada: só ajustes pontuais e o aceite" },
     fin: { label: "Finalização", short: "Cor e som", c: "var(--c-fin)", bar: true, desc: "Cor, som, grafismos e legendas" },
-    on: { label: "Online para conferência", short: "Online", c: "var(--c-on)", desc: "O filme finalizado, para você conferir" },
+    on: { label: "Online para conferência", short: "Online", c: "var(--c-on)", desc: "O filme finalizado, para a Equipe Bradesco conferir" },
   };
   const ORDER = ["ed", "v2", "rev", "off", "fin", "on"];
   window.__liveI = (f) => window.__fbLive?.[f.id];
@@ -99,7 +99,7 @@ function boot() {
   // etapa do cronograma -> andamento mínimo que a dá por cumprida
   const FEITO = { ed: 1, v2: 1, rev: 2, off: 3, fin: 5, on: 6 };
   const siteLink = (f) => SITE + ({ bloco: `#/escola/${f.id}`, pilula: `#/fotografo/${f.id}`, visita: `#/escola/${f.id}`, documentario: "#/filme/documentario", trailer: "#/filme/trailer" })[f.tipo];
-  const AGORA = ["Em edição", "V2 com você · aguardando seu retorno", "Retorno recebido · ajustes em andamento", "Offline aprovado", "Em cor e som", "Online para você conferir", "Aprovado", "Entregue"];
+  const AGORA = ["Em edição", "V2 com a Equipe Bradesco · aguardando o retorno", "Retorno recebido · ajustes em andamento", "Offline aprovado", "Em cor e som", "Online para a Equipe Bradesco conferir", "Aprovado", "Entregue"];
   // ── Assistir à versão atual: abre no player do projeto; link do Frame.io abre numa nova janela ──
   const VERSAO = [null, "à V2", "à V2", "ao offline aprovado", "ao offline aprovado", "ao online", "à versão aprovada", "à versão final"];
   const isFrameio = (u) => /(^|\.)(frame\.io|f\.io)\//i.test(u.replace(/^https?:\/\//, ""));
@@ -141,7 +141,7 @@ function boot() {
     $("#stats").innerHTML = `
       <div><dt>Vídeos</dt><dd>41<small>33 pílulas · 6 visitas · doc · trailer</small></dd></div>
       <div><dt>Próxima V2</dt><dd>${nextV2 ? `${dm(nextV2.v2)}<small>${esc(nomeFilme(nextV2))}</small>` : "Todas entregues"}</dd></div>
-      <div><dt>Seu próximo retorno</dt><dd>${nextRev ? `${dm(nextRev.rev)}<small>${esc(nomeFilme(nextRev))}</small>` : `${dm(TECNICO)}<small>Retorno técnico</small>`}</dd></div>
+      <div><dt>Próximo retorno da Equipe Bradesco</dt><dd>${nextRev ? `${dm(nextRev.rev)}<small>${esc(nomeFilme(nextRev))}</small>` : `${dm(TECNICO)}<small>Retorno técnico</small>`}</dd></div>
       <div><dt>Entrega final</dt><dd>${dm(C.fim)}<small>${recebidos} de ${C.filmes.length} filmes já na V2</small></dd></div>`;
   }
   stats();
@@ -149,7 +149,7 @@ function boot() {
   // como cada filme anda
   $("#steps").innerHTML = ["v2", "rev", "off", "fin", "on"].map((k) => {
     const s = STEP[k];
-    return `<li class="${s.you ? "you" : ""}${s.bar ? " range" : ""}" style="--c:${s.c}"><i></i><strong>${esc(s.label)}${s.you ? '<span class="tag-you">Sua vez</span>' : ""}</strong><span>${esc(s.desc)}</span></li>`;
+    return `<li class="${s.you ? "you" : ""}${s.bar ? " range" : ""}" style="--c:${s.c}"><i></i><strong>${esc(s.label)}${s.you ? '<span class="tag-you">Equipe Bradesco</span>' : ""}</strong><span>${esc(s.desc)}</span></li>`;
   }).join("") + `<li style="--c:var(--c-fim)"><i></i><strong>Entrega final</strong><span>Os 41 vídeos em ${dm(C.fim)}, depois do retorno técnico de ${dm(TECNICO)}</span></li>`;
 
   // ── Eventos pontuais (agenda e calendário) ──
@@ -191,11 +191,11 @@ function boot() {
         const items = [...groups.values()].map((g) => {
           const e = g[0];
           if (e.k === "fecho") {
-            return `<li class="item${e.x.cliente ? " you" : ""}" style="--c:${evColor(e)}"><i></i><div><strong>${esc(e.x.titulo)}${e.x.cliente ? '<span class="tag-you">Sua vez</span>' : ""}</strong><p>${esc(e.x.texto)}${e.x.fim ? ` Até ${dm(e.x.fim)}.` : ""}</p></div></li>`;
+            return `<li class="item${e.x.cliente ? " you" : ""}" style="--c:${evColor(e)}"><i></i><div><strong>${esc(e.x.titulo)}${e.x.cliente ? '<span class="tag-you">Equipe Bradesco</span>' : ""}</strong><p>${esc(e.x.texto)}${e.x.fim ? ` Até ${dm(e.x.fim)}.` : ""}</p></div></li>`;
           }
           const s = STEP[e.k];
           // o filme em destaque; a etapa vira um rótulo pequeno em cima
-          return `<li class="item${s.you ? " you" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? '<span class="tag-you">Sua vez</span>' : ""}</span><div class="films">${g.map((x) => filmChip(x.f)).join("")}</div></div></li>`;
+          return `<li class="item${s.you ? " you" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? '<span class="tag-you">Equipe Bradesco</span>' : ""}</span><div class="films">${g.map((x) => filmChip(x.f)).join("")}</div></div></li>`;
         }).join("");
         const cls = d < TODAY ? " past" : d === TODAY ? " today" : "";
         html += `<div class="day${cls}"><div class="day-date"><strong>${dm(d)}</strong><span>${WDL[D(d).getDay()]}</span></div><ul class="items">${items}</ul></div>`;
@@ -304,7 +304,7 @@ function boot() {
     return `<ol class="track">${steps.map((s) => {
       const st = STEP[s.k], stt = status(s);
       const when = s.start === s.end ? `${wd(s.start)} ${dm(s.start)}` : `${dm(s.start)} a ${dm(s.end)}`;
-      return `<li class="${stt === "done" ? "done" : ""}${s === next ? " next" : ""}${st.you ? " you" : ""}" style="--c:${st.c}"><i></i><span>${esc(st.label)}${st.you ? '<span class="tag-you">Sua vez</span>' : ""}</span><time>${when}</time></li>`;
+      return `<li class="${stt === "done" ? "done" : ""}${s === next ? " next" : ""}${st.you ? " you" : ""}" style="--c:${st.c}"><i></i><span>${esc(st.label)}${st.you ? '<span class="tag-you">Equipe Bradesco</span>' : ""}</span><time>${when}</time></li>`;
     }).join("")}<li style="--c:var(--c-fim)"><i></i><span>Entrega final</span><time>${wd(C.fim)} ${dm(C.fim)}</time></li></ol>`;
   }
   function viewFilmes() {
@@ -332,10 +332,10 @@ function boot() {
     const chegou = f.v2 <= TODAY || (live[f.id] ?? 0) >= 1; // pela data ou pelo Controle
     box.hidden = false;
     box.innerHTML = `<div class="focus-box">
-      <p class="k">${chegou ? "Sua V2 chegou" : `V2 em ${dm(f.v2)}`}</p>
+      <p class="k">${chegou ? "A V2 chegou" : `V2 em ${dm(f.v2)}`}</p>
       <h2>${esc(nomeFilme(f))}</h2>
       ${juntoHTML(f)}${liveBox(f, true)}
-      <p class="s">${chegou ? `Precisamos do seu retorno até <b>${wd(f.rev)}, ${dm(f.rev)}</b>, numa devolutiva única. Depois disso a montagem trava e o filme segue para cor e som.` : `A V2 chega ${WDL[D(f.v2).getDay()]}, ${dm(f.v2)}. O seu retorno fica para ${dm(f.rev)}.`}</p>
+      <p class="s">${chegou ? `Precisamos do retorno da Equipe Bradesco até <b>${wd(f.rev)}, ${dm(f.rev)}</b>, numa devolutiva única. Depois disso a montagem trava e o filme segue para cor e som.` : `A V2 chega ${WDL[D(f.v2).getDay()]}, ${dm(f.v2)}. O retorno da Equipe Bradesco fica para ${dm(f.rev)}.`}</p>
       ${trackHTML(f)}
       <a class="all" href="#agenda">Ver o cronograma de todos os filmes →</a>
     </div>`;
