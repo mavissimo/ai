@@ -1,6 +1,9 @@
 // Cronograma da pós para o cliente: Agenda, Linha do tempo, Calendário e Por filme.
-// Dados em cronograma-dados.js. Link direto de um filme: cronograma.html#filme/<id>
-(() => {
+// Datas: a aba "Cronograma" da planilha do Controle, que o Controle preenche a partir da agenda do Notion.
+// Sem ela (ou se demorar), vale cronograma-dados.js. Link direto de um filme: cronograma.html#filme/<id>
+let booted = false;
+function boot() {
+  if (booted) return; booted = true;
   const C = window.CRONO;
   const $ = (s, el = document) => el.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -394,4 +397,24 @@
   addEventListener("hashchange", route);
   let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => state.view === "linha" && render(), 150); });
   route();
-})();
+}
+
+// lê as datas atuais da planilha antes de desenhar; em 2,5 s sem resposta, desenha com o que tem
+window.__fbCronoDatas = (res) => {
+  try {
+    const n = JSON.parse(res?.table?.rows?.[0]?.c?.[0]?.v || "null");
+    if (!booted && n && Array.isArray(n.filmes) && n.filmes.length && n.fim) {
+      const C = window.CRONO, novo = Object.fromEntries(n.filmes.map((f) => [f.id, f]));
+      C.filmes = C.filmes.map((f) => (novo[f.id] ? { ...f, ...novo[f.id] } : f));
+      if (Array.isArray(n.fechamento) && n.fechamento.length) C.fechamento = n.fechamento;
+      C.fim = n.fim; if (n.atualizado) C.atualizado = n.atualizado;
+    }
+  } catch {}
+  boot();
+};
+if (window.VIDEO_SHEET_ID) {
+  const sc = document.createElement("script");
+  sc.src = `https://docs.google.com/spreadsheets/d/${window.VIDEO_SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:__fbCronoDatas&sheet=Cronograma&headers=0&range=A1&t=${Date.now()}`;
+  sc.onerror = boot; document.head.append(sc);
+  setTimeout(boot, 2500);
+} else boot();
