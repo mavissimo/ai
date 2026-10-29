@@ -399,7 +399,7 @@
         ${ready
           ? `<span class="pe-icon is-btn" aria-hidden="true">${ICON_PLAY}</span>`
           : status // ainda não aprovado: o status no centro, em destaque, no lugar do play
-            ? `<span class="pe-status"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>${esc(status)}</span>`
+            ? `<span class="pe-status">${esc(status)}</span>`
             : `<span class="pe-icon" aria-hidden="true">${ICON_PLAY}</span>`}
         <span class="pe-title">${esc(v.titulo)}</span>
         <span class="pe-note">${!ready ? (status ? "Entra no site assim que for aprovado" : "Filme em finalização") : final ? "Toque para assistir" : "Toque para assistir · versão provisória"}</span>
