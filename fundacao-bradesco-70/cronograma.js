@@ -88,6 +88,9 @@
   const evColor = (e) => (e.k === "fecho" ? (e.x.cliente ? "var(--c-rev)" : e.x.marco ? "var(--c-fim)" : "var(--ink-3)") : STEP[e.k].c);
   const evYou = (e) => (e.k === "fecho" ? !!e.x.cliente : !!STEP[e.k].you);
   const link = (f) => `<a href="#filme/${f.id}">${esc(nomeFilme(f))}</a>`;
+  const filmTitle = (f) => (f.tipo === "pilula" || f.tipo === "visita" ? f.nome : nomeFilme(f).split(" · ")[0]);
+  const filmSub = (f) => ({ pilula: "3 pílulas", visita: `Visita${f.uf ? ` · ${f.uf}` : ""}`, documentario: "15 min", trailer: "2 min" })[f.tipo];
+  const filmChip = (f) => `<a class="film" href="#filme/${f.id}"><b>${esc(filmTitle(f))}</b><small>${esc(filmSub(f))}</small></a>`;
 
   // ── Agenda: semana a semana ──
   function viewAgenda() {
@@ -116,9 +119,8 @@
             return `<li class="item${e.x.cliente ? " you" : ""}" style="--c:${evColor(e)}"><i></i><div><strong>${esc(e.x.titulo)}${e.x.cliente ? '<span class="tag-you">Sua vez</span>' : ""}</strong><p>${esc(e.x.texto)}${e.x.fim ? ` Até ${dm(e.x.fim)}.` : ""}</p></div></li>`;
           }
           const s = STEP[e.k];
-          const nomes = g.map((x) => link(x.f));
-          const lista = nomes.length > 1 ? nomes.slice(0, -1).join(", ") + " e " + nomes.at(-1) : nomes[0];
-          return `<li class="item${s.you ? " you" : ""}" style="--c:${s.c}"><i></i><div><strong>${esc(s.label)}${s.you ? '<span class="tag-you">Sua vez</span>' : ""}</strong><p>${lista}</p></div></li>`;
+          // o filme em destaque; a etapa vira um rótulo pequeno em cima
+          return `<li class="item${s.you ? " you" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? '<span class="tag-you">Sua vez</span>' : ""}</span><div class="films">${g.map((x) => filmChip(x.f)).join("")}</div></div></li>`;
         }).join("");
         const cls = d < TODAY ? " past" : d === TODAY ? " today" : "";
         html += `<div class="day${cls}"><div class="day-date"><strong>${dm(d)}</strong><span>${WDL[D(d).getDay()]}</span></div><ul class="items">${items}</ul></div>`;
@@ -193,8 +195,9 @@
     const label = (e) => (e.k === "fecho" ? e.x.titulo : `${STEP[e.k].short} · ${e.f.tipo === "pilula" || e.f.tipo === "visita" ? e.f.nome : nomeFilme(e.f).split(" · ")[0]}`);
     // só as semanas do projeto, numa grade contínua (seg a dom; fim de semana mais estreito)
     const first = D(C.inicio), last = D(C.fim);
-    const mon = addDays(first, -((first.getDay() + 6) % 7)), sun = addDays(last, 6 - ((last.getDay() + 6) % 7));
-    let cells = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"].map((w) => `<div class="wd">${w}</div>`).join("");
+    // semana começando no domingo
+    const mon = addDays(first, -first.getDay()), sun = addDays(last, 6 - last.getDay());
+    let cells = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"].map((w) => `<div class="wd">${w}</div>`).join("");
     for (let dt = new Date(mon); dt <= sun; dt = addDays(dt, 1)) {
       const s = iso(dt), d = dt.getDate();
       const list = byDay.get(s) || [];
