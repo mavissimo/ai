@@ -57,4 +57,10 @@ window.FB_REGISTRO = Object.assign({
     document.head.append(s);
   }
   envia();
+  // teste de ponta a ponta: cronograma.html#teste-registro manda um registro "teste" (ignorado por tudo)
+  if (location.hash === "#teste-registro") {
+    const e = { f: "teste", v: "v2", a: "aberto", t: new Date().toISOString() };
+    fila.push(e); guarda(); envia();
+    addEventListener("load", () => { const n = document.createElement("p"); n.textContent = "Teste do registro enviado. Pode fechar esta página."; n.style.cssText = "position:fixed;left:16px;right:16px;bottom:16px;z-index:99;margin:0;padding:12px 16px;border-radius:12px;background:#2F7A51;color:#fff;font:700 14px system-ui;text-align:center"; document.body.append(n); });
+  }
 })();
