@@ -156,7 +156,57 @@ function boot() {
       n.textContent = txtAberto(byId[id], v); n.classList.toggle("ok", !!REG.get(id, v).aberto);
     });
   }
-  document.addEventListener("fb:registro", pintaRegistro);
+  // ── Avisos em todas as visualizações: o estado de cada etapa e a bandeja "pra resolver" embaixo ──
+  // ok = feito · todo = pra fazer agora · late = passou do prazo · new = versão nova ainda não aberta
+  function estadoEv(e) {
+    const f = e.f; if (!f) return "";
+    if (e.k === "rev") { const r = REG.get(f.id, "v2"); return r.aprovado ? "ok" : enviado(f, "v2") ? (f.rev < TODAY ? "late" : "todo") : ""; }
+    if (e.k === "v2" || e.k === "on") return REG.get(f.id, e.k).aberto ? "ok" : disponivel(f, e.k) ? "new" : "";
+    return "";
+  }
+  // enviada de fato: pelo Controle (a data sozinha não conta; se passou e não foi, o atraso é nosso)
+  const enviado = (f, v) => (live[f.id] ?? -1) >= (v === "v2" ? 1 : 5);
+  const ROT_EST = { ok: "Feito", todo: "Pra fazer", late: "Atrasado", new: "Novo" };
+  function pendencias() {
+    const assistir = [], aprovar = [], chegando = [];
+    C.filmes.forEach((f) => {
+      ["v2", "on"].forEach((v) => {
+        const r = REG.get(f.id, v);
+        if (disponivel(f, v) && !r.aberto) assistir.push({ f, v });
+        if (enviado(f, v) && !r.aprovado && (v === "on" || versaoAtual(f) === "v2")) {
+          const prazo = v === "v2" ? f.rev : TECNICO;
+          aprovar.push({ f, v, prazo, late: prazo < TODAY });
+        }
+      });
+      const prox = !enviado(f, "v2") ? ["v2", f.v2] : !enviado(f, "on") ? ["on", f.on] : null; // o próximo recebimento
+      if (prox && (D(prox[1]) - D(TODAY)) / 864e5 <= 7) chegando.push({ f, v: prox[0], quando: prox[1], tarde: prox[1] < TODAY });
+    });
+    aprovar.sort((a, b) => a.prazo.localeCompare(b.prazo));
+    chegando.sort((a, b) => a.quando.localeCompare(b.quando));
+    return { aprovar, assistir, chegando };
+  }
+  const tray = document.createElement("div"); tray.className = "tray"; document.body.append(tray);
+  let trayAba = null;
+  const TRAY = { aprovar: "Para aprovar", assistir: "Para assistir", chegando: "Chegando nos próximos 7 dias" };
+  function renderTray() {
+    const P = pendencias();
+    if (trayAba && !P[trayAba].length) trayAba = null;
+    const rows = !trayAba ? "" : P[trayAba].map((x) =>
+      trayAba === "aprovar" ? `<div class="tr-row${x.late ? " late" : ""}">${checkHTML(x.f, x.v)}<span class="tr-prazo">${x.v === "v2" ? "V2" : "Online"} · ${x.late ? "atrasado, era até" : "até"} ${wd(x.prazo)}, ${dm(x.prazo)}</span></div>`
+      : trayAba === "assistir" ? `<div class="tr-row">${recebHTML(x.f, x.v)}</div>`
+      : `<div class="tr-row"><div class="rc">${filmChip(x.f)}<span class="rc-soon">${x.v === "v2" ? "V2" : "Online"} ${x.tarde ? `prevista para ${dm(x.quando)} · chega em breve` : `chega ${wd(x.quando)}, ${dm(x.quando)}`}</span></div></div>`).join("");
+    const abas = [["aprovar", "Para aprovar", P.aprovar.some((x) => x.late)], ["assistir", "Para assistir"], ["chegando", "Chegando"]];
+    tray.innerHTML = (trayAba ? `<div class="tray-sheet" role="region" aria-label="${TRAY[trayAba]}"><div class="tray-h"><b>${TRAY[trayAba]}</b><button type="button" class="tray-x" aria-label="Fechar">×</button></div><div class="tray-list">${rows}</div></div>` : "")
+      + `<div class="tray-bar">${abas.map(([k, l, late]) => `<button type="button" class="tray-tab${trayAba === k ? " on" : ""}${late ? " late" : ""}" data-aba="${k}" aria-expanded="${trayAba === k}"${P[k].length ? "" : " disabled"}><span class="tray-n">${P[k].length}</span>${l}</button>`).join("")}</div>`;
+  }
+  tray.addEventListener("click", (e) => {
+    const t = e.target.closest("[data-aba]");
+    if (t) { trayAba = trayAba === t.dataset.aba ? null : t.dataset.aba; renderTray(); return; }
+    if (e.target.closest(".tray-x") || e.target.closest('a[href^="#filme/"]')) { trayAba = null; renderTray(); }
+  });
+  addEventListener("keydown", (e) => { if (e.key === "Escape" && trayAba) { trayAba = null; renderTray(); } });
+  // registro novo: atualiza a bandeja e as marcas (sem redesenhar se houver uma ficha aberta)
+  document.addEventListener("fb:registro", () => { pintaRegistro(); renderTray(); if (!$("#view .peek") && !focusId) render(); });
   document.addEventListener("click", (e) => { const a = e.target.closest("[data-abre]"); if (a) { const [id, v] = a.dataset.abre.split("|"); REG.registra(id, v, "aberto"); } }, true);
   document.addEventListener("change", (e) => {
     const c = e.target.closest("[data-aprova]"); if (!c) return;
@@ -253,7 +303,7 @@ function boot() {
           const corpo = receb ? `<div class="rcs">${g.map((x) => recebHTML(x.f, e.k)).join("")}</div>`
             : e.k === "rev" ? `<div class="rcs">${g.map((x) => checkHTML(x.f, "v2")).join("")}</div>`
             : `<div class="films">${g.map((x) => filmChip(x.f)).join("")}</div>`;
-          return `<li class="item${s.you ? " you" : ""}${receb ? " receb" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? '<span class="tag-you">Equipe Bradesco</span>' : ""}${receb ? '<span class="tag-rc">Recebimento</span>' : ""}</span>${corpo}</div></li>`;
+          return `<li class="item${s.you ? " you" : ""}${receb ? " receb" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? '<span class="tag-you">Equipe Bradesco</span>' : ""}${receb ? '<span class="tag-rc">Recebimento</span>' : ""}${g.some((x) => estadoEv(x) === "late") ? '<span class="st-tag st-late">Atrasado</span>' : ""}</span>${corpo}</div></li>`;
         }).join("");
         const cls = d < TODAY ? " past" : d === TODAY ? " today" : "";
         html += `<div class="day${cls}"><div class="day-date"><strong>${dm(d)}</strong><span>${WDL[D(d).getDay()]}</span></div><ul class="items">${items}</ul></div>`;
@@ -297,7 +347,7 @@ function boot() {
       `<div class="g-name"><a href="#filme/${f.id}" title="${esc(nomeFilme(f))}">${esc(f.tipo === "bloco" ? `${f.nome} + ${f.fot?.nome.split(" ")[0]}` : f.tipo === "pilula" ? f.nome : nomeFilme(f))}</a></div>`,
       bar(f.ed[0], f.ed[1], "var(--c-ed)", `Edição interna · ${dm(f.ed[0])} a ${dm(f.ed[1])}`, "ed") +
       bar(f.fin[0], f.fin[1], STEP.fin.c, `Cor e som · ${dm(f.fin[0])} a ${dm(f.fin[1])}`) +
-      ["v2", "rev", "off", "on"].map((k) => dot(f[k], STEP[k].c, `${STEP[k].label} · ${wd(f[k])} ${dm(f[k])}`)).join(""));
+      ["v2", "rev", "off", "on"].map((k) => { const st = estadoEv({ k, f }); return dot(f[k], STEP[k].c, `${STEP[k].label} · ${wd(f[k])} ${dm(f[k])}${st ? ` · ${ROT_EST[st]}` : ""}`, st ? `st-${st}` : ""); }).join(""));
     const gr = (t, list) => (list.length ? `<div class="g-group">${t}</div>` + list.map(filmRow).join("") : "");
     const fs = filmes();
     const body =
@@ -338,10 +388,12 @@ function boot() {
       const s = iso(dt), d = dt.getDate();
       const list = byDay.get(s) || [];
       const out = s < C.inicio || s > C.fim;
-      const cls = ["cell", out ? "out" : "", isOff(dt) ? "we" : "", C.feriados[s] ? "hol" : "", s === TODAY ? "today" : "", s < TODAY ? "past" : "", s === selDay ? "sel" : ""].join(" ");
       const max = 4;
       const num = d === 1 || s === iso(mon) ? `${d} <small>${MES[dt.getMonth()].slice(0, 3)}</small>` : d;
-      const lis = list.slice(0, max).map((e) => `<li class="${evYou(e) ? "you" : ""}" style="--c:${evColor(e)}"><i></i><span>${esc(label(e))}</span></li>`).join("");
+      const sts = list.map(estadoEv);
+      const lis = list.slice(0, max).map((e, i) => `<li class="${evYou(e) ? "you" : ""}${sts[i] ? ` st-${sts[i]}` : ""}" style="--c:${evColor(e)}"${sts[i] ? ` title="${ROT_EST[sts[i]]}"` : ""}><i></i><span>${esc(label(e))}</span></li>`).join("");
+      const marca = sts.includes("late") ? " has-late" : sts.includes("todo") || sts.includes("new") ? " has-todo" : "";
+      const cls = ["cell" + marca, out ? "out" : "", isOff(dt) ? "we" : "", C.feriados[s] ? "hol" : "", s === TODAY ? "today" : "", s < TODAY ? "past" : "", s === selDay ? "sel" : ""].join(" ");
       const inner = `<span class="n">${num}</span>${C.feriados[s] ? `<span class="hn">${esc(C.feriados[s])}</span>` : ""}<ul>${lis}</ul>${list.length > max ? `<span class="more">+${list.length - max}</span>` : ""}<span class="dots">${list.map((e) => `<i style="--c:${evColor(e)}"></i>`).join("")}</span>`;
       cells += list.length ? `<button class="${cls}" data-day="${s}" aria-label="${d} de ${MES[dt.getMonth()]}: ${list.length} itens">${inner}</button>` : `<div class="${cls}">${inner}</div>`;
     }
@@ -351,7 +403,8 @@ function boot() {
     const sel = selDay && byDay.get(selDay);
     const box = sel ? `<div class="daybox"><h4>${WDL[D(selDay).getDay()]}, ${dm(selDay)}</h4><ul class="items">${sel.map((e) => e.k === "fecho"
       ? `<li class="item${e.x.cliente ? " you" : ""}" style="--c:${evColor(e)}"><i></i><div><strong>${esc(e.x.titulo)}</strong><p>${esc(e.x.texto)}</p></div></li>`
-      : `<li class="item${STEP[e.k].you ? " you" : ""}" style="--c:${STEP[e.k].c}"><i></i><div><strong>${esc(STEP[e.k].label)}</strong><p>${link(e.f)}</p></div></li>`).join("")}</ul></div>` : "";
+      : `<li class="item${STEP[e.k].you ? " you" : ""}" style="--c:${STEP[e.k].c}"><i></i><div><strong>${esc(STEP[e.k].label)}${estadoEv(e) ? `<span class="st-tag st-${estadoEv(e)}">${ROT_EST[estadoEv(e)]}</span>` : ""}</strong><p>${link(e.f)}</p>${
+        e.k === "rev" && enviado(e.f, "v2") ? `<div class="rcs">${checkHTML(e.f, "v2", false)}</div>` : (e.k === "v2" || e.k === "on") && chegou(e.f, e.k) ? `<div class="rcs">${recebHTML(e.f, e.k, false)}</div>` : ""}</div></li>`).join("")}</ul></div>` : "";
     return `<p class="hint" style="margin:0 0 14px">Clique num dia para ver tudo o que acontece nele.</p><div class="months">${html}</div><div id="daybox-anchor">${box}</div>`;
   }
 
@@ -441,6 +494,7 @@ function boot() {
     document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.view === state.view)));
     document.querySelectorAll(".filters button").forEach((b) => b.classList.toggle("on", b.dataset.f === state.filtro));
     $("#view").innerHTML = VIEWS[state.view]();
+    renderTray();
   }
   function route() {
     let [, a, b] = (location.hash || "#agenda").split(/[#/]/);
