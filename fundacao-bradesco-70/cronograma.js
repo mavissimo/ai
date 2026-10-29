@@ -109,9 +109,61 @@ function boot() {
     const fio = vs.find((v) => isFrameio(v.url));
     const label = `▶ Assistir ${VERSAO[i]}`;
     return fio
-      ? `<a class="watch${dark ? " dark" : ""}" href="${esc(fio.url)}" target="_blank" rel="noopener">${label} <span aria-hidden="true">↗</span><small>abre no Frame.io</small></a>`
-      : `<button type="button" class="watch${dark ? " dark" : ""}" data-watch="${f.id}">${label}</button>`;
+      ? `<a class="watch${dark ? " dark" : ""}" href="${esc(fio.url)}" target="_blank" rel="noopener" data-abre="${f.id}|${versaoAtual(f)}">${label} <span aria-hidden="true">↗</span><small>abre no Frame.io</small></a>`
+      : `<button type="button" class="watch${dark ? " dark" : ""}" data-watch="${f.id}" data-abre="${f.id}|${versaoAtual(f)}">${label}</button>`;
   }
+
+  // ── Recebimento e aprovação: a Equipe Bradesco abre a versão por aqui (fica registrado que abriu)
+  // e, no retorno, marca "Aprovado". Só isso: os comentários continuam pela devolutiva de sempre.
+  const REG = window.FB_REGISTRO;
+  const tocaNoPlayer = (u) => /vimeo\.com|youtu\.?be|dropbox\.com|\.(mp4|m4v|mov|webm)(\?|#|$)/i.test(u);
+  const versaoAtual = (f) => ((live[f.id] ?? 0) >= 5 ? "on" : "v2");
+  const NOME_V = { v2: "a V2", on: "o online" };
+  const dmIso = (t) => dm(iso(new Date(t)));
+  const chegou = (f, v) => (live[f.id] ?? -1) >= (v === "v2" ? 1 : 5) || f[v] <= TODAY; // pelo Controle ou pela data
+  const disponivel = (f, v) => { const i = live[f.id] ?? -1; return !!(links[f.id] || []).length && (v === "v2" ? i >= 1 && i <= 4 : i >= 5); };
+  const txtAberto = (f, v) => { const r = REG.get(f.id, v); return r.aberto ? `Aberto em ${dmIso(r.aberto)}` : disponivel(f, v) ? "Ainda não aberto" : ""; };
+  function recebHTML(f, v, comChip = true) {
+    let acao;
+    if (disponivel(f, v)) {
+      const vs = links[f.id], fora = vs.find((x) => isFrameio(x.url)) || vs.find((x) => !tocaNoPlayer(x.url)); // fora do player: abre o link
+      acao = fora
+        ? `<a class="watch sm" href="${esc(fora.url)}" target="_blank" rel="noopener" data-abre="${f.id}|${v}">${isFrameio(fora.url) ? "Abrir no Frame.io" : `Abrir ${NOME_V[v]}`} <span aria-hidden="true">↗</span></a>`
+        : `<button type="button" class="watch sm" data-watch="${f.id}" data-abre="${f.id}|${v}">▶ Assistir ${v === "v2" ? "à V2" : "ao online"}</button>`;
+    } else acao = `<span class="rc-soon">${chegou(f, v) ? (REG.get(f.id, v).aberto ? "" : "O link chega em breve") : `Chega ${wd(f[v])}, ${dm(f[v])}`}</span>`;
+    const r = REG.get(f.id, v);
+    return `<div class="rc">${comChip ? filmChip(f) : ""}<div class="rc-a">${acao}<span class="rc-st${r.aberto ? " ok" : ""}" data-aberto="${f.id}|${v}">${txtAberto(f, v)}</span></div></div>`;
+  }
+  function checkHTML(f, v, comChip = true) {
+    const r = REG.get(f.id, v), pode = chegou(f, v);
+    return `<div class="rc">${comChip ? filmChip(f) : ""}<label class="aprova${r.aprovado ? " on" : ""}${pode ? "" : " off"}"${pode ? "" : ` title="Libera quando ${NOME_V[v]} chegar"`}><input type="checkbox" data-aprova="${f.id}|${v}"${r.aprovado ? " checked" : ""}${pode ? "" : " disabled"}><span class="box" aria-hidden="true"></span><span class="txt">${r.aprovado ? `Aprovado em ${dmIso(r.quando)}` : "Aprovado"}</span></label></div>`;
+  }
+  // a versão da vez, com o check logo abaixo (ficha, destaque e cartões)
+  function acaoHTML(f, dark) {
+    const v = versaoAtual(f);
+    if (!chegou(f, v)) return "";
+    return `<div class="acao${dark ? " dark" : ""}"><p class="acao-k">${v === "v2" ? "V2" : "Online"} para a Equipe Bradesco</p>${recebHTML(f, v, false)}${checkHTML(f, v, false)}</div>`;
+  }
+  // atualiza o que já está na tela, sem redesenhar (a ficha aberta continua aberta)
+  function pintaRegistro() {
+    document.querySelectorAll("[data-aprova]").forEach((c) => {
+      const [id, v] = c.dataset.aprova.split("|"), r = REG.get(id, v), l = c.closest(".aprova");
+      c.checked = !!r.aprovado; l.classList.toggle("on", !!r.aprovado);
+      l.querySelector(".txt").textContent = r.aprovado ? `Aprovado em ${dmIso(r.quando)}` : "Aprovado";
+    });
+    document.querySelectorAll("[data-aberto]").forEach((n) => {
+      const [id, v] = n.dataset.aberto.split("|"); if (!byId[id]) return;
+      n.textContent = txtAberto(byId[id], v); n.classList.toggle("ok", !!REG.get(id, v).aberto);
+    });
+  }
+  document.addEventListener("fb:registro", pintaRegistro);
+  document.addEventListener("click", (e) => { const a = e.target.closest("[data-abre]"); if (a) { const [id, v] = a.dataset.abre.split("|"); REG.registra(id, v, "aberto"); } }, true);
+  document.addEventListener("change", (e) => {
+    const c = e.target.closest("[data-aprova]"); if (!c) return;
+    const [id, v] = c.dataset.aprova.split("|");
+    REG.registra(id, v, c.checked ? "aprovado" : "desmarcado");
+    toast(c.checked ? `${NOME_V[v] === "a V2" ? "V2" : "Online"} aprovado. Obrigado!` : "Aprovação desmarcada");
+  });
   function assistir(id) {
     const f = byId[id], vs = links[id] || [], i = live[id];
     if (!f || !vs.length || !window.FBPlayer) return;
@@ -191,11 +243,17 @@ function boot() {
         const items = [...groups.values()].map((g) => {
           const e = g[0];
           if (e.k === "fecho") {
-            return `<li class="item${e.x.cliente ? " you" : ""}" style="--c:${evColor(e)}"><i></i><div><strong>${esc(e.x.titulo)}${e.x.cliente ? '<span class="tag-you">Equipe Bradesco</span>' : ""}</strong><p>${esc(e.x.texto)}${e.x.fim ? ` Até ${dm(e.x.fim)}.` : ""}</p></div></li>`;
+            const checks = e.x.cliente ? `<div class="rcs">${filmes().map((f) => checkHTML(f, "on")).join("")}</div>` : ""; // retorno técnico: o check de cada online
+            return `<li class="item${e.x.cliente ? " you" : ""}" style="--c:${evColor(e)}"><i></i><div><strong>${esc(e.x.titulo)}${e.x.cliente ? '<span class="tag-you">Equipe Bradesco</span>' : ""}</strong><p>${esc(e.x.texto)}${e.x.fim ? ` Até ${dm(e.x.fim)}.` : ""}</p>${checks}</div></li>`;
           }
           const s = STEP[e.k];
-          // o filme em destaque; a etapa vira um rótulo pequeno em cima
-          return `<li class="item${s.you ? " you" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? '<span class="tag-you">Equipe Bradesco</span>' : ""}</span><div class="films">${g.map((x) => filmChip(x.f)).join("")}</div></div></li>`;
+          // o filme em destaque; a etapa vira um rótulo pequeno em cima.
+          // V2 e online são recebimentos (abrir a versão); o retorno da V2 tem o check de aprovado.
+          const receb = e.k === "v2" || e.k === "on";
+          const corpo = receb ? `<div class="rcs">${g.map((x) => recebHTML(x.f, e.k)).join("")}</div>`
+            : e.k === "rev" ? `<div class="rcs">${g.map((x) => checkHTML(x.f, "v2")).join("")}</div>`
+            : `<div class="films">${g.map((x) => filmChip(x.f)).join("")}</div>`;
+          return `<li class="item${s.you ? " you" : ""}${receb ? " receb" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? '<span class="tag-you">Equipe Bradesco</span>' : ""}${receb ? '<span class="tag-rc">Recebimento</span>' : ""}</span>${corpo}</div></li>`;
         }).join("");
         const cls = d < TODAY ? " past" : d === TODAY ? " today" : "";
         html += `<div class="day${cls}"><div class="day-date"><strong>${dm(d)}</strong><span>${WDL[D(d).getDay()]}</span></div><ul class="items">${items}</ul></div>`;
@@ -313,7 +371,7 @@ function boot() {
         <button class="copy" data-copy="${f.id}" type="button">Copiar link</button>
         <h3>${esc(f.tipo === "bloco" ? nomeFilme(f) : filmTitle(f))}</h3>
         <p class="sub">${esc(subFilme(f))}${f.uf ? ` · ${f.uf}` : ""}</p>
-        ${juntoHTML(f)}${liveBox(f)}
+        ${juntoHTML(f)}${liveBox(f, false, false)}${acaoHTML(f)}
         ${trackHTML(f)}
       </article>`).join("")}</div>`;
   }
@@ -334,7 +392,7 @@ function boot() {
     box.innerHTML = `<div class="focus-box">
       <p class="k">${chegou ? "A V2 chegou" : `V2 em ${dm(f.v2)}`}</p>
       <h2>${esc(nomeFilme(f))}</h2>
-      ${juntoHTML(f)}${liveBox(f, true)}
+      ${juntoHTML(f)}${liveBox(f, true, false)}${acaoHTML(f, true)}
       <p class="s">${chegou ? `Precisamos do retorno da Equipe Bradesco até <b>${wd(f.rev)}, ${dm(f.rev)}</b>, numa devolutiva única. Depois disso a montagem trava e o filme segue para cor e som.` : `A V2 chega ${WDL[D(f.v2).getDay()]}, ${dm(f.v2)}. O retorno da Equipe Bradesco fica para ${dm(f.rev)}.`}</p>
       ${trackHTML(f)}
       <a class="all" href="#agenda">Ver o cronograma de todos os filmes →</a>
@@ -349,11 +407,7 @@ function boot() {
       <h4>${esc(f.tipo === "bloco" ? nomeFilme(f) : filmTitle(f))}</h4>
       ${juntoHTML(f)}${liveBox(f, false, false)}
       ${trackHTML(f)}
-      ${(() => { // o botão de assistir; sem versão para ver, só um aviso (quando o "Agora" já não diz)
-        const i = live[f.id], btn = watchBtn(f);
-        const aviso = btn ? "" : i >= 1 ? "O link da versão atual ainda não está no ar" : i == null ? `A V2 chega ${wd(f.v2)}, ${dm(f.v2)}` : "";
-        return btn || aviso ? `<div class="peek-acts">${btn || `<span class="soon">${aviso}</span>`}</div>` : "";
-      })()}
+      ${acaoHTML(f) || `<div class="peek-acts"><span class="soon">A V2 chega ${wd(f.v2)}, ${dm(f.v2)}</span></div>`}
     </div></div>`;
   }
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;

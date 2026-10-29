@@ -3,23 +3,29 @@
 // A planilha precisa estar como "Qualquer pessoa com o link: leitor".
 // Colunas: A = id do filme (ou "placeholder"), E = link. Se a planilha falhar, valem os links de videos.js.
 window.VIDEO_SHEET = "1dZp8HV-64v5ewc0LzdnE4A7Luu1ikMGapbtg848Mnh4"; // ID da planilha: o trecho entre /d/ e /edit no endereço dela
+// true: só tocam os filmes aprovados (check no cronograma, ou status Offline aprovado / Aprovado / Entregue no Controle).
+// Os outros mostram o status. No lançamento, mude para false e tudo toca.
+window.SO_APROVADOS = true;
 
 (function () {
   const id = window.VIDEO_SHEET;
   if (!id) return;
   window.__fbPlanilha = (res) => {
-    const links = {};
+    const links = {}, status = {};
     (res?.table?.rows || []).forEach((r) => {
       const chave = String(r.c?.[0]?.v || "").trim(), link = String(r.c?.[4]?.v || "").trim();
+      if (chave) status[chave] = String(r.c?.[5]?.v || "").trim().toLowerCase(); // coluna F: status no Controle
       if (!chave || !/^https?:\/\//.test(link)) return;
       if (chave === "placeholder") window.VIDEO_PLACEHOLDER = link;
       else links[chave] = link;
     });
     window.VIDEO_LINKS = Object.assign({}, window.VIDEO_LINKS, links);
+    window.VIDEO_STATUS = res?.table?.rows ? status : false;
     document.dispatchEvent(new CustomEvent("fb:links"));
   };
   const s = document.createElement("script");
   s.src = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/gviz/tq?tqx=out:json;responseHandler:__fbPlanilha&headers=1&t=${Date.now()}`;
   s.async = true;
+  s.onerror = () => { window.VIDEO_STATUS = false; document.dispatchEvent(new CustomEvent("fb:links")); };
   document.head.append(s);
 })();

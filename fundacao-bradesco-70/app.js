@@ -315,11 +315,25 @@
   // ── Player ────────────────────────────────────────────────
   const PLAYER_DOTS = '<span class="dot" style="--c:var(--yellow);top:18%;right:12%"></span><span class="dot" style="--c:var(--red);top:30%;right:22%"></span><span class="dot" style="--c:var(--white);top:40%;right:9%"></span>';
   // link final (planilha de controle ou videos.js) ou o vídeo provisório; lido na hora, pois a planilha chega depois
-  const fonte = (v) => { const final = (window.VIDEO_LINKS || {})[v.id] || v.url; return { final, url: final || window.VIDEO_PLACEHOLDER || "" }; };
+  // Só tocam os filmes aprovados (check da Equipe Bradesco no cronograma, ou o status do Controle);
+  // os outros mostram em que pé estão. No lançamento, SO_APROVADOS = false em links-planilha.js libera tudo.
+  const visitaDoFot = Object.fromEntries(FOTOGRAFOS.filter((f) => f.visita).map((f) => [f.id, f.visita]));
+  const blocoDo = (id) => { const g = id.startsWith("pilula-") ? id.replace(/^pilula-/, "").replace(/-\d+$/, "") : id.replace(/^visita-/, ""); return visitaDoFot[g] || g; }; // id do bloco no cronograma
+  const STATUS_SITE = { "v2 com o cliente": "V2 aguardando aprovação", "ajustes do retorno": "Em ajustes depois da V2", "em finalização": "Em finalização", "online com o cliente": "Online aguardando aprovação" };
+  const liberado = (v) => {
+    if (!window.SO_APROVADOS || window.VIDEO_STATUS === false) return true; // planilha fora do ar: não trava o site
+    const st = (window.VIDEO_STATUS || {})[v.id] || "";
+    return /^(offline aprovado|aprovado|entregue)$/.test(st) || !!window.FB_REGISTRO?.aprovado?.(blocoDo(v.id));
+  };
+  const statusDe = (v) => (!window.VIDEO_STATUS ? "Carregando…" : STATUS_SITE[window.VIDEO_STATUS[v.id] || ""] || "Aguardando a V2");
+  const fonte = (v) => {
+    if (!liberado(v)) return { final: "", url: "", status: statusDe(v) };
+    const final = (window.VIDEO_LINKS || {})[v.id] || v.url; return { final, url: final || window.VIDEO_PLACEHOLDER || "" };
+  };
 
   function playerHTML(v, badge, cor, poster) {
     badge = v.badge || badge;
-    const { final, url } = fonte(v);
+    const { final, url, status } = fonte(v);
     const ready = !!url;
     return `<div class="player${poster ? " has-poster" : ""}${ready ? " is-ready" : ""}" ${ready ? `data-start role="button" tabindex="0" aria-label="Assistir ${esc(v.titulo)}"` : ""} style="--pc:${cor || "var(--purple)"}${poster ? `;--poster:url('${poster}')` : ""}">
       <div class="player-empty">${PLAYER_DOTS}
@@ -328,7 +342,7 @@
           ? `<span class="pe-icon is-btn" aria-hidden="true">${ICON_PLAY}</span>`
           : `<span class="pe-icon" aria-hidden="true">${ICON_PLAY}</span>`}
         <span class="pe-title">${esc(v.titulo)}</span>
-        <span class="pe-note">${!ready ? "Filme em finalização" : final ? "Toque para assistir" : "Toque para assistir · versão provisória"}</span>
+        <span class="pe-note">${!ready ? esc(status || "Filme em finalização") : final ? "Toque para assistir" : "Toque para assistir · versão provisória"}</span>
       </div>
     </div>`;
   }
@@ -346,10 +360,15 @@
     };
     // o vídeo abre no player do projeto, por cima de tudo, com a sequência do painel
     let current = 0;
-    const play = (i) => window.FBPlayer.open(videos.map((v) => ({
-      titulo: v.titulo, duracao: v.duracao, kicker: v.badge || badge, cor: v.cor || cor,
-      url: fonte(v).url, provisorio: !fonte(v).final,
-    })), i, opts);
+    // a sequência do player só tem os que podem tocar
+    const play = (i) => {
+      const ok = videos.filter((v) => fonte(v).url);
+      if (!fonte(videos[i]).url) return;
+      window.FBPlayer.open(ok.map((v) => ({
+        titulo: v.titulo, duracao: v.duracao, kicker: v.badge || badge, cor: v.cor || cor,
+        url: fonte(v).url, provisorio: !fonte(v).final,
+      })), ok.indexOf(videos[i]), opts);
+    };
     body.addEventListener("click", (ev) => {
       if (ev.target.closest("[data-start]")) return play(current);
       const vi = ev.target.closest("[data-vi]");
@@ -531,6 +550,7 @@
   $("#open-index").addEventListener("click", () => go("#/filmes"));
   window.addEventListener("hashchange", route);
   // links da planilha chegaram depois da página: atualiza o painel aberto (sem interromper um filme tocando)
+  document.addEventListener("fb:registro", () => { if (!document.body.classList.contains("lb-open") && /^#\/(fotografo|escola|filme)\//.test(location.hash)) route(); });
   document.addEventListener("fb:links", () => { if (!document.body.classList.contains("lb-open") && /^#\/(fotografo|escola)\//.test(location.hash)) route(); });
 
   // dica some depois da primeira interação
