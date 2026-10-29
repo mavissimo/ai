@@ -197,7 +197,7 @@ function boot() {
       : `<div class="tr-row"><div class="rc">${filmChip(x.f)}<span class="rc-soon">${x.v === "v2" ? "V2" : "Online"} ${x.tarde ? `prevista para ${dm(x.quando)} · chega em breve` : `chega ${wd(x.quando)}, ${dm(x.quando)}`}</span></div></div>`).join("");
     const abas = [["aprovar", "Para aprovar", P.aprovar.some((x) => x.late)], ["assistir", "Para assistir"], ["chegando", "Chegando"]];
     tray.innerHTML = (trayAba ? `<div class="tray-sheet" role="region" aria-label="${TRAY[trayAba]}"><div class="tray-h"><b>${TRAY[trayAba]}</b><button type="button" class="tray-x" aria-label="Fechar">×</button></div><div class="tray-list">${rows}</div></div>` : "")
-      + `<div class="tray-bar">${abas.map(([k, l, late]) => `<button type="button" class="tray-tab${trayAba === k ? " on" : ""}${late ? " late" : ""}" data-aba="${k}" aria-expanded="${trayAba === k}"${P[k].length ? "" : " disabled"}><span class="tray-n">${P[k].length}</span>${l}</button>`).join("")}</div>`;
+      + (abas.some(([k]) => P[k].length) ? `<div class="tray-bar">${abas.filter(([k]) => P[k].length).map(([k, l, late]) => `<button type="button" class="tray-tab${trayAba === k ? " on" : ""}${late ? " late" : ""}" data-aba="${k}" aria-expanded="${trayAba === k}"><span class="tray-n">${P[k].length}</span>${l}</button>`).join("")}</div>` : "");
   }
   tray.addEventListener("click", (e) => {
     const t = e.target.closest("[data-aba]");
