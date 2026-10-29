@@ -142,7 +142,7 @@ window.FOTOGRAFOS = [
   { id: "pedro-kok", visita: "bodoquena",       cor: "#A80B4C", pos: [540, 580], nome: "Pedro Kok",       filmagem: "Escola de Bodoquena (MS)",               cidades: ["ceilandia", "aparecida-de-goiania", "cuiaba", "bodoquena"] },
   { id: "lalo-de-almeida", cor: "#C80D06", pos: [280, 300], nome: "Lalo de Almeida", filmagem: "Estúdio em São Paulo (SP)",              cidades: ["manaus", "rio-branco"] },
   { id: "edgar-azevedo",   cor: "#17301B", pos: [790, 165], nome: "Edgar Azevedo",   filmagem: "Estúdio em Salvador (BA)",               cidades: ["maceio", "pinheiro", "propria", "sao-luis"] },
-  { id: "fabio-bartelt", cor: "#1F2042", pos: [720, 810], nome: "Fábio Bartelt",   filmagem: "Escola de Osasco (SP)",                  cidades: ["jardim-conceicao", "osasco-2", "osasco"] },
+  { id: "fabio-bartelt", visita: "osasco",   cor: "#1F2042", pos: [720, 810], nome: "Fábio Bartelt",   filmagem: "Escola de Osasco (SP)",                  cidades: ["jardim-conceicao", "osasco-2", "osasco"] },
   { id: "maira-erlich",    cor: "#00ACA5", pos: [580, 770], nome: "Maíra Erlich",    filmagem: "Estúdio em São Paulo (SP)",              cidades: ["registro", "marilia"] },
 ].map((f) => ({
   bio: "Minibiografia em breve.",

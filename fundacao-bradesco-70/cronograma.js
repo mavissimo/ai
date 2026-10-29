@@ -32,13 +32,16 @@ function boot() {
   const ORDER = ["ed", "v2", "rev", "off", "fin", "on"];
   window.__liveI = (f) => window.__fbLive?.[f.id];
 
+  // a entrega é por bloco: cidade + fotógrafo (visita + 3 pílulas), só as 3 pílulas, documentário ou trailer
   const nomeFilme = (f) => ({
+    bloco: `${f.nome} / ${f.fot?.nome}`,
     pilula: `${f.nome} · 3 pílulas`,
     visita: `Visita · ${f.nome}${f.uf ? ` (${f.uf})` : ""}`,
     documentario: "Documentário · 15 min",
     trailer: "Trailer · 2 min",
   })[f.tipo];
   const subFilme = (f) => ({
+    bloco: `Visita à escola (até 2 min) + 3 pílulas de ${f.fot?.nome} (1 min cada)`,
     pilula: "Pílulas 1, 2 e 3 · 1 min cada",
     visita: "Visita à escola · até 2 min",
     documentario: "De geração em geração · 15 min",
@@ -73,7 +76,8 @@ function boot() {
   const ANTIGO = { "provisório": 0, "em edição": 0, "em revisão": 1, "aprovado": 6 }; // nomes antigos do Controle
   const live = (window.__fbLive = {}); // id do filme no cronograma -> índice de andamento (o menos adiantado do grupo)
   const links = {}; // id do filme no cronograma -> vídeos com link (as 3 pílulas, a visita…)
-  const grupoDoVideo = (vid) => vid.startsWith("pilula-") ? vid.replace(/^pilula-/, "").replace(/-\d+$/, "") : vid.replace(/^visita-/, "");
+  const BLOCO_DO_FOT = Object.fromEntries(C.filmes.filter((f) => f.fot).map((f) => [f.fot.id, f.id])); // fotógrafo -> bloco da cidade
+  const grupoDoVideo = (vid) => { const g = vid.startsWith("pilula-") ? vid.replace(/^pilula-/, "").replace(/-\d+$/, "") : vid.replace(/^visita-/, ""); return BLOCO_DO_FOT[g] || g; };
   window.__fbCrono = (res) => {
     (res?.table?.rows || []).forEach((r) => {
       const vid = String(r.c?.[0]?.v || "").trim(), st = String(r.c?.[5]?.v || "").trim().toLowerCase();
@@ -94,7 +98,7 @@ function boot() {
   }
   // etapa do cronograma -> andamento mínimo que a dá por cumprida
   const FEITO = { ed: 1, v2: 1, rev: 2, off: 3, fin: 5, on: 6 };
-  const siteLink = (f) => SITE + ({ pilula: `#/fotografo/${f.id}`, visita: `#/escola/${f.id}`, documentario: "#/filme/documentario", trailer: "#/filme/trailer" })[f.tipo];
+  const siteLink = (f) => SITE + ({ bloco: `#/escola/${f.id}`, pilula: `#/fotografo/${f.id}`, visita: `#/escola/${f.id}`, documentario: "#/filme/documentario", trailer: "#/filme/trailer" })[f.tipo];
   const AGORA = ["Em edição", "V2 com você · aguardando seu retorno", "Retorno recebido · ajustes em andamento", "Offline aprovado", "Em cor e som", "Online para você conferir", "Aprovado", "Entregue"];
   // ── Assistir à versão atual: abre no player do projeto; link do Frame.io abre numa nova janela ──
   const VERSAO = [null, "à V2", "à V2", "ao offline aprovado", "ao offline aprovado", "ao online", "à versão aprovada", "à versão final"];
@@ -158,8 +162,8 @@ function boot() {
   const evColor = (e) => (e.k === "fecho" ? (e.x.cliente ? "var(--c-rev)" : e.x.marco ? "var(--c-fim)" : "var(--ink-3)") : STEP[e.k].c);
   const evYou = (e) => (e.k === "fecho" ? !!e.x.cliente : !!STEP[e.k].you);
   const link = (f) => `<a href="#filme/${f.id}">${esc(nomeFilme(f))}</a>`;
-  const filmTitle = (f) => (f.tipo === "pilula" || f.tipo === "visita" ? f.nome : nomeFilme(f).split(" · ")[0]);
-  const filmSub = (f) => ({ pilula: "3 pílulas", visita: `Visita${f.uf ? ` · ${f.uf}` : ""}`, documentario: "15 min", trailer: "2 min" })[f.tipo];
+  const filmTitle = (f) => (f.tipo === "pilula" || f.tipo === "visita" || f.tipo === "bloco" ? f.nome : nomeFilme(f).split(" · ")[0]);
+  const filmSub = (f) => ({ bloco: `+ ${f.fot?.nome} · visita e 3 pílulas`, pilula: "3 pílulas", visita: `Visita${f.uf ? ` · ${f.uf}` : ""}`, documentario: "15 min", trailer: "2 min" })[f.tipo];
   const filmChip = (f) => `<a class="film" href="#filme/${f.id}" data-peek="${f.id}" aria-expanded="false"><b>${esc(filmTitle(f))}</b><small>${esc(filmSub(f))}</small></a>`;
 
   // ── Agenda: semana a semana ──
@@ -232,15 +236,15 @@ function boot() {
     const bar = (a, b, c, tip, cls = "") => `<div class="g-bar ${cls}" style="--c:${c};left:calc(${col(a)} * var(--col) + 3px);width:calc(${col(b) - col(a) + 1} * var(--col) - 6px)" data-tip="${esc(tip)}"></div>`;
     const dot = (s, c, tip, cls = "") => `<div class="g-dot ${cls}" style="--c:${c};left:${pos(s)}" data-tip="${esc(tip)}"></div>`;
     const filmRow = (f) => row(
-      `<div class="g-name"><a href="#filme/${f.id}" title="${esc(nomeFilme(f))}">${esc(f.tipo === "pilula" ? f.nome : f.tipo === "visita" ? f.nome : nomeFilme(f))}</a></div>`,
+      `<div class="g-name"><a href="#filme/${f.id}" title="${esc(nomeFilme(f))}">${esc(f.tipo === "bloco" ? `${f.nome} + ${f.fot?.nome.split(" ")[0]}` : f.tipo === "pilula" ? f.nome : nomeFilme(f))}</a></div>`,
       bar(f.ed[0], f.ed[1], "var(--c-ed)", `Edição interna · ${dm(f.ed[0])} a ${dm(f.ed[1])}`, "ed") +
       bar(f.fin[0], f.fin[1], STEP.fin.c, `Cor e som · ${dm(f.fin[0])} a ${dm(f.fin[1])}`) +
       ["v2", "rev", "off", "on"].map((k) => dot(f[k], STEP[k].c, `${STEP[k].label} · ${wd(f[k])} ${dm(f[k])}`)).join(""));
     const gr = (t, list) => (list.length ? `<div class="g-group">${t}</div>` + list.map(filmRow).join("") : "");
     const fs = filmes();
     const body =
-      gr("Pílulas · 3 por fotógrafo", fs.filter((f) => f.tipo === "pilula")) +
-      gr("Visitas às escolas", fs.filter((f) => f.tipo === "visita")) +
+      gr("Cidade + fotógrafo · visita e 3 pílulas", fs.filter((f) => f.tipo === "bloco")) +
+      gr("Só pílulas · pack de 3", fs.filter((f) => f.tipo === "pilula")) +
       gr("Documentário e trailer", fs.filter((f) => grupo(f) === "doc")) +
       `<div class="g-group">Fechamento</div>` +
       row(`<div class="g-name">Todos os 41</div>`,
@@ -266,7 +270,7 @@ function boot() {
     const evs = eventos();
     const byDay = new Map();
     evs.forEach((e) => { if (!byDay.has(e.date)) byDay.set(e.date, []); byDay.get(e.date).push(e); });
-    const label = (e) => (e.k === "fecho" ? e.x.titulo : `${STEP[e.k].short} · ${e.f.tipo === "pilula" || e.f.tipo === "visita" ? e.f.nome : nomeFilme(e.f).split(" · ")[0]}`);
+    const label = (e) => (e.k === "fecho" ? e.x.titulo : `${STEP[e.k].short} · ${filmTitle(e.f)}`);
     // só as semanas do projeto, numa grade contínua (seg a dom; fim de semana mais estreito)
     const first = D(C.inicio), last = D(C.fim);
     // semana começando no domingo
@@ -307,7 +311,7 @@ function boot() {
     return `<div class="cards">${filmes().map((f) => `
       <article class="card" id="card-${f.id}">
         <button class="copy" data-copy="${f.id}" type="button">Copiar link</button>
-        <h3>${esc(f.tipo === "pilula" ? f.nome : f.tipo === "visita" ? `${f.nome}` : nomeFilme(f).split(" · ")[0])}</h3>
+        <h3>${esc(f.tipo === "bloco" ? nomeFilme(f) : filmTitle(f))}</h3>
         <p class="sub">${esc(subFilme(f))}${f.uf ? ` · ${f.uf}` : ""}</p>
         ${juntoHTML(f)}${liveBox(f)}
         ${trackHTML(f)}
@@ -342,7 +346,7 @@ function boot() {
     return `<div class="peek-in"><div class="peek-card" style="--c:${STEP.v2.c}">
       <button class="peek-x" type="button" aria-label="Fechar">×</button>
       <p class="k">${esc(subFilme(f))}${f.uf ? ` · ${f.uf}` : ""}</p>
-      <h4>${esc(f.tipo === "pilula" || f.tipo === "visita" ? f.nome : nomeFilme(f).split(" · ")[0])}</h4>
+      <h4>${esc(f.tipo === "bloco" ? nomeFilme(f) : filmTitle(f))}</h4>
       ${juntoHTML(f)}${liveBox(f, false, false)}
       ${trackHTML(f)}
       ${(() => { // o botão de assistir; sem versão para ver, só um aviso (quando o "Agora" já não diz)
@@ -385,8 +389,9 @@ function boot() {
     $("#view").innerHTML = VIEWS[state.view]();
   }
   function route() {
-    const [, a, b] = (location.hash || "#agenda").split(/[#/]/);
+    let [, a, b] = (location.hash || "#agenda").split(/[#/]/);
     if (a === "filme") {
+      b = BLOCO_DO_FOT[b] || b; // link antigo de uma pílula: abre o bloco da cidade
       renderFocus(b);
       state.view = "filmes"; render();
       const card = $(`#card-${CSS.escape(b || "")}`);
@@ -430,9 +435,9 @@ function boot() {
 window.__fbCronoDatas = (res) => {
   try {
     const n = JSON.parse(res?.table?.rows?.[0]?.c?.[0]?.v || "null");
-    if (!booted && n && Array.isArray(n.filmes) && n.filmes.length && n.fim) {
-      const C = window.CRONO, novo = Object.fromEntries(n.filmes.map((f) => [f.id, f]));
-      C.filmes = C.filmes.map((f) => (novo[f.id] ? { ...f, ...novo[f.id] } : f));
+    if (!booted && n && Array.isArray(n.filmes) && n.filmes.some((f) => f.tipo === "bloco") && n.fim) { // só o formato por blocos
+      const C = window.CRONO;
+      C.filmes = n.filmes;
       if (Array.isArray(n.fechamento) && n.fechamento.length) C.fechamento = n.fechamento;
       C.fim = n.fim; if (n.atualizado) C.atualizado = n.atualizado;
     }
