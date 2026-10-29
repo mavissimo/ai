@@ -3,8 +3,8 @@
 // caem na aba "Registro" (coluna B = "filme|versão|ação|quando"), que o cronograma, o site e o Controle leem.
 // Sem o formulário configurado, o registro fica só neste navegador e é enviado assim que ele existir.
 window.FB_REGISTRO = Object.assign({
-  form: "", // https://docs.google.com/forms/d/e/<id>/formResponse
-  entry: "", // entry.<número> da pergunta "Registro"
+  form: "https://docs.google.com/forms/d/e/1FAIpQLSejkPSJC-PGmscTZfHXvpDjuFv-I-ueN87XFn1cj9OsOUmwTg/formResponse",
+  entry: "entry.1784937357", // a pergunta "Registro"
   aba: "Registro",
 }, window.FB_REGISTRO);
 
