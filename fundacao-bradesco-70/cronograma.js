@@ -134,7 +134,7 @@
   const link = (f) => `<a href="#filme/${f.id}">${esc(nomeFilme(f))}</a>`;
   const filmTitle = (f) => (f.tipo === "pilula" || f.tipo === "visita" ? f.nome : nomeFilme(f).split(" · ")[0]);
   const filmSub = (f) => ({ pilula: "3 pílulas", visita: `Visita${f.uf ? ` · ${f.uf}` : ""}`, documentario: "15 min", trailer: "2 min" })[f.tipo];
-  const filmChip = (f) => `<a class="film" href="#filme/${f.id}"><b>${esc(filmTitle(f))}</b><small>${esc(filmSub(f))}</small></a>`;
+  const filmChip = (f) => `<a class="film" href="#filme/${f.id}" data-peek="${f.id}" aria-expanded="false"><b>${esc(filmTitle(f))}</b><small>${esc(filmSub(f))}</small></a>`;
 
   // ── Agenda: semana a semana ──
   function viewAgenda() {
@@ -311,6 +311,42 @@
     </div>`;
   }
 
+  // ── Ficha do filme aberta ali mesmo (agenda, calendário, linha do tempo), sem sair da visualização ──
+  function peekHTML(f) {
+    return `<div class="peek-in"><div class="peek-card" style="--c:${STEP.v2.c}">
+      <button class="peek-x" type="button" aria-label="Fechar">×</button>
+      <p class="k">${esc(subFilme(f))}${f.uf ? ` · ${f.uf}` : ""}</p>
+      <h4>${esc(f.tipo === "pilula" || f.tipo === "visita" ? f.nome : nomeFilme(f).split(" · ")[0])}</h4>
+      ${juntoHTML(f)}${liveBox(f)}
+      ${trackHTML(f)}
+      <div class="peek-acts"><button class="copy" data-copy="${f.id}" type="button">Copiar link deste filme</button></div>
+    </div></div>`;
+  }
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function closePeek(p) {
+    if (!p) return;
+    p.classList.remove("open");
+    document.querySelectorAll(`[data-peek][aria-expanded="true"]`).forEach((c) => { c.setAttribute("aria-expanded", "false"); c.classList.remove("on"); });
+    setTimeout(() => p.remove(), reduce ? 0 : 420);
+  }
+  function openPeek(chip, id) {
+    const f = byId[id]; if (!f) return;
+    const old = $("#view .peek");
+    const same = old && old.dataset.for === id && old._chip === chip;
+    closePeek(old);
+    if (same) return;
+    const p = document.createElement("div");
+    p.className = "peek"; p.dataset.for = id; p._chip = chip; p.innerHTML = peekHTML(f);
+    // dentro do item da agenda/calendário; na linha do tempo, logo acima do gráfico
+    const host = chip.closest(".item > div") || chip.closest(".daybox");
+    if (host) host.append(p); else $("#view").prepend(p);
+    if (chip.matches("[data-peek]")) { chip.setAttribute("aria-expanded", "true"); chip.classList.add("on"); }
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      p.classList.add("open");
+      setTimeout(() => { const r = p.getBoundingClientRect(); if (r.bottom > innerHeight || r.top < 70) p.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "nearest" }); }, reduce ? 0 : 380);
+    }));
+  }
+
   // ── Render e navegação ──
   const VIEWS = { agenda: viewAgenda, linha: viewLinha, calendario: viewCalendario, filmes: viewFilmes };
   function render() {
@@ -341,6 +377,9 @@
     state.filtro = b.dataset.f; render();
   });
   $("#view").addEventListener("click", async (e) => {
+    if (e.target.closest(".peek-x")) { closePeek(e.target.closest(".peek")); return; }
+    const fl = e.target.closest('a[href^="#filme/"]');
+    if (fl && state.view !== "filmes" && !e.metaKey && !e.ctrlKey && !e.shiftKey) { e.preventDefault(); openPeek(fl, fl.getAttribute("href").slice(7)); return; }
     const day = e.target.closest("[data-day]");
     if (day) { selDay = selDay === day.dataset.day ? null : day.dataset.day; render(); $("#daybox-anchor")?.scrollIntoView({ behavior: "smooth", block: "nearest" }); return; }
     const cp = e.target.closest("[data-copy]");
@@ -351,6 +390,7 @@
     }
   });
   function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 2400); }
+  addEventListener("keydown", (e) => { if (e.key === "Escape") closePeek($("#view .peek")); });
   addEventListener("hashchange", route);
   let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => state.view === "linha" && render(), 150); });
   route();

@@ -88,6 +88,7 @@ main { padding-top: 24px; padding-bottom: 48px; min-height: 50vh; }
 .film { display: inline-flex; flex-direction: column; padding: 9px 14px 10px; border-radius: 14px; background: #fff; box-shadow: inset 0 0 0 1.5px var(--line), inset 4px 0 0 var(--c); text-decoration: none; color: var(--ink); transition: box-shadow .2s, transform .2s var(--ease); }
 .film b { font-size: 17px; font-weight: 800; line-height: 1.15; color: var(--purple-ink); }
 .film small { margin-top: 2px; font-size: 12px; font-weight: 600; color: var(--ink-3); }
+.film.on { box-shadow: inset 0 0 0 2px var(--purple), inset 4px 0 0 var(--c); background: #F6F1FF; }
 .film:hover { box-shadow: inset 0 0 0 1.5px var(--purple), inset 4px 0 0 var(--c); transform: translateY(-1px); }
 .item.you .film { background: #fff; }
 .item p { margin: 2px 0 0; font-family: var(--serif); font-size: 14px; color: var(--ink-2); }
@@ -251,3 +252,25 @@ button.cell:hover { background: #F1ECFA; }
 .gantt.compact .g-day { overflow: visible; white-space: nowrap; text-align: left; padding-left: 1px; font-size: 11px; }
 .gantt.compact .g-month { overflow: visible; }
 .gantt.compact .g-day:not(:empty) { z-index: 4; }
+
+/* ficha do filme aberta na própria agenda */
+.peek { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .42s var(--ease), opacity .3s ease, margin .42s var(--ease); margin-top: 0; }
+.peek.open { grid-template-rows: 1fr; opacity: 1; margin-top: 12px; }
+.peek-in { min-height: 0; overflow: hidden; }
+.peek-card { position: relative; padding: 18px 20px 16px; border-radius: 18px; background: #fff; box-shadow: inset 0 0 0 1.5px var(--purple), 0 10px 30px -14px rgba(64, 32, 128, .35); transform: translateY(-8px) scale(.985); transform-origin: top left; transition: transform .42s var(--ease); max-width: 640px; }
+.peek.open .peek-card { transform: none; }
+.peek-card .k { margin: 0 0 4px; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.peek-card h4 { margin: 0 0 6px; padding-right: 36px; font-size: 24px; font-weight: 800; line-height: 1.1; color: var(--purple-ink); }
+.peek-card .track { margin-top: 10px; }
+.peek-card .track li { opacity: 0; transform: translateX(-6px); transition: opacity .3s ease, transform .3s var(--ease); }
+.peek.open .peek-card .track li { opacity: 1; transform: none; }
+.peek.open .peek-card .track li:nth-child(2) { transition-delay: .04s; } .peek.open .peek-card .track li:nth-child(3) { transition-delay: .08s; }
+.peek.open .peek-card .track li:nth-child(4) { transition-delay: .12s; } .peek.open .peek-card .track li:nth-child(5) { transition-delay: .16s; }
+.peek.open .peek-card .track li:nth-child(6) { transition-delay: .2s; } .peek.open .peek-card .track li:nth-child(n+7) { transition-delay: .24s; }
+.peek-x { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border: 0; border-radius: 50%; background: #F1ECFA; color: var(--purple); font-size: 20px; line-height: 1; cursor: pointer; transition: background .2s, transform .2s var(--ease); }
+.peek-x:hover { background: var(--purple); color: #fff; transform: rotate(90deg); }
+.peek-acts { margin-top: 12px; display: flex; justify-content: flex-end; }
+.peek-acts .copy { padding: 7px 12px; border: 0; border-radius: 999px; background: none; font: inherit; font-size: 12px; font-weight: 700; color: var(--purple); box-shadow: inset 0 0 0 1.5px var(--line); cursor: pointer; }
+.peek-acts .copy:hover { box-shadow: inset 0 0 0 1.5px var(--purple); }
+#view > .peek { margin-bottom: 16px; }
+@media (prefers-reduced-motion: reduce) { .peek, .peek-card, .peek-card .track li { transition: none !important; } }
