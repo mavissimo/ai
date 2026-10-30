@@ -33,19 +33,27 @@
     const nav = /Edg\//.test(ua) ? "Edge" : /OPR\//.test(ua) ? "Opera" : /SamsungBrowser/.test(ua) ? "Samsung" : /Firefox|FxiOS/.test(ua) ? "Firefox"
       : /CriOS|Chrome/.test(ua) ? "Chrome" : /Safari/.test(ua) ? "Safari" : "Outro";
     const tipo = /iPhone/.test(ua) || (/Android/.test(ua) && /Mobile/.test(ua)) ? "celular" : so === "iPad" || /Android/.test(ua) ? "tablet" : "computador";
-    return { so, nav, tipo, tela: `${screen.width}×${screen.height}` };
+    const ver = (/OS (\d+)[_.](\d+)/.exec(ua) || /Android (\d+(?:\.\d+)?)/.exec(ua) || /Windows NT (\d+\.\d+)/.exec(ua) || /Mac OS X (\d+)[_.](\d+)/.exec(ua) || []).slice(1).filter(Boolean).join(".");
+    const navVer = (/(?:Edg|OPR|SamsungBrowser|Firefox|FxiOS|CriOS|Chrome|Version)\/(\d+)/.exec(ua) || [])[1] || "";
+    return { so, sover: so === "Windows" ? { "10.0": "10/11", "6.3": "8.1", "6.1": "7" }[ver] || ver : ver, nav, navver: navVer, tipo, tela: `${screen.width}×${screen.height}`,
+      idioma: navigator.language, fuso: Intl.DateTimeFormat().resolvedOptions().timeZone };
+  }
+  // modelo do aparelho (Android/Chrome informam; iPhone não)
+  async function modelo() {
+    try { const h = await navigator.userAgentData?.getHighEntropyValues?.(["model", "platformVersion"]); return h?.model ? { modelo: h.model } : {}; } catch { return {}; }
   }
   async function local() {
-    const salvo = ss("fb-loc"); if (salvo) return JSON.parse(salvo);
+    const salvo = ss("fb-loc2"); if (salvo) return JSON.parse(salvo);
+    // pela conexão (sem pedir permissão): cidade, CEP aproximado, provedor/empresa da rede e um ponto aproximado
     const fontes = [
-      ["https://ipapi.co/json/", (j) => ({ cidade: j.city, uf: j.region, pais: j.country_name })],
-      ["https://ipwho.is/", (j) => ({ cidade: j.city, uf: j.region, pais: j.country })],
+      ["https://ipapi.co/json/", (j) => ({ cidade: j.city, uf: j.region_code || j.region, pais: j.country_name, cep: j.postal, rede: j.org, lat: j.latitude, lon: j.longitude })],
+      ["https://ipwho.is/", (j) => ({ cidade: j.city, uf: j.region_code || j.region, pais: j.country, cep: j.postal, rede: j.connection?.org || j.connection?.isp, lat: j.latitude, lon: j.longitude })],
     ];
     for (const [url, ler] of fontes) {
       try {
         const ctl = new AbortController(); setTimeout(() => ctl.abort(), 4000);
         const j = await (await fetch(url, { signal: ctl.signal })).json();
-        const l = ler(j); if (l.cidade || l.pais) { ss("fb-loc", JSON.stringify(l)); return l; }
+        const l = ler(j); if (l.cidade || l.pais) { if (l.lat) { l.lat = +(+l.lat).toFixed(3); l.lon = +(+l.lon).toFixed(3); } ss("fb-loc2", JSON.stringify(l)); return l; }
       } catch {}
     }
     return {};
@@ -56,7 +64,7 @@
     if (ss("fb-entrou-" + PAGINA)) return;
     ss("fb-entrou-" + PAGINA, "1");
     const ref = document.referrer && !document.referrer.includes(location.host) ? new URL(document.referrer).host : "";
-    envia("entrada", { pag: PAGINA, ...aparelho(), ...(await local()), ref, eu: ls("fb-eu") ? 1 : 0 });
+    envia("entrada", { pag: PAGINA, ...aparelho(), ...(await modelo()), ...(await local()), ref, eu: ls("fb-eu") ? 1 : 0 });
   })();
 
   // sinal de vida enquanto a aba está visível e a pessoa não está ociosa
@@ -136,7 +144,11 @@
 .fbp-nome{font-weight:800;font-size:14.5px}
 .fbp-nome small{font-weight:600;color:#8F889E;margin-left:6px;font-size:12px}
 .fbp-meta{grid-column:2;font-size:12.5px;color:#5B5470}
-.fbp-qdo{grid-row:1/3;grid-column:3;text-align:right;font-size:12px;color:#8F889E;font-weight:600}
+.fbp-det{grid-column:2;display:flex;flex-wrap:wrap;gap:2px 8px;font-size:11.5px;color:#8F889E}
+.fbp-det b{color:#5B5470;font-weight:700}
+.fbp-det i{font-style:normal;color:#D6D0E0}
+.fbp-det a{color:#613CAD;text-decoration:none;font-weight:600}
+.fbp-qdo{grid-row:1/4;grid-column:3;text-align:right;font-size:12px;color:#8F889E;font-weight:600}
 .fbp-qdo b{display:block;color:#2B2340;font-size:13px}
 .fbp-ren{border:0;background:none;color:#613CAD;font:600 11.5px system-ui;cursor:pointer;padding:0;margin-left:8px;text-decoration:underline}
 .fbp-ses{padding:10px 14px 4px 60px;border-bottom:1px solid #F3F0F7}
@@ -240,7 +252,17 @@
     const nomeDe = (p) => n[p.vis] || (meus.has(p.vis) ? "Você" : ordemNome.get(p.vis));
     const ini = (s) => s.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
     const lugar = (i) => [i?.cidade, i?.uf && i.uf !== i.cidade ? i.uf : "", i?.pais && i.pais !== "Brazil" && i.pais !== "Brasil" ? i.pais : ""].filter(Boolean).join(", ") || "local desconhecido";
-    const disp = (i) => i ? `${i.tipo === "celular" ? "📱" : i.tipo === "tablet" ? "📱" : "💻"} ${i.so} · ${i.nav}` : "aparelho desconhecido";
+    const disp = (i) => i ? `${i.tipo === "celular" || i.tipo === "tablet" ? "📱" : "💻"} ${i.modelo ? `${i.modelo} · ` : ""}${i.so}${i.sover ? ` ${i.sover}` : ""} · ${i.nav}` : "aparelho desconhecido";
+    // a rede costuma dizer de onde a pessoa acessa (ex.: a rede de uma empresa ou o provedor de casa)
+    const rede = (i) => String(i?.rede || "").replace(/^AS\d+\s*/, "");
+    const detalhes = (i) => !i ? "" : [
+      rede(i) && `<span title="Provedor ou empresa dona da conexão">Rede: <b>${esc(rede(i))}</b></span>`,
+      i.cep && `<span>CEP aprox. ${esc(i.cep)}</span>`,
+      i.lat && `<a href="https://www.google.com/maps?q=${i.lat},${i.lon}" target="_blank" rel="noopener" title="Ponto aproximado, pela conexão">ver região no mapa ↗</a>`,
+      i.tela && `<span>tela ${esc(i.tela)}</span>`,
+      i.idioma && i.idioma !== "pt-BR" && `<span>idioma ${esc(i.idioma)}</span>`,
+      i.fuso && i.fuso !== "America/Sao_Paulo" && `<span>fuso ${esc(i.fuso)}</span>`,
+    ].filter(Boolean).join("<i>·</i>");
     const acaoTxt = (a, variasPags) => {
       const d = a.d || {};
       const o = { clicou: "clicou em", marcou: "marcou", desmarcou: "desmarcou", abriu: "abriu", assistiu: "assistiu" }[d.o] || d.o;
@@ -253,9 +275,10 @@
           <span class="fbp-nome">${esc(nomeDe(p))}<small>${p.sessoes.length} ${p.sessoes.length === 1 ? "visita" : "visitas"}</small><button class="fbp-ren" data-ren="${esc(p.vis)}">renomear</button></span>
           <span class="fbp-qdo">${on(p) ? "<b style='color:#1E8A52'>online agora</b>" : `<b>${dia(p.ult)}</b>${hora(p.ult)}`}</span>
           <span class="fbp-meta">${esc(disp(p.info))} · ${esc(lugar(p.info))}</span>
+          ${detalhes(p.info) ? `<span class="fbp-det">${detalhes(p.info)}</span>` : ""}
         </summary>
         ${p.sessoes.map((s) => `<div class="fbp-ses">
-          <h4>${dia(s.ini)}, ${hora(s.ini)}<span>${dur(Date.parse(s.fim) - Date.parse(s.ini))} · ${[...s.pags].filter(Boolean).map((x) => NOME_PAG[x] || x).join(" + ")}${s.info?.ref ? ` · veio de ${esc(s.info.ref)}` : ""}${s.info ? ` · ${esc(s.info.tela)}` : ""}</span></h4>
+          <h4>${dia(s.ini)}, ${hora(s.ini)}<span>${dur(Date.parse(s.fim) - Date.parse(s.ini))} · ${[...s.pags].filter(Boolean).map((x) => NOME_PAG[x] || x).join(" + ")}${s.info?.ref ? ` · veio de ${esc(s.info.ref)}` : ""}${s.info && (s.info.rede !== p.info?.rede || s.info.cidade !== p.info?.cidade) ? ` · de outro lugar: ${esc(lugar(s.info))}${rede(s.info) ? `, rede ${esc(rede(s.info))}` : ""}` : ""}</span></h4>
           ${s.acoes.length ? `<ul class="fbp-acoes">${s.acoes.sort((a, b) => a.t.localeCompare(b.t)).map((a) => `<li><time>${hora(a.t)}</time><span>${acaoTxt(a, s.pags.size > 1)}</span></li>`).join("")}</ul>` : `<p class="fbp-acoes" style="color:#8F889E;font-size:12.5px;margin:0 0 8px">Só olhou, sem cliques.</p>`}
         </div>`).join("")}
       </details>`).join("") : `<div class="fbp-vazio">Nenhuma visita registrada${filtro !== "todos" ? " nesta página" : ""} ainda.</div>`;
