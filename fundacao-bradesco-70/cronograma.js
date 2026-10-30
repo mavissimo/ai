@@ -302,8 +302,9 @@ function boot() {
           // o filme em destaque; a etapa vira um rótulo pequeno em cima.
           // V2 e online são recebimentos (abrir a versão); o retorno da V2 tem o check de aprovado.
           const receb = e.k === "v2" || e.k === "on";
-          const corpo = receb ? `<div class="rcs">${g.map((x) => recebHTML(x.f, e.k)).join("")}</div>`
-            : e.k === "rev" ? `<div class="rcs">${g.map((x) => checkHTML(x.f, "v2")).join("")}</div>`
+          const rcs = `rcs${g.length > 3 ? " duas" : ""}`; // muitos filmes no mesmo dia: duas colunas
+          const corpo = receb ? `<div class="${rcs}">${g.map((x) => recebHTML(x.f, e.k)).join("")}</div>`
+            : e.k === "rev" ? `<div class="${rcs}">${g.map((x) => checkHTML(x.f, "v2")).join("")}</div>`
             : `<div class="films">${g.map((x) => filmChip(x.f)).join("")}</div>`;
           return `<li class="item${s.you ? " you" : ""}${receb ? " receb" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? TAG_EQUIPE : ""}${receb ? '<span class="tag-rc">Recebimento</span>' : ""}${g.some((x) => estadoEv(x) === "late") ? '<span class="st-tag st-late">Atrasado</span>' : ""}</span>${corpo}</div></li>`;
         }).join("");

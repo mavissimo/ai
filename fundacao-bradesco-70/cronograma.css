@@ -289,6 +289,7 @@ button.watch { border: 0; font: inherit; font-size: 13px; font-weight: 800; curs
 .rcs { display: grid; gap: 8px; margin-top: 8px; }
 .rc { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .rc .film { flex: 0 1 auto; }
+@media (min-width: 760px) { .rcs.duas { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px; } }
 .rc-a { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
 .watch.sm { padding: 8px 14px; font-size: 13px; }
 .rc-st { font-size: 12.5px; font-weight: 700; color: var(--ink-3); }
