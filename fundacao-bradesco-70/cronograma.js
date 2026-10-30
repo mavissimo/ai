@@ -26,7 +26,7 @@ function boot() {
   const STEP = {
     ed: { label: "Edição", c: "var(--c-ed)", bar: true, desc: "Montagem, V1 e ajustes internos" },
     v2: { label: "V2 chega para a Equipe Bradesco", short: "V2", c: "var(--c-v2)", desc: "O filme montado, para a revisão da Equipe Bradesco" },
-    rev: { label: "Retorno da V2", short: "Retorno", c: "var(--c-rev)", you: true, desc: "Uma devolutiva consolidada, em 1 dia útil" },
+    rev: { label: "Retorno da V2", short: "Retorno", c: "var(--c-rev)", you: true, desc: "Uma devolutiva consolidada, até a data indicada" },
     off: { label: "Offline aprovado", short: "Offline", c: "var(--c-off)", desc: "Montagem travada: só ajustes pontuais e o aceite" },
     fin: { label: "Finalização", short: "Cor e som", c: "var(--c-fin)", bar: true, desc: "Cor, som, grafismos e legendas" },
     on: { label: "Online para conferência", short: "Online", c: "var(--c-on)", desc: "O filme finalizado, para a Equipe Bradesco conferir" },
