@@ -308,6 +308,11 @@ button.watch { border: 0; font: inherit; font-size: 13px; font-weight: 800; curs
 .aprova.on .box::after { transform: translateY(-1px) rotate(-45deg) scale(1); }
 .aprova input:focus-visible + .box { outline: 2px solid var(--purple); outline-offset: 2px; }
 .aprova.off { opacity: .5; cursor: not-allowed; }
+.aprova.so { padding: 7px 10px; }
+.aprova.so.on { padding-right: 14px; }
+.aprova .txt:empty { display: none; }
+.step-k .dica { margin-left: 10px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink-3); }
+@media (max-width: 600px) { .step-k .dica { display: block; margin: 4px 0 0; } }
 .aprova.off:hover { box-shadow: inset 0 0 0 1.5px var(--line); }
 .item.you .aprova { background: #fff; }
 .acao { display: grid; gap: 10px; margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; background: #F6F1FF; box-shadow: inset 0 0 0 1.5px rgba(97, 60, 173, .22); }

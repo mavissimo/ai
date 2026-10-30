@@ -136,9 +136,9 @@ function boot() {
     const r = REG.get(f.id, v);
     return `<div class="rc">${comChip ? filmChip(f) : ""}<div class="rc-a">${acao}<span class="rc-st${r.aberto ? " ok" : ""}" data-aberto="${f.id}|${v}">${txtAberto(f, v)}</span></div></div>`;
   }
-  function checkHTML(f, v, comChip = true) {
+  function checkHTML(f, v, comChip = true, so = false) { // so: só a caixa (na agenda, o rótulo já diz o que é)
     const r = REG.get(f.id, v), pode = chegou(f, v);
-    return `<div class="rc">${comChip ? filmChip(f) : ""}<label class="aprova${r.aprovado ? " on" : ""}${pode ? "" : " off"}"${pode ? "" : ` title="Libera quando ${NOME_V[v]} chegar"`}><input type="checkbox" data-aprova="${f.id}|${v}"${r.aprovado ? " checked" : ""}${pode ? "" : " disabled"}><span class="box" aria-hidden="true"></span><span class="txt">${r.aprovado ? `Aprovado em ${dmIso(r.quando)}` : "Aprovado"}</span></label></div>`;
+    return `<div class="rc">${comChip ? filmChip(f) : ""}<label class="aprova${so ? " so" : ""}${r.aprovado ? " on" : ""}${pode ? "" : " off"}" title="${pode ? "Aprovado" : `Libera quando ${NOME_V[v]} chegar`}"><input type="checkbox" data-aprova="${f.id}|${v}"${r.aprovado ? " checked" : ""}${pode ? "" : " disabled"}><span class="box" aria-hidden="true"></span><span class="txt">${r.aprovado ? `Aprovado em ${dmIso(r.quando)}` : so ? "" : "Aprovado"}</span></label></div>`;
   }
   // a versão da vez, com o check logo abaixo (ficha, destaque e cartões)
   function acaoHTML(f, dark) {
@@ -151,7 +151,7 @@ function boot() {
     document.querySelectorAll("[data-aprova]").forEach((c) => {
       const [id, v] = c.dataset.aprova.split("|"), r = REG.get(id, v), l = c.closest(".aprova");
       c.checked = !!r.aprovado; l.classList.toggle("on", !!r.aprovado);
-      l.querySelector(".txt").textContent = r.aprovado ? `Aprovado em ${dmIso(r.quando)}` : "Aprovado";
+      l.querySelector(".txt").textContent = r.aprovado ? `Aprovado em ${dmIso(r.quando)}` : l.classList.contains("so") ? "" : "Aprovado";
     });
     document.querySelectorAll("[data-aberto]").forEach((n) => {
       const [id, v] = n.dataset.aberto.split("|"); if (!byId[id]) return;
@@ -304,9 +304,9 @@ function boot() {
           const receb = e.k === "v2" || e.k === "on";
           const rcs = `rcs${g.length > 3 ? " duas" : ""}`; // muitos filmes no mesmo dia: duas colunas
           const corpo = receb ? `<div class="${rcs}">${g.map((x) => recebHTML(x.f, e.k, true, true)).join("")}</div>`
-            : e.k === "rev" ? `<div class="${rcs}">${g.map((x) => checkHTML(x.f, "v2")).join("")}</div>`
+            : e.k === "rev" ? `<div class="${rcs}">${g.map((x) => checkHTML(x.f, "v2", true, true)).join("")}</div>`
             : `<div class="films">${g.map((x) => filmChip(x.f)).join("")}</div>`;
-          return `<li class="item${s.you ? " you" : ""}${receb ? " receb" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? TAG_EQUIPE : ""}${receb ? '<span class="tag-rc">Recebimento</span>' : ""}${g.some((x) => estadoEv(x) === "late") ? '<span class="st-tag st-late">Atrasado</span>' : ""}</span>${corpo}</div></li>`;
+          return `<li class="item${s.you ? " you" : ""}${receb ? " receb" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? TAG_EQUIPE : ""}${receb ? '<span class="tag-rc">Recebimento</span>' : ""}${e.k === "rev" ? '<span class="dica">marque ✓ o que estiver aprovado</span>' : ""}${g.some((x) => estadoEv(x) === "late") ? '<span class="st-tag st-late">Atrasado</span>' : ""}</span>${corpo}</div></li>`;
         }).join("");
         const cls = d < TODAY ? " past" : d === TODAY ? " today" : "";
         html += `<div class="day${cls}"><div class="day-date"><strong>${dm(d)}</strong><span>${WDL[D(d).getDay()]}</span></div><ul class="items">${items}</ul></div>`;
