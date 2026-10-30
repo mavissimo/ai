@@ -136,9 +136,9 @@ function boot() {
     const r = REG.get(f.id, v);
     return `<div class="rc">${comChip ? filmChip(f) : ""}<div class="rc-a">${acao}<span class="rc-st${r.aberto ? " ok" : ""}" data-aberto="${f.id}|${v}">${txtAberto(f, v)}</span></div></div>`;
   }
-  function checkHTML(f, v, comChip = true, so = false) { // so: só a caixa (na agenda, o rótulo já diz o que é)
+  function checkHTML(f, v, comChip = true) {
     const r = REG.get(f.id, v), pode = chegou(f, v);
-    return `<div class="rc">${comChip ? filmChip(f) : ""}<label class="aprova${so ? " so" : ""}${r.aprovado ? " on" : ""}${pode ? "" : " off"}" title="${pode ? "Aprovado" : `Libera quando ${NOME_V[v]} chegar`}"><input type="checkbox" data-aprova="${f.id}|${v}"${r.aprovado ? " checked" : ""}${pode ? "" : " disabled"}><span class="box" aria-hidden="true"></span><span class="txt">${r.aprovado ? `Aprovado em ${dmIso(r.quando)}` : so ? "" : "Aprovado"}</span></label></div>`;
+    return `<div class="rc">${comChip ? filmChip(f) : ""}<label class="aprova${r.aprovado ? " on" : ""}${pode ? "" : " off"}" title="${pode ? "Aprovado" : `Libera quando ${NOME_V[v]} chegar`}"><input type="checkbox" data-aprova="${f.id}|${v}"${r.aprovado ? " checked" : ""}${pode ? "" : " disabled"}><span class="box" aria-hidden="true"></span><span class="txt">${r.aprovado ? `Aprovado em ${dmIso(r.quando)}` : "Aprovado"}</span></label></div>`;
   }
   // a versão da vez, com o check logo abaixo (ficha, destaque e cartões)
   function acaoHTML(f, dark) {
@@ -151,7 +151,7 @@ function boot() {
     document.querySelectorAll("[data-aprova]").forEach((c) => {
       const [id, v] = c.dataset.aprova.split("|"), r = REG.get(id, v), l = c.closest(".aprova");
       c.checked = !!r.aprovado; l.classList.toggle("on", !!r.aprovado);
-      l.querySelector(".txt").textContent = r.aprovado ? `Aprovado em ${dmIso(r.quando)}` : l.classList.contains("so") ? "" : "Aprovado";
+      l.querySelector(".txt").textContent = r.aprovado ? `Aprovado em ${dmIso(r.quando)}` : "Aprovado";
     });
     document.querySelectorAll("[data-aberto]").forEach((n) => {
       const [id, v] = n.dataset.aberto.split("|"); if (!byId[id]) return;
@@ -193,10 +193,15 @@ function boot() {
   function renderTray() {
     const P = pendencias();
     if (trayAba && !P[trayAba].length) trayAba = null;
-    const rows = !trayAba ? "" : P[trayAba].map((x) =>
-      trayAba === "aprovar" ? `<div class="tr-row${x.late ? " late" : ""}">${checkHTML(x.f, x.v)}<span class="tr-prazo">${x.v === "v2" ? "V2" : "Online"} · ${x.late ? "atrasado, era até" : "até"} ${wd(x.prazo)}, ${dm(x.prazo)}</span></div>`
-      : trayAba === "assistir" ? `<div class="tr-row">${recebHTML(x.f, x.v)}</div>`
-      : `<div class="tr-row"><div class="rc">${filmChip(x.f)}<span class="rc-soon">${x.v === "v2" ? "V2" : "Online"} ${x.tarde ? `prevista para ${dm(x.quando)} · chega em breve` : `chega ${wd(x.quando)}, ${dm(x.quando)}`}</span></div></div>`).join("");
+    // itens com o mesmo prazo (ou a mesma chegada) ficam juntos, com o texto uma vez só
+    const grupos = (lista, chave) => { const m = new Map(); lista.forEach((x) => { const k = chave(x); if (!m.has(k)) m.set(k, []); m.get(k).push(x); }); return [...m.entries()]; };
+    const V = (v) => (v === "v2" ? "V2" : "Online");
+    const rows = !trayAba ? ""
+      : trayAba === "aprovar" ? grupos(P.aprovar, (x) => `${V(x.v)} · ${x.late ? "atrasado, era até" : "até"} ${wd(x.prazo)}, ${dm(x.prazo)}|${x.late ? 1 : 0}`).map(([k, g]) =>
+          `<div class="tr-row${k.endsWith("|1") ? " late" : ""}"><span class="tr-prazo">${k.split("|")[0]}</span><div class="rcs">${g.map((x) => checkHTML(x.f, x.v)).join("")}</div></div>`).join("")
+      : trayAba === "assistir" ? P.assistir.map((x) => `<div class="tr-row">${recebHTML(x.f, x.v)}</div>`).join("")
+      : grupos(P.chegando, (x) => `${V(x.v)} ${x.tarde ? `prevista para ${dm(x.quando)} · chega em breve` : `chega ${wd(x.quando)}, ${dm(x.quando)}`}`).map(([k, g]) =>
+          `<div class="tr-row"><span class="tr-prazo">${k}</span><div class="films">${g.map((x) => filmChip(x.f)).join("")}</div></div>`).join("");
     const abas = [["aprovar", "Para aprovar", P.aprovar.some((x) => x.late)], ["assistir", "Para assistir"], ["chegando", "Chegando"]];
     tray.innerHTML = (trayAba ? `<div class="tray-sheet" role="region" aria-label="${TRAY[trayAba]}"><div class="tray-h"><b>${TRAY[trayAba]}</b><button type="button" class="tray-x" aria-label="Fechar">×</button></div><div class="tray-list">${rows}</div></div>` : "")
       + (abas.some(([k]) => P[k].length) ? `<div class="tray-bar">${abas.filter(([k]) => P[k].length).map(([k, l, late]) => `<button type="button" class="tray-tab${trayAba === k ? " on" : ""}${late ? " late" : ""}" data-aba="${k}" aria-expanded="${trayAba === k}"><span class="tray-n">${P[k].length}</span>${l}</button>`).join("")}</div>` : "");
@@ -271,6 +276,28 @@ function boot() {
   const filmChip = (f) => `<a class="film" href="#filme/${f.id}" data-peek="${f.id}" aria-expanded="false"><b>${esc(filmTitle(f))}</b><small>${esc(filmSub(f))}</small></a>`;
 
   // ── Agenda: semana a semana ──
+  // um dia: a mesma etapa vira um item só, com o rótulo uma vez e os filmes embaixo (agenda e calendário)
+  function itensDoDia(list) {
+    const groups = new Map();
+    list.forEach((e) => { const k = e.k === "fecho" ? "fecho:" + e.x.titulo : e.k; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(e); });
+    const items = [...groups.values()].map((g) => {
+      const e = g[0];
+      if (e.k === "fecho") {
+        const checks = e.x.cliente ? `<div class="rcs duas">${filmes().map((f) => checkHTML(f, "on")).join("")}</div>` : ""; // retorno técnico: o check de cada online
+        return `<li class="item${e.x.cliente ? " you" : ""}" style="--c:${evColor(e)}"><i></i><div><strong>${esc(e.x.titulo)}${e.x.cliente ? TAG_EQUIPE : ""}</strong><p>${esc(e.x.texto)}${e.x.fim ? ` Até ${dm(e.x.fim)}.` : ""}</p>${checks}</div></li>`;
+      }
+      const s = STEP[e.k];
+      // o filme em destaque; a etapa vira um rótulo pequeno em cima.
+      // V2 e online são recebimentos (abrir a versão); o retorno da V2 tem o check de aprovado.
+      const receb = e.k === "v2" || e.k === "on";
+      const rcs = `rcs${g.length > 3 ? " duas" : ""}`; // muitos filmes no mesmo dia: duas colunas
+      const corpo = receb ? `<div class="${rcs}">${g.map((x) => recebHTML(x.f, e.k, true, true)).join("")}</div>`
+        : e.k === "rev" ? `<div class="${rcs}">${g.map((x) => checkHTML(x.f, "v2")).join("")}</div>`
+        : `<div class="films">${g.map((x) => filmChip(x.f)).join("")}</div>`;
+      return `<li class="item${s.you ? " you" : ""}${receb ? " receb" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? TAG_EQUIPE : ""}${receb ? '<span class="tag-rc">Recebimento</span>' : ""}${g.some((x) => estadoEv(x) === "late") ? '<span class="st-tag st-late">Atrasado</span>' : ""}</span>${corpo}</div></li>`;
+    }).join("");
+    return items;
+  }
   function viewAgenda() {
     const byDay = new Map();
     eventos().forEach((e) => { if (!byDay.has(e.date)) byDay.set(e.date, []); byDay.get(e.date).push(e); });
@@ -288,26 +315,7 @@ function boot() {
       const ano = fri.getFullYear() !== D(C.inicio).getFullYear() && a.getMonth() === 0 && a.getDate() <= 7 ? ` de ${fri.getFullYear()}` : "";
       html += `<section class="week"><h3>Semana de ${a.getDate()}${same ? "" : ` de ${MES[a.getMonth()].slice(0, 3)}.`} a ${fri.getDate()} de ${MES[fri.getMonth()]}${ano}</h3>`;
       days.forEach((d) => {
-        const list = byDay.get(d);
-        // agrupa a mesma etapa no mesmo dia
-        const groups = new Map();
-        list.forEach((e) => { const k = e.k === "fecho" ? "fecho:" + e.x.titulo : e.k; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(e); });
-        const items = [...groups.values()].map((g) => {
-          const e = g[0];
-          if (e.k === "fecho") {
-            const checks = e.x.cliente ? `<div class="rcs">${filmes().map((f) => checkHTML(f, "on")).join("")}</div>` : ""; // retorno técnico: o check de cada online
-            return `<li class="item${e.x.cliente ? " you" : ""}" style="--c:${evColor(e)}"><i></i><div><strong>${esc(e.x.titulo)}${e.x.cliente ? TAG_EQUIPE : ""}</strong><p>${esc(e.x.texto)}${e.x.fim ? ` Até ${dm(e.x.fim)}.` : ""}</p>${checks}</div></li>`;
-          }
-          const s = STEP[e.k];
-          // o filme em destaque; a etapa vira um rótulo pequeno em cima.
-          // V2 e online são recebimentos (abrir a versão); o retorno da V2 tem o check de aprovado.
-          const receb = e.k === "v2" || e.k === "on";
-          const rcs = `rcs${g.length > 3 ? " duas" : ""}`; // muitos filmes no mesmo dia: duas colunas
-          const corpo = receb ? `<div class="${rcs}">${g.map((x) => recebHTML(x.f, e.k, true, true)).join("")}</div>`
-            : e.k === "rev" ? `<div class="${rcs}">${g.map((x) => checkHTML(x.f, "v2", true, true)).join("")}</div>`
-            : `<div class="films">${g.map((x) => filmChip(x.f)).join("")}</div>`;
-          return `<li class="item${s.you ? " you" : ""}${receb ? " receb" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? TAG_EQUIPE : ""}${receb ? '<span class="tag-rc">Recebimento</span>' : ""}${e.k === "rev" ? '<span class="dica">marque ✓ o que estiver aprovado</span>' : ""}${g.some((x) => estadoEv(x) === "late") ? '<span class="st-tag st-late">Atrasado</span>' : ""}</span>${corpo}</div></li>`;
-        }).join("");
+        const items = itensDoDia(byDay.get(d));
         const cls = d < TODAY ? " past" : d === TODAY ? " today" : "";
         html += `<div class="day${cls}"><div class="day-date"><strong>${dm(d)}</strong><span>${WDL[D(d).getDay()]}</span></div><ul class="items">${items}</ul></div>`;
       });
@@ -404,10 +412,7 @@ function boot() {
     const anos = first.getFullYear() === last.getFullYear() ? `${cap(MES[first.getMonth()])} a ${MES[last.getMonth()]} de ${last.getFullYear()}` : `${cap(MES[first.getMonth()])} de ${first.getFullYear()} a ${MES[last.getMonth()]} de ${last.getFullYear()}`;
     const html = `<section class="month"><h3>${anos}</h3><div class="cal">${cells}</div></section>`;
     const sel = selDay && byDay.get(selDay);
-    const box = sel ? `<div class="daybox"><h4>${WDL[D(selDay).getDay()]}, ${dm(selDay)}</h4><ul class="items">${sel.map((e) => e.k === "fecho"
-      ? `<li class="item${e.x.cliente ? " you" : ""}" style="--c:${evColor(e)}"><i></i><div><strong>${esc(e.x.titulo)}</strong><p>${esc(e.x.texto)}</p></div></li>`
-      : `<li class="item${STEP[e.k].you ? " you" : ""}" style="--c:${STEP[e.k].c}"><i></i><div><strong>${esc(STEP[e.k].label)}${estadoEv(e) ? `<span class="st-tag st-${estadoEv(e)}">${ROT_EST[estadoEv(e)]}</span>` : ""}</strong><p>${link(e.f)}</p>${
-        e.k === "rev" && enviado(e.f, "v2") ? `<div class="rcs">${checkHTML(e.f, "v2", false)}</div>` : (e.k === "v2" || e.k === "on") && chegou(e.f, e.k) ? `<div class="rcs">${recebHTML(e.f, e.k, false)}</div>` : ""}</div></li>`).join("")}</ul></div>` : "";
+    const box = sel ? `<div class="daybox"><h4>${WDL[D(selDay).getDay()]}, ${dm(selDay)}</h4><ul class="items">${itensDoDia(sel)}</ul></div>` : "";
     return `<p class="hint" style="margin:0 0 14px">Clique num dia para ver tudo o que acontece nele.</p><div class="months">${html}</div><div id="daybox-anchor">${box}</div>`;
   }
 
