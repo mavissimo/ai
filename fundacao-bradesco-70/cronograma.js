@@ -125,14 +125,14 @@ function boot() {
   const chegou = (f, v) => (live[f.id] ?? -1) >= (v === "v2" ? 1 : 5) || f[v] <= TODAY; // pelo Controle ou pela data
   const disponivel = (f, v) => { const i = live[f.id] ?? -1; return !!(links[f.id] || []).length && (v === "v2" ? i >= 1 && i <= 4 : i >= 5); };
   const txtAberto = (f, v) => { const r = REG.get(f.id, v); return r.aberto ? `Aberto em ${dmIso(r.aberto)}` : disponivel(f, v) ? "Ainda não aberto" : ""; };
-  function recebHTML(f, v, comChip = true) {
+  function recebHTML(f, v, comChip = true, noDia = false) { // noDia: já está no dia da chegada, sem repetir a data
     let acao;
     if (disponivel(f, v)) {
       const vs = links[f.id], fora = vs.find((x) => isFrameio(x.url)) || vs.find((x) => !tocaNoPlayer(x.url)); // fora do player: abre o link
       acao = fora
         ? `<a class="watch sm" href="${esc(fora.url)}" target="_blank" rel="noopener" data-abre="${f.id}|${v}">${isFrameio(fora.url) ? "Abrir no Frame.io" : `Abrir ${NOME_V[v]}`} <span aria-hidden="true">↗</span></a>`
         : `<button type="button" class="watch sm" data-watch="${f.id}" data-abre="${f.id}|${v}">▶ Assistir ${v === "v2" ? "à V2" : "ao online"}</button>`;
-    } else acao = `<span class="rc-soon">${chegou(f, v) ? (REG.get(f.id, v).aberto ? "" : "O link chega em breve") : `Chega ${wd(f[v])}, ${dm(f[v])}`}</span>`;
+    } else acao = `<span class="rc-soon">${chegou(f, v) ? (REG.get(f.id, v).aberto ? "" : "O link chega em breve") : noDia ? "" : `Chega ${wd(f[v])}, ${dm(f[v])}`}</span>`;
     const r = REG.get(f.id, v);
     return `<div class="rc">${comChip ? filmChip(f) : ""}<div class="rc-a">${acao}<span class="rc-st${r.aberto ? " ok" : ""}" data-aberto="${f.id}|${v}">${txtAberto(f, v)}</span></div></div>`;
   }
@@ -303,7 +303,7 @@ function boot() {
           // V2 e online são recebimentos (abrir a versão); o retorno da V2 tem o check de aprovado.
           const receb = e.k === "v2" || e.k === "on";
           const rcs = `rcs${g.length > 3 ? " duas" : ""}`; // muitos filmes no mesmo dia: duas colunas
-          const corpo = receb ? `<div class="${rcs}">${g.map((x) => recebHTML(x.f, e.k)).join("")}</div>`
+          const corpo = receb ? `<div class="${rcs}">${g.map((x) => recebHTML(x.f, e.k, true, true)).join("")}</div>`
             : e.k === "rev" ? `<div class="${rcs}">${g.map((x) => checkHTML(x.f, "v2")).join("")}</div>`
             : `<div class="films">${g.map((x) => filmChip(x.f)).join("")}</div>`;
           return `<li class="item${s.you ? " you" : ""}${receb ? " receb" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? TAG_EQUIPE : ""}${receb ? '<span class="tag-rc">Recebimento</span>' : ""}${g.some((x) => estadoEv(x) === "late") ? '<span class="st-tag st-late">Atrasado</span>' : ""}</span>${corpo}</div></li>`;
