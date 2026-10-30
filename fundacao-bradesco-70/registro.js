@@ -52,7 +52,7 @@ window.FB_REGISTRO = Object.assign({
   };
   if (sheet && R.aba) {
     const s = document.createElement("script");
-    s.src = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheet)}/gviz/tq?tqx=out:json;responseHandler:__fbRegistro&sheet=${encodeURIComponent(R.aba)}&headers=1&t=${Date.now()}`;
+    s.src = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheet)}/gviz/tq?tqx=out:json;responseHandler:__fbRegistro&sheet=${encodeURIComponent(R.aba)}&headers=1&tq=${encodeURIComponent("select A, B where not B starts with '~'")}&t=${Date.now()}`; // sem as linhas de visita (presenca.js)
     s.async = true; s.onerror = () => { R.carregado = true; avisa(); };
     document.head.append(s);
   }
