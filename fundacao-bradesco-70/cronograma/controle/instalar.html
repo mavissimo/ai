@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Instalar o Controle online</title>
+<style>
+:root { --bg: #F6F5F2; --card: #fff; --fg: #1F1D1A; --muted: #6B6862; --line: #E3E0DA; --brand: #613CAD; }
+@media (prefers-color-scheme: dark) { :root { --bg: #141413; --card: #1D1C1A; --fg: #EEEDEA; --muted: #A3A09A; --line: #35332F; --brand: #B49BF3; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: -.01em; }
+.lead { color: var(--muted); margin: 0 0 24px; }
+ol { padding: 0; margin: 0; list-style: none; counter-reset: p; display: grid; gap: 12px; }
+li { counter-increment: p; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px 16px 58px; position: relative; }
+li::before { content: counter(p); position: absolute; left: 16px; top: 15px; width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: #fff; font-weight: 800; display: grid; place-items: center; font-size: 14px; }
+li h2 { margin: 0 0 4px; font-size: 17px; }
+li p { margin: 4px 0; }
+code { background: color-mix(in srgb, var(--fg) 8%, transparent); padding: 1px 6px; border-radius: 6px; font-size: .92em; }
+a { color: var(--brand); }
+.nota { margin-top: 24px; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Instalar o Controle online</h1>
+  <p class="lead">Uma vez só, uns 10 minutos. Depois o Controle funciona em <a href="./">cronograma/controle</a> para qualquer pessoa da equipe que tenha a chave, sem login no Claude. Ele grava na planilha do site e no Notion.</p>
+  <ol>
+    <li><h2>Crie a integração do Notion</h2>
+      <p>Abra <a href="https://www.notion.so/profile/integrations" target="_blank" rel="noopener">notion.so/profile/integrations</a> › <b>Nova integração</b>. Nome: “Controle FB70”. Tipo: <b>Interna</b>, no espaço de trabalho do projeto.</p>
+      <p>Em <b>Recursos</b>, deixe marcado: ler, atualizar e inserir conteúdo. Salve e copie o <b>Segredo interno de integração</b>.</p></li>
+    <li><h2>Dê acesso à página do cronograma</h2>
+      <p>No Notion, abra “Fundação Bradesco 70 anos | Cronograma” › menu <b>•••</b> no canto › <b>Conexões</b> › adicione “Controle FB70”. A agenda e a base dos 41 vídeos estão dentro dela, então ficam liberadas juntas.</p></li>
+    <li><h2>Cole o script na planilha</h2>
+      <p>Abra a planilha do site › <b>Extensões › Apps Script</b>. Apague o que estiver no arquivo <code>Código.gs</code> e cole todo o conteúdo de <a href="apps-script/Code.gs" target="_blank" rel="noopener">Code.gs</a>. Salve.</p></li>
+    <li><h2>Guarde o segredo e a chave da equipe</h2>
+      <p>No Apps Script, clique na engrenagem (<b>Configurações do projeto</b>) › <b>Propriedades do script</b> › adicione duas:</p>
+      <p><code>NOTION_TOKEN</code> = o segredo copiado no passo 1.<br><code>CHAVE</code> = uma senha para a equipe (ex.: uma frase curta). É ela que cada pessoa digita no Controle.</p></li>
+    <li><h2>Autorize e teste</h2>
+      <p>Volte ao editor, escolha a função <code>teste</code> no menu de cima e clique em <b>Executar</b>. O Google pede permissão para a planilha e para acessar serviços externos (o Notion): permita. No registro deve aparecer “Agenda: … tarefas”.</p></li>
+    <li><h2>Publique como app da web</h2>
+      <p><b>Implantar › Nova implantação</b> › tipo <b>App da Web</b>. “Executar como”: <b>Eu</b>. “Quem pode acessar”: <b>Qualquer pessoa</b>. Clique em <b>Implantar</b> e copie o endereço que termina em <code>/exec</code>.</p>
+      <p>A chave da equipe continua protegendo tudo: sem ela, o script não responde.</p></li>
+    <li><h2>Entre no Controle</h2>
+      <p>Abra <a href="./">cronograma/controle</a>, cole o endereço <code>/exec</code>, a chave e o seu nome. Me mande o endereço <code>/exec</code> que eu deixo ele já embutido, para a equipe só precisar da chave.</p></li>
+  </ol>
+  <p class="nota">Mudou o script depois? Use <b>Implantar › Gerenciar implantações › editar › Nova versão</b>: o endereço continua o mesmo.</p>
+</main>
+</body>
+</html>

@@ -1,0 +1,1611 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Controle dos Filmes · FB 70</title>
+<script src="ponte.js?v=1"></script>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sen:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Layout: uma coluna de trabalho — resumo de status no topo, filtros fixos, lista de filmes agrupada por formato. */
+:root {
+  /* neutros quentes; o roxo do livro fica só no título e no status V2 */
+  --bg: #F6F5F2;
+  --card: #FFFFFF;
+  --surface: #EFEDE9;
+  --line: #E3E0DA;
+  --fg: #1F1D1A;
+  --muted: #6B6862;
+  --accent: #1F1D1A;
+  --accent-fg: #FFFFFF;
+  --accent-soft: #EAE7E2;
+  --brand: #613CAD;
+  --yellow: #F5D775;
+  --st-provisorio: #A29E96;
+  --st-edicao: #A29E96;
+  --st-v2: #613CAD;
+  --st-ajustes: #D9902F;
+  --st-offline: #3F8FB3;
+  --st-finalizacao: #C77D1E;
+  --st-online: #AB3438;
+  --st-aprovado: #2F7A51;
+  --st-entregue: #3D4B66;
+  --danger: #B3353A;
+  --shadow: 0 1px 2px rgba(31, 29, 26, .04), 0 6px 18px -12px rgba(31, 29, 26, .16);
+  --font: "Sen", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141413; --card: #1D1C1A; --surface: #282724; --line: #35332F; --fg: #EEEDEA; --muted: #A3A09A;
+  --accent: #EEEDEA; --accent-fg: #161614; --accent-soft: #2C2B28; --brand: #B49BF3; --yellow: #F0D27A;
+  --st-provisorio: #8E8B85; --st-edicao: #8E8B85; --st-v2: #B49BF3; --st-ajustes: #E8A955; --st-offline: #6DB4D6; --st-finalizacao: #E2A04A; --st-online: #E36F73; --st-aprovado: #62BA8A; --st-entregue: #9AA8C4; --danger: #E36F73;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -12px rgba(0, 0, 0, .6);
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #141413; --card: #1D1C1A; --surface: #282724; --line: #35332F; --fg: #EEEDEA; --muted: #A3A09A;
+  --accent: #EEEDEA; --accent-fg: #161614; --accent-soft: #2C2B28; --brand: #B49BF3; --yellow: #F0D27A;
+  --st-provisorio: #8E8B85; --st-edicao: #8E8B85; --st-v2: #B49BF3; --st-ajustes: #E8A955; --st-offline: #6DB4D6; --st-finalizacao: #E2A04A; --st-online: #E36F73; --st-aprovado: #62BA8A; --st-entregue: #9AA8C4; --danger: #E36F73;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -12px rgba(0, 0, 0, .6);
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 400 15px/1.5 var(--font); }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+header h1 { margin: 0; font-size: 30px; font-weight: 800; letter-spacing: -.02em; color: var(--accent); text-wrap: balance; }
+header p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
+
+.summary { margin: 24px 0 8px; display: grid; gap: 10px; }
+.bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--surface); }
+.bar span { display: block; height: 100%; transition: width .4s; }
+.counts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+.counts b { color: var(--fg); font-variant-numeric: tabular-nums; }
+.sw { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+
+.placeholder { margin: 18px 0; padding: 14px 16px; background: var(--surface); border-radius: 12px;
+  display: grid; grid-template-columns: 1fr; gap: 8px; }
+.placeholder label { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.placeholder .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.placeholder input { flex: 1 1 260px; min-width: 0; }
+.hint { font-size: 13px; color: var(--muted); margin: 0; }
+
+.toolbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg);
+  padding-block: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-bottom: 1px solid var(--line); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.seg { display: inline-flex; background: var(--surface); border-radius: 999px; padding: 3px; flex-wrap: wrap; }
+.seg button { border: 0; background: none; padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+.toolbar .search { flex: 1 1 180px; min-width: 0; }
+a.btn { text-decoration: none; display: inline-block; }
+.btn { border: 1.5px solid var(--accent); background: none; color: var(--accent); padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.btn:hover { background: var(--surface); }
+
+input[type="text"], input[type="url"], input[type="search"], select {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: 14px; }
+input:focus, select:focus { border-color: var(--accent); outline: none; }
+input[readonly], select:disabled { opacity: .7; }
+
+.group { margin-top: 26px; }
+.group h2 { margin: 0 0 4px; font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+.group h2 small { color: var(--muted); font-weight: 600; letter-spacing: .04em; margin-left: 6px; }
+.sub { margin: 16px 0 2px; font-size: 14px; font-weight: 700; }
+
+.film { display: grid; grid-template-columns: minmax(0, 1.3fr) 200px minmax(0, 1.6fr); gap: 8px 12px; align-items: center;
+  padding: 12px 0; border-bottom: 1px solid var(--line); }
+.film .name { min-width: 0; }
+.film .name strong { display: block; font-weight: 600; }
+.film .name span { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.film select { width: 100%; padding-left: 26px; background-repeat: no-repeat; }
+.film .st { position: relative; }
+.film .st::before { content: ""; position: absolute; left: 10px; top: 50%; width: 9px; height: 9px; border-radius: 50%;
+  transform: translateY(-50%); background: var(--c); pointer-events: none; }
+.film .link { display: flex; gap: 6px; min-width: 0; }
+.film .link input { flex: 1; min-width: 0; }
+.film .link a { flex: none; align-self: center; font-size: 13px; font-weight: 700; color: var(--fg); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; padding: 6px 4px; }
+.film .note { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.film .note input { flex: 1 1 240px; min-width: 0; font-size: 13px; }
+.film .meta { font-size: 12px; color: var(--muted); }
+.film .uses-ph { font-size: 12px; color: var(--st-provisorio); font-weight: 600; }
+.saving { color: var(--accent) !important; }
+.h-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.h-row h1 { margin-right: auto; }
+.sync-now { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg); color: var(--accent); display: inline-grid; place-items: center; cursor: pointer; padding: 0; }
+.sync-now:hover { border-color: var(--accent); }
+.sync-now svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.sync-now:disabled { cursor: default; opacity: .6; }
+.sync-now:disabled svg { animation: syncr 1s linear infinite; }
+@keyframes syncr { to { transform: rotate(360deg); } }
+.sync { position: relative; }
+.sync summary { list-style: none; display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); font-size: 12.5px; font-weight: 700; color: var(--muted); cursor: pointer; user-select: none; }
+.sync summary::-webkit-details-marker { display: none; }
+.sync summary:hover { border-color: var(--accent); }
+.sync-dot { width: 9px; height: 9px; border-radius: 50%; background: #3E9A68; flex: none; }
+.sync.busy .sync-dot { background: var(--accent); animation: syncp 1s ease-in-out infinite; }
+.sync.err .sync-dot { background: #AB3438; }
+.sync.err summary { color: #AB3438; }
+@keyframes syncp { 50% { opacity: .3; } }
+.sync-pop { position: absolute; right: 0; top: calc(100% + 8px); z-index: 20; width: min(380px, 86vw); padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--bg); box-shadow: 0 12px 32px -12px rgba(0,0,0,.35); font-size: 13px; color: var(--muted); }
+.sync-pop p { margin: 0 0 8px; }
+.sync-pop ul { margin: 6px 0 0; padding-left: 18px; }
+.sync-pop ul:empty { display: none; }
+@media (prefers-reduced-motion: reduce) { .sync.busy .sync-dot { animation: none; } }
+.film .acts { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+.act { border: 1px solid var(--line); background: var(--bg); color: var(--accent); padding: 5px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 700; cursor: pointer; text-decoration: none; }
+.act:hover { border-color: var(--accent); }
+.act.hot { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.sub-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.trio { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.trio select { font-size: 13px; padding: 5px 8px; }
+header p a { color: var(--accent); font-weight: 700; }
+.err { color: var(--danger) !important; }
+
+@media (max-width: 720px) {
+  .film { grid-template-columns: 1fr 180px; }
+  .film .link { grid-column: 1 / -1; }
+}
+.state { padding: 40px 0; text-align: center; color: var(--muted); }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* ── tema ── */
+header { position: relative; padding: 22px 22px 20px; border-radius: 20px; background: var(--card); box-shadow: var(--shadow); border: 1px solid var(--line); }
+header .kicker { margin: 0 0 4px; display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+header .kicker i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); display: inline-block; }
+header h1 { color: var(--fg); }
+header h1 b { color: var(--brand); font-weight: 800; }
+header p { max-width: 70ch; }
+.summary { padding: 16px 18px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.bar { height: 12px; gap: 2px; background: var(--surface); }
+.bar span:first-child { border-radius: 999px 0 0 999px; } .bar span:last-child { border-radius: 0 999px 999px 0; }
+.counts { gap: 6px; }
+.counts > span { display: inline-flex; align-items: center; padding: 3px 10px 3px 8px; border-radius: 999px; background: var(--surface); color: var(--fg); font-weight: 600; font-size: 12.5px; }
+.counts > span b { margin-left: 6px; color: var(--fg); }
+.placeholder { background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: 16px; }
+.toolbar { background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom-color: transparent; margin-top: 10px; }
+.seg { background: var(--card); border: 1px solid var(--line); }
+.btn { border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+.btn:hover { border-color: var(--accent); color: var(--accent); background: var(--card); }
+input[type="text"], input[type="url"], input[type="search"], select { background: var(--card); border-color: var(--line); color: var(--fg); }
+.group h2 { display: flex; align-items: center; gap: 8px; color: var(--fg); margin: 0 0 10px; }
+.group h2::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.group h2 small { padding: 1px 8px; border-radius: 999px; background: var(--surface); color: var(--muted); }
+.sub { color: var(--muted); }
+.film { position: relative; margin-top: 10px; padding: 14px 16px 14px 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); box-shadow: var(--shadow); }
+.film::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 4px; border-radius: 0 4px 4px 0; background: var(--c, var(--line)); }
+.film .name strong { font-weight: 700; font-size: 15.5px; }
+.film .link input, .film .note input { background: var(--surface); border-color: transparent; }
+.film .link input:focus, .film .note input:focus { background: var(--card); border-color: var(--accent); }
+.film .st select { font-weight: 700; color: var(--fg); border-color: color-mix(in srgb, var(--c) 45%, var(--line)); background: color-mix(in srgb, var(--c) 14%, var(--card)); }
+.act { border: 0; background: var(--surface); color: var(--fg); }
+.act:hover { color: var(--accent); background: var(--accent-soft); }
+.act.hot { background: var(--accent); color: var(--accent-fg); }
+.film.flash { animation: flash 1.8s ease-out; }
+@keyframes flash { 0%, 35% { box-shadow: 0 0 0 3px var(--yellow), var(--shadow); } 100% { box-shadow: var(--shadow); } }
+.sync summary, .sync-now { background: var(--card); }
+
+/* novidades: sininho no topo, lista e aviso que leva até o filme */
+.bell { position: relative; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); color: var(--fg); display: inline-grid; place-items: center; cursor: pointer; padding: 0; }
+.bell:hover, .bell[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.bell svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.bell .n { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #AB3438; color: #fff; font-size: 11px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--card); }
+.bell .n[hidden] { display: none; }
+.nov-wrap { position: relative; }
+.nov-pop { position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; width: min(380px, 88vw); max-height: min(70vh, 520px); overflow: auto; border-radius: 16px; border: 1px solid var(--line); background: var(--card); box-shadow: 0 18px 40px -16px rgba(0,0,0,.45); }
+.nov-pop[hidden] { display: none; }
+.nov-head { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; background: var(--card); border-bottom: 1px solid var(--line); font-weight: 800; }
+.nov-head button { border: 0; background: none; color: var(--accent); font-weight: 700; font-size: 12.5px; cursor: pointer; }
+.nov-list { list-style: none; margin: 0; padding: 6px; }
+.nov-list button { width: 100%; display: grid; grid-template-columns: 10px 1fr; gap: 10px; align-items: start; text-align: left; padding: 10px; border: 0; border-radius: 10px; background: none; cursor: pointer; }
+.nov-list button:hover { background: var(--surface); }
+.nov-list i { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; background: var(--c); }
+.nov-list b { display: block; font-size: 13.5px; }
+.nov-list small { display: block; color: var(--muted); font-size: 12.5px; }
+.nov-empty { padding: 18px 14px; color: var(--muted); font-size: 13px; text-align: center; }
+.aviso { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 40; width: min(360px, calc(100vw - 32px));
+  display: grid; grid-template-columns: 10px 1fr auto; gap: 10px 12px; align-items: center; padding: 14px 14px 14px 16px; border-radius: 16px; background: var(--fg); color: var(--bg); box-shadow: 0 18px 40px -14px rgba(0,0,0,.5);
+  transform: translateY(20px); opacity: 0; transition: transform .3s cubic-bezier(.2,.7,.2,1), opacity .3s; pointer-events: none; }
+.aviso.on { transform: none; opacity: 1; pointer-events: auto; }
+.aviso i { width: 10px; height: 10px; border-radius: 50%; background: var(--yellow); }
+.aviso b { display: block; font-size: 13.5px; } .aviso small { display: block; opacity: .75; font-size: 12.5px; }
+.aviso-b { display: flex; align-items: center; gap: 4px; }
+.aviso .aviso-x { padding: 4px 8px; background: none; color: inherit; opacity: .7; font-size: 18px; line-height: 1; }
+.aviso .aviso-x:hover { opacity: 1; }
+.film .lin { position: relative; flex: 1; min-width: 0; display: flex; }
+.film .lin input { flex: 1; min-width: 0; }
+.film .lin.tem-n input { padding-right: 40px; }
+.film .nlink { position: absolute; right: 5px; top: 50%; translate: 0 -50%; width: 26px; height: 24px; border-radius: 6px; border: 1px solid var(--line); background: var(--card); color: var(--muted); font: 800 13px/1 Georgia, serif; cursor: pointer; }
+.film .nlink:hover, .film .nlink[aria-expanded="true"] { color: var(--fg); border-color: var(--fg); }
+.film .nlink.pend { color: var(--fg); border-color: color-mix(in srgb, var(--yellow) 80%, var(--fg)); background: color-mix(in srgb, var(--yellow) 35%, var(--card)); }
+.film .nlink.pend::after { content: ""; position: absolute; top: -4px; right: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--st-online); border: 2px solid var(--card); }
+.npop { position: absolute; right: 0; bottom: calc(100% + 10px); z-index: 25; width: min(360px, 84vw); padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); box-shadow: 0 18px 40px -16px rgba(0,0,0,.45); font-size: 13px; animation: npop .16s ease-out; }
+.npop::after { content: ""; position: absolute; right: 14px; bottom: -6px; width: 10px; height: 10px; background: var(--card); border: solid var(--line); border-width: 0 1px 1px 0; transform: rotate(45deg); }
+.npop p { margin: 0 0 6px; color: var(--muted); }
+.npop p b { color: var(--fg); }
+.npop a.nl { display: block; margin-bottom: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); font-weight: 600; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.npop .nb { display: flex; gap: 6px; }
+@keyframes npop { from { opacity: 0; transform: translateY(4px); } }
+@media (prefers-reduced-motion: reduce) { .npop { animation: none; } }
+.aviso button { border: 0; border-radius: 999px; padding: 7px 14px; background: var(--yellow); color: #231C33; font-weight: 800; font-size: 13px; cursor: pointer; }
+
+/* sem palavras órfãs */
+h1, h2, h3 { text-wrap: balance; }
+p, span, strong, label { text-wrap: pretty; }
+.dobra > summary { list-style: none; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; color: var(--muted); }
+.dobra > summary::-webkit-details-marker { display: none; }
+.dobra > summary::after { content: ""; width: 6px; height: 6px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: translateY(-2px) rotate(45deg); transition: transform .15s; }
+.dobra[open] > summary::after { transform: translateY(1px) rotate(-135deg); }
+.dobra > summary:hover { color: var(--fg); }
+header .dobra { margin-top: 10px; }
+header .dobra > summary { font-size: 12.5px; font-weight: 700; }
+header .dobra p { margin-top: 6px; }
+.placeholder.dobra > summary { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.placeholder.dobra[open] > summary { margin-bottom: 10px; }
+.placeholder.dobra .hint { margin-top: 8px; }
+.acts .reg { align-self: center; margin-left: auto; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.acts .reg::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--st-v2); vertical-align: 1px; }
+.acts .reg.ok { color: var(--st-aprovado); }
+.acts .reg.ok::before { background: var(--st-aprovado); }
+.sair { border: 0; background: none; color: var(--muted); font-size: 13px; text-decoration: underline; cursor: pointer; padding: 4px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="kicker"><i style="--c:#613CAD"></i><i style="--c:#AB3438"></i><i style="--c:#F5D775"></i>Fundação Bradesco 70 anos</p>
+    <div class="h-row"><h1>Controle dos <b>Filmes</b></h1>
+      <div class="nov-wrap">
+        <button type="button" class="bell" id="bell" aria-label="Novidades" aria-expanded="false" aria-controls="nov-pop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span class="n" hidden>0</span></button>
+        <div class="nov-pop" id="nov-pop" hidden><div class="nov-head"><span>Novidades</span><button type="button" id="nov-ok">Marcar tudo como visto</button></div><ul class="nov-list"></ul></div>
+      </div>
+      <details class="sync" id="sync">
+        <summary aria-live="polite"><i class="sync-dot" aria-hidden="true"></i><span class="sync-st">Conectando ao Notion…</span></summary>
+        <div class="sync-pop">
+          <p>Tudo se acerta sozinho: ao abrir esta página, a cada 10 minutos com ela aberta e logo depois de cada mudança aqui. Para puxar na hora o que mudou no Notion, use a setinha ↻ ao lado.</p>
+          <p><b>Links:</b> vale o último link colado aqui ou na planilha. Link novo colado no Notion aparece no filme como sugestão, para você adicionar ou ignorar. <b>Status:</b> o daqui vai para o Notion. <b>Datas:</b> o cronograma do cliente segue a agenda do Notion.</p>
+          <ul></ul>
+        </div>
+      </details>
+      <button type="button" class="sync-now" id="sync-now" aria-label="Sincronizar agora" title="Sincronizar agora"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></svg></button>
+    </div>
+    <details class="dobra" data-lembrar="fb-controle-sobre" open><summary>Como funciona</summary>
+    <p>Os 41 filmes do site do livro Fundação Bradesco 70 anos. Cole o link de cada filme e marque o status: o link vai para o site e o status aparece para o cliente no <a id="crono-open" target="_blank" rel="noopener">cronograma</a>, sozinhos. Quando um filme vai para o cliente (V2 ou online), use “Mensagem para o cliente”: ela já sai com o link do filme, o cronograma e o prazo do retorno.</p>
+    </details>
+  </header>
+
+  <section class="summary" aria-label="Resumo">
+    <div class="bar" id="bar"></div>
+    <div class="counts" id="counts"></div>
+  </section>
+
+  <details class="placeholder dobra" data-lembrar="fb-controle-provisorio" open>
+    <summary>Vídeo provisório (usado em todos os filmes sem link)</summary>
+    <div class="row">
+      <input type="url" id="ph-url" placeholder="https://vimeo.com/…" autocomplete="off">
+      <a class="btn" id="ph-open" href="#" target="_blank" rel="noopener">Abrir</a>
+    </div>
+    <p class="hint">Vídeo privado no Vimeo? Use o link de compartilhamento (com o código depois do número, ex.: vimeo.com/123456/abc123) e libere a incorporação no domínio do site.</p>
+    <p class="hint">Dropbox: cole o link de compartilhamento do arquivo de vídeo (MP4 em H.264). A página troca o final <code>dl=0</code> por <code>raw=1</code> sozinha, e o site toca o arquivo direto no player.</p>
+  </details>
+
+  <div class="toolbar" role="toolbar" aria-label="Filtros">
+    <div class="seg" id="f-tipo">
+      <button type="button" data-v="" aria-pressed="true">Todos</button>
+      <button type="button" data-v="documentario" aria-pressed="false">Documentário</button>
+      <button type="button" data-v="visita" aria-pressed="false">Visitas</button>
+      <button type="button" data-v="pilula" aria-pressed="false">Pílulas</button>
+    </div>
+    <select id="f-status" aria-label="Filtrar por status">
+      <option value="">Todos os status</option>
+    </select>
+    <input type="search" class="search" id="f-busca" placeholder="Buscar filme, fotógrafo ou escola" aria-label="Buscar">
+    <button type="button" class="btn" id="sync-all">Enviar tudo ao site</button>
+    <a class="btn" id="sheet-open" target="_blank" rel="noopener">Abrir planilha</a>
+  </div>
+
+  <main id="list"><p class="state" id="state">Carregando os filmes…</p></main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="aviso" id="aviso" role="status" aria-live="polite"><i aria-hidden="true"></i><span><b></b><small></small></span><span class="aviso-b"><button type="button">Ver</button></span></div>
+
+<script>
+(() => {
+  // O caminho de cada filme até o cliente aprovar. Os mesmos nomes aparecem no cronograma do cliente.
+  const STATUS = [
+    ["edicao", "Em edição", "--st-edicao"],
+    ["v2", "V2 com o cliente", "--st-v2"],
+    ["ajustes", "Ajustes do retorno", "--st-ajustes"],
+    ["offline", "Offline aprovado", "--st-offline"],
+    ["finalizacao", "Em finalização", "--st-finalizacao"],
+    ["online", "Online com o cliente", "--st-online"],
+    ["aprovado", "Aprovado", "--st-aprovado"],
+    ["entregue", "Entregue", "--st-entregue"],
+  ];
+  const ANTIGO = { provisorio: "edicao", revisao: "v2" }; // status da versão anterior desta página
+  const norm = (k) => (STATUS.some(([x]) => x === k) ? k : ANTIGO[k] || "edicao");
+  const STATUS_BY = Object.fromEntries(STATUS.map(([k, l, c]) => [k, { label: l, color: `var(${c})` }]));
+  const TIPOS = { documentario: "Documentário", visita: "Visitas às escolas", pilula: "Pílulas dos fotógrafos" };
+  const DEFAULT_PH = "https://vimeo.com/1191294981";
+  // Planilha que o site lê ao vivo: coluna A = id, E = link, F = status, G = nota.
+  const SHEET_ID = "1dZp8HV-64v5ewc0LzdnE4A7Luu1ikMGapbtg848Mnh4";
+  const SHEET_ROW = {"placeholder":2,"documentario":3,"trailer":4,"visita-conceicao-do-araguaia":5,"visita-jaboatao":6,"visita-gravatai":7,"visita-canuana":8,"visita-bodoquena":9,"visita-osasco":10,"pilula-elza-lima-1":11,"pilula-elza-lima-2":12,"pilula-elza-lima-3":13,"pilula-nti-uira-1":14,"pilula-nti-uira-2":15,"pilula-nti-uira-3":16,"pilula-patricia-brasil-1":17,"pilula-patricia-brasil-2":18,"pilula-patricia-brasil-3":19,"pilula-renato-parada-1":20,"pilula-renato-parada-2":21,"pilula-renato-parada-3":22,"pilula-vilma-slomp-1":23,"pilula-vilma-slomp-2":24,"pilula-vilma-slomp-3":25,"pilula-mariana-valente-1":26,"pilula-mariana-valente-2":27,"pilula-mariana-valente-3":28,"pilula-pedro-kok-1":29,"pilula-pedro-kok-2":30,"pilula-pedro-kok-3":31,"pilula-lalo-de-almeida-1":32,"pilula-lalo-de-almeida-2":33,"pilula-lalo-de-almeida-3":34,"pilula-edgar-azevedo-1":35,"pilula-edgar-azevedo-2":36,"pilula-edgar-azevedo-3":37,"pilula-fabio-bartelt-1":38,"pilula-fabio-bartelt-2":39,"pilula-fabio-bartelt-3":40,"pilula-maira-erlich-1":41,"pilula-maira-erlich-2":42,"pilula-maira-erlich-3":43};
+  const SHEETS = "Google Sheets";
+  // Ligação com o site e com o cronograma do cliente (datas do cronograma: V2, retorno e online de cada filme)
+  const SITE = "https://mavissimo.github.io/ai/fundacao-bradesco-70/";
+  const CRONO = SITE + "cronograma.html";
+  const GRUPOS = {"elza-lima":{"nome":"Elza Lima","tipo":"pilula","v2":"2026-11-09","rev":"2026-11-10","on":"2026-11-27","junto":"conceicao-do-araguaia"},"nti-uira":{"nome":"Ntí Uirá","tipo":"pilula","v2":"2026-11-12","rev":"2026-11-13","on":"2026-12-09","junto":"jaboatao"},"renato-parada":{"nome":"Renato Parada","tipo":"pilula","v2":"2026-11-24","rev":"2026-11-25","on":"2026-12-15","junto":"gravatai"},"pedro-kok":{"nome":"Pedro Kok","tipo":"pilula","v2":"2026-11-30","rev":"2026-12-01","on":"2026-12-21","junto":"bodoquena"},"mariana-valente":{"nome":"Mariana Valente","tipo":"pilula","v2":"2026-12-04","rev":"2026-12-07","on":"2026-12-28","junto":"canuana"},"fabio-bartelt":{"nome":"Fábio Bartelt","tipo":"pilula","junto":"osasco","v2":"2026-12-11","rev":"2026-12-14","on":"2027-01-04"},"patricia-brasil":{"nome":"Patricia Brasil","tipo":"pilula","v2":"2026-12-15","rev":"2026-12-16","on":"2027-01-06"},"maira-erlich":{"nome":"Maíra Erlich","tipo":"pilula","v2":"2026-12-16","rev":"2026-12-17","on":"2027-01-08"},"edgar-azevedo":{"nome":"Edgar Azevedo","tipo":"pilula","v2":"2026-12-18","rev":"2026-12-21","on":"2027-01-12"},"lalo-de-almeida":{"nome":"Lalo de Almeida","tipo":"pilula","v2":"2026-12-23","rev":"2026-12-24","on":"2027-01-14"},"vilma-slomp":{"nome":"Vilma Slomp","tipo":"pilula","v2":"2026-12-28","rev":"2026-12-29","on":"2027-01-18"},"conceicao-do-araguaia":{"nome":"Conceição do Araguaia","tipo":"visita","v2":"2026-11-09","rev":"2026-11-10","on":"2026-11-27"},"jaboatao":{"nome":"Jaboatão dos Guararapes","tipo":"visita","v2":"2026-11-12","rev":"2026-11-13","on":"2026-12-09"},"gravatai":{"nome":"Gravataí","tipo":"visita","v2":"2026-11-24","rev":"2026-11-25","on":"2026-12-15"},"bodoquena":{"nome":"Fazenda Bodoquena","tipo":"visita","v2":"2026-11-30","rev":"2026-12-01","on":"2026-12-21"},"canuana":{"nome":"Canuanã","tipo":"visita","v2":"2026-12-04","rev":"2026-12-07","on":"2026-12-28"},"osasco":{"nome":"Osasco","tipo":"visita","v2":"2026-12-08","rev":"2026-12-09","on":"2026-12-30"},"documentario":{"nome":"Documentário","tipo":"documentario","v2":"2026-11-19","rev":"2026-11-23","on":"2026-12-01"},"trailer":{"nome":"Trailer","tipo":"trailer","v2":"2026-11-25","rev":"2026-11-26","on":"2026-12-07"}};
+  const grupoDe = (vid) => vid.startsWith("pilula-") ? vid.replace(/^pilula-/, "").replace(/-\d+$/, "") : vid.replace(/^visita-/, "");
+  const nomeGrupo = (g) => ({ pilula: `${g.nome} (3 pílulas)`, visita: `Visita a ${g.nome}`, documentario: "Documentário", trailer: "Trailer" })[g.tipo];
+  const siteDe = (gid, g) => SITE + ({ pilula: `#/fotografo/${gid}`, visita: `#/escola/${gid}`, documentario: "#/filme/documentario", trailer: "#/filme/trailer" })[g.tipo];
+  const WDL = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+  const quando = (iso) => { const [y, m, d] = iso.split("-").map(Number); const dt = new Date(y, m - 1, d); return `${WDL[dt.getDay()]}, ${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}`; };
+  function mensagem(f) {
+    const gid = grupoDe(f.id), g = GRUPOS[gid];
+    if (!g) return "";
+    const par = Object.entries(GRUPOS).find(([k, x]) => x.junto === gid || g.junto === k);
+    const quem = nomeGrupo(g) + (par ? ` e ${nomeGrupo(par[1])}` : "");
+    const site = siteDe(gid, g), crono = `${CRONO}#filme/${gid}`;
+    const st = norm(f.status);
+    if (st === "online") return `Olá! Está pronto para conferência o online de: ${quem}, já com cor, som e legendas.\n${site}\n\nO cronograma está aqui: ${crono}`;
+    if (st === "aprovado" || st === "entregue") return `Olá! Aprovado: ${quem}. Obrigado! O cronograma com o fechamento está aqui:\n${crono}`;
+    return `Olá! Já está no site a V2 de: ${quem}.\n${site}\n\nPrecisamos do seu retorno até ${quando(g.rev)}, numa devolutiva única. O cronograma, com todas as etapas, está aqui:\n${crono}`;
+  }
+  async function copiar(texto, ok) {
+    try { await navigator.clipboard.writeText(texto); toast(ok); }
+    catch { window.prompt("Copie:", texto); }
+  }
+
+  const $ = (s) => document.querySelector(s);
+  const list = $("#list");
+  const filters = { tipo: "", status: "", q: "" };
+  let films = [];
+  let placeholder = DEFAULT_PH;
+  let db = null, user = null, mcp = null, canWrite = true;
+
+  $("#f-status").append(...STATUS.map(([k, l]) => new Option(l, k)));
+
+  const toast = (msg) => { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 2200); };
+  const ago = (iso) => {
+    if (!iso) return "";
+    const s = (Date.now() - Date.parse(iso)) / 1000;
+    if (s < 60) return "agora";
+    if (s < 3600) return `há ${Math.round(s / 60)} min`;
+    if (s < 86400) return `há ${Math.round(s / 3600)} h`;
+    return new Date(iso).toLocaleDateString("pt-BR");
+  };
+
+  // Dropbox: troca dl=0/dl=1 por raw=1, para o arquivo tocar direto no player do site.
+  const normalizeUrl = (u) => {
+    try {
+      const x = new URL(u);
+      if (/(^|\.)dropbox\.com$/i.test(x.hostname)) { x.searchParams.delete("dl"); x.searchParams.set("raw", "1"); return x.toString(); }
+    } catch {}
+    return u;
+  };
+  const isDropbox = (u) => /dropbox\.com/i.test(u || "");
+
+  function renderSummary() {
+    const total = films.length || 1;
+    const by = Object.fromEntries(STATUS.map(([k]) => [k, 0]));
+    films.forEach((f) => { by[norm(f.status)]++; });
+    const withLink = films.filter((f) => f.url).length;
+    $("#bar").replaceChildren(...STATUS.map(([k]) => {
+      const s = document.createElement("span");
+      s.style.width = `${(by[k] / total) * 100}%`; s.style.background = STATUS_BY[k].color; s.title = `${STATUS_BY[k].label}: ${by[k]}`;
+      return s;
+    }));
+    const c = $("#counts"); c.replaceChildren();
+    STATUS.forEach(([k]) => {
+      const el = document.createElement("span");
+      el.innerHTML = `<i class="sw" style="background:${STATUS_BY[k].color}"></i>${STATUS_BY[k].label} <b></b>`;
+      el.querySelector("b").textContent = by[k];
+      c.append(el);
+    });
+    const l = document.createElement("span");
+    l.innerHTML = `Com link final <b></b>`; l.querySelector("b").textContent = `${withLink} de ${films.length}`;
+    c.append(l);
+  }
+
+  function matches(f) {
+    if (filters.tipo && f.tipo !== filters.tipo) return false;
+    if (filters.status && norm(f.status) !== filters.status) return false;
+    if (filters.q) {
+      const hay = `${f.titulo} ${f.grupo} ${f.nota || ""}`.toLowerCase();
+      if (!hay.includes(filters.q)) return false;
+    }
+    return true;
+  }
+
+  let profiles = {};
+  async function renderList() {
+    renderSummary();
+    if (!films.length) { list.innerHTML = `<p class="state">Nenhum filme cadastrado ainda. Os 41 filmes aparecem aqui assim que a lista for carregada.</p>`; return; }
+    const ids = [...new Set(films.map((f) => f.atualizadoPor).filter(Boolean))];
+    if (user && ids.length) { try { profiles = await user.profiles(ids); } catch {} }
+    const shown = films.filter(matches).sort((a, b) => a.ordem - b.ordem);
+    const frag = document.createDocumentFragment();
+    if (!shown.length) { list.innerHTML = `<p class="state">Nenhum filme com esses filtros.</p>`; return; }
+    for (const tipo of Object.keys(TIPOS)) {
+      const items = shown.filter((f) => f.tipo === tipo);
+      if (!items.length) continue;
+      const g = document.createElement("section"); g.className = "group";
+      g.innerHTML = `<h2>${TIPOS[tipo]}<small></small></h2>`;
+      g.querySelector("small").textContent = items.length;
+      let lastGroup = null;
+      for (const f of items) {
+        if (tipo === "pilula" && f.grupo !== lastGroup) {
+          const h = document.createElement("div"); h.className = "sub-row";
+          const trio = shown.filter((x) => x.tipo === "pilula" && x.grupo === f.grupo);
+          h.innerHTML = `<h3 class="sub"></h3><label class="trio">Status das 3<select aria-label="Status das 3 pílulas"><option value="">Escolha…</option></select></label>`;
+          h.querySelector("h3").textContent = f.grupo;
+          const ts = h.querySelector("select");
+          STATUS.forEach(([k, l]) => ts.append(new Option(l, k)));
+          if (!canWrite) ts.disabled = true;
+          ts.addEventListener("change", () => {
+            if (!ts.value) return;
+            trio.forEach((x) => { const m = list.querySelector(`.film[data-id="${CSS.escape(x.id)}"] .meta`); if (m && norm(x.status) !== ts.value) save(x, { status: ts.value }, m); });
+            ts.value = "";
+          });
+          g.append(h); lastGroup = f.grupo;
+        }
+        g.append(row(f));
+      }
+      frag.append(g);
+    }
+    list.replaceChildren(frag);
+    renderNovidades();
+  }
+
+  // ── Novidades: links que chegaram do Notion e mudanças feitas por outras pessoas desde a sua última visita ──
+  const VISTO_KEY = "fb-controle-visto";
+  let visto = 0; try { visto = +localStorage.getItem(VISTO_KEY) || 0; } catch {}
+  let euId = null, avisados = null;
+  let npopAberto = null; // filme com a popup do Notion aberta (sobrevive ao redesenho)
+  // Registro da Equipe Bradesco no cronograma (aba "Registro" da planilha: "bloco|versão|ação|quando")
+  let registro = {}; // "bloco|v2" ou "bloco|on" -> { aberto, aprovado, quando }
+  const blocoDoVideo = (vid) => { const g = grupoDe(vid); return GRUPOS[g]?.junto || g; };
+  const NOME_V = { v2: "a V2", on: "o online" };
+  const dmCurto = (t) => { const d = new Date(t); return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`; };
+  async function lerRegistro() {
+    if (!mcp) return;
+    try {
+      const vals = (await mcp.callTool(SHEETS, "get_values", { spreadsheetId: SHEET_ID, range: "Registro!B2:B" }, { cache: false })).payload?.values || [];
+      const r = {};
+      vals.map((x) => String(x[0] || "").split("|")).sort((a, b) => String(a[3]).localeCompare(String(b[3]))).forEach(([f, v, a, t]) => {
+        if (!f || !v || !t) return;
+        const e = (r[`${f}|${v}`] ||= {});
+        if (a === "aberto") e.aberto ||= t; else if (a === "aprovado") { e.aprovado = true; e.quando = t; } else if (a === "desmarcado") e.aprovado = false;
+      });
+      registro = r;
+      const active = document.activeElement;
+      if (active?.matches?.("input, textarea, select") && active.closest(".film")) renderNovidades(); else renderList();
+    } catch {} // aba ainda não existe: segue sem registro
+  }
+  // o que a Equipe Bradesco fez com a versão mais recente deste vídeo
+  function regTexto(vid) {
+    const b = blocoDoVideo(vid);
+    for (const v of ["on", "v2"]) {
+      const e = registro[`${b}|${v}`]; if (!e) continue;
+      if (e.aprovado) return { ok: true, txt: `Equipe Bradesco aprovou ${NOME_V[v]} em ${dmCurto(e.quando)}` };
+      if (e.aberto) return { ok: false, txt: `Equipe Bradesco abriu ${NOME_V[v]} em ${dmCurto(e.aberto)}` };
+    }
+    return null;
+  }
+  function novidades() {
+    const out = [];
+    // aprovações e aberturas no cronograma: uma novidade por bloco
+    Object.entries(registro).forEach(([k, e]) => {
+      const [b, v] = k.split("|"), f = films.find((x) => blocoDoVideo(x.id) === b); if (!f) return;
+      const nome = GRUPOS[b]?.nome || f.titulo;
+      if (e.aprovado && Date.parse(e.quando) > visto) out.push({ id: f.id, chave: `a:${k}:${e.quando}`, t: Date.parse(e.quando), c: "var(--st-aprovado)", titulo: nome, txt: `Equipe Bradesco aprovou ${NOME_V[v]} · ${ago(e.quando)}` });
+      else if (e.aberto && Date.parse(e.aberto) > visto) out.push({ id: f.id, chave: `o:${k}:${e.aberto}`, t: Date.parse(e.aberto), c: "var(--st-v2)", titulo: nome, txt: `Equipe Bradesco abriu ${NOME_V[v]} · ${ago(e.aberto)}` });
+    });
+    films.forEach((f) => {
+      if (f.notionSug && f.notionSug !== f.url) out.push({ id: f.id, chave: `n:${f.id}:${f.notionSug}`, t: Infinity, c: "var(--yellow)", notion: true, titulo: f.titulo, txt: "Link novo vindo do Notion · Adicionar ou ignorar" });
+      const t = Date.parse(f.atualizadoEm || "") || 0;
+      if (t > visto && f.atualizadoPor && f.atualizadoPor !== euId)
+        out.push({ id: f.id, chave: `m:${f.id}:${t}`, t, c: STATUS_BY[norm(f.status)].color, titulo: f.titulo, txt: `${profiles[f.atualizadoPor]?.name || "Alguém"} atualizou · ${STATUS_BY[norm(f.status)].label} · ${ago(f.atualizadoEm)}` });
+    });
+    return out.sort((a, b) => b.t - a.t);
+  }
+  function renderNovidades() {
+    const L = novidades();
+    const n = $("#bell .n"); n.hidden = !L.length; n.textContent = L.length > 9 ? "9+" : L.length;
+    $("#bell").setAttribute("aria-label", L.length ? `Novidades: ${L.length}` : "Novidades");
+    const ul = $(".nov-list"); ul.replaceChildren();
+    if (!L.length) ul.innerHTML = `<li class="nov-empty">Nada novo por aqui.</li>`;
+    L.forEach((x) => {
+      const li = document.createElement("li");
+      li.innerHTML = `<button type="button"><i style="--c:${x.c}"></i><span><b></b><small></small></span></button>`;
+      li.querySelector("b").textContent = x.titulo; li.querySelector("small").textContent = x.txt;
+      li.querySelector("button").addEventListener("click", () => { abrirNov(false); irPara(x.id, x.notion); });
+      ul.append(li);
+    });
+    // aviso só do que chegou desde que a página abriu (na abertura, um resumo)
+    const novos = avisados ? L.filter((x) => !avisados.has(x.chave)) : L;
+    if (novos.length) avisar(novos.length === 1 ? novos[0].titulo : `${novos.length} novidades`, novos.length === 1 ? novos[0].txt : "Toque em Ver para ir à primeira", novos[0].id, novos[0].notion);
+    avisados = new Set(L.map((x) => x.chave));
+  }
+  let avisoH;
+  function avisar(titulo, txt, id, notion) {
+    const a = $("#aviso"); a.querySelector("b").textContent = titulo; a.querySelector("small").textContent = txt;
+    a.querySelector("button").onclick = () => { a.classList.remove("on"); irPara(id, notion); };
+    a.classList.add("on"); clearTimeout(avisoH); avisoH = setTimeout(() => a.classList.remove("on"), 9000);
+  }
+  function irPara(id, notion) {
+    let r = list.querySelector(`.film[data-id="${CSS.escape(id)}"]`);
+    if (!r) { // escondido por um filtro: limpa os filtros e redesenha
+      filters.tipo = ""; filters.status = ""; filters.q = "";
+      $("#f-busca").value = ""; $("#f-status").value = "";
+      $("#f-tipo").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(!x.dataset.v)));
+      renderList(); r = list.querySelector(`.film[data-id="${CSS.escape(id)}"]`);
+    }
+    if (!r) return;
+    r.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+    r.classList.remove("flash"); void r.offsetWidth; r.classList.add("flash");
+    if (notion) abrirNpop(id);
+  }
+  function abrirNpop(id) {
+    fecharNpop();
+    const b = list.querySelector(`.film[data-id="${CSS.escape(id)}"] .nlink`); if (!b) return;
+    npopAberto = id; b.setAttribute("aria-expanded", "true"); b.parentElement.append(b._pop());
+  }
+  function fecharNpop() {
+    npopAberto = null;
+    list.querySelectorAll(".npop").forEach((x) => x.remove());
+    list.querySelectorAll('.nlink[aria-expanded="true"]').forEach((x) => x.setAttribute("aria-expanded", "false"));
+  }
+  document.addEventListener("click", (e) => { if (npopAberto && !e.target.closest(".lin, .nov-list, #aviso")) fecharNpop(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && npopAberto) fecharNpop(); });
+  function abrirNov(on) { $("#nov-pop").hidden = !on; $("#bell").setAttribute("aria-expanded", String(on)); }
+  $("#bell").addEventListener("click", (e) => { e.stopPropagation(); abrirNov($("#nov-pop").hidden); });
+  document.addEventListener("click", (e) => { if (!e.target.closest(".nov-wrap")) abrirNov(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") abrirNov(false); });
+  $("#nov-ok").addEventListener("click", () => { visto = Date.now(); try { localStorage.setItem(VISTO_KEY, String(visto)); } catch {} renderNovidades(); });
+
+  function row(f) {
+    const r = document.createElement("div"); r.className = "film"; r.dataset.id = f.id;
+    const st = STATUS_BY[norm(f.status)];
+    r.style.setProperty("--c", st.color);
+    r.innerHTML = `
+      <div class="name"><strong></strong><span></span></div>
+      <div class="st" style="--c:${st.color}"><select aria-label="Status"></select></div>
+      <div class="link"><span class="lin"><input type="url" placeholder="Link final (Vimeo, YouTube, Dropbox ou .mp4)" autocomplete="off" aria-label="Link do filme"></span><a target="_blank" rel="noopener">Abrir</a></div>
+      <div class="note"><input type="text" placeholder="Observação (ex.: corte 2 aguardando aprovação)" aria-label="Observação"><span class="meta"></span></div>
+      <div class="acts"><button type="button" class="act msg">Mensagem para o cliente</button><button type="button" class="act ap">Link de aprovação</button><a class="act" target="_blank" rel="noopener">Ver no site</a></div>`;
+    r.querySelector("strong").textContent = f.titulo;
+    r.querySelector(".name span").textContent = [f.tipo !== "pilula" ? f.grupo : "", f.duracao].filter(Boolean).join(" · ");
+    const sel = r.querySelector("select");
+    sel.id = `st-${f.id}`;
+    STATUS.forEach(([k, l]) => sel.append(new Option(l, k, false, k === norm(f.status))));
+    const url = r.querySelector(".link input"); url.id = `url-${f.id}`; url.value = f.url || "";
+    const a = r.querySelector(".link a"); a.href = f.url || placeholder;
+    a.textContent = f.url ? (isDropbox(f.url) ? "Abrir (Dropbox)" : "Abrir") : "Ver provisório";
+    const note = r.querySelector(".note input"); note.id = `nota-${f.id}`; note.value = f.nota || "";
+    const meta = r.querySelector(".meta");
+    const who = f.atualizadoPor ? (profiles[f.atualizadoPor]?.name || "alguém") : "";
+    meta.textContent = f.atualizadoEm ? `Atualizado ${ago(f.atualizadoEm)}${who ? ` por ${who}` : ""}` : (f.url ? "" : "Usando o vídeo provisório");
+    if (!canWrite) { sel.disabled = true; url.readOnly = true; note.readOnly = true; }
+    const rg = regTexto(f.id);
+    if (rg) { const x = document.createElement("span"); x.className = "reg" + (rg.ok ? " ok" : ""); x.textContent = rg.txt; r.querySelector(".acts").append(x); }
+    // link do Notion diferente do daqui: botão N no fim do campo, com a popup em cima dele.
+    // Pendente fica marcado até alguém adicionar; ignorado fica quietinho lá.
+    const nUrl = f.notionSug || f.notionIgnorado;
+    if (nUrl && nUrl !== f.url) {
+      const pend = !!f.notionSug;
+      const nb = document.createElement("button"); nb.type = "button"; nb.className = "nlink" + (pend ? " pend" : ""); nb.textContent = "N";
+      nb.setAttribute("aria-expanded", "false");
+      nb.setAttribute("aria-label", pend ? "Link novo vindo do Notion" : "Link do Notion (ignorado)");
+      nb.title = pend ? "Link novo vindo do Notion" : "Link do Notion (ignorado)";
+      nb._pop = () => {
+        const pp = document.createElement("div"); pp.className = "npop"; pp.setAttribute("role", "dialog");
+        pp.innerHTML = `<p><b>${pend ? "Link novo vindo do Notion." : "Link do Notion, ignorado."}</b> ${pend ? "Quer usar este?" : "Ainda dá para usar."}</p><a class="nl" target="_blank" rel="noopener"></a><div class="nb"><button type="button" class="act hot">Adicionar</button>${pend ? '<button type="button" class="act">Ignorar</button>' : ""}</div>`;
+        const l = pp.querySelector(".nl"); l.href = nUrl; l.textContent = nUrl.replace(/^https?:\/\//, "");
+        const [ok, no] = pp.querySelectorAll("button");
+        if (!canWrite) { ok.disabled = true; if (no) no.disabled = true; }
+        ok.addEventListener("click", () => { fecharNpop(); url.value = nUrl; save(f, { url: normalizeUrl(nUrl), notionSug: null, notionIgnorado: null }, meta); });
+        no?.addEventListener("click", () => { fecharNpop(); db.doc(`videos/${f.id}`).update({ notionSug: null, notionIgnorado: nUrl }).catch(() => {}); });
+        return pp;
+      };
+      nb.addEventListener("click", () => { npopAberto === f.id ? fecharNpop() : abrirNpop(f.id); });
+      const lin = r.querySelector(".lin"); lin.classList.add("tem-n"); lin.append(nb);
+      if (npopAberto === f.id) queueMicrotask(() => { nb.setAttribute("aria-expanded", "true"); lin.append(nb._pop()); });
+    }
+
+    sel.addEventListener("change", () => {
+      r.querySelector(".st").style.setProperty("--c", STATUS_BY[sel.value].color);
+      r.style.setProperty("--c", STATUS_BY[sel.value].color);
+      r.querySelector(".msg")?.classList.toggle("hot", ["v2", "online"].includes(sel.value));
+      save(f, { status: sel.value }, meta);
+    });
+    // ações para o cliente: mensagem pronta, link do cronograma do filme e o filme no site
+    const gid = grupoDe(f.id), gr = GRUPOS[gid];
+    const acts = r.querySelector(".acts");
+    if (!gr) acts.remove();
+    else {
+      acts.querySelector(".msg").classList.toggle("hot", ["v2", "online"].includes(norm(f.status)));
+      acts.querySelector(".msg").addEventListener("click", () => copiar(mensagem({ ...f, status: sel.value }), "Mensagem copiada: é só colar no WhatsApp"));
+      acts.querySelector(".ap").addEventListener("click", () => copiar(`${CRONO}#filme/${gid}`, "Link de aprovação copiado"));
+      acts.querySelector("a").href = siteDe(gid, gr);
+    }
+    const commit = (input, field) => {
+      let v = input.value.trim();
+      if (field === "url" && v) { v = normalizeUrl(v); input.value = v; }
+      if (v === (f[field] || "")) return;
+      if (field === "url" && v && !/^https?:\/\//i.test(v)) { meta.textContent = "O link precisa começar com https://"; meta.className = "meta err"; return; }
+      const patch = { [field]: v };
+      save(f, patch, meta);
+    };
+    url.addEventListener("change", () => commit(url, "url"));
+    note.addEventListener("change", () => commit(note, "nota"));
+    [url, note].forEach((i) => i.addEventListener("keydown", (e) => { if (e.key === "Enter") i.blur(); }));
+    return r;
+  }
+
+  // ── Planilha do site (conector Google Sheets, com a conta de quem edita) ──
+  const sheetRow = (f) => [f.url || "", STATUS_BY[norm(f.status)].label, f.nota || ""];
+  const sheetMsg = (e) => ({
+    server_not_connected: "Salvo aqui, mas não foi ao site: conecte o Google Sheets em claude.ai › Configurações › Conectores.",
+    needs_reauth: "Salvo aqui, mas não foi ao site: reconecte o Google Sheets em claude.ai › Configurações › Conectores.",
+    not_in_manifest: "Salvo aqui, mas não foi ao site: permita o Google Sheets nesta página (menu Permissões).",
+    approval_required: "Salvo aqui, mas não foi ao site: permita o Google Sheets quando o claude.ai pedir.",
+    selection_required: "Salvo aqui, mas não foi ao site: escolha qual conta do Google Sheets usar quando o claude.ai pedir.",
+    blocked_by_policy: "Salvo aqui, mas a sua organização bloqueia o Google Sheets nesta página.",
+    tool_error: "Salvo aqui, mas a planilha recusou. Confira se você tem acesso de edição a ela.",
+  })[e?.code] || "Salvo aqui, mas não chegou ao site. Clique em “Enviar tudo ao site”.";
+  async function toSheet(range, values) {
+    if (!mcp) throw { code: "server_not_connected" };
+    await mcp.callTool(SHEETS, "update_values", { spreadsheetId: SHEET_ID, range, values }, { cache: false });
+  }
+
+  const queue = new Map();
+  async function save(f, patch, meta) {
+    if (!db) { meta.textContent = "Sem conexão com a lista compartilhada; nada foi salvo."; meta.className = "meta err"; return; }
+    const prev = queue.get(f.id) || Promise.resolve();
+    const run = prev.then(async () => {
+      meta.textContent = "Salvando…"; meta.className = "meta saving";
+      const id = user ? await user.id() : null;
+      try {
+        await db.doc(`videos/${f.id}`).update({ ...patch, atualizadoEm: new Date().toISOString(), atualizadoPor: id });
+      } catch (e) {
+        meta.className = "meta err";
+        if (e?.code === "invalid_argument") { canWrite = false; meta.textContent = "Você só pode ver esta lista. Peça acesso de edição ao Maví."; }
+        else meta.textContent = "Não salvou. Tente de novo em instantes.";
+        return;
+      }
+      const row = SHEET_ROW[f.id];
+      if (!row) { meta.className = "meta"; toast("Salvo"); return; }
+      meta.textContent = "Enviando ao site…";
+      try {
+        await toSheet(`E${row}:G${row}`, [sheetRow({ ...f, ...patch })]);
+        if (mcp && PAGE_DO_VIDEO[f.id] && ("url" in patch || "status" in patch)) {
+          const props = { ...("url" in patch ? { [sync.linkCol]: patch.url || null } : {}), ...("status" in patch ? statusProps(patch.status) || {} : {}) };
+          await notionSet(PAGE_DO_VIDEO[f.id], props).catch(() => {});
+          if ("url" in patch) await db.doc(`videos/${f.id}`).update({ base: patch.url }).catch(() => {});
+        }
+        meta.className = "meta"; meta.textContent = "Salvo e no site";
+        toast(["v2", "online"].includes(patch.status) ? "Salvo · agora copie a mensagem para o cliente" : "Salvo e enviado ao site");
+      } catch (e) { meta.className = "meta err"; meta.textContent = sheetMsg(e); }
+    });
+    queue.set(f.id, run.catch(() => {}));
+  }
+
+  // filtros
+  $("#f-tipo").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    filters.tipo = b.dataset.v;
+    $("#f-tipo").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    renderList();
+  });
+  $("#f-status").addEventListener("change", (e) => { filters.status = e.target.value; renderList(); });
+  $("#f-busca").addEventListener("input", (e) => { filters.q = e.target.value.trim().toLowerCase(); renderList(); });
+
+  // enviar tudo: reescreve as colunas E:G da planilha com o que está nesta página
+  $("#sheet-open").href = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`;
+  $("#crono-open").href = CRONO;
+  // sincronização automática: a cada 10 min com a página visível, e ao voltar para ela
+  const SYNC_MS = 10 * 60e3;
+  setInterval(() => { if (document.visibilityState === "visible") sincronizar(); }, SYNC_MS);
+  $("#sync-now").addEventListener("click", () => sincronizar());
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && (!sync.tentou || Date.now() - sync.tentou > SYNC_MS)) sincronizar(); });
+  $("#sync-all").addEventListener("click", async (ev) => {
+    const b = ev.currentTarget; if (b.disabled) return;
+    const byId = Object.fromEntries(films.map((f) => [f.id, f]));
+    const ids = Object.keys(SHEET_ROW).sort((a, z) => SHEET_ROW[a] - SHEET_ROW[z]);
+    const values = ids.map((id) => id === "placeholder" ? [placeholder, "", ""] : sheetRow(byId[id] || {}));
+    b.disabled = true; b.textContent = "Enviando…";
+    try { await toSheet(`E2:G${SHEET_ROW[ids.at(-1)]}`, values); toast("Todos os links foram para o site"); }
+    catch (e) { toast(sheetMsg(e).replace("Salvo aqui, mas não", "Não")); }
+    finally { b.disabled = false; b.textContent = "Enviar tudo ao site"; }
+  });
+
+  // vídeo provisório (config/site)
+  const ph = $("#ph-url"); ph.value = placeholder; $("#ph-open").href = placeholder;
+  ph.addEventListener("change", async () => {
+    const v = normalizeUrl(ph.value.trim() || DEFAULT_PH); ph.value = v;
+    if (!/^https?:\/\//i.test(v)) { toast("O link precisa começar com https://"); return; }
+    if (!db) return;
+    try { await db.doc("config/site").set({ placeholder: v, atualizadoEm: new Date().toISOString() }); }
+    catch { toast("Não salvou o vídeo provisório."); return; }
+    try { await toSheet("E2", [[v]]); toast("Vídeo provisório atualizado no site"); }
+    catch (e) { toast(sheetMsg(e)); }
+  });
+
+  // ── Sincronização: Notion ⇄ Controle ⇄ planilha (links) e Notion → cronograma (datas) ──
+  // Links: cada vídeo guarda em "base" o último link combinado entre os três. Se só um lugar mudou,
+  // ele vence e vai para os outros dois; se dois mudaram diferente, vale o do Controle e fica avisado.
+  const NOTION = "Notion";
+  // leitura pelas visualizações das bases (o modo "view" não gasta a cota de consultas SQL do Notion).
+  // Se alguém filtrar essas visualizações no Notion, as linhas escondidas deixam de sincronizar.
+  const AGENDA_VIEW = "view://c004ce99-c2ce-4c90-b938-66c516d0ff5b"; // "Editar agenda em tabela" · Default view
+  const VIDEOS_VIEW = "view://896c724d-c6fc-4a35-9a73-7ca272d912be"; // "41 vídeos" · Filmes por bloco
+  const NOTION_PAGE = {"4029614bc64581a0a1c8f08fe77051cb":"documentario","4029614bc64581d8840fc7d9dc01fa33":"trailer","4029614bc645819ea5d1c000e2e59f12":"visita-canuana","4029614bc64581a79625f53f20fb29ab":"visita-conceicao-do-araguaia","4029614bc6458181a4d6dfbcfd946a5b":"visita-bodoquena","4029614bc64581c9be20d0307867d5dd":"visita-gravatai","4029614bc64581e09199c3bdc9137908":"visita-jaboatao","4029614bc6458111b71df062a22dc439":"visita-osasco","4029614bc64581ae9f56ecf5655c8fe8":"pilula-edgar-azevedo-1","4029614bc64581b09eefc47e83e248b1":"pilula-edgar-azevedo-2","4029614bc645819fb66cd86adae45f1f":"pilula-edgar-azevedo-3","4029614bc645814787b1c09fbea10db4":"pilula-elza-lima-1","4029614bc6458157891acb1d96cea504":"pilula-elza-lima-2","4029614bc6458157b0aef64fb8b01116":"pilula-elza-lima-3","4029614bc6458174b9e8dd35316c36fc":"pilula-fabio-bartelt-1","4029614bc64581e8b270c4aa24794393":"pilula-fabio-bartelt-2","4029614bc645816ba020cb13b446fae6":"pilula-fabio-bartelt-3","4029614bc6458103a642dcfd9ec72f2c":"pilula-lalo-de-almeida-1","4029614bc64581b0a922fee1d17ac362":"pilula-lalo-de-almeida-2","4029614bc6458159a987d68efd3949e4":"pilula-lalo-de-almeida-3","4029614bc645818abccfd4df859d67c7":"pilula-mariana-valente-1","4029614bc64581138693d28c47ec6b49":"pilula-mariana-valente-2","4029614bc64581bbb22acec1d8c2b472":"pilula-mariana-valente-3","4029614bc64581d28ac3d12d2dc7759c":"pilula-maira-erlich-1","4029614bc645811c9808eaf5125674ff":"pilula-maira-erlich-2","4029614bc645810ca092df2293c41dd3":"pilula-maira-erlich-3","4029614bc64581b69e5ada19410449fa":"pilula-nti-uira-1","4029614bc645811a97d7c8433297b055":"pilula-nti-uira-2","4029614bc6458146ac68da4c615bf0ef":"pilula-nti-uira-3","4029614bc645812d82b5d265aef86b52":"pilula-patricia-brasil-1","4029614bc64581a5882bc2754c7eb067":"pilula-patricia-brasil-2","4029614bc64581f6ab48eef79b2364c2":"pilula-patricia-brasil-3","4029614bc6458122a4bed22d1ba8c7d2":"pilula-pedro-kok-1","4029614bc645812eb199c8061a68759c":"pilula-pedro-kok-2","4029614bc64581eb8eefdb41ee11fc22":"pilula-pedro-kok-3","4029614bc645814dadf8dc0d65390fc7":"pilula-renato-parada-1","4029614bc64581bc9ef6cf4f851eff44":"pilula-renato-parada-2","4029614bc64581079450c7caca5811b3":"pilula-renato-parada-3","4029614bc6458150b269d49a1c69fd5a":"pilula-vilma-slomp-1","4029614bc6458107830bed469ccc9300":"pilula-vilma-slomp-2","4029614bc6458175aeefc04b48f31f88":"pilula-vilma-slomp-3"}; // página do Notion -> id do vídeo
+  const PAGE_DO_VIDEO = Object.fromEntries(Object.entries(NOTION_PAGE).map(([p, v]) => [v, p]));
+  const FE_ID = { "Elza Lima": "elza-lima", "Ntí Uirá": "nti-uira", "Renato Parada": "renato-parada", "Pedro Kok": "pedro-kok", "Mariana Valente": "mariana-valente",
+    "Fabio Bartelt": "fabio-bartelt", "Fábio Bartelt": "fabio-bartelt", "Patricia Brasil": "patricia-brasil", "Maíra Erlich": "maira-erlich", "Edgar Azevedo": "edgar-azevedo",
+    "Lalo de Almeida": "lalo-de-almeida", "Vilma Slomp": "vilma-slomp", "Conceição do Araguaia": "conceicao-do-araguaia", "Jaboatão dos Guararapes": "jaboatao", "Gravataí": "gravatai",
+    "Fazenda Bodoquena": "bodoquena", "Canuanã": "canuana", "Osasco": "osasco", "Documentário": "documentario", "Trailer": "trailer", "Geral": "geral" };
+  // fotógrafo -> visita da escola dele (as pílulas chegam junto quando não têm entrega própria no Notion)
+  const PARCEIRO = { "elza-lima": "conceicao-do-araguaia", "nti-uira": "jaboatao", "renato-parada": "gravatai", "pedro-kok": "bodoquena", "mariana-valente": "canuana", "fabio-bartelt": "osasco" };
+  const UF = { "conceicao-do-araguaia": "PA", "jaboatao": "PE", "gravatai": "RS", "bodoquena": "MS", "canuana": "TO", "osasco": "SP" };
+  const sync = { busy: false, last: null, log: [], erro: null, linkCol: "Link do filme" };
+  // Status do Controle -> Status e Versão no Notion. "ok" = valores do Notion que já combinam (não sobrescreve
+  // um detalhe interno do Notion, como "Em revisão" da V1 enquanto aqui ainda é "Em edição").
+  const NOTION_ST = {
+    edicao: { st: "Em montagem", ok: (s) => ["A atualizar", "A iniciar", "Em montagem", "Em revisão", "Ajustes"].includes(s) },
+    v2: { st: "Em revisão", ver: "V2", ok: (s, v) => s === "Em revisão" && /v2/i.test(v) },
+    ajustes: { st: "Ajustes", ok: (s) => s === "Ajustes" },
+    offline: { st: "Offline aprovado", ok: (s) => s === "Offline aprovado" },
+    finalizacao: { st: "Em finalização", ok: (s) => s === "Em finalização" },
+    online: { st: "Em revisão", ver: "Online", ok: (s, v) => s === "Em revisão" && /online/i.test(v) },
+    aprovado: { st: "Aprovado", ok: (s) => s === "Aprovado" },
+    entregue: { st: "Entregue", ok: (s) => s === "Entregue" },
+  };
+  const statusProps = (k, atual, versao) => {
+    const m = NOTION_ST[norm(k)];
+    if (!m || m.ok(atual || "", versao || "")) return null;
+    return { Status: m.st, ...(m.ver ? { "Versão": m.ver } : {}) };
+  };
+  const notionSet = (pid, props) => mcp.callTool(NOTION, "notion-update-page", { page_id: pid, command: "update_properties", properties: props }, { cache: false });
+  // o Notion devolve até 100 linhas por vez: pagina até acabar
+  async function notionView(view) {
+    const out = []; let cursor = null;
+    for (let k = 0; k < 20; k++) {
+      let r = (await mcp.callTool(NOTION, "notion-query-data-sources", { data: { mode: "view", view_url: view, page_size: 100, ...(cursor ? { start_cursor: cursor } : {}) } }, { cache: false })).payload || {};
+      if (typeof r === "string") r = JSON.parse(r);
+      out.push(...(r.results || []));
+      if (!r.has_more || !r.next_cursor) break;
+      cursor = r.next_cursor;
+    }
+    return out;
+  }
+  // data no fuso de São Paulo (o Notion devolve horários em UTC)
+  const day = (s) => { if (!s) return null; s = String(s); if (!s.includes("T")) return s.slice(0, 10); return new Date(new Date(s).getTime() - 3 * 3600e3).toISOString().slice(0, 10); };
+  const FERIADOS = ["2026-11-02", "2026-11-20", "2026-12-25", "2027-01-01", "2027-01-25"];
+  // dia útil anterior (pula fim de semana e feriado)
+  const minus1 = (iso) => {
+    const [y, m, d] = iso.split("-").map(Number); const x = new Date(y, m - 1, d);
+    const f = () => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+    do x.setDate(x.getDate() - 1); while (x.getDay() === 0 || x.getDay() === 6 || FERIADOS.includes(f()));
+    return f();
+  };
+
+  // Agenda do Notion -> datas que o cliente vê (a mesma regra usada à mão até aqui)
+  // Blocos de entrega (como o cliente recebe): cidade + fotógrafo (visita + 3 pílulas), só pílulas, documentário e trailer.
+  // O "Bloco de entrega" do Notion é reconhecido pelo nome da cidade ou do fotógrafo, para aguentar pequenas mudanças de nome.
+  const BLOCOS = [
+    { id: "conceicao-do-araguaia", re: /concei/i, nome: "Conceição do Araguaia", uf: "PA", tipo: "bloco", fot: { id: "elza-lima", nome: "Elza Lima" } },
+    { id: "jaboatao", re: /jaboat/i, nome: "Jaboatão dos Guararapes", uf: "PE", tipo: "bloco", fot: { id: "nti-uira", nome: "Ntí Uirá" } },
+    { id: "gravatai", re: /gravata/i, nome: "Gravataí", uf: "RS", tipo: "bloco", fot: { id: "renato-parada", nome: "Renato Parada" } },
+    { id: "bodoquena", re: /bodoquena/i, nome: "Fazenda Bodoquena", uf: "MS", tipo: "bloco", fot: { id: "pedro-kok", nome: "Pedro Kok" } },
+    { id: "canuana", re: /canuan/i, nome: "Canuanã", uf: "TO", tipo: "bloco", fot: { id: "mariana-valente", nome: "Mariana Valente" } },
+    { id: "osasco", re: /osasco/i, nome: "Osasco", uf: "SP", tipo: "bloco", fot: { id: "fabio-bartelt", nome: "Fábio Bartelt" } },
+    { id: "patricia-brasil", re: /patr[ií]cia/i, nome: "Patricia Brasil", tipo: "pilula" },
+    { id: "maira-erlich", re: /ma[ií]ra/i, nome: "Maíra Erlich", tipo: "pilula" },
+    { id: "edgar-azevedo", re: /edgar/i, nome: "Edgar Azevedo", tipo: "pilula" },
+    { id: "lalo-de-almeida", re: /lalo/i, nome: "Lalo de Almeida", tipo: "pilula" },
+    { id: "vilma-slomp", re: /vilma/i, nome: "Vilma Slomp", tipo: "pilula" },
+    { id: "documentario", re: /document/i, nome: "Documentário", tipo: "documentario" },
+    { id: "trailer", re: /trailer/i, nome: "Trailer", tipo: "trailer" },
+  ];
+  const blocoDe = (txt) => (txt && !/^geral$/i.test(txt) ? BLOCOS.find((b) => b.re.test(txt)) : null);
+
+  // Agenda do Notion -> datas que o cliente vê, por bloco
+  function montarCronograma(rows) {
+    const R = rows.map((r) => ({ a: r.Atividade || "", s: day(r["date:Data:start"]), e: day(r["date:Data:end"]) || day(r["date:Data:start"]), et: r.Etapa, bl: r["Bloco de entrega"], fe: r["Fotógrafo / Escola"] }))
+      .filter((r) => r.s).map((r) => {
+        // tarefa de um bloco só (pelo "Bloco de entrega" ou "Fotógrafo / Escola"); a que junta vários blocos (ex.: as 5 entregas
+        // só de pílulas) vale para cada bloco citado no título
+        const um = blocoDe(r.bl) || blocoDe(r.fe), geral = /^geral$/i.test(r.bl || r.fe || "");
+        return { ...r, bs: um ? [um.id] : geral ? [] : BLOCOS.filter((B) => B.re.test(r.a)).map((B) => B.id), geral };
+      }).sort((a, b) => a.s.localeCompare(b.s));
+    const filmes = [];
+    for (const B of BLOCOS) {
+      const L = R.filter((r) => r.bs.includes(B.id));
+      const v2 = L.find((r) => /^(Enviar V2|Entrega V2)/i.test(r.a))?.s;                      // a V2 do bloco vai ao cliente
+      const rev = L.find((r) => r.et === "Revisão cliente" || /^Revisão (do cliente · )?V2/i.test(r.a))?.s;
+      const off = L.filter((r) => r.et === "Offline").map((r) => r.s).at(-1);                 // offline do bloco todo liberado
+      const fins = L.filter((r) => r.et === "Cor" || r.et === "Finalização");
+      const on = L.filter((r) => r.et === "Online" && !/^Conferir online/i.test(r.a)).map((r) => r.s).at(-1); // "Conferir online" é interno
+      if (!v2 || !rev || !off || !fins.length || !on) continue; // incompleto no Notion: o cronograma mantém o que tinha
+      const { re, ...info } = B;
+      filmes.push({ ...info, ed: [L[0].s < v2 ? L[0].s : minus1(v2), minus1(v2)], v2, rev, off, fin: [fins[0].s, fins.map((r) => r.e).sort().at(-1)], on });
+    }
+    const ger = R.filter((r) => r.geral);
+    const um = (re) => ger.filter((r) => re.test(r.a));
+    const fech = [];
+    const add = (re, o) => { const x = um(re); if (x.length) fech.push({ data: x[0].s, ...(x.at(-1).e !== x[0].s ? { fim: x.at(-1).e } : {}), ...o }); };
+    add(/pacote dos 41 onlines/i, { titulo: "Todos os 41 onlines prontos", texto: "Os 41 vídeos com cor, som, grafismos e legendas, para conferência técnica." });
+    add(/^Consolidar retorno técnico/i, { titulo: "Retorno técnico", texto: "Um retorno consolidado sobre os onlines: só ajustes técnicos (cor, som, grafismos, legendas).", cliente: true });
+    add(/^Corrigir/i, { titulo: "Correções finais", texto: "Cor, som, grafismos e legendas corrigidos." });
+    add(/fechar masters/i, { titulo: "Masters fechados", texto: "Exports conferidos e masters prontos." });
+    add(/Reserva para imprevistos/i, { titulo: "Margem para imprevistos", texto: "Dias reservados para qualquer imprevisto." });
+    add(/^Entrega final|^Entrega prevista/i, { titulo: "Entrega dos 41 vídeos", texto: "33 pílulas, 6 visitas, o documentário e o trailer.", marco: true });
+    const entrega = fech.find((x) => x.marco);
+    if (filmes.length < 10 || !entrega) return null; // algo muito fora do esperado: não publica
+    fech.forEach((x) => { if (x.fim === x.data) delete x.fim; });
+    const hoje = new Date();
+    return { atualizado: `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`,
+      fim: entrega.data, filmes, fechamento: fech.sort((a, b) => a.data.localeCompare(b.data)) };
+  }
+
+
+  async function sincronizar() {
+    if (!db || !mcp || !canWrite || sync.busy) return;
+    sync.busy = true; sync.tentou = Date.now(); renderSync();
+    const log = [];
+    lerRegistro();
+    try {
+      // 1. o que cada lugar tem agora
+      const [nrows, sheet] = await Promise.all([
+        notionView(VIDEOS_VIEW),
+        mcp.callTool(SHEETS, "get_values", { spreadsheetId: SHEET_ID, range: "A2:E43" }, { cache: false }).then((r) => r.payload?.values || []),
+      ]);
+      // a coluna de link é achada pelo nome (começa com "Link"), para sobreviver a renomear no Notion
+      const col = nrows.length ? Object.keys(nrows[0]).find((k) => /^link/i.test(k)) : null;
+      if (nrows.length && !col) throw { code: "sem_coluna" };
+      if (col) sync.linkCol = col;
+      const nLink = {}, nPage = {}, nSt = {};
+      nrows.forEach((r) => { const pid = String(r.url || "").replace(/[^0-9a-f]/gi, "").slice(-32); const vid = NOTION_PAGE[pid]; if (vid) { nLink[vid] = normalizeUrl(String(r[col] || "").trim()); nPage[vid] = pid; nSt[vid] = [r.Status, r["Versão"]]; } });
+      const sLink = {};
+      sheet.forEach((row) => { if (row[0] && row[0] !== "placeholder") sLink[row[0]] = normalizeUrl(String(row[4] || "").trim()); });
+      // 2. decide o link de cada vídeo e espalha
+      for (const f of films) {
+        const c = f.url || "", s = sLink[f.id] ?? "", n = nLink[f.id] ?? "";
+        const primeira = f.base == null;
+        const b = primeira ? null : f.base;
+        let w, origem;
+        if (primeira) { w = c || s || n; origem = w === c ? "Controle" : w === s ? "planilha" : "Notion"; } // 1ª vez: nenhum link existente se perde
+        else {
+          // célula vazia nunca apaga um link sozinha: é preenchida de novo (apagar, só pelo Controle)
+          const mud = [["Controle", c], ["planilha", s], ["Notion", n]].filter(([, v]) => v !== b && v !== "");
+          const vals = [...new Set(mud.map(([, v]) => v))];
+          if (!vals.length) { w = b; origem = "o último link combinado"; }
+          else if (vals.length === 1) { w = vals[0]; origem = mud.map(([o]) => o).join(" e "); }
+          else { w = c; origem = "Controle"; log.push(`${f.titulo}: links diferentes em dois lugares; ficou o do Controle (confira).`); }
+        }
+        if (f.notionIgnorado && f.notionIgnorado !== n) await db.doc(`videos/${f.id}`).update({ notionIgnorado: null });
+        // link que só mudou no Notion não entra sozinho: vira uma sugestão no filme, para aceitar ou ignorar
+        if (w && w === n && w !== c && w !== s) {
+          if (f.notionSug !== n && f.notionIgnorado !== n) { await db.doc(`videos/${f.id}`).update({ notionSug: n }); log.push(`${f.titulo}: link novo no Notion, esperando você aceitar`); }
+          continue;
+        }
+        if (f.notionSug) await db.doc(`videos/${f.id}`).update({ notionSug: null });
+        if (c === w && s === w && n === w && f.base === w) continue;
+        if (c !== w || f.base !== w) await db.doc(`videos/${f.id}`).update({ url: w, base: w, ...(c !== w ? { atualizadoEm: new Date().toISOString(), atualizadoPor: user ? await user.id() : null } : {}) });
+        if (s !== w && SHEET_ROW[f.id]) await toSheet(`E${SHEET_ROW[f.id]}`, [[w]]);
+        if (n !== w && (nPage[f.id] || PAGE_DO_VIDEO[f.id])) await notionSet(nPage[f.id] || PAGE_DO_VIDEO[f.id], { [sync.linkCol]: w || null });
+        if (c !== w || s !== w || n !== w) log.push(`${f.titulo}: ${w ? "link" : "link apagado"} veio de ${origem}`);
+      }
+      // status: o Controle manda, o Notion acompanha
+      let nst = 0;
+      for (const f of films) {
+        if (!nPage[f.id]) continue;
+        const props = statusProps(f.status, ...(nSt[f.id] || []));
+        if (props) { await notionSet(nPage[f.id], props); nst++; }
+      }
+      if (nst) log.push(`Status levado ao Notion em ${nst} ${nst === 1 ? "vídeo" : "vídeos"}`);
+      // 3. datas do cronograma: Notion -> aba "Cronograma" da planilha, que o cronograma do cliente lê
+      const agenda = await notionView(AGENDA_VIEW);
+      const crono = montarCronograma(agenda);
+      if (crono) {
+        const json = JSON.stringify(crono);
+        if (json.replace(/"atualizado":"[^"]*",/, "") !== (sync.ultimoCrono || "")) {
+          await toSheet("Cronograma!A1:A2", [[json], [new Date().toISOString()]]);
+          sync.ultimoCrono = json.replace(/"atualizado":"[^"]*",/, "");
+          log.push(`Cronograma do cliente atualizado (${crono.filmes.length} filmes, entrega em ${crono.fim.split("-").reverse().join("/")})`);
+        }
+        // datas do bloco valem para a visita e para as pílulas do fotógrafo
+        crono.filmes.forEach((x) => [x.id, x.fot?.id].forEach((g) => { if (g && GRUPOS[g]) Object.assign(GRUPOS[g], { v2: x.v2, rev: x.rev, on: x.on }); }));
+      } else log.push("Cronograma: a agenda do Notion parece incompleta; mantive as datas anteriores.");
+      sync.last = new Date(); sync.erro = null;
+      if (log.length) sync.log = [...log.map((l) => `${sync.last.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} · ${l}`), ...sync.log].slice(0, 12);
+    } catch (e) {
+      sync.erro = ({
+        selection_required: "escolha as contas do Notion e do Google Sheets quando o claude.ai pedir",
+        blocked_by_policy: "a sua organização bloqueia o Notion ou o Google Sheets nesta página",
+        server_not_connected: "conecte o Notion e o Google Sheets no claude.ai",
+        tool_error: /usage_limit|allowance|limite/i.test(e?.message || "") ? "o Notion pediu uma pausa nas consultas" : "o Notion ou a planilha recusou (confira o acesso de edição)",
+        sem_coluna: "não achei a coluna de link na base “41 vídeos” (o nome precisa começar com “Link”)",
+      })[e?.code] || "falhou agora";
+    } finally { sync.busy = false; renderSync(); }
+  }
+  function renderSync() {
+    const box = $("#sync"); if (!box) return;
+    const hm = (d) => d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const prox = sync.tentou ? hm(new Date(sync.tentou + 10 * 60e3)) : "";
+    box.classList.toggle("busy", sync.busy);
+    $("#sync-now").disabled = sync.busy;
+    box.classList.toggle("err", !sync.busy && !!sync.erro);
+    box.querySelector(".sync-st").textContent = sync.busy ? "Sincronizando…"
+      : sync.erro ? `Notion fora de sincronia: ${sync.erro} · tento de novo às ${prox}`
+      : sync.last ? `Notion e planilha em dia · ${hm(sync.last)}` : "Conectando ao Notion…";
+    box.querySelector("ul").innerHTML = sync.log.map(() => "<li></li>").join("");
+    box.querySelectorAll("li").forEach((li, i) => (li.textContent = sync.log[i]));
+  }
+
+
+  (async () => {
+    db = await claude.use("db");
+    user = await claude.use("user");
+    try { euId = user ? await user.id() : null; } catch {}
+    mcp = await claude.use("mcp");
+    // peças que o editor do cronograma da equipe usa (ele mora no fim desta página)
+    window.FBC = { notionView, notionSet, AGENDA_VIEW, montarCronograma, toSheet, sync, mcp: () => mcp };
+    document.dispatchEvent(new Event("fbc:pronto"));
+    if (!db) { $("#state").textContent = "Abra esta página no claude.ai, com login, para ver e editar a lista compartilhada."; return; }
+    if (claude.fora) { const s = document.createElement("button"); s.type = "button"; s.className = "sair"; s.textContent = "Sair"; s.title = "Esquecer a chave e o nome neste navegador"; s.addEventListener("click", () => claude.sair()); $(".h-row").append(s); }
+    const w = user ? await user.can("data.write") : null;
+    if (w === false) canWrite = false;
+    db.doc("config/site").onSnapshot((s) => {
+      placeholder = (s.exists && s.data().placeholder) || DEFAULT_PH;
+      if (document.activeElement !== ph) ph.value = placeholder;
+      $("#ph-open").href = placeholder;
+      renderList();
+    }, () => {});
+    db.collection("videos").onSnapshot((snap) => {
+      films = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      if (!sync.primeira) { sync.primeira = true; setTimeout(() => sincronizar(false), 300); }
+      const active = document.activeElement;
+      if (active && active.matches?.("input, textarea, select") && active.closest(".film")) { renderSummary(); return; } // não redesenha enquanto alguém digita
+      renderList();
+    }, () => { $("#list").innerHTML = `<p class="state">A lista parou de atualizar. Recarregue a página.</p>`; });
+  })();
+})();
+</script>
+<script>
+// cada bloco recolhível lembra se ficou aberto ou fechado
+document.querySelectorAll("details[data-lembrar]").forEach((d) => {
+  const k = d.dataset.lembrar;
+  try { const v = localStorage.getItem(k); if (v !== null) d.open = v === "1"; } catch {}
+  d.addEventListener("toggle", () => { try { localStorage.setItem(k, d.open ? "1" : "0"); } catch {} });
+});
+</script>
+
+<style>
+/* ── Abas do Controle e editor do cronograma da equipe (agenda do Notion) ── */
+[hidden] { display: none !important; }
+.abas { display: flex; gap: 4px; margin: 22px 0 4px; padding: 4px; border-radius: 14px; background: var(--surface); width: fit-content; max-width: 100%; }
+.abas button { border: 0; background: none; padding: 8px 16px; border-radius: 10px; font-weight: 700; color: var(--muted); cursor: pointer; }
+.abas button[aria-selected="true"] { background: var(--card); color: var(--fg); box-shadow: var(--shadow); }
+#ed { margin-top: 18px; }
+#ed[hidden] { display: none; }
+.ed-bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; padding: 10px 0; background: var(--bg); }
+.ed-bar .seg { display: flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--surface); }
+.ed-bar .seg button { border: 0; background: none; padding: 6px 12px; border-radius: 9px; font-weight: 700; font-size: 13.5px; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.ed-bar .seg button[aria-pressed="true"] { background: var(--card); color: var(--fg); box-shadow: var(--shadow); }
+.ed-bar select, .ed-bar input[type=search] { padding: 7px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); font-size: 13.5px; }
+.ed-bar input[type=search] { flex: 1 1 160px; min-width: 120px; }
+.ed-bar label.chk { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); cursor: pointer; }
+.ed-bar .novo { margin-left: auto; }
+@media (max-width: 720px) { .ed-bar { position: static; } .ed-bar .seg { overflow-x: auto; max-width: 100%; } }
+.ed-st { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); margin: 0 0 8px; }
+.ed-st i { width: 8px; height: 8px; border-radius: 50%; background: var(--st-aprovado); }
+.ed-st.busy i { background: var(--st-ajustes); animation: edpulse 1s infinite alternate; }
+.ed-st.err i { background: var(--danger); }
+.ed-st button { border: 0; background: none; color: var(--fg); text-decoration: underline; cursor: pointer; font-size: 12.5px; padding: 0; }
+@keyframes edpulse { to { opacity: .35; } }
+.pessoas { display: flex; flex-wrap: wrap; gap: 4px; }
+.pessoas button { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 4px 10px 4px 8px; font-size: 12.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.pessoas button i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+.pessoas button[aria-pressed="true"] { border-color: var(--fg); color: var(--fg); }
+.ed-vazio { padding: 40px 0; text-align: center; color: var(--muted); }
+
+/* lista */
+.l-dia { margin: 18px 0 6px; display: flex; align-items: baseline; gap: 10px; }
+.l-dia h3 { margin: 0; font-size: 15px; font-weight: 800; }
+.l-dia span { color: var(--muted); font-size: 12.5px; }
+.l-dia.hoje h3::after { content: "hoje"; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--fg); color: var(--accent-fg); font-size: 11px; vertical-align: 2px; }
+.carga { font-size: 11.5px; font-weight: 800; color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); padding: 1px 8px; border-radius: 999px; }
+.l-tab { display: grid; gap: 4px; }
+.l-row { display: grid; grid-template-columns: 4px minmax(0, 1fr) auto auto auto; gap: 6px 10px; align-items: center; padding: 8px 10px 8px 0; border-radius: 12px; background: var(--card); box-shadow: var(--shadow); }
+.l-row > i { align-self: stretch; border-radius: 4px; background: var(--c); }
+.l-row.feito { opacity: .55; }
+.l-row.feito .l-tit input { text-decoration: line-through; }
+.l-tit { display: grid; gap: 1px; min-width: 0; }
+.l-tit input { border: 0; background: none; padding: 2px 4px; border-radius: 6px; font-weight: 700; width: 100%; text-overflow: ellipsis; }
+.l-tit input:hover, .l-tit input:focus { background: var(--surface); }
+.l-tit small { padding: 0 4px; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.l-row input[type=date], .l-row input[type=time], .l-row select, .dr input, .dr select, .dr textarea, .e-step input, .e-step select { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 5px 7px; font-size: 13px; min-width: 0; }
+.l-hora { display: flex; gap: 4px; align-items: center; color: var(--muted); font-size: 12px; }
+.l-hora input[type=time] { width: 84px; }
+.l-row .mais { border: 0; background: none; cursor: pointer; padding: 6px; border-radius: 8px; color: var(--muted); font-size: 16px; line-height: 1; }
+.l-row .mais:hover { background: var(--surface); color: var(--fg); }
+.salvando { box-shadow: inset 0 0 0 1.5px var(--st-ajustes), var(--shadow) !important; }
+.erro-salvar { box-shadow: inset 0 0 0 1.5px var(--danger), var(--shadow) !important; }
+@media (max-width: 720px) {
+  .l-row { grid-template-columns: 4px minmax(0, 1fr) auto; }
+  .l-row .l-hora, .l-row .l-st { grid-column: 2 / 4; }
+  .l-row .l-hora { flex-wrap: wrap; }
+}
+
+/* calendário */
+.cal-mes { margin: 14px 0 4px; font-weight: 800; font-size: 15px; }
+.cal { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) .5fr .5fr; gap: 4px; }
+.cal .dow { font-size: 11.5px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 2px 4px; }
+.cel { min-height: 104px; padding: 5px; border-radius: 10px; background: var(--card); box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 3px; min-width: 0; position: relative; }
+.cel.fds, .cel.fer { background: var(--surface); box-shadow: none; }
+.cel.passado { opacity: .55; }
+.cel.sel { outline: 2px solid var(--fg); outline-offset: -2px; }
+.cel .n small { font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: .04em; }
+.cel.alvo { outline: 2px dashed var(--fg); outline-offset: -2px; }
+.cel .n { font-size: 12px; font-weight: 800; color: var(--muted); display: flex; justify-content: space-between; gap: 4px; }
+.cel.hoje .n b { background: var(--fg); color: var(--accent-fg); border-radius: 999px; padding: 0 6px; }
+.cel .n .add { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0 4px; border-radius: 6px; opacity: 0; font-size: 14px; line-height: 1; }
+.cel:hover .n .add, .cel .n .add:focus { opacity: 1; }
+.cel .fer-n { font-size: 10.5px; color: var(--muted); }
+.chip { display: block; width: 100%; text-align: left; border: 0; cursor: grab; padding: 3px 6px 3px 7px; border-radius: 6px; font-size: 11.5px; line-height: 1.25; font-weight: 600; color: var(--fg);
+  background: color-mix(in srgb, var(--c) 16%, var(--card)); box-shadow: inset 3px 0 0 var(--c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip.feito { opacity: .5; text-decoration: line-through; }
+.chip:active { cursor: grabbing; }
+.chip.marco { font-weight: 800; }
+@media (max-width: 720px) {
+  .cal { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .cal .dow.fds, .cel.fds { display: none; }
+  .cel { min-height: 64px; }
+  .chip { font-size: 0; padding: 0; height: 6px; border-radius: 3px; box-shadow: none; background: var(--c); }
+  .cel .n .add { opacity: 1; }
+}
+.dia-sel { margin-top: 12px; }
+
+/* linha do tempo */
+.tl-wrap { overflow-x: auto; border-radius: 14px; background: var(--card); box-shadow: var(--shadow); padding-bottom: 6px; }
+.tl { position: relative; display: grid; grid-template-columns: 200px auto; min-width: max-content; }
+.tl-cab { position: sticky; top: 0; z-index: 2; display: contents; }
+.tl-h0 { position: sticky; left: 0; z-index: 3; background: var(--card); border-bottom: 1px solid var(--line); }
+.tl-dias { display: flex; border-bottom: 1px solid var(--line); }
+.tl-dias div { width: var(--w); flex: 0 0 var(--w); text-align: center; font-size: 10.5px; color: var(--muted); padding: 6px 0 4px; border-left: 1px solid var(--line); line-height: 1.15; }
+.tl-dias div.seg1 { border-left-color: var(--muted); }
+.tl-dias div.hoje { color: var(--fg); font-weight: 800; }
+.tl-dias b { display: block; font-size: 12px; color: var(--fg); }
+.tl-g { position: sticky; left: 0; z-index: 1; background: var(--card); padding: 6px 10px; font-size: 12.5px; font-weight: 800; border-top: 1px solid var(--line); display: flex; align-items: center; min-width: 0; }
+.tl-g span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tl-faixa { position: relative; border-top: 1px solid var(--line); background-image: linear-gradient(to right, var(--line) 1px, transparent 1px); background-size: var(--w) 100%; }
+.tl-bar { position: absolute; height: 22px; border-radius: 6px; background: color-mix(in srgb, var(--c) 26%, var(--card)); box-shadow: inset 0 0 0 1.5px var(--c); font-size: 11px; font-weight: 700; line-height: 22px; padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: grab; touch-action: none; user-select: none; }
+.tl-bar.feito { opacity: .45; }
+.tl-bar .rs { position: absolute; right: 0; top: 0; bottom: 0; width: 8px; cursor: ew-resize; }
+.tl-bar.arrastando { z-index: 4; box-shadow: inset 0 0 0 2px var(--c), 0 6px 16px -6px rgba(0,0,0,.4); }
+.tl-hoje { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--fg); opacity: .5; pointer-events: none; z-index: 1; }
+@media (max-width: 720px) { .tl { grid-template-columns: 120px auto; } }
+
+/* por entrega */
+.ent { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); gap: 12px; }
+.e-card { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); padding: 14px 14px 8px; min-width: 0; }
+.e-card h3 { margin: 0 0 8px; font-size: 16px; font-weight: 800; display: flex; gap: 8px; align-items: baseline; }
+.e-card h3 small { color: var(--muted); font-size: 12px; font-weight: 600; }
+.e-step { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 4px 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
+.e-step input[type=checkbox] { width: 16px; height: 16px; margin: 0; accent-color: var(--st-aprovado); }
+.e-step .t { min-width: 0; font-size: 13px; }
+.e-step .t b { display: block; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.e-step .t span { color: var(--muted); font-size: 12px; }
+.e-step .t span i { font-style: normal; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--c); margin-right: 4px; }
+.e-step .q { display: flex; gap: 3px; align-items: center; }
+.e-step .q button { border: 1px solid var(--line); background: var(--bg); border-radius: 7px; width: 26px; height: 28px; cursor: pointer; color: var(--muted); }
+.e-step.feito .t b { text-decoration: line-through; color: var(--muted); }
+.e-step.cliente .t b::after { content: "Equipe Bradesco"; margin-left: 6px; font-size: 10.5px; font-weight: 800; color: var(--st-aprovado); }
+
+/* gaveta de edição */
+.dr-fundo { position: fixed; inset: 0; z-index: 40; background: rgba(20, 18, 16, .35); }
+.dr { position: fixed; z-index: 41; top: 0; right: 0; bottom: 0; width: min(440px, 100%); background: var(--card); box-shadow: -20px 0 50px -20px rgba(0,0,0,.35); display: flex; flex-direction: column; }
+.dr header { display: flex; align-items: center; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+.dr header h2 { margin: 0; font-size: 17px; flex: 1; }
+.dr header button { border: 0; background: var(--surface); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 18px; }
+.dr form { padding: 16px 18px; overflow: auto; display: grid; gap: 14px; flex: 1; align-content: start; }
+.dr label { display: grid; gap: 5px; font-size: 12.5px; font-weight: 800; color: var(--muted); }
+.dr input, .dr select, .dr textarea { font-size: 14px; padding: 8px 10px; color: var(--fg); }
+.dr textarea { min-height: 70px; resize: vertical; font: inherit; }
+.dr .linha { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dr .resp { display: flex; flex-wrap: wrap; gap: 6px; }
+.dr .resp label { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); font-size: 13px; color: var(--fg); cursor: pointer; font-weight: 700; }
+.dr .resp label:has(input:checked) { border-color: var(--c); background: color-mix(in srgb, var(--c) 14%, var(--card)); }
+.dr .resp input { margin: 0; accent-color: var(--fg); }
+.dr .chk { display: flex; align-items: center; gap: 8px; color: var(--fg); font-weight: 600; font-size: 13.5px; }
+.dr .deps { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.dr footer { display: flex; gap: 8px; padding: 14px 18px; border-top: 1px solid var(--line); align-items: center; flex-wrap: wrap; }
+.dr footer .ok { margin-left: auto; }
+.dr footer a { font-size: 13px; color: var(--muted); }
+.btn.perigo { color: var(--danger); }
+.ed-toast { position: fixed; left: 50%; bottom: 20px; transform: translate(-50%, 20px); opacity: 0; z-index: 60; display: flex; gap: 12px; align-items: center; padding: 10px 14px 10px 16px; border-radius: 14px; background: var(--fg); color: var(--accent-fg); font-size: 14px; transition: .2s; pointer-events: none; max-width: calc(100% - 32px); }
+.ed-toast.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.ed-toast button { border: 0; background: none; color: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
+</style>
+
+<section id="ed" hidden aria-label="Cronograma da equipe">
+  <div class="ed-bar">
+    <div class="seg" id="ed-modo" role="group" aria-label="Modo">
+      <button type="button" data-v="lista">Lista</button>
+      <button type="button" data-v="cal">Calendário</button>
+      <button type="button" data-v="linha">Linha do tempo</button>
+      <button type="button" data-v="entrega">Por entrega</button>
+    </div>
+    <select id="ed-bloco" aria-label="Filtrar por entrega"><option value="">Todas as entregas</option></select>
+    <input type="search" id="ed-busca" placeholder="Buscar tarefa" aria-label="Buscar tarefa">
+    <label class="chk"><input type="checkbox" id="ed-feitas"> Esconder concluídas</label>
+    <label class="chk" title="Ao mudar a data de uma tarefa, as que dependem dela (Blocked by) andam junto, em dias úteis"><input type="checkbox" id="ed-empurra" checked> Mover as seguintes junto</label>
+    <button type="button" class="btn novo" id="ed-novo">+ Nova tarefa</button>
+  </div>
+  <div class="pessoas" id="ed-pessoas" role="group" aria-label="Filtrar por pessoa"></div>
+  <p class="ed-st" id="ed-st"><i></i><span>Carregando a agenda do Notion…</span></p>
+  <div id="ed-view"></div>
+</section>
+<div class="ed-toast" id="ed-toast" role="status" aria-live="polite"><span></span></div>
+
+<script>
+// Editor do cronograma da equipe: a agenda do Notion em lista, calendário, linha do tempo e por entrega.
+// Cada mudança vai direto para o Notion; depois o cronograma do cliente (aba "Cronograma" da planilha) é refeito.
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const AGENDA_DS = "6dea10f2-8c92-42df-8831-bee18a5e2730";
+  const CORES = { Carlei: "var(--st-offline)", Mateus: "var(--st-ajustes)", Rafaim: "var(--st-online)", "Maví": "var(--st-v2)", Cliente: "var(--st-aprovado)" };
+  const cor = (t) => CORES[t.resp[0]] || "var(--st-edicao)";
+  const LIMITE = ["Carlei", "Mateus", "Rafaim"]; // regra: até 2 tarefas por dia para cada um
+  const FEITO = /^(conclu|pronto|feito|entregue)/i;
+  const WD = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"], WDL = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+  const MES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const FER = { "2026-11-02": "Finados", "2026-11-20": "Consciência Negra", "2026-12-25": "Natal", "2027-01-01": "Ano-novo" };
+
+  // ── datas (tudo no fuso de São Paulo, UTC−3) ──
+  const D = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+  const iso = (x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+  const hojeIso = iso(new Date());
+  const addDias = (s, n) => { const x = D(s); x.setDate(x.getDate() + n); return iso(x); };
+  const util = (s) => { const w = D(s).getDay(); return w > 0 && w < 6 && !FER[s]; };
+  const addUteis = (s, n) => { let x = s; const p = n < 0 ? -1 : 1; let k = Math.abs(n); while (k > 0) { x = addDias(x, p); if (util(x)) k--; } return x; };
+  const difUteis = (a, b) => { if (a === b) return 0; const p = b > a ? 1 : -1; let x = a, n = 0; while (x !== b) { x = addDias(x, p); if (util(x)) n += p; } return n; };
+  const dm = (s) => s.slice(8, 10) + "/" + s.slice(5, 7);
+  // valor do Notion -> { d: "AAAA-MM-DD", h: "HH:MM" | null }
+  function lerData(v) {
+    if (!v) return null; v = String(v);
+    if (!/[T ]\d/.test(v)) return { d: v.slice(0, 10), h: null };
+    const t = new Date(v.replace(" ", "T").replace(/Z?$/, (z) => (/[+-]\d\d:?\d\d$/.test(v) ? "" : "Z")));
+    const sp = new Date(t.getTime() - 3 * 3600e3).toISOString();
+    return { d: sp.slice(0, 10), h: sp.slice(11, 16) };
+  }
+  const paraNotion = (x) => (x.h ? `${x.d}T${x.h}:00.000-03:00` : x.d);
+  const lista = (v) => { if (Array.isArray(v)) return v; try { const a = JSON.parse(v || "[]"); return Array.isArray(a) ? a : [String(a)]; } catch { return v ? String(v).split(/\s*,\s*/) : []; } };
+  const idDe = (u) => String(u).replace(/[^0-9a-f]/gi, "").slice(-32);
+
+  // ── estado ──
+  let F = null, mcp = null;   // F: peças do Controle (Notion, planilha, cronograma)
+  let T = [];                 // tarefas
+  const st = { modo: lsGet("fbc-ed-modo") || "lista", bloco: "", q: "", pessoas: new Set(), feitas: lsGet("fbc-ed-feitas") === "1", empurra: lsGet("fbc-ed-empurra") !== "0", agrupa: lsGet("fbc-ed-agrupa") || "entrega", dia: null };
+  let pendentes = 0, ultimaLeitura = null, erro = null, desfazer = null;
+  function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
+
+  function deLinha(r) {
+    const ini = lerData(r["date:Data:start"]), fim = lerData(r["date:Data:end"]) || ini;
+    return {
+      id: idDe(r.url || r.id), url: r.url, titulo: r.Atividade || "", etapa: r.Etapa || "", status: r.Status || "", resp: lista(r["Responsável"]),
+      bloco: r["Bloco de entrega"] || "", fe: r["Fotógrafo / Escola"] || "", deps: lista(r["Blocked by"]).map(idDe), obs: r["Observações"] || "", ini, fim,
+    };
+  }
+  const feito = (t) => FEITO.test(t.status);
+  const ehMarco = (t) => /^(Marco|Enviar V2|Entrega final|Prazo final)/i.test(t.titulo);
+  const doCliente = (t) => t.resp.includes("Cliente") || /^Revisão do cliente|retorno técnico/i.test(t.titulo);
+
+  // ── leitura da agenda ──
+  async function carrega(silencioso) {
+    if (!F || pendentes) return;
+    if (!silencioso) status("busy", "Lendo a agenda do Notion…");
+    try {
+      const rows = await F.notionView(F.AGENDA_VIEW);
+      const aberto = $(".dr") ? $(".dr").dataset.id : null;
+      T = rows.map(deLinha).filter((t) => t.ini);
+      ultimaLeitura = new Date(); erro = null;
+      opcoes();
+      if (!aberto) render();
+      status();
+    } catch (e) { erro = e; status("err", "Não consegui ler o Notion agora. " + (e?.message || "")); }
+  }
+  function status(tipo, txt) {
+    const el = $("#ed-st"); if (!el) return;
+    el.className = "ed-st" + (tipo ? " " + tipo : pendentes ? " busy" : erro ? " err" : "");
+    const hm = (d) => d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    el.querySelector("span").innerHTML = txt ? esc(txt)
+      : pendentes ? `Salvando no Notion… (${pendentes})`
+      : `${T.length} tarefas · Notion em dia${ultimaLeitura ? " às " + hm(ultimaLeitura) : ""} · <button type="button" id="ed-recarrega">atualizar agora</button>`;
+  }
+
+  // ── gravação: cada mudança vai para o Notion; depois refaz o cronograma do cliente ──
+  const PROP = { titulo: "Atividade", etapa: "Etapa", status: "Status", bloco: "Bloco de entrega", obs: "Observações" };
+  function props(patch) {
+    const p = {};
+    Object.entries(patch).forEach(([k, v]) => {
+      if (PROP[k]) p[PROP[k]] = v || null;
+      if (k === "resp") p["Responsável"] = JSON.stringify(v);
+    });
+    if (patch.ini) {
+      const fim = patch.fim && (patch.fim.d !== patch.ini.d || patch.fim.h !== patch.ini.h) ? patch.fim : null;
+      p["date:Data:start"] = paraNotion(patch.ini); p["date:Data:end"] = fim ? paraNotion(fim) : null; p["date:Data:is_datetime"] = patch.ini.h ? 1 : 0;
+    }
+    return p;
+  }
+  async function grava(mudancas, rotulo) {
+    // mudancas: [{ t, patch }] — aplica já na tela, grava no Notion uma por uma
+    const antes = mudancas.map(({ t, patch }) => ({ t, patch: Object.fromEntries(Object.keys(patch).map((k) => [k, JSON.parse(JSON.stringify(t[k] ?? null))])) }));
+    mudancas.forEach(({ t, patch }) => Object.assign(t, patch));
+    render();
+    pendentes += mudancas.length; status();
+    let falhou = 0;
+    for (const { t, patch } of mudancas) {
+      try { await F.notionSet(t.id, props(patch.ini ? { ...patch, fim: patch.fim || t.fim } : patch)); }
+      catch (e) { falhou++; erro = e; marca(t.id, "erro-salvar"); }
+      pendentes--; status();
+    }
+    if (falhou) aviso(`${falhou === 1 ? "Uma mudança não foi" : falhou + " mudanças não foram"} para o Notion. Recarregue e tente de novo.`);
+    else if (rotulo) { desfazer = antes; aviso(rotulo, "Desfazer"); }
+    agendaCrono();
+  }
+  function marca(id, cls) { document.querySelectorAll(`[data-id="${id}"]`).forEach((n) => n.classList.add(cls)); }
+
+  // muda as datas de uma tarefa (e, se pedido, das que dependem dela), mantendo a duração em dias úteis
+  function moveData(t, novoIni, novoFim) {
+    const mud = [];
+    const delta = difUteis(t.ini.d, novoIni.d);
+    const fim = novoFim || { d: addUteis(novoIni.d, difUteis(t.ini.d, t.fim.d)), h: t.fim.h };
+    mud.push({ t, patch: { ini: novoIni, fim } });
+    if (st.empurra && delta) {
+      const visto = new Set([t.id]), fila = [t.id];
+      while (fila.length) {
+        const id = fila.shift();
+        T.filter((x) => x.deps.includes(id) && !visto.has(x.id) && !feito(x)).forEach((x) => {
+          visto.add(x.id); fila.push(x.id);
+          mud.push({ t: x, patch: { ini: { d: addUteis(x.ini.d, delta), h: x.ini.h }, fim: { d: addUteis(x.fim.d, delta), h: x.fim.h } } });
+        });
+      }
+    }
+    const n = mud.length;
+    grava(mud, n > 1 ? `${n} tarefas movidas (${delta > 0 ? "+" : ""}${delta} ${Math.abs(delta) === 1 ? "dia útil" : "dias úteis"})` : `“${t.titulo}” agora em ${dm(novoIni.d)}`);
+  }
+
+  let tCrono = null;
+  function agendaCrono() {
+    clearTimeout(tCrono);
+    tCrono = setTimeout(async () => {
+      if (pendentes) return agendaCrono();
+      const rows = T.map((t) => ({ Atividade: t.titulo, Etapa: t.etapa, "date:Data:start": paraNotion(t.ini), "date:Data:end": paraNotion(t.fim), "Bloco de entrega": t.bloco, "Fotógrafo / Escola": t.fe }));
+      const crono = F.montarCronograma(rows);
+      if (!crono) return;
+      const json = JSON.stringify(crono), sem = json.replace(/"atualizado":"[^"]*",/, "");
+      if (sem === (F.sync.ultimoCrono || "")) return;
+      try {
+        await F.toSheet("Cronograma!A1:A2", [[json], [new Date().toISOString()]]);
+        F.sync.ultimoCrono = sem;
+        aviso("Cronograma do cliente atualizado");
+      } catch { aviso("Não consegui atualizar o cronograma do cliente. Ele tenta de novo na próxima mudança."); }
+    }, 2500);
+  }
+
+  // ── aviso com “Desfazer” ──
+  function aviso(txt, botao) {
+    const el = $("#ed-toast");
+    el.innerHTML = `<span>${esc(txt)}</span>${botao ? `<button type="button">${esc(botao)}</button>` : ""}`;
+    el.classList.add("on"); clearTimeout(el._h); el._h = setTimeout(() => el.classList.remove("on"), botao ? 7000 : 3000);
+    el.querySelector("button")?.addEventListener("click", () => { el.classList.remove("on"); const a = desfazer; desfazer = null; if (a) grava(a, null).then(() => aviso("Desfeito")); });
+  }
+
+  // ── filtros e opções ──
+  const RESP_BASE = ["Carlei", "Mateus", "Rafaim", "Maví", "Cliente"];
+  let OPC = { etapa: [], status: [], bloco: [], resp: RESP_BASE };
+  function opcoes() {
+    const u = (k) => [...new Set(T.map((t) => t[k]).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt"));
+    OPC = { etapa: u("etapa"), status: [...new Set(["A fazer", "Concluído", ...u("status")])], bloco: u("bloco"), resp: [...new Set([...RESP_BASE, ...T.flatMap((t) => t.resp)])] };
+    const sel = $("#ed-bloco"), v = sel.value;
+    sel.innerHTML = `<option value="">Todas as entregas</option>` + OPC.bloco.map((b) => `<option>${esc(b)}</option>`).join("");
+    sel.value = v;
+    $("#ed-pessoas").innerHTML = OPC.resp.map((p) => `<button type="button" data-p="${esc(p)}" aria-pressed="${st.pessoas.has(p)}" style="--c:${CORES[p] || "var(--st-edicao)"}"><i></i>${esc(p === "Cliente" ? "Equipe Bradesco" : p)}</button>`).join("");
+  }
+  function visiveis() {
+    const q = st.q.toLowerCase();
+    return T.filter((t) => (!st.bloco || t.bloco === st.bloco) && (!st.feitas || !feito(t)) && (!st.pessoas.size || t.resp.some((p) => st.pessoas.has(p)))
+      && (!q || `${t.titulo} ${t.bloco} ${t.etapa} ${t.resp.join(" ")}`.toLowerCase().includes(q)))
+      .sort((a, b) => (a.ini.d + (a.ini.h || "00:00")).localeCompare(b.ini.d + (b.ini.h || "00:00")));
+  }
+  // dias em que alguém passa de 2 tarefas
+  function cargas() {
+    const m = new Map();
+    T.forEach((t) => { if (feito(t)) return; t.resp.filter((p) => LIMITE.includes(p)).forEach((p) => { let d = t.ini.d; for (let k = 0; k < 40 && d <= t.fim.d; k++, d = addDias(d, 1)) { if (!util(d)) continue; const key = d + "|" + p; m.set(key, (m.get(key) || 0) + 1); } }); });
+    return m;
+  }
+  const excesso = (m, d) => LIMITE.filter((p) => (m.get(d + "|" + p) || 0) > 2).map((p) => `${p}: ${m.get(d + "|" + p)} tarefas`);
+  const sub = (t) => [t.resp.map((p) => (p === "Cliente" ? "Equipe Bradesco" : p)).join(", "), t.etapa, t.bloco].filter(Boolean).join(" · ");
+
+  // ── modos ──
+  function render() {
+    const v = $("#ed-view"); if (!v || $("#ed").hidden) return;
+    document.querySelectorAll("#ed-modo button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === st.modo));
+    const L = visiveis();
+    if (!T.length) { v.innerHTML = `<p class="ed-vazio">${erro ? "A agenda não carregou." : "Carregando…"}</p>`; return; }
+    if (!L.length) { v.innerHTML = `<p class="ed-vazio">Nenhuma tarefa com esses filtros.</p>`; return; }
+    v.innerHTML = ({ lista: vLista, cal: vCal, linha: vLinha, entrega: vEntrega })[st.modo](L);
+    if (st.modo === "linha") ligaLinha();
+  }
+
+  function vLista(L) {
+    const m = cargas(), dias = [...new Set(L.map((t) => t.ini.d))];
+    const opt = (arr, v) => arr.map((o) => `<option${o === v ? " selected" : ""}>${esc(o)}</option>`).join("") + (v && !arr.includes(v) ? `<option selected>${esc(v)}</option>` : "");
+    return dias.map((d) => {
+      const ex = excesso(m, d);
+      return `<div class="l-dia${d === hojeIso ? " hoje" : ""}"><h3>${WDL[D(d).getDay()]}, ${dm(d)}</h3>${FER[d] ? `<span>${FER[d]}</span>` : ""}${ex.map((x) => `<span class="carga">${esc(x)}</span>`).join("")}</div>
+      <div class="l-tab">${L.filter((t) => t.ini.d === d).map((t) => `<div class="l-row${feito(t) ? " feito" : ""}" data-id="${t.id}" style="--c:${cor(t)}"><i></i>
+        <div class="l-tit"><input value="${esc(t.titulo)}" data-campo="titulo" aria-label="Atividade"><small>${esc(sub(t))}</small></div>
+        <div class="l-hora"><input type="date" value="${t.ini.d}" data-campo="dia" aria-label="Dia">${t.ini.h ? `<input type="time" value="${t.ini.h}" data-campo="h0" aria-label="Início"> – <input type="time" value="${t.fim.d === t.ini.d ? t.fim.h || "" : ""}" data-campo="h1" aria-label="Fim">${t.fim.d !== t.ini.d ? `<span>até ${dm(t.fim.d)}</span>` : ""}` : t.fim.d !== t.ini.d ? `<span>até ${dm(t.fim.d)}</span>` : "<span>dia todo</span>"}</div>
+        <select class="l-st" data-campo="status" aria-label="Status">${opt(OPC.status, t.status)}</select>
+        <button type="button" class="mais" data-abre="${t.id}" aria-label="Editar tudo" title="Editar tudo">⋯</button></div>`).join("")}</div>`;
+    }).join("");
+  }
+
+  function vCal(L) {
+    const ds = L.map((t) => t.ini.d).sort();
+    // começa na semana passada (o que já foi fica para a lista); se tudo for antes disso, no começo
+    let ini = addDias(hojeIso, -7);
+    if (ds[0] > ini) ini = ds[0];
+    if (ds.at(-1) < ini) ini = ds[0];
+    const fim = ds.at(-1) > ini ? ds.at(-1) : ini;
+    const m = cargas();
+    const x = D(ini); x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+    let html = `<div class="cal">${["seg", "ter", "qua", "qui", "sex", "sáb", "dom"].map((d, i) => `<div class="dow${i > 4 ? " fds" : ""}">${d}</div>`).join("")}`;
+    for (let primeiro = true; iso(x) <= fim || x.getDay() !== 1; x.setDate(x.getDate() + 1), primeiro = false) {
+      const s = iso(x), w = x.getDay(), doDia = L.filter((t) => t.ini.d === s), ex = excesso(m, s);
+      const rot = primeiro || x.getDate() === 1 ? ` <small>${MES[x.getMonth()].slice(0, 3)}</small>` : "";
+      html += `<div class="cel${w === 0 || w === 6 ? " fds" : ""}${FER[s] ? " fer" : ""}${s < hojeIso ? " passado" : ""}${s === hojeIso ? " hoje" : ""}${s === st.dia ? " sel" : ""}" data-dia="${s}">
+        <span class="n"><b>${x.getDate()}${rot}</b>${ex.length ? `<span class="carga" title="${esc(ex.join(" · "))}">!</span>` : ""}<button type="button" class="add" data-novo="${s}" aria-label="Nova tarefa em ${dm(s)}">+</button></span>
+        ${FER[s] ? `<span class="fer-n">${FER[s]}</span>` : ""}
+        ${doDia.map((t) => `<button type="button" class="chip${feito(t) ? " feito" : ""}${ehMarco(t) ? " marco" : ""}" draggable="true" data-id="${t.id}" data-abre="${t.id}" style="--c:${cor(t)}" title="${esc(t.titulo + " · " + sub(t))}">${t.ini.h ? `${t.ini.h} ` : ""}${esc(t.titulo)}</button>`).join("")}
+      </div>`;
+    }
+    html += `</div>`;
+    const sel = st.dia && L.filter((t) => t.ini.d === st.dia);
+    return `<p class="ed-st" style="margin:6px 0 10px">Arraste uma tarefa para outro dia. Clique para editar.</p>` + html + (sel && sel.length ? `<div class="dia-sel">${vLista(sel)}</div>` : "");
+  }
+
+  const W = 46; // largura de um dia útil na linha do tempo
+  const CURTO = { Montagem: "Edição", "V1 B": "V1 B", "Revisão interna": "Rev. interna", Ajustes: "Refação", "Revisão cliente": "Cliente", "Versão final": "Versão final", Offline: "Offline", Cor: "Cor", "Finalização": "Som", Online: "Online", V2: "V2", V1: "V1" };
+  const rotuloBarra = (t) => (st.agrupa === "pessoa" ? t.titulo.replace(/ · .*/, "") + " · " + (t.bloco || "").replace(/ \/ .*/, "") : CURTO[t.etapa] || t.etapa || t.titulo);
+  let dias = [];
+  function vLinha(L) {
+    const a = L.map((t) => t.ini.d).sort()[0], b = L.map((t) => t.fim.d).sort().at(-1);
+    dias = []; for (let d = a; d <= b; d = addDias(d, 1)) if (util(d)) dias.push(d);
+    if (!dias.length) dias = [a];
+    const idx = (d) => { let i = dias.findIndex((x) => x >= d); return i < 0 ? dias.length - 1 : i; };
+    const grupos = new Map();
+    L.forEach((t) => { const ks = st.agrupa === "pessoa" ? (t.resp.length ? t.resp : ["Sem responsável"]) : [t.bloco || "Sem entrega"]; ks.forEach((k) => { if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(t); }); });
+    const ordem = st.agrupa === "pessoa" ? [...grupos.keys()].sort((x, y) => (OPC.resp.indexOf(x) + 99) % 99 - (OPC.resp.indexOf(y) + 99) % 99) : [...grupos.keys()];
+    const linhas = ordem.map((k) => {
+      // empilha as barras que se sobrepõem
+      const faixas = [];
+      const bars = grupos.get(k).map((t) => {
+        const i0 = idx(t.ini.d), i1 = Math.max(i0, idx(t.fim.d) - (util(t.fim.d) ? 0 : 1));
+        let f = faixas.findIndex((fim) => fim < i0); if (f < 0) { f = faixas.length; faixas.push(i1); } else faixas[f] = i1;
+        return `<div class="tl-bar${feito(t) ? " feito" : ""}" data-id="${t.id}" style="--c:${cor(t)};left:${i0 * W + 2}px;width:${(i1 - i0 + 1) * W - 4}px;top:${f * 26 + 4}px" title="${esc(`${t.titulo} · ${dm(t.ini.d)}${t.fim.d !== t.ini.d ? "–" + dm(t.fim.d) : ""} · ${sub(t)}`)}">${esc(rotuloBarra(t))}<span class="rs"></span></div>`;
+      }).join("");
+      return `<div class="tl-g"><span title="${esc(k)}">${esc(k === "Cliente" ? "Equipe Bradesco" : k)}</span></div><div class="tl-faixa" style="height:${faixas.length * 26 + 8}px">${bars}</div>`;
+    }).join("");
+    const hi = dias.indexOf(hojeIso);
+    return `<div class="ed-bar" style="position:static;padding-top:0"><div class="seg" id="ed-agrupa"><button type="button" data-g="entrega" aria-pressed="${st.agrupa === "entrega"}">Por entrega</button><button type="button" data-g="pessoa" aria-pressed="${st.agrupa === "pessoa"}">Por pessoa</button></div><span class="ed-st" style="margin:0">Arraste a barra para mudar o dia; puxe a ponta direita para mudar a duração.</span></div>
+      <div class="tl-wrap"><div class="tl" style="--w:${W}px">
+        <div class="tl-h0"></div><div class="tl-dias" style="position:relative">${dias.map((d) => `<div class="${D(d).getDay() === 1 ? "seg1" : ""}${d === hojeIso ? " hoje" : ""}">${WD[D(d).getDay()]}<b>${d.slice(8)}</b>${d.slice(8) === "01" || d === dias[0] ? MES[D(d).getMonth()].slice(0, 3) : ""}</div>`).join("")}</div>
+        ${linhas}
+        ${hi >= 0 ? `<div class="tl-hoje" style="left:calc(var(--tl-col, 200px) + ${hi * W + W / 2}px)"></div>` : ""}
+      </div></div>`;
+  }
+  function ligaLinha() {
+    const col = $(".tl-g")?.offsetWidth || 200;
+    $(".tl")?.style.setProperty("--tl-col", col + "px");
+    const wrap = $(".tl-wrap"), hi = dias.findIndex((d) => d >= hojeIso);
+    if (wrap && hi > 2 && !wrap.dataset.rolou) { wrap.scrollLeft = (hi - 2) * W; wrap.dataset.rolou = 1; }
+    document.querySelectorAll(".tl-bar").forEach((bar) => {
+      bar.addEventListener("pointerdown", (e) => {
+        const t = T.find((x) => x.id === bar.dataset.id); if (!t) return;
+        const redim = e.target.classList.contains("rs");
+        const x0 = e.clientX, l0 = bar.offsetLeft, w0 = bar.offsetWidth;
+        let passos = 0, mexeu = false;
+        bar.setPointerCapture(e.pointerId); bar.classList.add("arrastando");
+        const mv = (ev) => {
+          passos = Math.round((ev.clientX - x0) / W); if (Math.abs(ev.clientX - x0) > 4) mexeu = true;
+          if (redim) bar.style.width = Math.max(W - 4, w0 + passos * W) + "px"; else bar.style.left = l0 + passos * W + "px";
+        };
+        const up = () => {
+          bar.removeEventListener("pointermove", mv); bar.classList.remove("arrastando");
+          if (!mexeu) { abre(t); return; }
+          if (!passos) { render(); return; }
+          if (redim) {
+            const nf = addUteis(t.fim.d, passos);
+            if (nf < t.ini.d) { render(); return; }
+            grava([{ t, patch: { ini: t.ini, fim: { d: nf, h: t.fim.h } } }], `“${t.titulo}” agora até ${dm(nf)}`);
+          } else moveData(t, { d: addUteis(t.ini.d, passos), h: t.ini.h });
+        };
+        bar.addEventListener("pointermove", mv);
+        bar.addEventListener("pointerup", up, { once: true });
+        bar.addEventListener("pointercancel", () => { bar.removeEventListener("pointermove", mv); render(); }, { once: true });
+      });
+    });
+  }
+
+  function vEntrega(L) {
+    const ordem = [...new Set(L.map((t) => t.bloco || "Sem entrega"))];
+    const bl = (b) => (b === "Geral" ? 2 : /^Pílulas/.test(b) ? 1 : 0);
+    ordem.sort((a, b) => bl(a) - bl(b));
+    return `<div class="ent">${ordem.map((b) => {
+      const ts = L.filter((t) => (t.bloco || "Sem entrega") === b);
+      const feitas = ts.filter(feito).length;
+      return `<section class="e-card"><h3>${esc(b)}<small>${feitas}/${ts.length} concluídas · ${dm(ts[0].ini.d)} a ${dm(ts.map((t) => t.fim.d).sort().at(-1))}</small></h3>
+        ${ts.map((t) => `<div class="e-step${feito(t) ? " feito" : ""}${doCliente(t) ? " cliente" : ""}" data-id="${t.id}" style="--c:${cor(t)}">
+          <input type="checkbox" data-campo="feito"${feito(t) ? " checked" : ""} aria-label="Concluída">
+          <div class="t"><b data-abre="${t.id}">${esc(t.titulo)}</b><span><i></i>${esc(t.resp.join(", ") || "—")} · ${WD[D(t.ini.d).getDay()]} ${dm(t.ini.d)}${t.ini.h ? " " + t.ini.h : ""}${t.fim.d !== t.ini.d ? " → " + dm(t.fim.d) : ""}</span></div>
+          <div class="q"><button type="button" data-passo="-1" aria-label="Um dia útil antes" title="Um dia útil antes">‹</button><input type="date" value="${t.ini.d}" data-campo="dia" aria-label="Dia"><button type="button" data-passo="1" aria-label="Um dia útil depois" title="Um dia útil depois">›</button></div>
+        </div>`).join("")}</section>`;
+    }).join("")}</div>`;
+  }
+
+  // ── gaveta: editar tudo de uma tarefa, ou criar uma nova ──
+  function abre(t, novoDia) {
+    fecha();
+    const nova = !t;
+    t = t || { id: "", titulo: "", etapa: "", status: "A fazer", resp: [], bloco: st.bloco || "", obs: "", deps: [], ini: { d: novoDia || hojeIso, h: "09:00" }, fim: { d: novoDia || hojeIso, h: "10:00" } };
+    const dep = t.deps.map((id) => T.find((x) => x.id === id)).filter(Boolean);
+    const seg = T.filter((x) => x.deps.includes(t.id));
+    const opt = (arr, v, vazio) => (vazio ? `<option value="">${vazio}</option>` : "") + arr.map((o) => `<option${o === v ? " selected" : ""}>${esc(o)}</option>`).join("") + (v && !arr.includes(v) ? `<option selected>${esc(v)}</option>` : "");
+    const fundo = document.createElement("div"); fundo.className = "dr-fundo";
+    const dr = document.createElement("aside"); dr.className = "dr"; dr.dataset.id = t.id; dr.setAttribute("role", "dialog"); dr.setAttribute("aria-label", nova ? "Nova tarefa" : "Editar tarefa");
+    dr.innerHTML = `<header><h2>${nova ? "Nova tarefa" : "Editar tarefa"}</h2><button type="button" class="x" aria-label="Fechar">×</button></header>
+      <form>
+        <label>Atividade<input name="titulo" required value="${esc(t.titulo)}"></label>
+        <div class="linha"><label>Início<input type="date" name="d0" required value="${t.ini.d}"></label><label>Hora<input type="time" name="h0" value="${t.ini.h || ""}"${t.ini.h ? "" : " disabled"}></label></div>
+        <div class="linha"><label>Fim<input type="date" name="d1" required value="${t.fim.d}"></label><label>Hora<input type="time" name="h1" value="${t.fim.h || ""}"${t.ini.h ? "" : " disabled"}></label></div>
+        <label class="chk"><input type="checkbox" name="todo"${t.ini.h ? "" : " checked"}> Dia todo (sem horário)</label>
+        <div><label>Responsável</label><div class="resp">${OPC.resp.map((p) => `<label style="--c:${CORES[p] || "var(--st-edicao)"}"><input type="checkbox" name="resp" value="${esc(p)}"${t.resp.includes(p) ? " checked" : ""}>${esc(p === "Cliente" ? "Equipe Bradesco" : p)}</label>`).join("")}</div></div>
+        <div class="linha"><label>Etapa<select name="etapa">${opt(OPC.etapa, t.etapa, "—")}</select></label><label>Status<select name="status">${opt(OPC.status, t.status)}</select></label></div>
+        <label>Entrega<select name="bloco">${opt(OPC.bloco, t.bloco, "—")}</select></label>
+        <label>Observações<textarea name="obs">${esc(t.obs)}</textarea></label>
+        ${nova ? "" : `<p class="deps">${dep.length ? `Depende de: ${dep.map((x) => esc(x.titulo)).join("; ")}.` : "Não depende de outra tarefa."}${seg.length ? ` ${seg.length} ${seg.length === 1 ? "tarefa depende" : "tarefas dependem"} desta${st.empurra ? " e andam junto se a data mudar" : ""}.` : ""}</p>`}
+      </form>
+      <footer>${nova ? "" : `<a href="${esc(t.url)}" target="_blank" rel="noopener">Abrir no Notion ↗</a>${window.claude?.fora ? `<button type="button" class="btn perigo" data-lixo>Excluir</button>` : ""}`}<button type="button" class="btn x">Cancelar</button><button type="button" class="btn ok">Salvar</button></footer>`;
+    document.body.append(fundo, dr);
+    const f = dr.querySelector("form");
+    dr.querySelector("[name=titulo]").focus();
+    f.todo.addEventListener("change", () => { f.h0.disabled = f.h1.disabled = f.todo.checked; if (!f.todo.checked && !f.h0.value) { f.h0.value = "09:00"; f.h1.value = "10:00"; } });
+    f.d0.addEventListener("change", () => { if (f.d1.value < f.d0.value) f.d1.value = f.d0.value; });
+    const salvar = async () => {
+      if (!f.reportValidity()) return;
+      const ini = { d: f.d0.value, h: f.todo.checked ? null : f.h0.value || "09:00" };
+      const fim = { d: f.d1.value < f.d0.value ? f.d0.value : f.d1.value, h: f.todo.checked ? null : f.h1.value || ini.h };
+      const patch = { titulo: f.titulo.value.trim(), etapa: f.etapa.value, status: f.status.value, bloco: f.bloco.value, obs: f.obs.value.trim(), resp: [...f.querySelectorAll("[name=resp]:checked")].map((i) => i.value) };
+      fecha();
+      if (nova) return cria({ ...patch, ini, fim });
+      const muda = Object.fromEntries(Object.entries(patch).filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(t[k] ?? (k === "resp" ? [] : ""))));
+      const mudouData = ini.d !== t.ini.d || ini.h !== t.ini.h || fim.d !== t.fim.d || fim.h !== t.fim.h;
+      if (Object.keys(muda).length) await grava([{ t, patch: muda }], mudouData ? null : "Tarefa salva no Notion");
+      if (mudouData) { if (ini.d !== t.ini.d) moveData(t, ini, fim); else grava([{ t, patch: { ini, fim } }], "Tarefa salva no Notion"); }
+    };
+    dr.querySelector(".ok").addEventListener("click", salvar);
+    f.addEventListener("submit", (e) => { e.preventDefault(); salvar(); });
+    dr.querySelectorAll(".x").forEach((b) => b.addEventListener("click", fecha));
+    fundo.addEventListener("click", fecha);
+    dr.querySelector("[data-lixo]")?.addEventListener("click", async () => {
+      if (!confirm(`Excluir “${t.titulo}”? Ela vai para a lixeira do Notion (dá para restaurar de lá).`)) return;
+      fecha();
+      try { await mcp.callTool("Notion", "notion-trash-page", { page_id: t.id }); T = T.filter((x) => x !== t); render(); aviso("Tarefa excluída (está na lixeira do Notion)"); agendaCrono(); }
+      catch { aviso("O Notion não deixou excluir agora."); }
+    });
+  }
+  function fecha() { document.querySelectorAll(".dr, .dr-fundo").forEach((n) => n.remove()); }
+  async function cria(x) {
+    pendentes++; status();
+    try {
+      const props0 = { Atividade: x.titulo, ...(x.etapa ? { Etapa: x.etapa } : {}), Status: x.status || "A fazer", ...(x.bloco ? { "Bloco de entrega": x.bloco } : {}), ...(x.obs ? { "Observações": x.obs } : {}), "Responsável": JSON.stringify(x.resp),
+        "date:Data:start": paraNotion(x.ini), "date:Data:is_datetime": x.ini.h ? 1 : 0, ...(x.fim.d !== x.ini.d || x.fim.h !== x.ini.h ? { "date:Data:end": paraNotion(x.fim) } : {}) };
+      const r = await mcp.callTool("Notion", "notion-create-pages", { parent: { data_source_id: AGENDA_DS }, pages: [{ properties: props0 }] });
+      let p = r?.payload; if (typeof p === "string") { try { p = JSON.parse(p); } catch {} }
+      const pg = p?.pages?.[0] || p?.results?.[0] || {};
+      pendentes--;
+      if (pg.url || pg.id) { T.push({ ...x, id: idDe(pg.url || pg.id), url: pg.url || "", deps: [], fe: "" }); render(); aviso("Tarefa criada no Notion"); agendaCrono(); }
+      else { aviso("Tarefa criada no Notion"); carrega(true); }
+    } catch (e) { pendentes--; aviso("Não consegui criar a tarefa no Notion."); }
+    status();
+  }
+
+  // ── eventos ──
+  function liga() {
+    const ed = $("#ed");
+    $("#ed-modo").addEventListener("click", (e) => { const b = e.target.closest("[data-v]"); if (!b) return; st.modo = b.dataset.v; lsSet("fbc-ed-modo", st.modo); render(); });
+    $("#ed-bloco").addEventListener("change", (e) => { st.bloco = e.target.value; render(); });
+    $("#ed-busca").addEventListener("input", (e) => { st.q = e.target.value.trim(); render(); });
+    $("#ed-feitas").checked = st.feitas; $("#ed-feitas").addEventListener("change", (e) => { st.feitas = e.target.checked; lsSet("fbc-ed-feitas", st.feitas ? "1" : "0"); render(); });
+    $("#ed-empurra").checked = st.empurra; $("#ed-empurra").addEventListener("change", (e) => { st.empurra = e.target.checked; lsSet("fbc-ed-empurra", st.empurra ? "1" : "0"); });
+    $("#ed-pessoas").addEventListener("click", (e) => { const b = e.target.closest("[data-p]"); if (!b) return; const p = b.dataset.p; st.pessoas.has(p) ? st.pessoas.delete(p) : st.pessoas.add(p); b.setAttribute("aria-pressed", st.pessoas.has(p)); render(); });
+    $("#ed-novo").addEventListener("click", () => abre(null, st.dia));
+    $("#ed-st").addEventListener("click", (e) => { if (e.target.id === "ed-recarrega") carrega(); });
+    ed.addEventListener("click", (e) => {
+      const g = e.target.closest("[data-g]"); if (g) { st.agrupa = g.dataset.g; lsSet("fbc-ed-agrupa", st.agrupa); render(); return; }
+      const n = e.target.closest("[data-novo]"); if (n) { abre(null, n.dataset.novo); return; }
+      const a = e.target.closest("[data-abre]");
+      if (a && !e.target.closest(".tl-bar")) {
+        if (st.modo === "cal" && matchMedia("(max-width: 720px)").matches) { st.dia = a.closest("[data-dia]")?.dataset.dia || st.dia; render(); return; }
+        const t = T.find((x) => x.id === a.dataset.abre); if (t) abre(t); return;
+      }
+      const c = e.target.closest(".cel[data-dia]"); if (c && st.modo === "cal") { st.dia = st.dia === c.dataset.dia ? null : c.dataset.dia; render(); return; }
+      const p = e.target.closest("[data-passo]");
+      if (p) { const t = T.find((x) => x.id === p.closest("[data-id]").dataset.id); if (t) moveData(t, { d: addUteis(t.ini.d, +p.dataset.passo), h: t.ini.h }); }
+    });
+    ed.addEventListener("change", (e) => {
+      const el = e.target, campo = el.dataset.campo; if (!campo) return;
+      const t = T.find((x) => x.id === el.closest("[data-id]")?.dataset.id); if (!t) return;
+      if (campo === "titulo") { const v = el.value.trim(); if (v && v !== t.titulo) grava([{ t, patch: { titulo: v } }], "Atividade renomeada"); }
+      if (campo === "status") grava([{ t, patch: { status: el.value } }], `Status: ${el.value}`);
+      if (campo === "feito") grava([{ t, patch: { status: el.checked ? "Concluído" : "A fazer" } }], el.checked ? "Marcada como concluída" : "Voltou para A fazer");
+      if (campo === "dia" && el.value && el.value !== t.ini.d) moveData(t, { d: el.value, h: t.ini.h });
+      if (campo === "h0" && el.value) { const dur = t.fim.d === t.ini.d && t.fim.h ? (+t.fim.h.slice(0, 2) * 60 + +t.fim.h.slice(3)) - (+t.ini.h.slice(0, 2) * 60 + +t.ini.h.slice(3)) : 60; const m = +el.value.slice(0, 2) * 60 + +el.value.slice(3) + dur; const h1 = `${String(Math.min(23, Math.floor(m / 60))).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; grava([{ t, patch: { ini: { d: t.ini.d, h: el.value }, fim: t.fim.d === t.ini.d ? { d: t.ini.d, h: h1 } : t.fim } }], `Início às ${el.value}`); }
+      if (campo === "h1" && el.value && el.value > (t.ini.h || "")) grava([{ t, patch: { ini: t.ini, fim: { d: t.ini.d, h: el.value } } }], `Fim às ${el.value}`);
+    });
+    ed.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.dataset.campo === "titulo") e.target.blur(); });
+    // arrastar no calendário
+    ed.addEventListener("dragstart", (e) => { const c = e.target.closest(".chip"); if (!c) return; e.dataTransfer.setData("text/plain", c.dataset.id); e.dataTransfer.effectAllowed = "move"; });
+    ed.addEventListener("dragover", (e) => { const c = e.target.closest(".cel[data-dia]"); if (!c) return; e.preventDefault(); document.querySelectorAll(".cel.alvo").forEach((x) => x !== c && x.classList.remove("alvo")); c.classList.add("alvo"); });
+    ed.addEventListener("dragleave", (e) => { const c = e.target.closest(".cel"); if (c && !c.contains(e.relatedTarget)) c.classList.remove("alvo"); });
+    ed.addEventListener("drop", (e) => {
+      const c = e.target.closest(".cel[data-dia]"); if (!c) return; e.preventDefault(); c.classList.remove("alvo");
+      const t = T.find((x) => x.id === e.dataTransfer.getData("text/plain")); if (!t || t.ini.d === c.dataset.dia) return;
+      moveData(t, { d: c.dataset.dia, h: t.ini.h });
+    });
+    addEventListener("keydown", (e) => { if (e.key === "Escape") fecha(); });
+    // o Notion pode mudar por fora: relê de tempos em tempos com a aba aberta
+    setInterval(() => { if (!$("#ed").hidden && document.visibilityState === "visible" && !pendentes && !$(".dr") && !document.activeElement?.closest?.("#ed")) carrega(true); }, 60000);
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && !$("#ed").hidden && ultimaLeitura && Date.now() - ultimaLeitura > 60000) carrega(true); });
+  }
+
+  // ── abas do Controle ──
+  function abas() {
+    const filmes = [".summary", ".placeholder", ".toolbar", "#list"].map((s) => $(s)).filter(Boolean);
+    const nav = document.createElement("nav"); nav.className = "abas"; nav.setAttribute("role", "tablist");
+    nav.innerHTML = `<button type="button" role="tab" data-aba="filmes">Filmes</button><button type="button" role="tab" data-aba="crono">Cronograma da equipe</button>`;
+    $("header").after(nav); nav.after($("#ed"));
+    const vai = (a) => {
+      nav.querySelectorAll("button").forEach((b) => b.setAttribute("aria-selected", b.dataset.aba === a));
+      filmes.forEach((n) => (n.hidden = a !== "filmes")); $("#ed").hidden = a !== "crono";
+      lsSet("fbc-aba", a); history.replaceState(null, "", a === "crono" ? "#cronograma" : location.pathname + location.search);
+      if (a === "crono") { if (!T.length) carrega(); else render(); }
+    };
+    nav.addEventListener("click", (e) => { const b = e.target.closest("[data-aba]"); if (b) vai(b.dataset.aba); });
+    vai(location.hash === "#cronograma" ? "crono" : lsGet("fbc-aba") || "filmes");
+  }
+
+  // o Controle avisa quando as conexões estão prontas
+  function inicia() {
+    F = window.FBC; mcp = F.mcp();
+    liga(); abas(); status();
+  }
+  if (window.FBC) inicia(); else document.addEventListener("fbc:pronto", inicia, { once: true });
+})();
+</script>
+
+</body>
+</html>
