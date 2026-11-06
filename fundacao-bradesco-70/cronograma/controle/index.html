@@ -1132,6 +1132,21 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
 .dr footer .ok { margin-left: auto; }
 .dr footer a { font-size: 13px; color: var(--muted); }
 .btn.perigo { color: var(--danger); }
+/* seleção em grupo */
+.marcado { outline: 2px solid var(--fg) !important; outline-offset: 1px; }
+.l-row.marcado, .e-step.marcado { background: color-mix(in srgb, var(--fg) 7%, var(--card)); }
+.e-step.marcado { outline-offset: -2px; border-radius: 8px; }
+.laco { position: fixed; z-index: 30; border: 1.5px solid var(--fg); background: color-mix(in srgb, var(--fg) 8%, transparent); border-radius: 6px; pointer-events: none; }
+#ed.lacando, #ed.lacando * { user-select: none; cursor: crosshair; }
+.ed-dica { margin: 0 0 8px; font-size: 12px; color: var(--muted); }
+.ed-dica kbd { font: 700 11px var(--font); padding: 0 5px; border-radius: 5px; border: 1px solid var(--line); background: var(--card); }
+.grupo { position: fixed; left: 50%; bottom: 16px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; z-index: 55; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 10px 12px; border-radius: 16px; background: var(--card); box-shadow: 0 18px 50px -14px rgba(0,0,0,.4), 0 0 0 1px var(--line); max-width: calc(100% - 24px); transition: .18s; }
+.grupo.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.grupo b { font-size: 14px; margin-right: 4px; }
+.grupo button, .grupo select, .grupo input { font-size: 13px; padding: 6px 9px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; }
+.grupo label { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); font-weight: 700; }
+.grupo .x { border: 0; background: none; font-size: 18px; color: var(--muted); padding: 2px 6px; }
+.grupo.on ~ .ed-toast, body:has(.grupo.on) .ed-toast { bottom: 86px; }
 .ed-toast { position: fixed; left: 50%; bottom: 20px; transform: translate(-50%, 20px); opacity: 0; z-index: 60; display: flex; gap: 12px; align-items: center; padding: 10px 14px 10px 16px; border-radius: 14px; background: var(--fg); color: var(--accent-fg); font-size: 14px; transition: .2s; pointer-events: none; max-width: calc(100% - 32px); }
 .ed-toast.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 .ed-toast button { border: 0; background: none; color: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
@@ -1153,8 +1168,18 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   </div>
   <div class="pessoas" id="ed-pessoas" role="group" aria-label="Filtrar por pessoa"></div>
   <p class="ed-st" id="ed-st"><i></i><span>Carregando a agenda do Notion…</span></p>
+  <p class="ed-dica">Para mudar várias de uma vez: <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + clique marca uma a uma, <kbd>Shift</kbd> + clique marca a sequência, ou arraste num espaço vazio para laçar. <kbd>Esc</kbd> limpa.</p>
   <div id="ed-view"></div>
 </section>
+<div class="grupo" id="ed-grupo" role="toolbar" aria-label="Mudar as tarefas marcadas">
+  <b id="g-n"></b>
+  <button type="button" data-g-passo="-1" title="Todas um dia útil antes">‹ 1 dia</button><button type="button" data-g-passo="1" title="Todas um dia útil depois">1 dia ›</button>
+  <label>Começar em <input type="date" id="g-dia" aria-label="Mover o grupo para começar neste dia"></label>
+  <select id="g-status" aria-label="Status das marcadas"><option value="">Status…</option></select>
+  <select id="g-resp" aria-label="Responsável das marcadas"><option value="">Responsável…</option></select>
+  <button type="button" id="g-feito">Concluir</button>
+  <button type="button" class="x" id="g-limpa" aria-label="Limpar seleção" title="Limpar seleção (Esc)">×</button>
+</div>
 <div class="ed-toast" id="ed-toast" role="status" aria-live="polite"><span></span></div>
 
 <script>
@@ -1198,6 +1223,39 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   let T = [];                 // tarefas
   const st = { modo: lsGet("fbc-ed-modo") || "lista", bloco: "", q: "", pessoas: new Set(), feitas: lsGet("fbc-ed-feitas") === "1", empurra: lsGet("fbc-ed-empurra") !== "0", agrupa: lsGet("fbc-ed-agrupa") || "entrega", dia: null };
   let pendentes = 0, ultimaLeitura = null, erro = null, desfazer = null;
+  // seleção em grupo
+  const SEL = new Set(); let ancora = null;
+  const ITEM = ".l-row[data-id], .chip[data-id], .tl-bar[data-id], .e-step[data-id]";
+  const doGrupo = () => T.filter((t) => SEL.has(t.id));
+  function marcaSel() {
+    document.querySelectorAll("#ed-view " + ITEM).forEach((n) => n.classList.toggle("marcado", SEL.has(n.dataset.id)));
+    const g = $("#ed-grupo"); if (!g) return;
+    const n = doGrupo().length;
+    g.classList.toggle("on", n > 0 && !$("#ed").hidden);
+    $("#g-n").textContent = n === 1 ? "1 tarefa" : `${n} tarefas`;
+    if (n) { const ini = doGrupo().map((t) => t.ini.d).sort()[0]; $("#g-dia").value = ini; }
+  }
+  function limpaSel() { SEL.clear(); ancora = null; marcaSel(); }
+  function alterna(id, shift) {
+    const ordem = [...new Set([...document.querySelectorAll("#ed-view " + ITEM)].map((n) => n.dataset.id))];
+    if (shift && ancora && ordem.includes(ancora)) {
+      const a = ordem.indexOf(ancora), b = ordem.indexOf(id);
+      ordem.slice(Math.min(a, b), Math.max(a, b) + 1).forEach((x) => SEL.add(x));
+    } else { SEL.has(id) ? SEL.delete(id) : SEL.add(id); ancora = id; }
+    marcaSel();
+  }
+  // move várias tarefas o mesmo número de dias úteis (e as que dependem delas, se pedido)
+  function moveVarias(ts, delta) {
+    if (!delta || !ts.length) return;
+    const ids = new Set(ts.map((t) => t.id));
+    if (st.empurra) {
+      const fila = [...ids];
+      while (fila.length) { const id = fila.shift(); T.filter((x) => x.deps.includes(id) && !ids.has(x.id) && !feito(x)).forEach((x) => { ids.add(x.id); fila.push(x.id); }); }
+    }
+    const mud = T.filter((t) => ids.has(t.id)).map((t) => ({ t, patch: { ini: { d: addUteis(t.ini.d, delta), h: t.ini.h }, fim: { d: addUteis(t.fim.d, delta), h: t.fim.h } } }));
+    const extra = mud.length - ts.length;
+    grava(mud, `${ts.length} ${ts.length === 1 ? "tarefa movida" : "tarefas movidas"}${extra > 0 ? ` (+${extra} que dependem delas)` : ""} · ${delta > 0 ? "+" : ""}${delta} ${Math.abs(delta) === 1 ? "dia útil" : "dias úteis"}`);
+  }
   function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
 
@@ -1322,6 +1380,8 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     const sel = $("#ed-bloco"), v = sel.value;
     sel.innerHTML = `<option value="">Todas as entregas</option>` + OPC.bloco.map((b) => `<option>${esc(b)}</option>`).join("");
     sel.value = v;
+    $("#g-status").innerHTML = `<option value="">Status…</option>` + OPC.status.map((s) => `<option>${esc(s)}</option>`).join("");
+    $("#g-resp").innerHTML = `<option value="">Responsável…</option>` + OPC.resp.map((p) => `<option value="${esc(p)}">${esc(p === "Cliente" ? "Equipe Bradesco" : p)}</option>`).join("");
     $("#ed-pessoas").innerHTML = OPC.resp.map((p) => `<button type="button" data-p="${esc(p)}" aria-pressed="${st.pessoas.has(p)}" style="--c:${CORES[p] || "var(--st-edicao)"}"><i></i>${esc(p === "Cliente" ? "Equipe Bradesco" : p)}</button>`).join("");
   }
   function visiveis() {
@@ -1348,6 +1408,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     if (!L.length) { v.innerHTML = `<p class="ed-vazio">Nenhuma tarefa com esses filtros.</p>`; return; }
     v.innerHTML = ({ lista: vLista, cal: vCal, linha: vLinha, entrega: vEntrega })[st.modo](L);
     if (st.modo === "linha") ligaLinha();
+    marcaSel();
   }
 
   function vLista(L) {
@@ -1426,18 +1487,22 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     document.querySelectorAll(".tl-bar").forEach((bar) => {
       bar.addEventListener("pointerdown", (e) => {
         const t = T.find((x) => x.id === bar.dataset.id); if (!t) return;
+        if (e.metaKey || e.ctrlKey || e.shiftKey) { e.preventDefault(); e.stopPropagation(); alterna(t.id, e.shiftKey); return; }
+        e.stopPropagation();
         const redim = e.target.classList.contains("rs");
+        const junto = !redim && SEL.has(t.id) && SEL.size > 1 ? [...document.querySelectorAll(".tl-bar")].filter((b) => SEL.has(b.dataset.id) && b !== bar).map((b) => [b, b.offsetLeft]) : [];
         const x0 = e.clientX, l0 = bar.offsetLeft, w0 = bar.offsetWidth;
         let passos = 0, mexeu = false;
         bar.setPointerCapture(e.pointerId); bar.classList.add("arrastando");
         const mv = (ev) => {
           passos = Math.round((ev.clientX - x0) / W); if (Math.abs(ev.clientX - x0) > 4) mexeu = true;
-          if (redim) bar.style.width = Math.max(W - 4, w0 + passos * W) + "px"; else bar.style.left = l0 + passos * W + "px";
+          if (redim) bar.style.width = Math.max(W - 4, w0 + passos * W) + "px"; else { bar.style.left = l0 + passos * W + "px"; junto.forEach(([b, l]) => (b.style.left = l + passos * W + "px")); }
         };
         const up = () => {
           bar.removeEventListener("pointermove", mv); bar.classList.remove("arrastando");
-          if (!mexeu) { abre(t); return; }
+          if (!mexeu) { limpaSel(); abre(t); return; }
           if (!passos) { render(); return; }
+          if (junto.length) { moveVarias(doGrupo(), passos); return; }
           if (redim) {
             const nf = addUteis(t.fim.d, passos);
             if (nf < t.ini.d) { render(); return; }
@@ -1535,6 +1600,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   }
 
   // ── eventos ──
+  let laçou = false;
   function liga() {
     const ed = $("#ed");
     $("#ed-modo").addEventListener("click", (e) => { const b = e.target.closest("[data-v]"); if (!b) return; st.modo = b.dataset.v; lsSet("fbc-ed-modo", st.modo); render(); });
@@ -1546,16 +1612,19 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     $("#ed-novo").addEventListener("click", () => abre(null, st.dia));
     $("#ed-st").addEventListener("click", (e) => { if (e.target.id === "ed-recarrega") carrega(); });
     ed.addEventListener("click", (e) => {
+      if (laçou) { laçou = false; return; } // o clique que fecha um laço não abre nada
+      const it = e.target.closest(ITEM);
+      if (it && (e.metaKey || e.ctrlKey || e.shiftKey) && !e.target.closest("input, select, textarea")) { e.preventDefault(); alterna(it.dataset.id, e.shiftKey); return; }
       const g = e.target.closest("[data-g]"); if (g) { st.agrupa = g.dataset.g; lsSet("fbc-ed-agrupa", st.agrupa); render(); return; }
       const n = e.target.closest("[data-novo]"); if (n) { abre(null, n.dataset.novo); return; }
       const a = e.target.closest("[data-abre]");
       if (a && !e.target.closest(".tl-bar")) {
         if (st.modo === "cal" && matchMedia("(max-width: 720px)").matches) { st.dia = a.closest("[data-dia]")?.dataset.dia || st.dia; render(); return; }
-        const t = T.find((x) => x.id === a.dataset.abre); if (t) abre(t); return;
+        const t = T.find((x) => x.id === a.dataset.abre); if (t) { limpaSel(); abre(t); } return;
       }
       const c = e.target.closest(".cel[data-dia]"); if (c && st.modo === "cal") { st.dia = st.dia === c.dataset.dia ? null : c.dataset.dia; render(); return; }
       const p = e.target.closest("[data-passo]");
-      if (p) { const t = T.find((x) => x.id === p.closest("[data-id]").dataset.id); if (t) moveData(t, { d: addUteis(t.ini.d, +p.dataset.passo), h: t.ini.h }); }
+      if (p) { const t = T.find((x) => x.id === p.closest("[data-id]").dataset.id); if (!t) return; if (SEL.has(t.id) && SEL.size > 1) moveVarias(doGrupo(), +p.dataset.passo); else moveData(t, { d: addUteis(t.ini.d, +p.dataset.passo), h: t.ini.h }); }
     });
     ed.addEventListener("change", (e) => {
       const el = e.target, campo = el.dataset.campo; if (!campo) return;
@@ -1575,9 +1644,45 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     ed.addEventListener("drop", (e) => {
       const c = e.target.closest(".cel[data-dia]"); if (!c) return; e.preventDefault(); c.classList.remove("alvo");
       const t = T.find((x) => x.id === e.dataTransfer.getData("text/plain")); if (!t || t.ini.d === c.dataset.dia) return;
+      if (SEL.has(t.id) && SEL.size > 1) return moveVarias(doGrupo(), difUteis(t.ini.d, c.dataset.dia));
       moveData(t, { d: c.dataset.dia, h: t.ini.h });
     });
-    addEventListener("keydown", (e) => { if (e.key === "Escape") fecha(); });
+    addEventListener("keydown", (e) => { if (e.key === "Escape") { if ($(".dr")) fecha(); else limpaSel(); } });
+    // laço: arrastar num espaço vazio marca o que ele tocar (com ⌘/Ctrl/Shift, soma ao que já estava marcado)
+    const view = $("#ed-view");
+    view.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0 || e.pointerType === "touch") return;
+      if (e.target.closest(ITEM + ", input, select, textarea, button, a, label, .tl-dias")) return;
+      const x0 = e.clientX, y0 = e.clientY, soma = e.metaKey || e.ctrlKey || e.shiftKey, antes = new Set(SEL);
+      let laco = null;
+      const mv = (ev) => {
+        if (!laco) { if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return; laco = document.createElement("div"); laco.className = "laco"; document.body.append(laco); ed.classList.add("lacando"); }
+        const l = Math.min(x0, ev.clientX), t = Math.min(y0, ev.clientY), w = Math.abs(ev.clientX - x0), h = Math.abs(ev.clientY - y0);
+        Object.assign(laco.style, { left: l + "px", top: t + "px", width: w + "px", height: h + "px" });
+        SEL.clear(); if (soma) antes.forEach((x) => SEL.add(x));
+        document.querySelectorAll("#ed-view " + ITEM).forEach((n) => { const b = n.getBoundingClientRect(); if (b.right > l && b.left < l + w && b.bottom > t && b.top < t + h) SEL.add(n.dataset.id); });
+        marcaSel();
+      };
+      const up = () => {
+        removeEventListener("pointermove", mv); removeEventListener("pointerup", up);
+        if (laco) { laco.remove(); ed.classList.remove("lacando"); laçou = true; setTimeout(() => (laçou = false), 50); }
+        else if (!soma && SEL.size && !e.target.closest(".cel")) limpaSel();
+      };
+      addEventListener("pointermove", mv); addEventListener("pointerup", up);
+    });
+    const G = $("#ed-grupo");
+    G.addEventListener("click", (e) => {
+      const ts = doGrupo(); if (!ts.length) return;
+      const p = e.target.closest("[data-g-passo]"); if (p) return moveVarias(ts, +p.dataset.gPasso);
+      if (e.target.id === "g-feito") return grava(ts.filter((t) => !feito(t)).map((t) => ({ t, patch: { status: "Concluído" } })), `${ts.length} ${ts.length === 1 ? "tarefa concluída" : "tarefas concluídas"}`);
+      if (e.target.id === "g-limpa") limpaSel();
+    });
+    G.addEventListener("change", (e) => {
+      const ts = doGrupo(); if (!ts.length) return;
+      if (e.target.id === "g-dia" && e.target.value) { const ini = ts.map((t) => t.ini.d).sort()[0]; moveVarias(ts, difUteis(ini, e.target.value)); }
+      if (e.target.id === "g-status" && e.target.value) { const v = e.target.value; e.target.value = ""; grava(ts.map((t) => ({ t, patch: { status: v } })), `Status de ${ts.length} tarefas: ${v}`); }
+      if (e.target.id === "g-resp" && e.target.value) { const v = e.target.value; e.target.value = ""; grava(ts.map((t) => ({ t, patch: { resp: [v] } })), `${ts.length} tarefas agora com ${v === "Cliente" ? "Equipe Bradesco" : v}`); }
+    });
     // o Notion pode mudar por fora: relê de tempos em tempos com a aba aberta
     setInterval(() => { if (!$("#ed").hidden && document.visibilityState === "visible" && !pendentes && !$(".dr") && !document.activeElement?.closest?.("#ed")) carrega(true); }, 60000);
     document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && !$("#ed").hidden && ultimaLeitura && Date.now() - ultimaLeitura > 60000) carrega(true); });
@@ -1591,7 +1696,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     $("header").after(nav); nav.after($("#ed"));
     const vai = (a) => {
       nav.querySelectorAll("button").forEach((b) => b.setAttribute("aria-selected", b.dataset.aba === a));
-      filmes.forEach((n) => (n.hidden = a !== "filmes")); $("#ed").hidden = a !== "crono";
+      filmes.forEach((n) => (n.hidden = a !== "filmes")); $("#ed").hidden = a !== "crono"; marcaSel();
       lsSet("fbc-aba", a); history.replaceState(null, "", a === "crono" ? "#cronograma" : location.pathname + location.search);
       if (a === "crono") { if (!T.length) carrega(); else render(); }
     };
