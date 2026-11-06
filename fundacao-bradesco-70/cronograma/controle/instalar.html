@@ -4,49 +4,106 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Instalar o Controle online</title>
+<title>Ligar o Controle online</title>
 <style>
-:root { --bg: #F6F5F2; --card: #fff; --fg: #1F1D1A; --muted: #6B6862; --line: #E3E0DA; --brand: #613CAD; }
-@media (prefers-color-scheme: dark) { :root { --bg: #141413; --card: #1D1C1A; --fg: #EEEDEA; --muted: #A3A09A; --line: #35332F; --brand: #B49BF3; } }
+:root { --bg: #F6F5F2; --card: #fff; --fg: #1F1D1A; --muted: #6B6862; --line: #E3E0DA; --brand: #613CAD; --ok: #2F7A51; --erro: #B3353A; }
+@media (prefers-color-scheme: dark) { :root { --bg: #141413; --card: #1D1C1A; --fg: #EEEDEA; --muted: #A3A09A; --line: #35332F; --brand: #B49BF3; --ok: #62BA8A; --erro: #E36F73; } }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
-main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
 h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: -.01em; }
 .lead { color: var(--muted); margin: 0 0 24px; }
 ol { padding: 0; margin: 0; list-style: none; counter-reset: p; display: grid; gap: 12px; }
 li { counter-increment: p; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px 16px 58px; position: relative; }
 li::before { content: counter(p); position: absolute; left: 16px; top: 15px; width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: #fff; font-weight: 800; display: grid; place-items: center; font-size: 14px; }
+li.feito::before { content: "✓"; background: var(--ok); }
 li h2 { margin: 0 0 4px; font-size: 17px; }
-li p { margin: 4px 0; }
-code { background: color-mix(in srgb, var(--fg) 8%, transparent); padding: 1px 6px; border-radius: 6px; font-size: .92em; }
+li p { margin: 6px 0; }
+b { font-weight: 700; }
+input { font: inherit; width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: inherit; margin-top: 4px; }
+button, .bt { font: inherit; font-weight: 800; padding: 10px 16px; border: 0; border-radius: 12px; background: var(--fg); color: var(--bg); cursor: pointer; text-decoration: none; display: inline-block; margin-top: 8px; }
+.bt.claro { background: none; color: var(--fg); border: 1px solid var(--line); }
+button:disabled { opacity: .4; cursor: not-allowed; }
+.msg { font-size: 14px; font-weight: 700; margin: 8px 0 0; }
+.msg.ok { color: var(--ok); } .msg.erro { color: var(--erro); }
+.chave { font: 700 17px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--bg); border: 1px dashed var(--line); border-radius: 10px; padding: 8px 12px; display: inline-block; margin-top: 4px; }
+small { color: var(--muted); }
 a { color: var(--brand); }
-.nota { margin-top: 24px; color: var(--muted); font-size: 14px; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Instalar o Controle online</h1>
-  <p class="lead">Uma vez só, uns 10 minutos. Depois o Controle funciona em <a href="./">cronograma/controle</a> para qualquer pessoa da equipe que tenha a chave, sem login no Claude. Ele grava na planilha do site e no Notion.</p>
+  <h1>Ligar o Controle online</h1>
+  <p class="lead">Uma vez só, uns 5 minutos. Tudo o que dá para preencher já vem preenchido: você só cola e clica. No fim, a equipe usa o Controle em <a href="./">cronograma/controle</a> só com a chave.</p>
   <ol>
-    <li><h2>Crie a integração do Notion</h2>
-      <p>Abra <a href="https://www.notion.so/profile/integrations" target="_blank" rel="noopener">notion.so/profile/integrations</a> › <b>Nova integração</b>. Nome: “Controle FB70”. Tipo: <b>Interna</b>, no espaço de trabalho do projeto.</p>
-      <p>Em <b>Recursos</b>, deixe marcado: ler, atualizar e inserir conteúdo. Salve e copie o <b>Segredo interno de integração</b>.</p></li>
-    <li><h2>Dê acesso à página do cronograma</h2>
-      <p>No Notion, abra “Fundação Bradesco 70 anos | Cronograma” › menu <b>•••</b> no canto › <b>Conexões</b> › adicione “Controle FB70”. A agenda e a base dos 41 vídeos estão dentro dela, então ficam liberadas juntas.</p></li>
-    <li><h2>Cole o script na planilha</h2>
-      <p>Abra a planilha do site › <b>Extensões › Apps Script</b>. Apague o que estiver no arquivo <code>Código.gs</code> e cole todo o conteúdo de <a href="apps-script/Code.gs" target="_blank" rel="noopener">Code.gs</a>. Salve.</p></li>
-    <li><h2>Guarde o segredo e a chave da equipe</h2>
-      <p>No Apps Script, clique na engrenagem (<b>Configurações do projeto</b>) › <b>Propriedades do script</b> › adicione duas:</p>
-      <p><code>NOTION_TOKEN</code> = o segredo copiado no passo 1.<br><code>CHAVE</code> = uma senha para a equipe (ex.: uma frase curta). É ela que cada pessoa digita no Controle.</p></li>
-    <li><h2>Autorize e teste</h2>
-      <p>Volte ao editor, escolha a função <code>teste</code> no menu de cima e clique em <b>Executar</b>. O Google pede permissão para a planilha e para acessar serviços externos (o Notion): permita. No registro deve aparecer “Agenda: … tarefas”.</p></li>
-    <li><h2>Publique como app da web</h2>
-      <p><b>Implantar › Nova implantação</b> › tipo <b>App da Web</b>. “Executar como”: <b>Eu</b>. “Quem pode acessar”: <b>Qualquer pessoa</b>. Clique em <b>Implantar</b> e copie o endereço que termina em <code>/exec</code>.</p>
-      <p>A chave da equipe continua protegendo tudo: sem ela, o script não responde.</p></li>
-    <li><h2>Entre no Controle</h2>
-      <p>Abra <a href="./">cronograma/controle</a>, cole o endereço <code>/exec</code>, a chave e o seu nome. Me mande o endereço <code>/exec</code> que eu deixo ele já embutido, para a equipe só precisar da chave.</p></li>
+    <li id="p1"><h2>Crie a chave de acesso ao Notion</h2>
+      <p>Abra <a href="https://www.notion.so/profile/integrations" target="_blank" rel="noopener">notion.so/profile/integrations</a>, clique em <b>Nova integração</b>, dê o nome “Controle FB70”, escolha o espaço de trabalho do projeto e salve.</p>
+      <p>Na tela seguinte, copie o <b>Segredo interno da integração</b> (começa com <code>ntn_</code>) e cole aqui:</p>
+      <input id="segredo" type="password" placeholder="ntn_…" autocomplete="off">
+      <p><small>Fica só nesta página: ele vai direto para dentro do código que você vai colar no Google.</small></p></li>
+    <li id="p2"><h2>Libere a página do cronograma no Notion</h2>
+      <p>Abra a página <a href="https://app.notion.com/p/4029614bc6458183afe1c0a0f4bc0adb" target="_blank" rel="noopener">Fundação Bradesco 70 anos | Cronograma</a> › menu <b>•••</b> no canto de cima › <b>Conexões</b> › procure “Controle FB70” › <b>Confirmar</b>.</p></li>
+    <li id="p3"><h2>Cole o código na planilha</h2>
+      <p><button type="button" id="copiar" disabled>Copiar o código</button> <a class="bt claro" href="https://docs.google.com/spreadsheets/d/1dZp8HV-64v5ewc0LzdnE4A7Luu1ikMGapbtg848Mnh4/edit" target="_blank" rel="noopener">Abrir a planilha</a></p>
+      <p class="msg" id="copiar-msg"></p>
+      <p>Na planilha: <b>Extensões › Apps Script</b>. Selecione tudo que estiver no editor (Ctrl/Cmd + A), cole (Ctrl/Cmd + V) e salve (o disquete ou Ctrl/Cmd + S).</p></li>
+    <li id="p4"><h2>Autorize uma vez</h2>
+      <p>No menu de cima do editor, deixe escolhida a função <b>teste</b> e clique em <b>Executar</b>. O Google pede permissão: <b>Revisar permissões</b> › escolha a sua conta › se aparecer “o Google não verificou este app”, clique em <b>Avançado › Acessar</b> › <b>Permitir</b>.</p>
+      <p>Embaixo, no registro, deve aparecer “Notion: … tarefas da agenda lidas. Tudo certo!”.</p></li>
+    <li id="p5"><h2>Publique</h2>
+      <p>Botão azul <b>Implantar › Nova implantação</b> › na engrenagem, escolha <b>App da Web</b>. “Executar como”: <b>Eu</b>. “Quem pode acessar”: <b>Qualquer pessoa</b>. <b>Implantar</b> e copie o endereço do app da Web (termina em <code>/exec</code>):</p>
+      <input id="url" type="url" placeholder="https://script.google.com/macros/s/…/exec">
+      <input id="nome" placeholder="Seu nome (ex.: Maví)">
+      <p><button type="button" id="testar">Testar e entrar no Controle</button></p>
+      <p class="msg" id="testar-msg"></p></li>
   </ol>
-  <p class="nota">Mudou o script depois? Use <b>Implantar › Gerenciar implantações › editar › Nova versão</b>: o endereço continua o mesmo.</p>
+  <p id="fim" hidden>A chave da equipe é <span class="chave" id="chave-final"></span>. Mande para quem vai usar o Controle, junto com o link <a href="./">cronograma/controle</a>.</p>
 </main>
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const ls = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch {} };
+  // chave da equipe: gerada aqui uma vez e guardada neste navegador
+  const P = ["bicicleta", "araguaia", "pipoca", "farol", "jabuti", "cacau", "mandacaru", "tucano", "caju", "jangada", "maracuja", "sabia"];
+  const rnd = (n) => crypto.getRandomValues(new Uint32Array(1))[0] % n;
+  let chave = ls("fbc-chave-nova");
+  if (!chave) { chave = [P[rnd(P.length)], P[rnd(P.length)], P[rnd(P.length)]].join("-") + "-" + (10 + rnd(90)); ls("fbc-chave-nova", chave); }
+  let codigo = "";
+  fetch("apps-script/Code.gs?t=" + Date.now()).then((r) => r.text()).then((t) => { codigo = t; atualiza(); });
+  const atualiza = () => {
+    const s = $("#segredo").value.trim();
+    $("#copiar").disabled = !codigo || !/^(ntn_|secret_)/.test(s);
+    $("#copiar-msg").textContent = s && !/^(ntn_|secret_)/.test(s) ? "O segredo começa com ntn_ (ou secret_). Confira no passo 1." : "";
+    $("#copiar-msg").className = "msg erro";
+    $("#p1").classList.toggle("feito", /^(ntn_|secret_)/.test(s));
+  };
+  $("#segredo").addEventListener("input", atualiza);
+  $("#copiar").addEventListener("click", async () => {
+    const pronto = codigo
+      .replace('const NOTION_TOKEN_COLADO = "";', `const NOTION_TOKEN_COLADO = ${JSON.stringify($("#segredo").value.trim())};`)
+      .replace('const CHAVE_PADRAO = "";', `const CHAVE_PADRAO = ${JSON.stringify(chave)};`);
+    try { await navigator.clipboard.writeText(pronto); $("#copiar-msg").textContent = "Código copiado, com o segredo e a chave da equipe dentro."; $("#copiar-msg").className = "msg ok"; $("#p3").classList.add("feito"); }
+    catch { $("#copiar-msg").textContent = "O navegador não deixou copiar. Tente de novo clicando no botão."; $("#copiar-msg").className = "msg erro"; }
+  });
+  $("#nome").value = ls("fbc-nome") || "";
+  $("#testar").addEventListener("click", async () => {
+    const url = $("#url").value.trim(), nome = $("#nome").value.trim(), m = $("#testar-msg");
+    if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(url)) { m.textContent = "Cole o endereço do app da Web: começa com https://script.google.com/macros/s/ e termina em /exec."; m.className = "msg erro"; return; }
+    if (!nome) { m.textContent = "Escreva seu nome (aparece em quem mudou cada coisa)."; m.className = "msg erro"; return; }
+    m.textContent = "Testando…"; m.className = "msg";
+    try {
+      const r = await (await fetch(url, { method: "POST", body: JSON.stringify({ chave, op: "ping" }) })).json();
+      if (!r.ok) throw new Error(r.message);
+      if (!r.r.notion) throw new Error("o script não encontrou o segredo do Notion. Copie o código de novo (passo 3) e implante uma nova versão.");
+      const t = await (await fetch(url, { method: "POST", body: JSON.stringify({ chave, op: "notionQuery", args: { ds: "6dea10f2-8c92-42df-8831-bee18a5e2730" } }) })).json();
+      if (!t.ok) throw new Error(/conectada/.test(t.message) ? "o Notion não liberou a página: faça o passo 2." : t.message);
+      ls("fbc-url", url); ls("fbc-chave", chave); ls("fbc-nome", nome);
+      m.textContent = `Funcionou: ${t.r.results.length} tarefas lidas do Notion. Abrindo o Controle…`; m.className = "msg ok";
+      $("#p5").classList.add("feito"); $("#fim").hidden = false; $("#chave-final").textContent = chave;
+      setTimeout(() => (location.href = "./#cronograma"), 2500);
+    } catch (e) { m.textContent = "Ainda não: " + (e.message || "sem resposta do script. Confira se publicou como “Qualquer pessoa”."); m.className = "msg erro"; }
+  });
+})();
+</script>
 </body>
 </html>

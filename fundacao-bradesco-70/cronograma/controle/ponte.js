@@ -16,10 +16,10 @@
       const d = document.createElement("div");
       d.className = "ponte-acesso";
       d.innerHTML = `<form><h2>Controle dos Filmes</h2><p>${msg || "Para ver e editar, entre com a chave da equipe."}</p>
-        ${URL_PADRAO ? "" : `<label>Endereço do Apps Script<input name="url" type="url" required placeholder="https://script.google.com/macros/s/…/exec" value="${c.url}"></label>`}
+        ${URL_PADRAO || c.url ? "" : `<label>Endereço do Apps Script<input name="url" type="url" required placeholder="https://script.google.com/macros/s/…/exec" value="${c.url}"></label>`}
         <label>Chave da equipe<input name="chave" type="password" required autocomplete="current-password" value="${c.chave}"></label>
         <label>Seu nome<input name="nome" required placeholder="Ex.: Maví" value="${c.nome}"></label>
-        <button>Entrar</button><small>Fica guardado só neste navegador.${URL_PADRAO ? "" : ' <a href="instalar.html" target="_blank" rel="noopener">Como instalar o Apps Script</a>'}</small></form>`;
+        <button>Entrar</button><small>Fica guardado só neste navegador.${URL_PADRAO || c.url ? "" : ' <a href="instalar.html" target="_blank" rel="noopener">Como instalar o Apps Script</a>'}</small></form>`;
       document.body.append(d);
       d.querySelector("input:not([value]), input[value='']")?.focus();
       d.querySelector("form").addEventListener("submit", (e) => {
@@ -42,8 +42,23 @@
 .ponte-acesso small{color:var(--muted,#6B6862);text-align:center}.ponte-acesso small a{color:inherit}`;
   document.head.append(css);
 
+  // endereço da ponte publicado pelo próprio Apps Script na planilha (aba ControleDB, linha "config/ponte")
+  let achou = null;
+  function achaUrl() {
+    if (achou) return achou;
+    achou = new Promise((ok) => {
+      const cb = "__fbcPonte", s = document.createElement("script");
+      window[cb] = (res) => { try { const v = res.table.rows[0].c[0].v; const u = JSON.parse(v).url; if (u && !ls("fbc-url")) ls("fbc-url", u); } catch {} ok(); };
+      s.src = `https://docs.google.com/spreadsheets/d/1dZp8HV-64v5ewc0LzdnE4A7Luu1ikMGapbtg848Mnh4/gviz/tq?tqx=out:json;responseHandler:${cb}&sheet=ControleDB&headers=1&tq=${encodeURIComponent("select B where A = 'config/ponte'")}&t=${Date.now()}`;
+      s.onerror = () => ok(); setTimeout(ok, 6000);
+      document.head.append(s);
+    });
+    return achou;
+  }
+
   // ── chamada ao Apps Script (POST em texto simples: sem pré-voo de CORS) ──
   async function chama(op, args, tentou) {
+    if (!cfg().url) await achaUrl();
     let c = cfg();
     if (!c.url || !c.chave || !c.nome) { await pedeAcesso(); c = cfg(); }
     let j;

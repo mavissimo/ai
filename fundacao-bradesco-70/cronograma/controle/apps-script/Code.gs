@@ -3,11 +3,12 @@
  * O Controle no site não tem as conexões do Claude; ele chama este script, que grava na planilha
  * (lista de filmes, links, cronograma do cliente) e no Notion (agenda e base de vídeos).
  *
- * Instalação (uma vez): veja LEIA-ME.md, nesta mesma pasta.
- * Propriedades do script (Configurações do projeto › Propriedades do script):
- *   NOTION_TOKEN  o segredo da integração interna do Notion (começa com "ntn_" ou "secret_")
- *   CHAVE         a senha da equipe, que o Controle pede uma vez em cada navegador
+ * Instalação (uma vez): siga cronograma/controle/instalar.html. A página de instalação preenche as duas
+ * constantes abaixo antes de você copiar este código; aqui no repositório elas ficam vazias de propósito.
+ * (Também valem as propriedades do script NOTION_TOKEN e CHAVE, se preferir guardar por lá.)
  */
+const NOTION_TOKEN_COLADO = ""; // o segredo da integração do Notion (começa com "ntn_" ou "secret_")
+const CHAVE_PADRAO = "";        // a senha da equipe, que o Controle pede uma vez em cada navegador
 const PLANILHA = "1dZp8HV-64v5ewc0LzdnE4A7Luu1ikMGapbtg848Mnh4";
 const ABA_DB = "ControleDB"; // coluna A = caminho ("videos/<id>" ou "config/site"), B = dados (JSON), C = atualizado
 const NOTION_VERSAO = "2025-09-03";
@@ -19,8 +20,9 @@ function doPost(e) { return responde(JSON.parse(e.postData.contents || "{}")); }
 function responde(req) {
   let out;
   try {
-    if (!P.getProperty("CHAVE")) throw erro("config", "Falta a propriedade CHAVE no script.");
-    if (req.chave !== P.getProperty("CHAVE")) throw erro("chave", "Chave da equipe incorreta.");
+    const chave = P.getProperty("CHAVE") || CHAVE_PADRAO;
+    if (!chave) throw erro("config", "Falta a chave da equipe no script.");
+    if (req.chave !== chave) throw erro("chave", "Chave da equipe incorreta.");
     const calls = req.op === "lote" ? req.args.calls : [{ op: req.op, args: req.args }];
     const r = calls.map((c) => { if (!OPS[c.op]) throw erro("op", "Operação desconhecida: " + c.op); return OPS[c.op](c.args || {}); });
     out = { ok: true, r: req.op === "lote" ? r : r[0] };
@@ -32,7 +34,15 @@ function responde(req) {
 function erro(code, message) { const e = new Error(message); e.code = code; return e; }
 
 const OPS = {
-  ping: () => ({ ok: true, notion: !!P.getProperty("NOTION_TOKEN") }),
+  ping: () => {
+    // guarda o endereço deste app na planilha: o Controle acha a ponte sozinho e a equipe só precisa da chave
+    const url = ScriptApp.getService().getUrl();
+    if (url && /\/exec$/.test(url)) {
+      const atual = OPS.dbList().docs.find((d) => d.path === "config/ponte");
+      if (!atual || atual.data.url !== url) OPS.dbWrite({ path: "config/ponte", data: { url }, merge: false });
+    }
+    return { ok: true, notion: !!(P.getProperty("NOTION_TOKEN") || NOTION_TOKEN_COLADO) };
+  },
 
   // ── planilha ──
   sheetGet: ({ range }) => {
@@ -100,8 +110,8 @@ function abaDb() {
 const limpaId = (s) => String(s).replace(/[^0-9a-f]/gi, "").slice(-32);
 
 function notion(method, path, body) {
-  const token = P.getProperty("NOTION_TOKEN");
-  if (!token) throw erro("config", "Falta a propriedade NOTION_TOKEN no script.");
+  const token = P.getProperty("NOTION_TOKEN") || NOTION_TOKEN_COLADO;
+  if (!token) throw erro("config", "Falta o segredo do Notion no script.");
   for (let tentativa = 0; tentativa < 4; tentativa++) {
     const r = UrlFetchApp.fetch("https://api.notion.com/v1" + path, {
       method, muteHttpExceptions: true, contentType: "application/json",
@@ -174,9 +184,10 @@ function paraNotion(tipos, inp) {
   return out;
 }
 
-// Para testar no editor do Apps Script: Executar › teste (mostra no registro se o Notion responde)
+// teste: no editor do Apps Script, escolha "teste" no menu de cima e clique em Executar.
+// Na primeira vez o Google pede permissão (planilha e acesso ao Notion): permita.
 function teste() {
-  Logger.log(OPS.ping());
+  Logger.log("Planilha: %s itens na lista do Controle", OPS.dbList().docs.length);
   const r = OPS.notionQuery({ ds: "6dea10f2-8c92-42df-8831-bee18a5e2730" });
-  Logger.log("Agenda: %s tarefas na primeira página; exemplo: %s", r.results.length, JSON.stringify(r.results[0]));
+  Logger.log("Notion: %s tarefas da agenda lidas. Tudo certo!", r.results.length);
 }
