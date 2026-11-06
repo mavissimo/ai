@@ -991,6 +991,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
 <style>
 /* ── Abas do Controle e editor do cronograma da equipe (agenda do Notion) ── */
 [hidden] { display: none !important; }
+.sem-criar #ed-novo, .sem-criar .cel .n .add { display: none; }
 .abas { display: flex; gap: 4px; margin: 22px 0 4px; padding: 4px; border-radius: 14px; background: var(--surface); width: fit-content; max-width: 100%; }
 .abas button { border: 0; background: none; padding: 8px 16px; border-radius: 10px; font-weight: 700; color: var(--muted); cursor: pointer; }
 .abas button[aria-selected="true"] { background: var(--card); color: var(--fg); box-shadow: var(--shadow); }
@@ -1601,6 +1602,8 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   // o Controle avisa quando as conexões estão prontas
   function inicia() {
     F = window.FBC; mcp = F.mcp();
+    // criar tarefas só pelo site (a página no Claude só tem permissão de ler e atualizar o Notion)
+    if (!window.claude?.fora) document.documentElement.classList.add("sem-criar");
     liga(); abas(); status();
   }
   if (window.FBC) inicia(); else document.addEventListener("fbc:pronto", inicia, { once: true });
