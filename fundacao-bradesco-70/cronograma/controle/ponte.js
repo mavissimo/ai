@@ -3,7 +3,7 @@
 // (apps-script/Code.gs), que grava na planilha e no Notion. Dentro do Claude ela não faz nada.
 (() => {
   if (window.claude) return;
-  const URL_PADRAO = ""; // endereço do app da web do Apps Script (termina em /exec); vazio = pede na primeira vez
+  const URL_PADRAO = "https://script.google.com/macros/s/AKfycbwgvFPX5G9LGH-wCejIw2k3v-k3VDrtLMdwGjVW_8qUwvNuDJ6VWBMwxqlIdgykuv2F/exec"; // app da web do Apps Script da equipe
   const ls = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch {} };
   const cfg = () => ({ url: ls("fbc-url") || URL_PADRAO, chave: ls("fbc-chave") || "", nome: ls("fbc-nome") || "" });
 
