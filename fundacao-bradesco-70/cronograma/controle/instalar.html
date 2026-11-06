@@ -36,13 +36,14 @@ a { color: var(--brand); }
   <h1>Ligar o Controle online</h1>
   <p class="lead">Uma vez só, uns 5 minutos. Tudo o que dá para preencher já vem preenchido: você só cola e clica. No fim, a equipe usa o Controle em <a href="./">cronograma/controle</a> só com a chave.</p>
   <ol>
-    <li id="p1"><h2>Crie a chave de acesso ao Notion</h2>
-      <p>Abra <a href="https://www.notion.so/profile/integrations" target="_blank" rel="noopener">notion.so/profile/integrations</a>, clique em <b>Nova integração</b>, dê o nome “Controle FB70”, escolha o espaço de trabalho do projeto e salve.</p>
-      <p>Na tela seguinte, copie o <b>Segredo interno da integração</b> (começa com <code>ntn_</code>) e cole aqui:</p>
+    <li id="p1"><h2>Crie a conexão do Notion</h2>
+      <p>Abra <a href="https://app.notion.com/developers/connections" target="_blank" rel="noopener">app.notion.com/developers/connections</a> (se não abrir, use <a href="https://www.notion.so/profile/integrations" target="_blank" rel="noopener">notion.so/profile/integrations</a>) e clique em <b>Criar nova conexão</b> (“Create a new connection”; em alguns espaços ainda aparece “Nova integração”).</p>
+      <p>Nome: “Controle FB70”. Espaço de trabalho: o do projeto. Tipo: <b>Interna</b>. Salve. Só o dono do espaço de trabalho consegue criar.</p>
+      <p>Em <b>Recursos</b> (“Capabilities”), deixe marcados: ler, atualizar e inserir conteúdo. Depois copie o segredo, que fica na aba <b>Configuração</b> ou <b>Segredos</b>, com o nome “Internal Integration Secret” ou “Installation access token”. Ele começa com <code>ntn_</code>. Cole aqui:</p>
       <input id="segredo" type="password" placeholder="ntn_…" autocomplete="off">
       <p><small>Fica só nesta página: ele vai direto para dentro do código que você vai colar no Google.</small></p></li>
     <li id="p2"><h2>Libere a página do cronograma no Notion</h2>
-      <p>Abra a página <a href="https://app.notion.com/p/4029614bc6458183afe1c0a0f4bc0adb" target="_blank" rel="noopener">Fundação Bradesco 70 anos | Cronograma</a> › menu <b>•••</b> no canto de cima › <b>Conexões</b> › procure “Controle FB70” › <b>Confirmar</b>.</p></li>
+      <p>Abra a página <a href="https://app.notion.com/p/4029614bc6458183afe1c0a0f4bc0adb" target="_blank" rel="noopener">Fundação Bradesco 70 anos | Cronograma</a> › menu <b>•••</b> no canto de cima, à direita › <b>Conexões</b> (ou “Adicionar conexões”) › procure “Controle FB70” › <b>Confirmar</b>. As páginas de dentro (agenda e 41 vídeos) entram juntas.</p></li>
     <li id="p3"><h2>Cole o código na planilha</h2>
       <p><button type="button" id="copiar" disabled>Copiar o código</button> <a class="bt claro" href="https://docs.google.com/spreadsheets/d/1dZp8HV-64v5ewc0LzdnE4A7Luu1ikMGapbtg848Mnh4/edit" target="_blank" rel="noopener">Abrir a planilha</a></p>
       <p class="msg" id="copiar-msg"></p>
@@ -51,7 +52,7 @@ a { color: var(--brand); }
       <p>No menu de cima do editor, deixe escolhida a função <b>teste</b> e clique em <b>Executar</b>. O Google pede permissão: <b>Revisar permissões</b> › escolha a sua conta › se aparecer “o Google não verificou este app”, clique em <b>Avançado › Acessar</b> › <b>Permitir</b>.</p>
       <p>Embaixo, no registro, deve aparecer “Notion: … tarefas da agenda lidas. Tudo certo!”.</p></li>
     <li id="p5"><h2>Publique</h2>
-      <p>Botão azul <b>Implantar › Nova implantação</b> › na engrenagem, escolha <b>App da Web</b>. “Executar como”: <b>Eu</b>. “Quem pode acessar”: <b>Qualquer pessoa</b>. <b>Implantar</b> e copie o endereço do app da Web (termina em <code>/exec</code>):</p>
+      <p>Botão azul <b>Implantar › Nova implantação</b> › na engrenagem, escolha <b>App da Web</b>. “Executar como”: <b>Eu</b>. “Quem pode acessar”: <b>Qualquer pessoa</b> (não “Qualquer pessoa com Conta do Google”). <b>Implantar</b> e copie o endereço do app da Web (termina em <code>/exec</code>):</p>
       <input id="url" type="url" placeholder="https://script.google.com/macros/s/…/exec">
       <input id="nome" placeholder="Seu nome (ex.: Maví)">
       <p><button type="button" id="testar">Testar e entrar no Controle</button></p>
