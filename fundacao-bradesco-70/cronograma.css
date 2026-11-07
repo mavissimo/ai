@@ -45,7 +45,7 @@ h1 { margin: 0; font-size: clamp(40px, 7vw, 76px); font-weight: 800; line-height
 .how, .focus, main, .navbar, .foot { max-width: 1180px; margin-left: auto; margin-right: auto; padding-left: clamp(16px, 4vw, 40px); padding-right: clamp(16px, 4vw, 40px); }
 .h-sec { margin: 0 0 14px; font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--purple); }
 
-/* passos: V2 → retorno → offline → finalização → online → entrega */
+/* passos: V2 → retorno → finalização → online → entrega */
 .how { padding-top: 8px; padding-bottom: 28px; }
 .steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; counter-reset: s; }
 .steps li { position: relative; padding: 14px 14px 16px; border-radius: 16px; background: var(--paper-2); }

@@ -27,11 +27,10 @@ function boot() {
     ed: { label: "Edição", c: "var(--c-ed)", bar: true, desc: "Montagem, V1 e ajustes internos" },
     v2: { label: "V2 chega para a Equipe Bradesco", short: "V2", c: "var(--c-v2)", desc: "O filme montado, para a revisão da Equipe Bradesco" },
     rev: { label: "Retorno da V2", short: "Retorno", c: "var(--c-rev)", you: true, desc: "Uma devolutiva consolidada, até a data indicada" },
-    off: { label: "Offline aprovado", short: "Offline", c: "var(--c-off)", desc: "Montagem travada: só ajustes pontuais e o aceite" },
     fin: { label: "Finalização", short: "Cor e som", c: "var(--c-fin)", bar: true, desc: "Cor, som, grafismos e legendas" },
     on: { label: "Online para conferência", short: "Online", c: "var(--c-on)", desc: "O filme finalizado, para a Equipe Bradesco conferir" },
   };
-  const ORDER = ["ed", "v2", "rev", "off", "fin", "on"];
+  const ORDER = ["ed", "v2", "rev", "fin", "on"]; // o offline é passagem interna: o cliente não vê
   window.__liveI = (f) => window.__fbLive?.[f.id];
 
   // a entrega é por bloco: cidade + fotógrafo (visita + 3 pílulas), só as 3 pílulas, documentário ou trailer
@@ -99,11 +98,11 @@ function boot() {
     sc.async = true; document.head.append(sc);
   }
   // etapa do cronograma -> andamento mínimo que a dá por cumprida
-  const FEITO = { ed: 1, v2: 1, rev: 2, off: 3, fin: 5, on: 6 };
+  const FEITO = { ed: 1, v2: 1, rev: 2, fin: 5, on: 6 };
   const siteLink = (f) => SITE + ({ bloco: `#/escola/${f.id}`, pilula: `#/fotografo/${f.id}`, visita: `#/escola/${f.id}`, documentario: "#/filme/documentario", trailer: "#/filme/trailer" })[f.tipo];
-  const AGORA = ["Em edição", "V2 com a Equipe Bradesco · aguardando o retorno", "Retorno recebido · ajustes em andamento", "Offline aprovado", "Em cor e som", "Online para a Equipe Bradesco conferir", "Aprovado", "Entregue"];
+  const AGORA = ["Em edição", "V2 com a Equipe Bradesco · aguardando o retorno", "Retorno recebido · ajustes em andamento", "Ajustes feitos · indo para cor e som", "Em cor e som", "Online para a Equipe Bradesco conferir", "Aprovado", "Entregue"];
   // ── Assistir à versão atual: abre no player do projeto; link do Frame.io abre numa nova janela ──
-  const VERSAO = [null, "à V2", "à V2", "ao offline aprovado", "ao offline aprovado", "ao online", "à versão aprovada", "à versão final"];
+  const VERSAO = [null, "à V2", "à V2", "à versão com os ajustes", "à versão com os ajustes", "ao online", "à versão aprovada", "à versão final"];
   const isFrameio = (u) => /(^|\.)(frame\.io|f\.io)\//i.test(u.replace(/^https?:\/\//, ""));
   function watchBtn(f, dark) {
     const i = live[f.id], vs = links[f.id] || [];
@@ -233,7 +232,7 @@ function boot() {
     const i = live[f.id];
     if (i == null) return "";
     const txt = i === 0 ? `Preparando a V2 · chega ${wd(f.v2)}, ${dm(f.v2)}` : AGORA[i];
-    return `<div class="live${dark ? " dark" : ""}"><span class="live-dot" style="--c:${["var(--c-v2)", "var(--c-v2)", "var(--c-rev)", "var(--c-off)", "var(--c-fin)", "var(--c-on)", "var(--c-fim)", "var(--c-fim)"][i]}"></span><span><small>Agora</small>${esc(txt)}</span>${comBotao ? watchBtn(f, dark) : ""}</div>`;
+    return `<div class="live${dark ? " dark" : ""}"><span class="live-dot" style="--c:${["var(--c-v2)", "var(--c-v2)", "var(--c-rev)", "var(--c-fin)", "var(--c-fin)", "var(--c-on)", "var(--c-fim)", "var(--c-fim)"][i]}"></span><span><small>Agora</small>${esc(txt)}</span>${comBotao ? watchBtn(f, dark) : ""}</div>`;
   }
 
   // ── Topo ──
@@ -256,7 +255,7 @@ function boot() {
   stats();
 
   // como cada filme anda
-  $("#steps").innerHTML = ["v2", "rev", "off", "fin", "on"].map((k) => {
+  $("#steps").innerHTML = ["v2", "rev", "fin", "on"].map((k) => {
     const s = STEP[k];
     return `<li class="${s.you ? "you" : ""}${s.bar ? " range" : ""}" style="--c:${s.c}"><i></i><strong>${esc(s.label)}${s.you ? TAG_EQUIPE : ""}</strong><span>${esc(s.desc)}</span></li>`;
   }).join("") + `<li style="--c:var(--c-fim)"><i></i><strong>Entrega final</strong><span>Os 41 vídeos em ${dm(C.fim)}, depois do retorno técnico de ${dm(TECNICO)}</span></li>`;
@@ -264,7 +263,7 @@ function boot() {
   // ── Eventos pontuais (agenda e calendário) ──
   function eventos() {
     const ev = [];
-    filmes().forEach((f) => ["v2", "rev", "off", "on"].forEach((k) => ev.push({ date: f[k], k, f })));
+    filmes().forEach((f) => ["v2", "rev", "on"].forEach((k) => ev.push({ date: f[k], k, f })));
     C.fechamento.forEach((x) => ev.push({ date: x.data, k: "fecho", x }));
     return ev.sort((a, b) => a.date.localeCompare(b.date));
   }
@@ -358,7 +357,7 @@ function boot() {
       `<div class="g-name"><a href="#filme/${f.id}" title="${esc(nomeFilme(f))}">${esc(f.tipo === "bloco" ? `${f.nome} + ${f.fot?.nome.split(" ")[0]}` : f.tipo === "pilula" ? f.nome : nomeFilme(f))}</a></div>`,
       bar(f.ed[0], f.ed[1], "var(--c-ed)", `Edição interna · ${dm(f.ed[0])} a ${dm(f.ed[1])}`, "ed") +
       bar(f.fin[0], f.fin[1], STEP.fin.c, `Cor e som · ${dm(f.fin[0])} a ${dm(f.fin[1])}`) +
-      ["v2", "rev", "off", "on"].map((k) => { const st = estadoEv({ k, f }); return dot(f[k], STEP[k].c, `${STEP[k].label} · ${wd(f[k])} ${dm(f[k])}${st ? ` · ${ROT_EST[st]}` : ""}`, st ? `st-${st}` : ""); }).join(""));
+      ["v2", "rev", "on"].map((k) => { const st = estadoEv({ k, f }); return dot(f[k], STEP[k].c, `${STEP[k].label} · ${wd(f[k])} ${dm(f[k])}${st ? ` · ${ROT_EST[st]}` : ""}`, st ? `st-${st}` : ""); }).join(""));
     const gr = (t, list) => (list.length ? `<div class="g-group">${t}</div>` + list.map(filmRow).join("") : "");
     const fs = filmes();
     const body =
@@ -371,7 +370,7 @@ function boot() {
           : dot(x.data, x.cliente ? "var(--c-rev)" : x.marco ? "var(--c-fim)" : "var(--ink-3)", `${x.titulo} · ${wd(x.data)} ${dm(x.data)}`, x.marco ? "big" : "")).join(""));
     const legend = `<div class="legend">
       <span><i class="bar ed"></i>Edição interna</span>
-      ${["v2", "rev", "off"].map((k) => `<span><i style="--c:${STEP[k].c}"></i>${STEP[k].label}</span>`).join("")}
+      ${["v2", "rev"].map((k) => `<span><i style="--c:${STEP[k].c}"></i>${STEP[k].label}</span>`).join("")}
       <span><i class="bar" style="--c:${STEP.fin.c}"></i>Cor e som</span>
       <span><i style="--c:${STEP.on.c}"></i>${STEP.on.label}</span>
       <span><i style="--c:var(--c-fim)"></i>Entrega final</span></div>`;
