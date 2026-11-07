@@ -833,7 +833,7 @@ header .dobra p { margin-top: 6px; }
       const ret = L.find((r) => /^Revisão do cliente · Online/i.test(r.a))?.s;                     // retorno do online, filme a filme
       const ent = L.filter((r) => r.et === "Entrega" && /^Entregar/i.test(r.a)).map((r) => r.s).at(-1); // o filme vai pronto para o cliente
       const off = L.filter((r) => r.et === "Offline").map((r) => r.s).at(-1);                 // offline do bloco todo liberado
-      const fins = L.filter((r) => r.et === "Cor" || r.et === "Finalização");
+      const fins = L.filter((r) => r.et === "Cor" || r.et === "Áudio" || r.et === "Finalização"); // cor e áudio em paralelo, depois a finalização
       const on = L.filter((r) => r.et === "Online" && !/^Conferir online/i.test(r.a)).map((r) => r.s).at(-1); // "Conferir online" é interno
       if (!v2 || !rev || !off || !fins.length || !on) continue; // incompleto no Notion: o cronograma mantém o que tinha
       const { re, ...info } = B;
@@ -1195,9 +1195,9 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   const $ = (s, r = document) => r.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const AGENDA_DS = "6dea10f2-8c92-42df-8831-bee18a5e2730";
-  const CORES = { Carlei: "var(--st-offline)", Mateus: "var(--st-ajustes)", Rafaim: "var(--st-online)", "Maví": "var(--st-v2)", Cliente: "var(--st-aprovado)" };
+  const CORES = { Carlei: "var(--st-offline)", Mateus: "var(--st-ajustes)", Rafaim: "var(--st-online)", Erick: "var(--st-entregue)", "Maví": "var(--st-v2)", Cliente: "var(--st-aprovado)" };
   const cor = (t) => CORES[t.resp[0]] || "var(--st-edicao)";
-  const LIMITE = ["Carlei", "Mateus", "Rafaim"]; // regra: até 2 tarefas por dia para cada um
+  const LIMITE = ["Carlei", "Mateus", "Rafaim", "Erick"]; // regra: até 2 tarefas por dia para cada um
   const FEITO = /^(conclu|pronto|feito|entregue)/i;
   const WD = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"], WDL = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
   const MES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -1386,7 +1386,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   }
 
   // ── filtros e opções ──
-  const RESP_BASE = ["Carlei", "Mateus", "Rafaim", "Maví", "Cliente"];
+  const RESP_BASE = ["Carlei", "Mateus", "Rafaim", "Erick", "Maví", "Cliente"];
   // os status da agenda no Notion: aparecem todos, mesmo os que nenhuma tarefa usa ainda
   const STATUS_BASE = ["A fazer", "Em andamento", "Em revisão", "Ajustes", "Bloqueado", "Concluído", "Pronto", "Entregue"];
   let OPC = { etapa: [], status: [], bloco: [], resp: RESP_BASE };
@@ -1466,7 +1466,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   }
 
   const W = 46; // largura de um dia útil na linha do tempo
-  const CURTO = { Montagem: "Edição", "V1 B": "V1 B", "Revisão interna": "Rev. interna", Ajustes: "Ajustes", "Revisão cliente": "Cliente", "Versão final": "Versão final", Offline: "Offline", Cor: "Cor", "Finalização": "Som", Online: "Online", V2: "V2", V1: "V1" };
+  const CURTO = { Montagem: "Edição", "V1 B": "V1 B", "Revisão interna": "Rev. interna", Ajustes: "Ajustes", "Revisão cliente": "Cliente", "Versão final": "Versão final", Offline: "Offline", Cor: "Cor", "Áudio": "Áudio", "Finalização": "Finalização", Online: "Online", V2: "V2", V1: "V1" };
   const rotuloBarra = (t) => (st.agrupa === "pessoa" ? t.titulo.replace(/ · .*/, "") + " · " + (t.bloco || "").replace(/ \/ .*/, "") : CURTO[t.etapa] || t.etapa || t.titulo);
   let dias = [];
   function vLinha(L) {
