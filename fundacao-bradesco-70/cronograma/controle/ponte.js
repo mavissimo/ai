@@ -12,7 +12,7 @@
   function pedeAcesso(msg) {
     if (pedindo) return pedindo;
     pedindo = new Promise((ok) => {
-      const c = cfg();
+      const c = Object.fromEntries(Object.entries(cfg()).map(([k, v]) => [k, String(v).replace(/[&<>"']/g, (x) => `&#${x.charCodeAt(0)};`)]));
       const d = document.createElement("div");
       d.className = "ponte-acesso";
       d.innerHTML = `<form><h2>Controle dos Filmes</h2><p>${msg || "Para ver e editar, entre com a chave da equipe."}</p>

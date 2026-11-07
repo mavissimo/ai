@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>Controle dos Filmes · FB 70</title>
-<script src="ponte.js?v=3"></script>
+<script src="ponte.js?v=4"></script>
 </head>
 <body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1040,6 +1040,13 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
 .l-row .mais:hover { background: var(--surface); color: var(--fg); }
 .salvando { box-shadow: inset 0 0 0 1.5px var(--st-ajustes), var(--shadow) !important; }
 .erro-salvar { box-shadow: inset 0 0 0 1.5px var(--danger), var(--shadow) !important; }
+/* atrasada: passou do prazo sem estar concluída */
+.atr { font-size: 10.5px; font-weight: 800; color: var(--danger); text-transform: uppercase; letter-spacing: .04em; }
+.chip.atrasada { box-shadow: inset 3px 0 0 var(--danger); }
+.tl-bar.atrasada { box-shadow: inset 0 0 0 1.5px var(--danger); }
+.e-step.atrasada .t span::after { content: " · atrasada"; color: var(--danger); font-weight: 800; }
+.ed-st .atr-bt { color: var(--danger); font-weight: 800; }
+.ed-st .atr-bt[aria-pressed="true"] { text-decoration: none; padding: 0 8px; border-radius: 999px; background: color-mix(in srgb, var(--danger) 12%, transparent); }
 @media (max-width: 720px) {
   .l-row { grid-template-columns: 4px minmax(0, 1fr) auto; }
   .l-row .l-hora, .l-row .l-st { grid-column: 2 / 4; }
@@ -1052,7 +1059,8 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
 .cal .dow { font-size: 11.5px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 2px 4px; }
 .cel { min-height: 104px; padding: 5px; border-radius: 10px; background: var(--card); box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 3px; min-width: 0; position: relative; }
 .cel.fds, .cel.fer { background: var(--surface); box-shadow: none; }
-.cel.passado { opacity: .55; }
+.cel.passado { background: var(--surface); box-shadow: none; }
+.cel.passado > :not(.atrasada) { opacity: .55; }
 .cel.sel { outline: 2px solid var(--fg); outline-offset: -2px; }
 .cel .n small { font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: .04em; }
 .cel.alvo { outline: 2px dashed var(--fg); outline-offset: -2px; }
@@ -1200,12 +1208,14 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   // ── datas (tudo no fuso de São Paulo, UTC−3) ──
   const D = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
   const iso = (x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
-  const hojeIso = iso(new Date());
+  let hojeIso = iso(new Date()); // refeito a cada leitura: a aba pode ficar aberta de um dia para o outro
   const addDias = (s, n) => { const x = D(s); x.setDate(x.getDate() + n); return iso(x); };
   const util = (s) => { const w = D(s).getDay(); return w > 0 && w < 6 && !FER[s]; };
   const addUteis = (s, n) => { let x = s; const p = n < 0 ? -1 : 1; let k = Math.abs(n); while (k > 0) { x = addDias(x, p); if (util(x)) k--; } return x; };
   const difUteis = (a, b) => { if (a === b) return 0; const p = b > a ? 1 : -1; let x = a, n = 0; while (x !== b) { x = addDias(x, p); if (util(x)) n += p; } return n; };
   const dm = (s) => s.slice(8, 10) + "/" + s.slice(5, 7);
+  const minutos = (h) => +h.slice(0, 2) * 60 + +h.slice(3, 5);
+  const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
   // valor do Notion -> { d: "AAAA-MM-DD", h: "HH:MM" | null }
   function lerData(v) {
     if (!v) return null; v = String(v);
@@ -1221,7 +1231,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   // ── estado ──
   let F = null, mcp = null;   // F: peças do Controle (Notion, planilha, cronograma)
   let T = [];                 // tarefas
-  const st = { modo: lsGet("fbc-ed-modo") || "lista", bloco: "", q: "", pessoas: new Set(), feitas: lsGet("fbc-ed-feitas") === "1", empurra: lsGet("fbc-ed-empurra") !== "0", agrupa: lsGet("fbc-ed-agrupa") || "entrega", dia: null };
+  const st = { modo: lsGet("fbc-ed-modo") || "lista", bloco: "", q: "", pessoas: new Set(), feitas: lsGet("fbc-ed-feitas") === "1", empurra: lsGet("fbc-ed-empurra") !== "0", agrupa: lsGet("fbc-ed-agrupa") || "entrega", dia: null, atrasadas: false };
   let pendentes = 0, ultimaLeitura = null, erro = null, desfazer = null;
   // seleção em grupo
   const SEL = new Set(); let ancora = null;
@@ -1267,6 +1277,8 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     };
   }
   const feito = (t) => FEITO.test(t.status);
+  const atrasada = (t) => !feito(t) && t.fim.d < hojeIso;
+  const cls = (t) => (feito(t) ? " feito" : atrasada(t) ? " atrasada" : "");
   const ehMarco = (t) => /^(Marco|Enviar V2|Entrega final|Prazo final)/i.test(t.titulo);
   const doCliente = (t) => t.resp.includes("Cliente") || /^Revisão do cliente|retorno técnico/i.test(t.titulo);
 
@@ -1277,6 +1289,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     try {
       const rows = await F.notionView(F.AGENDA_VIEW);
       const aberto = $(".dr") ? $(".dr").dataset.id : null;
+      hojeIso = iso(new Date());
       T = rows.map(deLinha).filter((t) => t.ini);
       ultimaLeitura = new Date(); erro = null;
       opcoes();
@@ -1288,9 +1301,12 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     const el = $("#ed-st"); if (!el) return;
     el.className = "ed-st" + (tipo ? " " + tipo : pendentes ? " busy" : erro ? " err" : "");
     const hm = (d) => d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    // atrasadas: passaram do prazo sem estar concluídas; o botão mostra só elas
+    const n = T.filter(atrasada).length;
+    const atr = n || st.atrasadas ? ` · <button type="button" id="ed-atrasadas" class="atr-bt" aria-pressed="${st.atrasadas}" title="${st.atrasadas ? "Mostrar todas" : "Mostrar só as atrasadas"}">${n === 1 ? "1 atrasada" : n + " atrasadas"}</button>` : "";
     el.querySelector("span").innerHTML = txt ? esc(txt)
       : pendentes ? `Salvando no Notion… (${pendentes})`
-      : `${T.length} tarefas · Notion em dia${ultimaLeitura ? " às " + hm(ultimaLeitura) : ""} · <button type="button" id="ed-recarrega">atualizar agora</button>`;
+      : `${T.length} tarefas${atr} · Notion em dia${ultimaLeitura ? " às " + hm(ultimaLeitura) : ""} · <button type="button" id="ed-recarrega">atualizar agora</button>`;
   }
 
   // ── gravação: cada mudança vai para o Notion; depois refaz o cronograma do cliente ──
@@ -1373,10 +1389,12 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
 
   // ── filtros e opções ──
   const RESP_BASE = ["Carlei", "Mateus", "Rafaim", "Maví", "Cliente"];
+  // os status da agenda no Notion: aparecem todos, mesmo os que nenhuma tarefa usa ainda
+  const STATUS_BASE = ["A fazer", "Em andamento", "Em revisão", "Ajustes", "Bloqueado", "Concluído", "Pronto", "Entregue"];
   let OPC = { etapa: [], status: [], bloco: [], resp: RESP_BASE };
   function opcoes() {
     const u = (k) => [...new Set(T.map((t) => t[k]).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt"));
-    OPC = { etapa: u("etapa"), status: [...new Set(["A fazer", "Concluído", ...u("status")])], bloco: u("bloco"), resp: [...new Set([...RESP_BASE, ...T.flatMap((t) => t.resp)])] };
+    OPC = { etapa: u("etapa"), status: [...new Set([...STATUS_BASE, ...u("status")])], bloco: u("bloco"), resp: [...new Set([...RESP_BASE, ...T.flatMap((t) => t.resp)])] };
     const sel = $("#ed-bloco"), v = sel.value;
     sel.innerHTML = `<option value="">Todas as entregas</option>` + OPC.bloco.map((b) => `<option>${esc(b)}</option>`).join("");
     sel.value = v;
@@ -1386,7 +1404,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   }
   function visiveis() {
     const q = st.q.toLowerCase();
-    return T.filter((t) => (!st.bloco || t.bloco === st.bloco) && (!st.feitas || !feito(t)) && (!st.pessoas.size || t.resp.some((p) => st.pessoas.has(p)))
+    return T.filter((t) => (!st.bloco || t.bloco === st.bloco) && (!st.feitas || !feito(t)) && (!st.atrasadas || atrasada(t)) && (!st.pessoas.size || t.resp.some((p) => st.pessoas.has(p)))
       && (!q || `${t.titulo} ${t.bloco} ${t.etapa} ${t.resp.join(" ")}`.toLowerCase().includes(q)))
       .sort((a, b) => (a.ini.d + (a.ini.h || "00:00")).localeCompare(b.ini.d + (b.ini.h || "00:00")));
   }
@@ -1417,9 +1435,9 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     return dias.map((d) => {
       const ex = excesso(m, d);
       return `<div class="l-dia${d === hojeIso ? " hoje" : ""}"><h3>${WDL[D(d).getDay()]}, ${dm(d)}</h3>${FER[d] ? `<span>${FER[d]}</span>` : ""}${ex.map((x) => `<span class="carga">${esc(x)}</span>`).join("")}</div>
-      <div class="l-tab">${L.filter((t) => t.ini.d === d).map((t) => `<div class="l-row${feito(t) ? " feito" : ""}" data-id="${t.id}" style="--c:${cor(t)}"><i></i>
-        <div class="l-tit"><input value="${esc(t.titulo)}" data-campo="titulo" aria-label="Atividade"><small>${esc(sub(t))}</small></div>
-        <div class="l-hora"><input type="date" value="${t.ini.d}" data-campo="dia" aria-label="Dia">${t.ini.h ? `<input type="time" value="${t.ini.h}" data-campo="h0" aria-label="Início"> – <input type="time" value="${t.fim.d === t.ini.d ? t.fim.h || "" : ""}" data-campo="h1" aria-label="Fim">${t.fim.d !== t.ini.d ? `<span>até ${dm(t.fim.d)}</span>` : ""}` : t.fim.d !== t.ini.d ? `<span>até ${dm(t.fim.d)}</span>` : "<span>dia todo</span>"}</div>
+      <div class="l-tab">${L.filter((t) => t.ini.d === d).map((t) => `<div class="l-row${cls(t)}" data-id="${t.id}" style="--c:${cor(t)}"><i></i>
+        <div class="l-tit"><input value="${esc(t.titulo)}" data-campo="titulo" aria-label="Atividade"><small>${atrasada(t) ? `<b class="atr">atrasada</b> ` : ""}${esc(sub(t))}</small></div>
+        <div class="l-hora"><input type="date" value="${t.ini.d}" data-campo="dia" aria-label="Dia">${t.ini.h ? `<input type="time" value="${t.ini.h}" data-campo="h0" aria-label="Início"> – <input type="time" value="${t.fim.h || ""}" data-campo="h1" aria-label="Fim">${t.fim.d !== t.ini.d ? `<span>até ${dm(t.fim.d)}</span>` : ""}` : t.fim.d !== t.ini.d ? `<span>até ${dm(t.fim.d)}</span>` : "<span>dia todo</span>"}</div>
         <select class="l-st" data-campo="status" aria-label="Status">${opt(OPC.status, t.status)}</select>
         <button type="button" class="mais" data-abre="${t.id}" aria-label="Editar tudo" title="Editar tudo">⋯</button></div>`).join("")}</div>`;
     }).join("");
@@ -1441,7 +1459,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       html += `<div class="cel${w === 0 || w === 6 ? " fds" : ""}${FER[s] ? " fer" : ""}${s < hojeIso ? " passado" : ""}${s === hojeIso ? " hoje" : ""}${s === st.dia ? " sel" : ""}" data-dia="${s}">
         <span class="n"><b>${x.getDate()}${rot}</b>${ex.length ? `<span class="carga" title="${esc(ex.join(" · "))}">!</span>` : ""}<button type="button" class="add" data-novo="${s}" aria-label="Nova tarefa em ${dm(s)}">+</button></span>
         ${FER[s] ? `<span class="fer-n">${FER[s]}</span>` : ""}
-        ${doDia.map((t) => `<button type="button" class="chip${feito(t) ? " feito" : ""}${ehMarco(t) ? " marco" : ""}" draggable="true" data-id="${t.id}" data-abre="${t.id}" style="--c:${cor(t)}" title="${esc(t.titulo + " · " + sub(t))}">${t.ini.h ? `${t.ini.h} ` : ""}${esc(t.titulo)}</button>`).join("")}
+        ${doDia.map((t) => `<button type="button" class="chip${cls(t)}${ehMarco(t) ? " marco" : ""}" draggable="true" data-id="${t.id}" data-abre="${t.id}" style="--c:${cor(t)}" title="${esc(t.titulo + " · " + sub(t))}">${t.ini.h ? `${t.ini.h} ` : ""}${esc(t.titulo)}</button>`).join("")}
       </div>`;
     }
     html += `</div>`;
@@ -1467,7 +1485,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       const bars = grupos.get(k).map((t) => {
         const i0 = idx(t.ini.d), i1 = Math.max(i0, idx(t.fim.d) - (util(t.fim.d) ? 0 : 1));
         let f = faixas.findIndex((fim) => fim < i0); if (f < 0) { f = faixas.length; faixas.push(i1); } else faixas[f] = i1;
-        return `<div class="tl-bar${feito(t) ? " feito" : ""}" data-id="${t.id}" style="--c:${cor(t)};left:${i0 * W + 2}px;width:${(i1 - i0 + 1) * W - 4}px;top:${f * 26 + 4}px" title="${esc(`${t.titulo} · ${dm(t.ini.d)}${t.fim.d !== t.ini.d ? "–" + dm(t.fim.d) : ""} · ${sub(t)}`)}">${esc(rotuloBarra(t))}<span class="rs"></span></div>`;
+        return `<div class="tl-bar${cls(t)}" data-id="${t.id}" style="--c:${cor(t)};left:${i0 * W + 2}px;width:${(i1 - i0 + 1) * W - 4}px;top:${f * 26 + 4}px" title="${esc(`${t.titulo} · ${dm(t.ini.d)}${t.fim.d !== t.ini.d ? "–" + dm(t.fim.d) : ""} · ${sub(t)}`)}">${esc(rotuloBarra(t))}<span class="rs"></span></div>`;
       }).join("");
       return `<div class="tl-g"><span title="${esc(k)}">${esc(k === "Cliente" ? "Equipe Bradesco" : k)}</span></div><div class="tl-faixa" style="height:${faixas.length * 26 + 8}px">${bars}</div>`;
     }).join("");
@@ -1524,7 +1542,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       const ts = L.filter((t) => (t.bloco || "Sem entrega") === b);
       const feitas = ts.filter(feito).length;
       return `<section class="e-card"><h3>${esc(b)}<small>${feitas}/${ts.length} concluídas · ${dm(ts[0].ini.d)} a ${dm(ts.map((t) => t.fim.d).sort().at(-1))}</small></h3>
-        ${ts.map((t) => `<div class="e-step${feito(t) ? " feito" : ""}${doCliente(t) ? " cliente" : ""}" data-id="${t.id}" style="--c:${cor(t)}">
+        ${ts.map((t) => `<div class="e-step${cls(t)}${doCliente(t) ? " cliente" : ""}" data-id="${t.id}" style="--c:${cor(t)}">
           <input type="checkbox" data-campo="feito"${feito(t) ? " checked" : ""} aria-label="Concluída">
           <div class="t"><b data-abre="${t.id}">${esc(t.titulo)}</b><span><i></i>${esc(t.resp.join(", ") || "—")} · ${WD[D(t.ini.d).getDay()]} ${dm(t.ini.d)}${t.ini.h ? " " + t.ini.h : ""}${t.fim.d !== t.ini.d ? " → " + dm(t.fim.d) : ""}</span></div>
           <div class="q"><button type="button" data-passo="-1" aria-label="Um dia útil antes" title="Um dia útil antes">‹</button><input type="date" value="${t.ini.d}" data-campo="dia" aria-label="Dia"><button type="button" data-passo="1" aria-label="Um dia útil depois" title="Um dia útil depois">›</button></div>
@@ -1560,10 +1578,13 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     dr.querySelector("[name=titulo]").focus();
     f.todo.addEventListener("change", () => { f.h0.disabled = f.h1.disabled = f.todo.checked; if (!f.todo.checked && !f.h0.value) { f.h0.value = "09:00"; f.h1.value = "10:00"; } });
     f.d0.addEventListener("change", () => { if (f.d1.value < f.d0.value) f.d1.value = f.d0.value; });
+    f.h1.addEventListener("input", () => f.h1.setCustomValidity(""));
     const salvar = async () => {
-      if (!f.reportValidity()) return;
       const ini = { d: f.d0.value, h: f.todo.checked ? null : f.h0.value || "09:00" };
       const fim = { d: f.d1.value < f.d0.value ? f.d0.value : f.d1.value, h: f.todo.checked ? null : f.h1.value || ini.h };
+      // o Notion recusa um fim antes do início
+      f.h1.setCustomValidity(ini.h && fim.d === ini.d && fim.h < ini.h ? "O fim precisa ser depois do início." : "");
+      if (!f.reportValidity()) return;
       const patch = { titulo: f.titulo.value.trim(), etapa: f.etapa.value, status: f.status.value, bloco: f.bloco.value, obs: f.obs.value.trim(), resp: [...f.querySelectorAll("[name=resp]:checked")].map((i) => i.value) };
       fecha();
       if (nova) return cria({ ...patch, ini, fim });
@@ -1610,7 +1631,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     $("#ed-empurra").checked = st.empurra; $("#ed-empurra").addEventListener("change", (e) => { st.empurra = e.target.checked; lsSet("fbc-ed-empurra", st.empurra ? "1" : "0"); });
     $("#ed-pessoas").addEventListener("click", (e) => { const b = e.target.closest("[data-p]"); if (!b) return; const p = b.dataset.p; st.pessoas.has(p) ? st.pessoas.delete(p) : st.pessoas.add(p); b.setAttribute("aria-pressed", st.pessoas.has(p)); render(); });
     $("#ed-novo").addEventListener("click", () => abre(null, st.dia));
-    $("#ed-st").addEventListener("click", (e) => { if (e.target.id === "ed-recarrega") carrega(); });
+    $("#ed-st").addEventListener("click", (e) => { if (e.target.id === "ed-recarrega") carrega(); if (e.target.id === "ed-atrasadas") { st.atrasadas = !st.atrasadas; status(); render(); } });
     ed.addEventListener("click", (e) => {
       if (laçou) { laçou = false; return; } // o clique que fecha um laço não abre nada
       const it = e.target.closest(ITEM);
@@ -1633,8 +1654,18 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       if (campo === "status") grava([{ t, patch: { status: el.value } }], `Status: ${el.value}`);
       if (campo === "feito") grava([{ t, patch: { status: el.checked ? "Concluído" : "A fazer" } }], el.checked ? "Marcada como concluída" : "Voltou para A fazer");
       if (campo === "dia" && el.value && el.value !== t.ini.d) moveData(t, { d: el.value, h: t.ini.h });
-      if (campo === "h0" && el.value) { const dur = t.fim.d === t.ini.d && t.fim.h ? (+t.fim.h.slice(0, 2) * 60 + +t.fim.h.slice(3)) - (+t.ini.h.slice(0, 2) * 60 + +t.ini.h.slice(3)) : 60; const m = +el.value.slice(0, 2) * 60 + +el.value.slice(3) + dur; const h1 = `${String(Math.min(23, Math.floor(m / 60))).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; grava([{ t, patch: { ini: { d: t.ini.d, h: el.value }, fim: t.fim.d === t.ini.d ? { d: t.ini.d, h: h1 } : t.fim } }], `Início às ${el.value}`); }
-      if (campo === "h1" && el.value && el.value > (t.ini.h || "")) grava([{ t, patch: { ini: t.ini, fim: { d: t.ini.d, h: el.value } } }], `Fim às ${el.value}`);
+      if (campo === "h0" && el.value) {
+        // mantém a duração; no mesmo dia, o fim não passa das 23:59
+        const mesmoDia = t.fim.d === t.ini.d;
+        const dur = mesmoDia && t.fim.h && t.ini.h ? minutos(t.fim.h) - minutos(t.ini.h) : 60;
+        const h1 = hhmm(Math.min(23 * 60 + 59, minutos(el.value) + dur));
+        grava([{ t, patch: { ini: { d: t.ini.d, h: el.value }, fim: mesmoDia ? { d: t.ini.d, h: h1 } : t.fim } }], `Início às ${el.value}`);
+      }
+      if (campo === "h1" && el.value) {
+        // tarefa de vários dias: muda só a hora do último dia
+        if (t.fim.d === t.ini.d && el.value <= (t.ini.h || "")) { el.value = t.fim.h || ""; aviso("O fim precisa ser depois do início."); return; }
+        grava([{ t, patch: { ini: t.ini, fim: { d: t.fim.d, h: el.value } } }], `Fim às ${el.value}`);
+      }
     });
     ed.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.dataset.campo === "titulo") e.target.blur(); });
     // arrastar no calendário
