@@ -841,11 +841,9 @@ header .dobra p { margin-top: 6px; }
     const um = (re) => ger.filter((r) => re.test(r.a));
     const fech = [];
     const add = (re, o) => { const x = um(re); if (x.length) fech.push({ data: x[0].s, ...(x.at(-1).e !== x[0].s ? { fim: x.at(-1).e } : {}), ...o }); };
+    // só o que envolve o cliente: correções, masters e a margem para imprevistos são trabalho interno
     add(/pacote dos 41 onlines/i, { titulo: "Todos os 41 onlines prontos", texto: "Os 41 vídeos com cor, som, grafismos e legendas, para conferência técnica." });
     add(/^Consolidar retorno técnico/i, { titulo: "Retorno técnico", texto: "Um retorno consolidado sobre os onlines: só ajustes técnicos (cor, som, grafismos, legendas).", cliente: true });
-    add(/^Corrigir/i, { titulo: "Correções finais", texto: "Cor, som, grafismos e legendas corrigidos." });
-    add(/fechar masters/i, { titulo: "Masters fechados", texto: "Exports conferidos e masters prontos." });
-    add(/Reserva para imprevistos/i, { titulo: "Margem para imprevistos", texto: "Dias reservados para qualquer imprevisto." });
     add(/^Entrega final|^Entrega prevista/i, { titulo: "Entrega dos 41 vídeos", texto: "33 pílulas, 6 visitas, o documentário e o trailer.", marco: true });
     const entrega = fech.find((x) => x.marco);
     if (filmes.length < 10 || !entrega) return null; // algo muito fora do esperado: não publica

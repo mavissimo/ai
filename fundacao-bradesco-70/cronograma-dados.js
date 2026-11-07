@@ -30,9 +30,6 @@ window.CRONO = {
   fechamento: [
     { data: "2026-12-02", titulo: "Todos os 41 onlines prontos", texto: "Os 41 vídeos com cor, som, grafismos e legendas, para conferência técnica." },
     { data: "2026-12-03", fim: "2026-12-04", titulo: "Retorno técnico", texto: "Um retorno consolidado sobre os onlines: só ajustes técnicos (cor, som, grafismos, legendas).", cliente: true },
-    { data: "2026-12-07", titulo: "Correções finais", texto: "Cor, som, grafismos e legendas corrigidos." },
-    { data: "2026-12-08", titulo: "Masters fechados", texto: "Exports conferidos e masters prontos." },
-    { data: "2026-12-09", titulo: "Margem para imprevistos", texto: "Dias reservados para qualquer imprevisto." },
     { data: "2026-12-10", titulo: "Entrega dos 41 vídeos", texto: "33 pílulas, 6 visitas, o documentário e o trailer.", marco: true },
   ],
 };

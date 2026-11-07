@@ -63,6 +63,9 @@ function boot() {
   const state = { view: "agenda", filtro: "" };
   const filmes = () => C.filmes.filter((f) => !state.filtro || grupo(f) === state.filtro);
 
+  // fechamento: só o que envolve o cliente (correções, masters e margem são trabalho interno)
+  const INTERNO = /^(Correções finais|Masters fechados|Margem para imprevistos)$/i;
+  C.fechamento = C.fechamento.filter((x) => !INTERNO.test(x.titulo || ""));
   const TECNICO = (C.fechamento.find((x) => x.cliente) || {}).data;
   const SITE = "./"; // site dos filmes, na mesma pasta
   const byId = Object.fromEntries(C.filmes.map((f) => [f.id, f]));
@@ -553,7 +556,7 @@ window.__fbCronoDatas = (res) => {
     if (!booted && n && Array.isArray(n.filmes) && n.filmes.some((f) => f.tipo === "bloco") && n.fim) { // só o formato por blocos
       const C = window.CRONO;
       C.filmes = n.filmes;
-      if (Array.isArray(n.fechamento) && n.fechamento.length) C.fechamento = n.fechamento;
+      if (Array.isArray(n.fechamento) && n.fechamento.length) C.fechamento = n.fechamento; // os cards internos saem no boot()
       C.fim = n.fim; if (n.atualizado) C.atualizado = n.atualizado;
     }
   } catch {}
