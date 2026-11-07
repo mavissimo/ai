@@ -27,10 +27,12 @@ function boot() {
     ed: { label: "Edição", c: "var(--c-ed)", bar: true, desc: "Montagem, V1 e ajustes internos" },
     v2: { label: "V2 chega para a Equipe Bradesco", short: "V2", c: "var(--c-v2)", desc: "O filme montado, para a revisão da Equipe Bradesco" },
     rev: { label: "Retorno da V2", short: "Retorno", c: "var(--c-rev)", you: true, desc: "Uma devolutiva consolidada, até a data indicada" },
-    fin: { label: "Finalização", short: "Cor e som", c: "var(--c-fin)", bar: true, desc: "Cor, som, grafismos e legendas" },
+    fin: { label: "Som, cor e finalização", short: "Som e cor", c: "var(--c-fin)", bar: true, desc: "Som, cor, grafismos e legendas" },
     on: { label: "Online para conferência", short: "Online", c: "var(--c-on)", desc: "O filme finalizado, para a Equipe Bradesco conferir" },
+    ret: { label: "Retorno do online", short: "Retorno do online", c: "var(--c-rev)", you: true, desc: "Um retorno sobre o filme finalizado, até a data indicada" },
+    ent: { label: "Filme entregue", short: "Entrega", c: "var(--c-fim)", desc: "A versão final, com os ajustes do retorno" },
   };
-  const ORDER = ["ed", "v2", "rev", "fin", "on"]; // o offline é passagem interna: o cliente não vê
+  const ORDER = ["ed", "v2", "rev", "fin", "on", "ret", "ent"]; // o offline é passagem interna: o cliente não vê
   window.__liveI = (f) => window.__fbLive?.[f.id];
 
   // a entrega é por bloco: cidade + fotógrafo (visita + 3 pílulas), só as 3 pílulas, documentário ou trailer
@@ -51,7 +53,7 @@ function boot() {
   const grupo = (f) => (f.tipo === "documentario" || f.tipo === "trailer" ? "doc" : f.tipo);
 
   // eventos de cada filme
-  const stepsOf = (f) => ORDER.map((k) => {
+  const stepsOf = (f) => ORDER.filter((k) => f[k]).map((k) => {
     const v = f[k];
     const [start, end] = Array.isArray(v) ? v : [v, v];
     return { k, start, end, f };
@@ -66,7 +68,6 @@ function boot() {
   // fechamento: só o que envolve o cliente (correções, masters e margem são trabalho interno)
   const INTERNO = /^(Correções finais|Masters fechados|Margem para imprevistos)$/i;
   C.fechamento = C.fechamento.filter((x) => !INTERNO.test(x.titulo || ""));
-  const TECNICO = (C.fechamento.find((x) => x.cliente) || {}).data;
   const SITE = "./"; // site dos filmes, na mesma pasta
   const byId = Object.fromEntries(C.filmes.map((f) => [f.id, f]));
 
@@ -101,7 +102,7 @@ function boot() {
     sc.async = true; document.head.append(sc);
   }
   // etapa do cronograma -> andamento mínimo que a dá por cumprida
-  const FEITO = { ed: 1, v2: 1, rev: 2, fin: 5, on: 6 };
+  const FEITO = { ed: 1, v2: 1, rev: 2, fin: 5, on: 6, ret: 6, ent: 7 };
   const siteLink = (f) => SITE + ({ bloco: `#/escola/${f.id}`, pilula: `#/fotografo/${f.id}`, visita: `#/escola/${f.id}`, documentario: "#/filme/documentario", trailer: "#/filme/trailer" })[f.tipo];
   const AGORA = ["Em edição", "V2 com a Equipe Bradesco · aguardando o retorno", "Retorno recebido · ajustes em andamento", "Ajustes feitos · indo para cor e som", "Em cor e som", "Online para a Equipe Bradesco conferir", "Aprovado", "Entregue"];
   // ── Assistir à versão atual: abre no player do projeto; link do Frame.io abre numa nova janela ──
@@ -165,6 +166,8 @@ function boot() {
   function estadoEv(e) {
     const f = e.f; if (!f) return "";
     if (e.k === "rev") { const r = REG.get(f.id, "v2"); return r.aprovado ? "ok" : enviado(f, "v2") ? (f.rev < TODAY ? "late" : "todo") : ""; }
+    if (e.k === "ret") { const r = REG.get(f.id, "on"); return r.aprovado ? "ok" : enviado(f, "on") ? (f.ret < TODAY ? "late" : "todo") : ""; }
+    if (e.k === "ent") return (live[f.id] ?? -1) >= 7 ? "ok" : "";
     if (e.k === "v2" || e.k === "on") return REG.get(f.id, e.k).aberto ? "ok" : disponivel(f, e.k) ? "new" : "";
     return "";
   }
@@ -178,7 +181,7 @@ function boot() {
         const r = REG.get(f.id, v);
         if (disponivel(f, v) && !r.aberto) assistir.push({ f, v });
         if (enviado(f, v) && !r.aprovado && (v === "on" || versaoAtual(f) === "v2")) {
-          const prazo = v === "v2" ? f.rev : TECNICO;
+          const prazo = v === "v2" ? f.rev : f.ret || C.fim;
           aprovar.push({ f, v, prazo, late: prazo < TODAY });
         }
       });
@@ -247,28 +250,32 @@ function boot() {
 
   function stats() {
     const nextV2 = C.filmes.filter((f) => f.v2 >= TODAY).sort((a, b) => a.v2.localeCompare(b.v2))[0];
-    const nextRev = C.filmes.filter((f) => f.rev >= TODAY).sort((a, b) => a.rev.localeCompare(b.rev))[0];
+    // o próximo retorno da Equipe Bradesco: da V2 ou do online, o que vier antes
+    const nextRev = C.filmes.flatMap((f) => ["rev", "ret"].filter((k) => f[k] >= TODAY).map((k) => ({ ...f, rev: f[k] }))).sort((a, b) => a.rev.localeCompare(b.rev))[0];
     const recebidos = C.filmes.filter((f) => f.v2 < TODAY).length;
+    const entregues = C.filmes.filter((f) => (live[f.id] ?? -1) >= 7).length;
     $("#stats").innerHTML = `
       <div><dt>Vídeos</dt><dd>41<small>33 pílulas · 6 visitas · doc · trailer</small></dd></div>
       <div><dt>Próxima V2</dt><dd>${nextV2 ? `${dm(nextV2.v2)}<small>${esc(nomeFilme(nextV2))}</small>` : "Todas entregues"}</dd></div>
-      <div><dt>Próximo retorno da Equipe Bradesco</dt><dd>${nextRev ? `${dm(nextRev.rev)}<small>${esc(nomeFilme(nextRev))}</small>` : `${dm(TECNICO)}<small>Retorno técnico</small>`}</dd></div>
-      <div><dt>Entrega final</dt><dd>${dm(C.fim)}<small>${recebidos} de ${C.filmes.length} filmes já na V2</small></dd></div>`;
+      <div><dt>Próximo retorno da Equipe Bradesco</dt><dd>${nextRev ? `${dm(nextRev.rev)}<small>${esc(nomeFilme(nextRev))}</small>` : "—"}</dd></div>
+      <div><dt>Prazo final</dt><dd>${dm(C.fim)}<small>${entregues ? `${entregues} de ${C.filmes.length} entregas feitas` : `${recebidos} de ${C.filmes.length} filmes já na V2`}</small></dd></div>`;
   }
   stats();
 
   // como cada filme anda
-  $("#steps").innerHTML = ["v2", "rev", "fin", "on"].map((k) => {
+  $("#steps").innerHTML = ["v2", "rev", "fin", "on", "ret", "ent"].map((k) => {
     const s = STEP[k];
-    return `<li class="${s.you ? "you" : ""}${s.bar ? " range" : ""}" style="--c:${s.c}"><i></i><strong>${esc(s.label)}${s.you ? TAG_EQUIPE : ""}</strong><span>${esc(s.desc)}</span></li>`;
-  }).join("") + `<li style="--c:var(--c-fim)"><i></i><strong>Entrega final</strong><span>Os 41 vídeos em ${dm(C.fim)}, depois do retorno técnico de ${dm(TECNICO)}</span></li>`;
+    const desc = k === "ent" ? `${s.desc}. Todos os 41 até ${dm(C.fim)}` : s.desc; // o prazo final vai junto da entrega: um card a menos
+    return `<li class="${s.you ? "you" : ""}${s.bar ? " range" : ""}" style="--c:${s.c}"><i></i><strong>${esc(s.label)}${s.you ? TAG_EQUIPE : ""}</strong><span>${esc(desc)}</span></li>`;
+  }).join("");
 
   // ── Eventos pontuais (agenda e calendário) ──
   function eventos() {
     const ev = [];
-    filmes().forEach((f) => ["v2", "rev", "on"].forEach((k) => ev.push({ date: f[k], k, f })));
+    filmes().forEach((f) => ["v2", "rev", "on", "ret", "ent"].forEach((k) => f[k] && ev.push({ date: f[k], k, f })));
     C.fechamento.forEach((x) => ev.push({ date: x.data, k: "fecho", x }));
-    return ev.sort((a, b) => a.date.localeCompare(b.date));
+    const ordem = (e) => (e.k === "fecho" ? 99 : ORDER.indexOf(e.k)); // no mesmo dia, na ordem do fluxo
+    return ev.sort((a, b) => a.date.localeCompare(b.date) || ordem(a) - ordem(b));
   }
   const evColor = (e) => (e.k === "fecho" ? (e.x.cliente ? "var(--c-rev)" : e.x.marco ? "var(--c-fim)" : "var(--ink-3)") : STEP[e.k].c);
   const evYou = (e) => (e.k === "fecho" ? !!e.x.cliente : !!STEP[e.k].you);
@@ -295,6 +302,7 @@ function boot() {
       const rcs = `rcs${g.length > 3 ? " duas" : ""}`; // muitos filmes no mesmo dia: duas colunas
       const corpo = receb ? `<div class="${rcs}">${g.map((x) => recebHTML(x.f, e.k, true, true)).join("")}</div>`
         : e.k === "rev" ? `<div class="${rcs}">${g.map((x) => checkHTML(x.f, "v2")).join("")}</div>`
+        : e.k === "ret" ? `<div class="${rcs}">${g.map((x) => checkHTML(x.f, "on")).join("")}</div>`
         : `<div class="films">${g.map((x) => filmChip(x.f)).join("")}</div>`;
       return `<li class="item${s.you ? " you" : ""}${receb ? " receb" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? TAG_EQUIPE : ""}${receb ? '<span class="tag-rc">Recebimento</span>' : ""}${g.some((x) => estadoEv(x) === "late") ? '<span class="st-tag st-late">Atrasado</span>' : ""}</span>${corpo}</div></li>`;
     }).join("");
@@ -359,8 +367,8 @@ function boot() {
     const filmRow = (f) => row(
       `<div class="g-name"><a href="#filme/${f.id}" title="${esc(nomeFilme(f))}">${esc(f.tipo === "bloco" ? `${f.nome} + ${f.fot?.nome.split(" ")[0]}` : f.tipo === "pilula" ? f.nome : nomeFilme(f))}</a></div>`,
       bar(f.ed[0], f.ed[1], "var(--c-ed)", `Edição interna · ${dm(f.ed[0])} a ${dm(f.ed[1])}`, "ed") +
-      bar(f.fin[0], f.fin[1], STEP.fin.c, `Cor e som · ${dm(f.fin[0])} a ${dm(f.fin[1])}`) +
-      ["v2", "rev", "on"].map((k) => { const st = estadoEv({ k, f }); return dot(f[k], STEP[k].c, `${STEP[k].label} · ${wd(f[k])} ${dm(f[k])}${st ? ` · ${ROT_EST[st]}` : ""}`, st ? `st-${st}` : ""); }).join(""));
+      bar(f.fin[0], f.fin[1], STEP.fin.c, `Som, cor e finalização · ${dm(f.fin[0])} a ${dm(f.fin[1])}`) +
+      ["v2", "rev", "on", "ret", "ent"].filter((k) => f[k]).map((k) => { const st = estadoEv({ k, f }); return dot(f[k], STEP[k].c, `${STEP[k].label} · ${wd(f[k])} ${dm(f[k])}${st ? ` · ${ROT_EST[st]}` : ""}`, st ? `st-${st}` : ""); }).join(""));
     const gr = (t, list) => (list.length ? `<div class="g-group">${t}</div>` + list.map(filmRow).join("") : "");
     const fs = filmes();
     const body =
@@ -374,9 +382,10 @@ function boot() {
     const legend = `<div class="legend">
       <span><i class="bar ed"></i>Edição interna</span>
       ${["v2", "rev"].map((k) => `<span><i style="--c:${STEP[k].c}"></i>${STEP[k].label}</span>`).join("")}
-      <span><i class="bar" style="--c:${STEP.fin.c}"></i>Cor e som</span>
+      <span><i class="bar" style="--c:${STEP.fin.c}"></i>${STEP.fin.label}</span>
       <span><i style="--c:${STEP.on.c}"></i>${STEP.on.label}</span>
-      <span><i style="--c:var(--c-fim)"></i>Entrega final</span></div>`;
+      <span><i style="--c:${STEP.ret.c}"></i>${STEP.ret.label}</span>
+      <span><i style="--c:var(--c-fim)"></i>${STEP.ent.label}</span></div>`;
     // no computador a linha do tempo cabe inteira na largura; no celular rola para o lado
     const avail = Math.min(document.querySelector("main").clientWidth - 2 * parseFloat(getComputedStyle(document.querySelector("main")).paddingLeft || 0), 1100);
     const nameW = innerWidth <= 720 ? 132 : 180;
@@ -426,7 +435,7 @@ function boot() {
       const st = STEP[s.k], stt = status(s);
       const when = s.start === s.end ? `${wd(s.start)} ${dm(s.start)}` : `${dm(s.start)} a ${dm(s.end)}`;
       return `<li class="${stt === "done" ? "done" : ""}${s === next ? " next" : ""}${st.you ? " you" : ""}" style="--c:${st.c}"><i></i><span>${esc(st.label)}${st.you ? TAG_EQUIPE : ""}</span><time>${when}</time></li>`;
-    }).join("")}<li style="--c:var(--c-fim)"><i></i><span>Entrega final</span><time>${wd(C.fim)} ${dm(C.fim)}</time></li></ol>`;
+    }).join("")}${f.ent ? "" : `<li style="--c:var(--c-fim)"><i></i><span>Prazo final</span><time>${wd(C.fim)} ${dm(C.fim)}</time></li>`}</ol>`;
   }
   function viewFilmes() {
     return `<div class="cards">${filmes().map((f) => `
@@ -456,7 +465,7 @@ function boot() {
       <p class="k">${chegou ? "A V2 chegou" : `V2 em ${dm(f.v2)}`}</p>
       <h2>${esc(nomeFilme(f))}</h2>
       ${juntoHTML(f)}${liveBox(f, true, false)}${acaoHTML(f, true)}
-      <p class="s">${chegou ? `Precisamos do retorno da Equipe Bradesco até <b>${wd(f.rev)}, ${dm(f.rev)}</b>, numa devolutiva única. Depois disso a montagem trava e o filme segue para cor e som.` : `A V2 chega ${WDL[D(f.v2).getDay()]}, ${dm(f.v2)}. O retorno da Equipe Bradesco fica para ${dm(f.rev)}.`}</p>
+      <p class="s">${chegou ? `Precisamos do retorno da Equipe Bradesco até <b>${wd(f.rev)}, ${dm(f.rev)}</b>, numa devolutiva única. Depois disso o filme segue para som, cor e finalização.` : `A V2 chega ${WDL[D(f.v2).getDay()]}, ${dm(f.v2)}. O retorno da Equipe Bradesco fica para ${dm(f.rev)}.`}</p>
       ${trackHTML(f)}
       <a class="all" href="#agenda">Ver o cronograma de todos os filmes →</a>
     </div>`;

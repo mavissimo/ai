@@ -829,22 +829,22 @@ header .dobra p { margin-top: 6px; }
     for (const B of BLOCOS) {
       const L = R.filter((r) => r.bs.includes(B.id));
       const v2 = L.find((r) => /^(Enviar V2|Entrega V2)/i.test(r.a))?.s;                      // a V2 do bloco vai ao cliente
-      const rev = L.find((r) => r.et === "Revisão cliente" || /^Revisão (do cliente · )?V2/i.test(r.a))?.s;
+      const rev = L.find((r) => (r.et === "Revisão cliente" && !/online/i.test(r.a)) || /^Revisão (do cliente · )?V2/i.test(r.a))?.s;
+      const ret = L.find((r) => /^Revisão do cliente · Online/i.test(r.a))?.s;                     // retorno do online, filme a filme
+      const ent = L.filter((r) => r.et === "Entrega" && /^Entregar/i.test(r.a)).map((r) => r.s).at(-1); // o filme vai pronto para o cliente
       const off = L.filter((r) => r.et === "Offline").map((r) => r.s).at(-1);                 // offline do bloco todo liberado
       const fins = L.filter((r) => r.et === "Cor" || r.et === "Finalização");
       const on = L.filter((r) => r.et === "Online" && !/^Conferir online/i.test(r.a)).map((r) => r.s).at(-1); // "Conferir online" é interno
       if (!v2 || !rev || !off || !fins.length || !on) continue; // incompleto no Notion: o cronograma mantém o que tinha
       const { re, ...info } = B;
-      filmes.push({ ...info, ed: [L[0].s < v2 ? L[0].s : minus1(v2), minus1(v2)], v2, rev, off, fin: [fins[0].s, fins.map((r) => r.e).sort().at(-1)], on });
+      filmes.push({ ...info, ed: [L[0].s < v2 ? L[0].s : minus1(v2), minus1(v2)], v2, rev, off, fin: [fins[0].s, fins.map((r) => r.e).sort().at(-1)], on, ...(ret ? { ret } : {}), ...(ent ? { ent } : {}) });
     }
     const ger = R.filter((r) => r.geral);
     const um = (re) => ger.filter((r) => re.test(r.a));
     const fech = [];
     const add = (re, o) => { const x = um(re); if (x.length) fech.push({ data: x[0].s, ...(x.at(-1).e !== x[0].s ? { fim: x.at(-1).e } : {}), ...o }); };
-    // só o que envolve o cliente: correções, masters e a margem para imprevistos são trabalho interno
-    add(/pacote dos 41 onlines/i, { titulo: "Todos os 41 onlines prontos", texto: "Os 41 vídeos com cor, som, grafismos e legendas, para conferência técnica." });
-    add(/^Consolidar retorno técnico/i, { titulo: "Retorno técnico", texto: "Um retorno consolidado sobre os onlines: só ajustes técnicos (cor, som, grafismos, legendas).", cliente: true });
-    add(/^Entrega final|^Entrega prevista/i, { titulo: "Entrega dos 41 vídeos", texto: "33 pílulas, 6 visitas, o documentário e o trailer.", marco: true });
+    // cada filme é entregue quando fica pronto; para o cliente, o fechamento é só o prazo final
+    add(/^Prazo final|^Entrega final|^Entrega prevista/i, { titulo: "Prazo final dos 41 vídeos", texto: "33 pílulas, 6 visitas, o documentário e o trailer, todos entregues até aqui.", marco: true });
     const entrega = fech.find((x) => x.marco);
     if (filmes.length < 10 || !entrega) return null; // algo muito fora do esperado: não publica
     fech.forEach((x) => { if (x.fim === x.data) delete x.fim; });
