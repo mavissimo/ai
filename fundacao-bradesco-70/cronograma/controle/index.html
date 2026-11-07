@@ -1450,7 +1450,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   }
 
   const W = 46; // largura de um dia útil na linha do tempo
-  const CURTO = { Montagem: "Edição", "V1 B": "V1 B", "Revisão interna": "Rev. interna", Ajustes: "Refação", "Revisão cliente": "Cliente", "Versão final": "Versão final", Offline: "Offline", Cor: "Cor", "Finalização": "Som", Online: "Online", V2: "V2", V1: "V1" };
+  const CURTO = { Montagem: "Edição", "V1 B": "V1 B", "Revisão interna": "Rev. interna", Ajustes: "Ajustes", "Revisão cliente": "Cliente", "Versão final": "Versão final", Offline: "Offline", Cor: "Cor", "Finalização": "Som", Online: "Online", V2: "V2", V1: "V1" };
   const rotuloBarra = (t) => (st.agrupa === "pessoa" ? t.titulo.replace(/ · .*/, "") + " · " + (t.bloco || "").replace(/ \/ .*/, "") : CURTO[t.etapa] || t.etapa || t.titulo);
   let dias = [];
   function vLinha(L) {
