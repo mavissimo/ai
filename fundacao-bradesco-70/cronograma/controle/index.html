@@ -1026,7 +1026,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
 .l-dia.hoje h3::after { content: "hoje"; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--fg); color: var(--accent-fg); font-size: 11px; vertical-align: 2px; }
 .carga { font-size: 11.5px; font-weight: 800; color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); padding: 1px 8px; border-radius: 999px; }
 .l-tab { display: grid; gap: 4px; }
-.l-row { display: grid; grid-template-columns: 4px minmax(0, 1fr) auto 168px auto auto; gap: 6px 10px; align-items: center; padding: 8px 10px 8px 0; border-radius: 12px; background: var(--card); box-shadow: var(--shadow); }
+.l-row { display: grid; grid-template-columns: 4px minmax(0, 1fr) 392px 30px 132px auto; gap: 6px 10px; align-items: center; padding: 8px 10px 8px 0; border-radius: 12px; background: var(--card); box-shadow: var(--shadow); }
 .l-row > i { align-self: stretch; border-radius: 4px; background: var(--c); }
 .l-row.feito { opacity: .55; }
 .l-row.feito .l-tit input { text-decoration: line-through; }
@@ -1035,15 +1035,22 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
 .l-tit input:hover, .l-tit input:focus { background: var(--surface); }
 .l-tit small { padding: 0 4px; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .l-row input[type=date], .l-row input[type=time], .l-row select, .dr input, .dr select, .dr textarea, .e-step input, .e-step select { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 5px 7px; font-size: 13px; min-width: 0; }
-.l-hora { display: flex; gap: 4px; align-items: center; color: var(--muted); font-size: 12px; }
+.l-hora { display: flex; gap: 4px; align-items: center; color: var(--muted); font-size: 12px; white-space: nowrap; }
 .l-hora input[type=time] { width: 84px; }
-.l-link { display: flex; align-items: center; gap: 4px; }
-.l-link input { width: 100%; min-width: 0; border: 1px dashed var(--line); background: none; border-radius: 8px; padding: 5px 7px; font-size: 12.5px; color: var(--fg); }
-.l-link.tem input { border-style: solid; background: var(--bg); }
-.l-link.cli input::placeholder { color: var(--st-aprovado); }
-.l-link a { text-decoration: none; font-weight: 800; color: var(--fg); padding: 3px 6px; border-radius: 6px; background: var(--surface); }
-.e-step .l-link { margin-top: 4px; }
-.e-step .l-link input { width: 100%; max-width: 260px; }
+.l-st { width: 132px; }
+.lk-bt { width: 30px; height: 30px; display: grid; place-items: center; border: 1px dashed var(--line); background: none; border-radius: 8px; color: var(--muted); cursor: pointer; padding: 0; }
+.lk-bt:hover { color: var(--fg); border-style: solid; }
+.lk-bt.cli:not(.tem) { color: var(--st-aprovado); }
+.lk-bt.tem { border-style: solid; border-color: var(--fg); background: var(--fg); color: var(--accent-fg); }
+.e-step .q .lk-bt { width: 28px; height: 28px; margin-right: 4px; }
+.lk-pop { position: fixed; z-index: 70; width: min(340px, calc(100vw - 16px)); padding: 10px; border-radius: 14px; background: var(--card); box-shadow: 0 18px 50px -14px rgba(0,0,0,.4), 0 0 0 1px var(--line); }
+.lk-pop form { display: grid; gap: 6px; }
+.lk-pop input { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); font-size: 13.5px; }
+.lk-pop small { color: var(--muted); font-size: 11.5px; }
+.lk-pop div { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
+.lk-pop a { margin-right: auto; font-size: 13px; font-weight: 700; color: var(--fg); }
+.lk-pop button { font-size: 13px; padding: 6px 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; }
+.lk-pop button.ok { background: var(--fg); color: var(--accent-fg); border-color: var(--fg); font-weight: 800; }
 .l-row .mais { border: 0; background: none; cursor: pointer; padding: 6px; border-radius: 8px; color: var(--muted); font-size: 16px; line-height: 1; }
 .l-row .mais:hover { background: var(--surface); color: var(--fg); }
 .salvando { box-shadow: inset 0 0 0 1.5px var(--st-ajustes), var(--shadow) !important; }
@@ -1057,8 +1064,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
 .ed-st .atr-bt[aria-pressed="true"] { text-decoration: none; padding: 0 8px; border-radius: 999px; background: color-mix(in srgb, var(--danger) 12%, transparent); }
 @media (max-width: 720px) {
   .l-row { grid-template-columns: 4px minmax(0, 1fr) auto; }
-  .l-row .l-hora, .l-row .l-st, .l-row .l-link { grid-column: 2 / 4; }
-  .l-link input, .l-link.tem input { width: 100%; }
+  .l-row .l-hora, .l-row .l-st { grid-column: 2 / 4; }
   .l-row .l-hora { flex-wrap: wrap; }
 }
 
@@ -1289,12 +1295,34 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   const atrasada = (t) => !feito(t) && t.fim.d < hojeIso;
   const cls = (t) => (feito(t) ? " feito" : atrasada(t) ? " atrasada" : "");
   const ehMarco = (t) => /^(Marco|Enviar V2|Entrega final|Prazo final)/i.test(t.titulo);
-  // entregas (internas e para o cliente) têm lugar para o link; os de V2, online e entrega aparecem no cronograma do cliente
-  const ENTREGA = /^(Marco · V1|Enviar V2|Versão final|Conferir versão final|Cor ·|Áudio ·|Finalização ·|Conferir e entregar online|Ajustes do online|Entregar ao cliente)/i;
+  // os links de V2, online e entrega aparecem no cronograma do cliente; os outros ficam só com a equipe
   const PARA_CLIENTE = /^(Enviar V2|Conferir e entregar online|Entregar ao cliente)/i;
-  const linkHTML = (t) => (ENTREGA.test(t.titulo) || t.link
-    ? `<div class="l-link${t.link ? " tem" : ""}${PARA_CLIENTE.test(t.titulo) ? " cli" : ""}">${t.link ? `<a href="${esc(t.link)}" target="_blank" rel="noopener" title="Abrir">↗</a>` : ""}<input type="url" value="${esc(t.link)}" data-campo="link" placeholder="${PARA_CLIENTE.test(t.titulo) ? "Link para o cliente" : "Colar link"}" aria-label="Link da entrega" title="${PARA_CLIENTE.test(t.titulo) ? "Este link aparece no cronograma do cliente" : "Link da entrega, só para a equipe"}"></div>`
-    : "<span></span>");
+  // botão de link em toda tarefa: abre uma pop pequena para colar, abrir ou apagar
+  const ICONE_LINK = `<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>`;
+  const linkBt = (t) => `<button type="button" class="lk-bt${t.link ? " tem" : ""}${PARA_CLIENTE.test(t.titulo) ? " cli" : ""}" data-link="${t.id}" aria-label="${t.link ? "Link" : "Adicionar link"}" title="${t.link ? esc(t.link) : PARA_CLIENTE.test(t.titulo) ? "Adicionar link (vai para o cliente)" : "Adicionar link"}">${ICONE_LINK}</button>`;
+  function fechaPop() { document.querySelectorAll(".lk-pop").forEach((n) => n.remove()); }
+  function popLink(t, bt) {
+    fechaPop();
+    const cli = PARA_CLIENTE.test(t.titulo);
+    const pop = document.createElement("div"); pop.className = "lk-pop"; pop.setAttribute("role", "dialog"); pop.setAttribute("aria-label", "Link da tarefa");
+    pop.innerHTML = `<form><input type="url" name="u" value="${esc(t.link)}" placeholder="Colar o link · https://…" aria-label="Link">
+      <small>${cli ? "Aparece no cronograma do cliente." : "Só para a equipe."}</small>
+      <div>${t.link ? `<a href="${esc(t.link)}" target="_blank" rel="noopener">Abrir ↗</a><button type="button" data-apaga>Apagar</button>` : ""}<button class="ok">Salvar</button></div></form>`;
+    document.body.append(pop);
+    const r = bt.getBoundingClientRect(), w = pop.offsetWidth;
+    pop.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w)) + "px";
+    pop.style.top = (r.bottom + 6 + pop.offsetHeight > innerHeight ? r.top - pop.offsetHeight - 6 : r.bottom + 6) + "px";
+    const inp = pop.querySelector("input"); inp.focus(); inp.select();
+    const salva = (v) => {
+      if (v && !/^https?:\/\//i.test(v)) { inp.setCustomValidity("O link precisa começar com https://"); inp.reportValidity(); return; }
+      fechaPop();
+      if (v !== (t.link || "")) grava([{ t, patch: { link: v } }], v ? (cli ? "Link salvo · já vai para o cronograma do cliente" : "Link salvo") : "Link apagado");
+    };
+    inp.addEventListener("input", () => inp.setCustomValidity(""));
+    pop.querySelector("form").addEventListener("submit", (e) => { e.preventDefault(); salva(inp.value.trim()); });
+    pop.querySelector("[data-apaga]")?.addEventListener("click", () => salva(""));
+    setTimeout(() => addEventListener("pointerdown", function fora(e) { if (!e.target.closest(".lk-pop")) { fechaPop(); removeEventListener("pointerdown", fora); } }), 0);
+  }
   const doCliente = (t) => t.resp.includes("Cliente") || /^Revisão do cliente|retorno técnico/i.test(t.titulo);
 
   // ── leitura da agenda ──
@@ -1453,7 +1481,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       <div class="l-tab">${L.filter((t) => t.ini.d === d).map((t) => `<div class="l-row${cls(t)}" data-id="${t.id}" style="--c:${cor(t)}"><i></i>
         <div class="l-tit"><input value="${esc(t.titulo)}" data-campo="titulo" aria-label="Atividade"><small>${atrasada(t) ? `<b class="atr">atrasada</b> ` : ""}${esc(sub(t))}</small></div>
         <div class="l-hora"><input type="date" value="${t.ini.d}" data-campo="dia" aria-label="Dia">${t.ini.h ? `<input type="time" value="${t.ini.h}" data-campo="h0" aria-label="Início"> – <input type="time" value="${t.fim.h || ""}" data-campo="h1" aria-label="Fim">${t.fim.d !== t.ini.d ? `<span>até ${dm(t.fim.d)}</span>` : ""}` : t.fim.d !== t.ini.d ? `<span>até ${dm(t.fim.d)}</span>` : "<span>dia todo</span>"}</div>
-        ${linkHTML(t)}
+        ${linkBt(t)}
         <select class="l-st" data-campo="status" aria-label="Status">${opt(OPC.status, t.status)}</select>
         <button type="button" class="mais" data-abre="${t.id}" aria-label="Editar tudo" title="Editar tudo">⋯</button></div>`).join("")}</div>`;
     }).join("");
@@ -1560,8 +1588,8 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       return `<section class="e-card"><h3>${esc(b)}<small>${feitas}/${ts.length} concluídas · ${dm(ts[0].ini.d)} a ${dm(ts.map((t) => t.fim.d).sort().at(-1))}</small></h3>
         ${ts.map((t) => `<div class="e-step${cls(t)}${doCliente(t) ? " cliente" : ""}" data-id="${t.id}" style="--c:${cor(t)}">
           <input type="checkbox" data-campo="feito"${feito(t) ? " checked" : ""} aria-label="Concluída">
-          <div class="t"><b data-abre="${t.id}">${esc(t.titulo)}</b><span><i></i>${esc(t.resp.join(", ") || "—")} · ${WD[D(t.ini.d).getDay()]} ${dm(t.ini.d)}${t.ini.h ? " " + t.ini.h : ""}${t.fim.d !== t.ini.d ? " → " + dm(t.fim.d) : ""}</span>${ENTREGA.test(t.titulo) || t.link ? linkHTML(t) : ""}</div>
-          <div class="q"><button type="button" data-passo="-1" aria-label="Um dia útil antes" title="Um dia útil antes">‹</button><input type="date" value="${t.ini.d}" data-campo="dia" aria-label="Dia"><button type="button" data-passo="1" aria-label="Um dia útil depois" title="Um dia útil depois">›</button></div>
+          <div class="t"><b data-abre="${t.id}">${esc(t.titulo)}</b><span><i></i>${esc(t.resp.join(", ") || "—")} · ${WD[D(t.ini.d).getDay()]} ${dm(t.ini.d)}${t.ini.h ? " " + t.ini.h : ""}${t.fim.d !== t.ini.d ? " → " + dm(t.fim.d) : ""}</span></div>
+          <div class="q">${linkBt(t)}<button type="button" data-passo="-1" aria-label="Um dia útil antes" title="Um dia útil antes">‹</button><input type="date" value="${t.ini.d}" data-campo="dia" aria-label="Dia"><button type="button" data-passo="1" aria-label="Um dia útil depois" title="Um dia útil depois">›</button></div>
         </div>`).join("")}</section>`;
     }).join("")}</div>`;
   }
@@ -1655,6 +1683,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       if (it && (e.metaKey || e.ctrlKey || e.shiftKey) && !e.target.closest("input, select, textarea")) { e.preventDefault(); alterna(it.dataset.id, e.shiftKey); return; }
       const g = e.target.closest("[data-g]"); if (g) { st.agrupa = g.dataset.g; lsSet("fbc-ed-agrupa", st.agrupa); render(); return; }
       const n = e.target.closest("[data-novo]"); if (n) { abre(null, n.dataset.novo); return; }
+      const lk = e.target.closest("[data-link]"); if (lk) { const t = T.find((x) => x.id === lk.dataset.link); if (t) popLink(t, lk); return; }
       const a = e.target.closest("[data-abre]");
       if (a && !e.target.closest(".tl-bar")) {
         if (st.modo === "cal" && matchMedia("(max-width: 720px)").matches) { st.dia = a.closest("[data-dia]")?.dataset.dia || st.dia; render(); return; }
@@ -1700,7 +1729,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       if (SEL.has(t.id) && SEL.size > 1) return moveVarias(doGrupo(), difUteis(t.ini.d, c.dataset.dia));
       moveData(t, { d: c.dataset.dia, h: t.ini.h });
     });
-    addEventListener("keydown", (e) => { if (e.key === "Escape") { if ($(".dr")) fecha(); else limpaSel(); } });
+    addEventListener("keydown", (e) => { if (e.key === "Escape") { if ($(".lk-pop")) fechaPop(); else if ($(".dr")) fecha(); else limpaSel(); } });
     // laço: arrastar num espaço vazio marca o que ele tocar (com ⌘/Ctrl/Shift, soma ao que já estava marcado)
     const view = $("#ed-view");
     view.addEventListener("pointerdown", (e) => {
