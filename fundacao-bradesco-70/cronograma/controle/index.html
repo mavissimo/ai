@@ -818,7 +818,7 @@ header .dobra p { margin-top: 6px; }
 
   // Agenda do Notion -> datas que o cliente vê, por bloco
   function montarCronograma(rows) {
-    const R = rows.map((r) => ({ a: r.Atividade || "", s: day(r["date:Data:start"]), e: day(r["date:Data:end"]) || day(r["date:Data:start"]), et: r.Etapa, bl: r["Bloco de entrega"], fe: r["Fotógrafo / Escola"] }))
+    const R = rows.map((r) => ({ a: r.Atividade || "", s: day(r["date:Data:start"]), e: day(r["date:Data:end"]) || day(r["date:Data:start"]), et: r.Etapa, bl: r["Bloco de entrega"], fe: r["Fotógrafo / Escola"], lk: String(r["Link do filme"] || "").trim() }))
       .filter((r) => r.s).map((r) => {
         // tarefa de um bloco só (pelo "Bloco de entrega" ou "Fotógrafo / Escola"); a que junta vários blocos (ex.: as 5 entregas
         // só de pílulas) vale para cada bloco citado no título
@@ -832,12 +832,15 @@ header .dobra p { margin-top: 6px; }
       const rev = L.find((r) => (r.et === "Revisão cliente" && !/online/i.test(r.a)) || /^Revisão (do cliente · )?V2/i.test(r.a))?.s;
       const ret = L.find((r) => /^Revisão do cliente · Online/i.test(r.a))?.s;                     // retorno do online, filme a filme
       const ent = L.filter((r) => r.et === "Entrega" && /^Entregar/i.test(r.a)).map((r) => r.s).at(-1); // o filme vai pronto para o cliente
+      // links colados na agenda da equipe que o cliente abre no cronograma dele
+      const lk = (re) => L.filter((r) => re.test(r.a) && /^https?:\/\//i.test(r.lk)).map((r) => r.lk).at(-1);
+      const links = Object.fromEntries([["v2", lk(/^Enviar V2/i)], ["on", lk(/^Conferir e entregar online/i)], ["ent", lk(/^Entregar ao cliente/i)]].filter(([, v]) => v));
       const off = L.filter((r) => r.et === "Offline").map((r) => r.s).at(-1);                 // offline do bloco todo liberado
       const fins = L.filter((r) => r.et === "Cor" || r.et === "Áudio" || r.et === "Finalização"); // cor e áudio em paralelo, depois a finalização
       const on = L.filter((r) => r.et === "Online" && !/^Conferir online/i.test(r.a)).map((r) => r.s).at(-1); // "Conferir online" é interno
       if (!v2 || !rev || !off || !fins.length || !on) continue; // incompleto no Notion: o cronograma mantém o que tinha
       const { re, ...info } = B;
-      filmes.push({ ...info, ed: [L[0].s < v2 ? L[0].s : minus1(v2), minus1(v2)], v2, rev, off, fin: [fins[0].s, fins.map((r) => r.e).sort().at(-1)], on, ...(ret ? { ret } : {}), ...(ent ? { ent } : {}) });
+      filmes.push({ ...info, ed: [L[0].s < v2 ? L[0].s : minus1(v2), minus1(v2)], v2, rev, off, fin: [fins[0].s, fins.map((r) => r.e).sort().at(-1)], on, ...(ret ? { ret } : {}), ...(ent ? { ent } : {}), ...(Object.keys(links).length ? { links } : {}) });
     }
     const ger = R.filter((r) => r.geral);
     const um = (re) => ger.filter((r) => re.test(r.a));
@@ -1023,7 +1026,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
 .l-dia.hoje h3::after { content: "hoje"; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--fg); color: var(--accent-fg); font-size: 11px; vertical-align: 2px; }
 .carga { font-size: 11.5px; font-weight: 800; color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); padding: 1px 8px; border-radius: 999px; }
 .l-tab { display: grid; gap: 4px; }
-.l-row { display: grid; grid-template-columns: 4px minmax(0, 1fr) auto auto auto; gap: 6px 10px; align-items: center; padding: 8px 10px 8px 0; border-radius: 12px; background: var(--card); box-shadow: var(--shadow); }
+.l-row { display: grid; grid-template-columns: 4px minmax(0, 1fr) auto 168px auto auto; gap: 6px 10px; align-items: center; padding: 8px 10px 8px 0; border-radius: 12px; background: var(--card); box-shadow: var(--shadow); }
 .l-row > i { align-self: stretch; border-radius: 4px; background: var(--c); }
 .l-row.feito { opacity: .55; }
 .l-row.feito .l-tit input { text-decoration: line-through; }
@@ -1034,6 +1037,13 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
 .l-row input[type=date], .l-row input[type=time], .l-row select, .dr input, .dr select, .dr textarea, .e-step input, .e-step select { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 5px 7px; font-size: 13px; min-width: 0; }
 .l-hora { display: flex; gap: 4px; align-items: center; color: var(--muted); font-size: 12px; }
 .l-hora input[type=time] { width: 84px; }
+.l-link { display: flex; align-items: center; gap: 4px; }
+.l-link input { width: 100%; min-width: 0; border: 1px dashed var(--line); background: none; border-radius: 8px; padding: 5px 7px; font-size: 12.5px; color: var(--fg); }
+.l-link.tem input { border-style: solid; background: var(--bg); }
+.l-link.cli input::placeholder { color: var(--st-aprovado); }
+.l-link a { text-decoration: none; font-weight: 800; color: var(--fg); padding: 3px 6px; border-radius: 6px; background: var(--surface); }
+.e-step .l-link { margin-top: 4px; }
+.e-step .l-link input { width: 100%; max-width: 260px; }
 .l-row .mais { border: 0; background: none; cursor: pointer; padding: 6px; border-radius: 8px; color: var(--muted); font-size: 16px; line-height: 1; }
 .l-row .mais:hover { background: var(--surface); color: var(--fg); }
 .salvando { box-shadow: inset 0 0 0 1.5px var(--st-ajustes), var(--shadow) !important; }
@@ -1047,7 +1057,8 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
 .ed-st .atr-bt[aria-pressed="true"] { text-decoration: none; padding: 0 8px; border-radius: 999px; background: color-mix(in srgb, var(--danger) 12%, transparent); }
 @media (max-width: 720px) {
   .l-row { grid-template-columns: 4px minmax(0, 1fr) auto; }
-  .l-row .l-hora, .l-row .l-st { grid-column: 2 / 4; }
+  .l-row .l-hora, .l-row .l-st, .l-row .l-link { grid-column: 2 / 4; }
+  .l-link input, .l-link.tem input { width: 100%; }
   .l-row .l-hora { flex-wrap: wrap; }
 }
 
@@ -1271,13 +1282,19 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     const ini = lerData(r["date:Data:start"]), fim = lerData(r["date:Data:end"]) || ini;
     return {
       id: idDe(r.url || r.id), url: r.url, titulo: r.Atividade || "", etapa: r.Etapa || "", status: r.Status || "", resp: lista(r["Responsável"]),
-      bloco: r["Bloco de entrega"] || "", fe: r["Fotógrafo / Escola"] || "", deps: lista(r["Blocked by"]).map(idDe), obs: r["Observações"] || "", ini, fim,
+      bloco: r["Bloco de entrega"] || "", fe: r["Fotógrafo / Escola"] || "", deps: lista(r["Blocked by"]).map(idDe), obs: r["Observações"] || "", link: r["Link do filme"] || "", ini, fim,
     };
   }
   const feito = (t) => FEITO.test(t.status);
   const atrasada = (t) => !feito(t) && t.fim.d < hojeIso;
   const cls = (t) => (feito(t) ? " feito" : atrasada(t) ? " atrasada" : "");
   const ehMarco = (t) => /^(Marco|Enviar V2|Entrega final|Prazo final)/i.test(t.titulo);
+  // entregas (internas e para o cliente) têm lugar para o link; os de V2, online e entrega aparecem no cronograma do cliente
+  const ENTREGA = /^(Marco · V1|Enviar V2|Versão final|Conferir versão final|Cor ·|Áudio ·|Finalização ·|Conferir e entregar online|Ajustes do online|Entregar ao cliente)/i;
+  const PARA_CLIENTE = /^(Enviar V2|Conferir e entregar online|Entregar ao cliente)/i;
+  const linkHTML = (t) => (ENTREGA.test(t.titulo) || t.link
+    ? `<div class="l-link${t.link ? " tem" : ""}${PARA_CLIENTE.test(t.titulo) ? " cli" : ""}">${t.link ? `<a href="${esc(t.link)}" target="_blank" rel="noopener" title="Abrir">↗</a>` : ""}<input type="url" value="${esc(t.link)}" data-campo="link" placeholder="${PARA_CLIENTE.test(t.titulo) ? "Link para o cliente" : "Colar link"}" aria-label="Link da entrega" title="${PARA_CLIENTE.test(t.titulo) ? "Este link aparece no cronograma do cliente" : "Link da entrega, só para a equipe"}"></div>`
+    : "<span></span>");
   const doCliente = (t) => t.resp.includes("Cliente") || /^Revisão do cliente|retorno técnico/i.test(t.titulo);
 
   // ── leitura da agenda ──
@@ -1308,7 +1325,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   }
 
   // ── gravação: cada mudança vai para o Notion; depois refaz o cronograma do cliente ──
-  const PROP = { titulo: "Atividade", etapa: "Etapa", status: "Status", bloco: "Bloco de entrega", obs: "Observações" };
+  const PROP = { titulo: "Atividade", etapa: "Etapa", status: "Status", bloco: "Bloco de entrega", obs: "Observações", link: "Link do filme" };
   function props(patch) {
     const p = {};
     Object.entries(patch).forEach(([k, v]) => {
@@ -1364,7 +1381,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     clearTimeout(tCrono);
     tCrono = setTimeout(async () => {
       if (pendentes) return agendaCrono();
-      const rows = T.map((t) => ({ Atividade: t.titulo, Etapa: t.etapa, "date:Data:start": paraNotion(t.ini), "date:Data:end": paraNotion(t.fim), "Bloco de entrega": t.bloco, "Fotógrafo / Escola": t.fe }));
+      const rows = T.map((t) => ({ Atividade: t.titulo, Etapa: t.etapa, "date:Data:start": paraNotion(t.ini), "date:Data:end": paraNotion(t.fim), "Bloco de entrega": t.bloco, "Fotógrafo / Escola": t.fe, "Link do filme": t.link }));
       const crono = F.montarCronograma(rows);
       if (!crono) return;
       const json = JSON.stringify(crono), sem = json.replace(/"atualizado":"[^"]*",/, "");
@@ -1436,6 +1453,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       <div class="l-tab">${L.filter((t) => t.ini.d === d).map((t) => `<div class="l-row${cls(t)}" data-id="${t.id}" style="--c:${cor(t)}"><i></i>
         <div class="l-tit"><input value="${esc(t.titulo)}" data-campo="titulo" aria-label="Atividade"><small>${atrasada(t) ? `<b class="atr">atrasada</b> ` : ""}${esc(sub(t))}</small></div>
         <div class="l-hora"><input type="date" value="${t.ini.d}" data-campo="dia" aria-label="Dia">${t.ini.h ? `<input type="time" value="${t.ini.h}" data-campo="h0" aria-label="Início"> – <input type="time" value="${t.fim.h || ""}" data-campo="h1" aria-label="Fim">${t.fim.d !== t.ini.d ? `<span>até ${dm(t.fim.d)}</span>` : ""}` : t.fim.d !== t.ini.d ? `<span>até ${dm(t.fim.d)}</span>` : "<span>dia todo</span>"}</div>
+        ${linkHTML(t)}
         <select class="l-st" data-campo="status" aria-label="Status">${opt(OPC.status, t.status)}</select>
         <button type="button" class="mais" data-abre="${t.id}" aria-label="Editar tudo" title="Editar tudo">⋯</button></div>`).join("")}</div>`;
     }).join("");
@@ -1542,7 +1560,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       return `<section class="e-card"><h3>${esc(b)}<small>${feitas}/${ts.length} concluídas · ${dm(ts[0].ini.d)} a ${dm(ts.map((t) => t.fim.d).sort().at(-1))}</small></h3>
         ${ts.map((t) => `<div class="e-step${cls(t)}${doCliente(t) ? " cliente" : ""}" data-id="${t.id}" style="--c:${cor(t)}">
           <input type="checkbox" data-campo="feito"${feito(t) ? " checked" : ""} aria-label="Concluída">
-          <div class="t"><b data-abre="${t.id}">${esc(t.titulo)}</b><span><i></i>${esc(t.resp.join(", ") || "—")} · ${WD[D(t.ini.d).getDay()]} ${dm(t.ini.d)}${t.ini.h ? " " + t.ini.h : ""}${t.fim.d !== t.ini.d ? " → " + dm(t.fim.d) : ""}</span></div>
+          <div class="t"><b data-abre="${t.id}">${esc(t.titulo)}</b><span><i></i>${esc(t.resp.join(", ") || "—")} · ${WD[D(t.ini.d).getDay()]} ${dm(t.ini.d)}${t.ini.h ? " " + t.ini.h : ""}${t.fim.d !== t.ini.d ? " → " + dm(t.fim.d) : ""}</span>${ENTREGA.test(t.titulo) || t.link ? linkHTML(t) : ""}</div>
           <div class="q"><button type="button" data-passo="-1" aria-label="Um dia útil antes" title="Um dia útil antes">‹</button><input type="date" value="${t.ini.d}" data-campo="dia" aria-label="Dia"><button type="button" data-passo="1" aria-label="Um dia útil depois" title="Um dia útil depois">›</button></div>
         </div>`).join("")}</section>`;
     }).join("")}</div>`;
@@ -1567,6 +1585,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
         <div><label>Responsável</label><div class="resp">${OPC.resp.map((p) => `<label style="--c:${CORES[p] || "var(--st-edicao)"}"><input type="checkbox" name="resp" value="${esc(p)}"${t.resp.includes(p) ? " checked" : ""}>${esc(p === "Cliente" ? "Equipe Bradesco" : p)}</label>`).join("")}</div></div>
         <div class="linha"><label>Etapa<select name="etapa">${opt(OPC.etapa, t.etapa, "—")}</select></label><label>Status<select name="status">${opt(OPC.status, t.status)}</select></label></div>
         <label>Entrega<select name="bloco">${opt(OPC.bloco, t.bloco, "—")}</select></label>
+        <label>Link${PARA_CLIENTE.test(t.titulo) ? " (aparece no cronograma do cliente)" : ""}<input type="url" name="link" value="${esc(t.link || "")}" placeholder="https://…"></label>
         <label>Observações<textarea name="obs">${esc(t.obs)}</textarea></label>
         ${nova ? "" : `<p class="deps">${dep.length ? `Depende de: ${dep.map((x) => esc(x.titulo)).join("; ")}.` : "Não depende de outra tarefa."}${seg.length ? ` ${seg.length} ${seg.length === 1 ? "tarefa depende" : "tarefas dependem"} desta${st.empurra ? " e andam junto se a data mudar" : ""}.` : ""}</p>`}
       </form>
@@ -1583,7 +1602,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       // o Notion recusa um fim antes do início
       f.h1.setCustomValidity(ini.h && fim.d === ini.d && fim.h < ini.h ? "O fim precisa ser depois do início." : "");
       if (!f.reportValidity()) return;
-      const patch = { titulo: f.titulo.value.trim(), etapa: f.etapa.value, status: f.status.value, bloco: f.bloco.value, obs: f.obs.value.trim(), resp: [...f.querySelectorAll("[name=resp]:checked")].map((i) => i.value) };
+      const patch = { titulo: f.titulo.value.trim(), etapa: f.etapa.value, status: f.status.value, bloco: f.bloco.value, obs: f.obs.value.trim(), link: f.link.value.trim(), resp: [...f.querySelectorAll("[name=resp]:checked")].map((i) => i.value) };
       fecha();
       if (nova) return cria({ ...patch, ini, fim });
       const muda = Object.fromEntries(Object.entries(patch).filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(t[k] ?? (k === "resp" ? [] : ""))));
@@ -1606,7 +1625,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   async function cria(x) {
     pendentes++; status();
     try {
-      const props0 = { Atividade: x.titulo, ...(x.etapa ? { Etapa: x.etapa } : {}), Status: x.status || "A fazer", ...(x.bloco ? { "Bloco de entrega": x.bloco } : {}), ...(x.obs ? { "Observações": x.obs } : {}), "Responsável": JSON.stringify(x.resp),
+      const props0 = { Atividade: x.titulo, ...(x.etapa ? { Etapa: x.etapa } : {}), Status: x.status || "A fazer", ...(x.bloco ? { "Bloco de entrega": x.bloco } : {}), ...(x.obs ? { "Observações": x.obs } : {}), "Responsável": JSON.stringify(x.resp), ...(x.link ? { "Link do filme": x.link } : {}),
         "date:Data:start": paraNotion(x.ini), "date:Data:is_datetime": x.ini.h ? 1 : 0, ...(x.fim.d !== x.ini.d || x.fim.h !== x.ini.h ? { "date:Data:end": paraNotion(x.fim) } : {}) };
       const r = await mcp.callTool("Notion", "notion-create-pages", { parent: { data_source_id: AGENDA_DS }, pages: [{ properties: props0 }] });
       let p = r?.payload; if (typeof p === "string") { try { p = JSON.parse(p); } catch {} }
@@ -1650,6 +1669,11 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       const t = T.find((x) => x.id === el.closest("[data-id]")?.dataset.id); if (!t) return;
       if (campo === "titulo") { const v = el.value.trim(); if (v && v !== t.titulo) grava([{ t, patch: { titulo: v } }], "Atividade renomeada"); }
       if (campo === "status") grava([{ t, patch: { status: el.value } }], `Status: ${el.value}`);
+      if (campo === "link") {
+        const v = el.value.trim();
+        if (v && !/^https?:\/\//i.test(v)) { el.value = t.link || ""; aviso("O link precisa começar com https://"); return; }
+        if (v !== (t.link || "")) grava([{ t, patch: { link: v } }], v ? (PARA_CLIENTE.test(t.titulo) ? "Link salvo · já vai para o cronograma do cliente" : "Link salvo") : "Link apagado");
+      }
       if (campo === "feito") grava([{ t, patch: { status: el.checked ? "Concluído" : "A fazer" } }], el.checked ? "Marcada como concluída" : "Voltou para A fazer");
       if (campo === "dia" && el.value && el.value !== t.ini.d) moveData(t, { d: el.value, h: t.ini.h });
       if (campo === "h0" && el.value) {

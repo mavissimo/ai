@@ -110,6 +110,8 @@ function boot() {
   const isFrameio = (u) => /(^|\.)(frame\.io|f\.io)\//i.test(u.replace(/^https?:\/\//, ""));
   function watchBtn(f, dark) {
     const i = live[f.id], vs = links[f.id] || [];
+    const v = (i ?? 0) >= 5 || (!linkBloco(f, "v2") && linkBloco(f, "on")) ? "on" : "v2", lb = linkBloco(f, v);
+    if (lb && !(i && vs.length)) return `<a class="watch${dark ? " dark" : ""}" href="${esc(lb)}" target="_blank" rel="noopener" data-abre="${f.id}|${v}">▶ Assistir ${v === "on" ? "ao online" : "à V2"} <span aria-hidden="true">↗</span>${isFrameio(lb) ? "<small>abre no Frame.io</small>" : ""}</a>`;
     if (!i || !vs.length) return ""; // antes da V2 o cliente não vê nada
     const fio = vs.find((v) => isFrameio(v.url));
     const label = `▶ Assistir ${VERSAO[i]}`;
@@ -125,12 +127,16 @@ function boot() {
   const versaoAtual = (f) => ((live[f.id] ?? 0) >= 5 ? "on" : "v2");
   const NOME_V = { v2: "a V2", on: "o online" };
   const dmIso = (t) => dm(iso(new Date(t)));
-  const chegou = (f, v) => (live[f.id] ?? -1) >= (v === "v2" ? 1 : 5) || f[v] <= TODAY; // pelo Controle ou pela data
-  const disponivel = (f, v) => { const i = live[f.id] ?? -1; return !!(links[f.id] || []).length && (v === "v2" ? i >= 1 && i <= 4 : i >= 5); };
+  const chegou = (f, v) => (live[f.id] ?? -1) >= (v === "v2" ? 1 : 5) || f[v] <= TODAY || !!f.links?.[v]; // pelo Controle, pela data ou pelo link na agenda
+  // link colado pela equipe na agenda (Enviar V2, online, entrega): vale sozinho, sem esperar o andamento do Controle
+  const linkBloco = (f, v) => f.links?.[v] || "";
+  const disponivel = (f, v) => { if (linkBloco(f, v)) return true; const i = live[f.id] ?? -1; return !!(links[f.id] || []).length && (v === "v2" ? i >= 1 && i <= 4 : i >= 5); };
   const txtAberto = (f, v) => { const r = REG.get(f.id, v); return r.aberto ? `Aberto em ${dmIso(r.aberto)}` : disponivel(f, v) ? "Ainda não aberto" : ""; };
   function recebHTML(f, v, comChip = true, noDia = false) { // noDia: já está no dia da chegada, sem repetir a data
     let acao;
-    if (disponivel(f, v)) {
+    const lb = linkBloco(f, v);
+    if (lb) acao = `<a class="watch sm" href="${esc(lb)}" target="_blank" rel="noopener" data-abre="${f.id}|${v}">${isFrameio(lb) ? "Abrir no Frame.io" : `Abrir ${NOME_V[v]}`} <span aria-hidden="true">↗</span></a>`;
+    else if (disponivel(f, v)) {
       const vs = links[f.id], fora = vs.find((x) => isFrameio(x.url)) || vs.find((x) => !tocaNoPlayer(x.url)); // fora do player: abre o link
       acao = fora
         ? `<a class="watch sm" href="${esc(fora.url)}" target="_blank" rel="noopener" data-abre="${f.id}|${v}">${isFrameio(fora.url) ? "Abrir no Frame.io" : `Abrir ${NOME_V[v]}`} <span aria-hidden="true">↗</span></a>`
@@ -303,6 +309,7 @@ function boot() {
       const corpo = receb ? `<div class="${rcs}">${g.map((x) => recebHTML(x.f, e.k, true, true)).join("")}</div>`
         : e.k === "rev" ? `<div class="${rcs}">${g.map((x) => checkHTML(x.f, "v2")).join("")}</div>`
         : e.k === "ret" ? `<div class="${rcs}">${g.map((x) => checkHTML(x.f, "on")).join("")}</div>`
+        : e.k === "ent" && g.some((x) => linkBloco(x.f, "ent")) ? `<div class="${rcs}">${g.map((x) => `<div class="rc">${filmChip(x.f)}<div class="rc-a">${linkBloco(x.f, "ent") ? `<a class="watch sm" href="${esc(linkBloco(x.f, "ent"))}" target="_blank" rel="noopener">Abrir a versão final <span aria-hidden="true">↗</span></a>` : ""}</div></div>`).join("")}</div>`
         : `<div class="films">${g.map((x) => filmChip(x.f)).join("")}</div>`;
       return `<li class="item${s.you ? " you" : ""}${receb ? " receb" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? TAG_EQUIPE : ""}${receb ? '<span class="tag-rc">Recebimento</span>' : ""}${g.some((x) => estadoEv(x) === "late") ? '<span class="st-tag st-late">Atrasado</span>' : ""}</span>${corpo}</div></li>`;
     }).join("");
