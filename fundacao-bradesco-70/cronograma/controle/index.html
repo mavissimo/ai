@@ -1297,19 +1297,20 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   const feito = (t) => FEITO.test(t.status);
   const atrasada = (t) => !feito(t) && t.fim.d < hojeIso;
   const cls = (t) => (feito(t) ? " feito" : atrasada(t) ? " atrasada" : "");
-  const ehMarco = (t) => /^(Marco|Enviar V2|Entrega final|Prazo final)/i.test(t.titulo);
+  const ehMarco = (t) => /^(Enviar V2|Entrega final|Prazo final)/i.test(t.titulo);
+  const ehEdicao = (t) => /^(Edição|Editar V1)/i.test(t.titulo); // o fim da edição é a entrega da V1: o link dela fica aqui
   // os links de V2, online e entrega aparecem no cronograma do cliente; os outros ficam só com a equipe
   const PARA_CLIENTE = /^(Enviar V2|Conferir e entregar online|Entregar ao cliente)/i;
   // botão de link em toda tarefa: abre uma pop pequena para colar, abrir ou apagar
   const ICONE_LINK = `<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>`;
-  const linkBt = (t) => `<button type="button" class="lk-bt${t.link ? " tem" : ""}${PARA_CLIENTE.test(t.titulo) ? " cli" : ""}" data-link="${t.id}" aria-label="${t.link ? "Link" : "Adicionar link"}" title="${t.link ? esc(t.link) : PARA_CLIENTE.test(t.titulo) ? "Adicionar link (vai para o cliente)" : "Adicionar link"}">${ICONE_LINK}</button>`;
+  const linkBt = (t) => `<button type="button" class="lk-bt${t.link ? " tem" : ""}${PARA_CLIENTE.test(t.titulo) ? " cli" : ""}" data-link="${t.id}" aria-label="${t.link ? "Link" : "Adicionar link"}" title="${t.link ? esc(t.link) : PARA_CLIENTE.test(t.titulo) ? "Adicionar link (vai para o cliente)" : ehEdicao(t) ? "Link da V1" : "Adicionar link"}">${ICONE_LINK}</button>`;
   function fechaPop() { document.querySelectorAll(".lk-pop").forEach((n) => n.remove()); }
   function popLink(t, bt) {
     fechaPop();
     const cli = PARA_CLIENTE.test(t.titulo);
     const pop = document.createElement("div"); pop.className = "lk-pop"; pop.setAttribute("role", "dialog"); pop.setAttribute("aria-label", "Link da tarefa");
     pop.innerHTML = `<form><input type="url" name="u" value="${esc(t.link)}" placeholder="Colar o link · https://…" aria-label="Link">
-      <small>${cli ? "Aparece no cronograma do cliente." : "Só para a equipe."}</small>
+      <small>${cli ? "Aparece no cronograma do cliente." : ehEdicao(t) ? "Link da V1, para a revisão interna. Só para a equipe." : "Só para a equipe."}</small>
       <div>${t.link ? `<a href="${esc(t.link)}" target="_blank" rel="noopener">Abrir ↗</a><button type="button" data-apaga>Apagar</button>` : ""}<button class="ok">Salvar</button></div></form>`;
     document.body.append(pop);
     const r = bt.getBoundingClientRect(), w = pop.offsetWidth;
