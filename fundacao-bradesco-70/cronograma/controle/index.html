@@ -253,6 +253,8 @@ header .dobra p { margin-top: 6px; }
 .acts .reg::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--st-v2); vertical-align: 1px; }
 .acts .reg.ok { color: var(--st-aprovado); }
 .acts .reg.ok::before { background: var(--st-aprovado); }
+.proj-link { display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--fg); font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap; }
+.proj-link:hover { border-color: var(--accent); color: var(--accent); }
 .sair { border: 0; background: none; color: var(--muted); font-size: 13px; text-decoration: underline; cursor: pointer; padding: 4px; }
 </style>
 
@@ -260,6 +262,7 @@ header .dobra p { margin-top: 6px; }
   <header>
     <p class="kicker"><i style="--c:#613CAD"></i><i style="--c:#AB3438"></i><i style="--c:#F5D775"></i>Fundação Bradesco 70 anos</p>
     <div class="h-row"><h1>Controle dos <b>Filmes</b></h1>
+      <a class="proj-link" href="https://www.dropbox.com/scl/fo/8576gkulk27wjyl494xag/ANMzoCDAiPl1xqmbLUygMbQ?rlkey=saa2e52w4avtmebyw45mctjk9&amp;e=1&amp;dl=0" target="_blank" rel="noopener" title="Pasta do Dropbox com os XMLs do projeto">XMLs do projeto <span aria-hidden="true">↗</span></a>
       <div class="nov-wrap">
         <button type="button" class="bell" id="bell" aria-label="Novidades" aria-expanded="false" aria-controls="nov-pop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span class="n" hidden>0</span></button>
         <div class="nov-pop" id="nov-pop" hidden><div class="nov-head"><span>Novidades</span><button type="button" id="nov-ok">Marcar tudo como visto</button></div><ul class="nov-list"></ul></div>
