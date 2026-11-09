@@ -31,13 +31,14 @@ body { margin: 0; background: var(--bg); color: var(--fg); font: 400 15px/1.5 va
 .demo.col { display: grid; gap: 12px; }
 @media (max-width: 760px) { .sec { grid-template-columns: 1fr; } }
 </style>
-<link rel="stylesheet" href="ui.css?v=1">
+<link rel="stylesheet" href="ui.css?v=2">
+<script src="ui.js?v=1"></script>
 </head>
 <body>
 <main class="pg">
   <header>
     <div><h1>Elementos</h1><p>As peças do Controle dos Filmes, num lugar só. Tudo vem de <b>ui.css</b>: mudou aqui, muda no Controle inteiro.</p></div>
-    <div class="u-seg sm" role="group" aria-label="Tema"><button type="button" data-tema="" aria-pressed="true">Automático</button><button type="button" data-tema="light">Claro</button><button type="button" data-tema="dark">Escuro</button></div>
+    <div class="u-seg sm u-tema" role="group" aria-label="Tema"><button type="button" data-tema="">Automático</button><button type="button" data-tema="light">Claro</button><button type="button" data-tema="dark">Escuro</button></div>
   </header>
 
   <section class="sec"><div><h2>Botões</h2><p>Principal para a ação do momento; os outros acompanham. Tamanho normal e pequeno.</p></div>
@@ -57,6 +58,13 @@ body { margin: 0; background: var(--bg); color: var(--fg); font: 400 15px/1.5 va
         <label class="u-label">Busca<span class="u-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input class="u-field" type="search" placeholder="Buscar tarefa, entrega ou pessoa"></span></label>
       </div>
       <label class="u-label">Observações<textarea class="u-field">Em paralelo com a cor, a partir do offline aprovado.</textarea></label>
+    </div></section>
+
+  <section class="sec"><div><h2>Lista suspensa</h2><p>Todo seletor abre esta lista: cor do status, avatar da pessoa, marca no escolhido. Setas, Enter e Esc funcionam; com muitas opções aparece um filtro. No celular fica a lista do aparelho.</p></div>
+    <div class="u-card demo">
+      <select class="u-field" data-menu="status" aria-label="Status"><option>A fazer</option><option selected>Em andamento</option><option>Em revisão</option><option>Ajustes</option><option>Bloqueado</option><option>Concluído</option><option>Entregue</option></select>
+      <select class="u-field" id="sel-pessoa" aria-label="Responsável"></select>
+      <select class="u-field" aria-label="Entrega"><option value="">Todas as entregas</option><option>Conceição do Araguaia / Gustavo Gomes</option><option>Jaboatão dos Guararapes / Ntí Uirá</option><option>Gravataí / Renato Parada</option><option>Fazenda Bodoquena / Pedro Kok</option><option>Fazenda Canuanã / Leo Drumond</option><option>Osasco / Ricardo Teles</option><option>Pílulas · Patricia Gouvêa</option><option>Pílulas · Maíra Erlich e Edgar Azevedo</option><option>Pílulas · Lalo de Almeida e Vilma Slomp</option><option>Documentário</option><option>Trailer</option><option>Geral</option></select>
     </div></section>
 
   <section class="sec"><div><h2>Início → fim</h2><p>Data e hora de começo e de fim num campo só. Sem hora quando a tarefa é de dia todo.</p></div>
@@ -88,19 +96,33 @@ body { margin: 0; background: var(--bg); color: var(--fg); font: 400 15px/1.5 va
       <span class="carga">Mateus: 3 tarefas</span><span><span class="u-kbd">⌘</span> + clique</span><span class="u-dot" style="--c:var(--st-aprovado)"></span>
     </div></section>
 
-  <section class="sec"><div><h2>Tarefas</h2><p>Linha da lista, cartão do calendário e barra que atravessa os dias.</p></div>
+  <section class="sec"><div><h2>Tarefas</h2><p>Linha da lista, calendário e linha do tempo. A tarefa de vários dias é uma barra só; as pontas aparecem ao passar o mouse e puxam o início ou o fim.</p></div>
     <div class="u-card demo col" style="background:var(--bg)">
       <div class="l-row" style="--c:var(--st-online)"><div class="l-tit"><input value="Cor · Documentário"><small><span class="u-avs"><span class="u-av" style="--c:var(--st-online)">RF</span></span><span>Cor · Documentário</span></small></div>
         <div class="l-hora"><div class="u-dt"><input type="date" value="2026-12-03"><input type="time" value="09:00"><span class="ar">→</span><input type="date" value="2026-12-07"><input type="time" value="18:00"></div></div>
         <span class="lk"><button class="lk-bt tem" aria-label="Link"><svg viewBox="0 0 24 24" width="15" height="15"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg></button><a class="lk-abre" href="#">↗</a></span>
         <select class="u-st" data-st="em-andamento"><option>Em andamento</option></select><button class="mais">⋯</button></div>
-      <div class="wk" style="--lanes:1;grid-template-rows:26px 24px 40px">
-        <div class="cel" style="grid-column:1"></div><div class="cel" style="grid-column:2"></div><div class="cel hoje" style="grid-column:3"></div><div class="cel" style="grid-column:4"></div><div class="cel" style="grid-column:5"></div><div class="cel fds" style="grid-column:6"></div><div class="cel fds" style="grid-column:7"></div>
-        <div class="n" style="grid-column:1"><b>30</b></div><div class="n" style="grid-column:2"><b>1</b><small>dez</small></div><div class="n hoje" style="grid-column:3"><b>2</b></div><div class="n" style="grid-column:4"><b>3</b></div><div class="n" style="grid-column:5"><b>4</b></div><div class="n" style="grid-column:6"><b>5</b></div><div class="n" style="grid-column:7"><b>6</b></div>
-        <button class="chip bar" style="--c:var(--st-online);grid-column:4 / 6;grid-row:2"><span class="h">09:00</span>Cor · Documentário<span class="dur">3d</span></button>
-        <div class="dch" style="grid-column:2;grid-row:3"><button class="chip" style="--c:var(--st-v2)"><span class="h">19:00</span>Online · Osasco</button></div>
-        <div class="dch" style="grid-column:3;grid-row:3"><button class="chip marco" style="--c:var(--st-v2)"><span class="h">11:00</span>Entregar · Bodoquena</button></div>
+      <div class="cal2">
+        <div class="cal2-dow"><div>seg</div><div>ter</div><div>qua</div><div>qui</div><div>sex</div><div>sáb</div><div>dom</div></div>
+        <div class="cal2-mes"><b>Dezembro</b><span>2026</span></div>
+        <div class="wk" style="--lanes:1">
+          <div class="cel passado" style="grid-column:1"></div><div class="cel" style="grid-column:2"></div><div class="cel hoje" style="grid-column:3"></div><div class="cel" style="grid-column:4"></div><div class="cel" style="grid-column:5"></div><div class="cel fds" style="grid-column:6"></div><div class="cel fds" style="grid-column:7"></div>
+          <div class="n ant" style="grid-column:1"><b>30</b></div><div class="n" style="grid-column:2"><b>1</b></div><div class="n hoje" style="grid-column:3"><b>2</b></div><div class="n" style="grid-column:4"><b>3</b></div><div class="n" style="grid-column:5"><b>4</b></div><div class="n fds" style="grid-column:6"><b>5</b></div><div class="n fds" style="grid-column:7"><b>6</b></div>
+          <button class="chip bar cont-r" style="--c:var(--st-online);grid-column:4 / 8;grid-row:2"><span class="h">09:00</span><span class="t">Cor · Documentário</span><span class="rz l"></span></button>
+          <div class="dch" style="grid-column:2;grid-row:3"><button class="chip" style="--c:var(--st-ajustes)"><span class="h">19:00</span><span class="t">Online · Osasco</span><span class="rz l"></span><span class="rz r"></span></button></div>
+          <div class="dch" style="grid-column:3;grid-row:3"><button class="chip marco" style="--c:var(--st-v2)"><span class="h">11:00</span><span class="t">Entregar · Bodoquena</span></button><button class="chip atrasada" style="--c:var(--st-offline)"><span class="h">14:00</span><span class="t">Ajustes · Canuanã</span></button></div>
+        </div>
       </div>
+      <div class="tl-topo"><div class="u-zoom" role="group" aria-label="Zoom"><button type="button" data-z="-1">−</button><input type="range" id="z" min="0" max="8" value="4" aria-label="Zoom"><button type="button" data-z="1">+</button></div><span class="ed-sub">Zoom da linha do tempo: a partir do quarto mais perto, as barras seguem a hora.</span></div>
+      <div class="tl-wrap"><div class="tl" id="tl" data-z="l" style="--w:46px;--hz:0;--tl-col:200px">
+        <div class="tl-h0"></div><div class="tl-cab"><div class="tl-meses"><div style="width:calc(5 * var(--w))"><span>Dezembro<small>2026</small></span></div></div><div class="tl-dias"><div class="seg1"><i>seg</i><b>7</b><span class="hs"><s>11h</s><s>14h</s><s>17h</s></span></div><div><i>ter</i><b>8</b><span class="hs"><s>11h</s><s>14h</s><s>17h</s></span></div><div class="hoje"><i>qua</i><b>9</b><span class="hs"><s>11h</s><s>14h</s><s>17h</s></span></div><div><i>qui</i><b>10</b><span class="hs"><s>11h</s><s>14h</s><s>17h</s></span></div><div><i>sex</i><b>11</b><span class="hs"><s>11h</s><s>14h</s><s>17h</s></span></div></div></div>
+        <div class="tl-g"><span class="u-av" style="--c:var(--st-ajustes)">MT</span><span>Mateus</span></div><div class="tl-faixa" style="height:60px">
+          <div class="tl-bar" style="--c:var(--st-ajustes);--i0:0;--i1:0;--f0:.083;--f1:.917;top:4px"><span class="rs l"></span><span>Finalização</span><span class="h">09:00</span><span class="rs r"></span></div>
+          <div class="tl-bar" style="--c:var(--st-ajustes);--i0:2;--i1:3;--f0:.917;--f1:.25;top:4px"><span class="rs l"></span><span>Online → retorno</span><span class="h">19:00</span><span class="rs r"></span></div>
+          <div class="tl-bar" style="--c:var(--st-v2);--i0:4;--i1:4;--f0:.25;--f1:.333;top:30px"><span class="rs l"></span><span>Entrega</span><span class="h">11:00</span><span class="rs r"></span></div>
+        </div>
+        <div class="tl-hoje" style="--hi:2"></div>
+      </div></div>
     </div></section>
 
   <section class="sec"><div><h2>Avisos</h2><p>Confirmação curta, com desfazer quando der.</p></div>
@@ -117,10 +139,13 @@ document.getElementById("sts").innerHTML = ST.map(([n, k]) => `<select class="u-
 document.getElementById("sts").addEventListener("change", (e) => { const o = ST.find(([n]) => n === e.target.value); if (o) e.target.dataset.st = o[1]; });
 document.addEventListener("click", (e) => {
   const p = e.target.closest(".u-person"); if (p) p.setAttribute("aria-pressed", p.getAttribute("aria-pressed") !== "true");
-  const b = e.target.closest("[data-grupo] button, [data-tema]"); if (!b) return;
-  b.parentElement.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
-  if (b.dataset.tema !== undefined) { if (b.dataset.tema) document.documentElement.dataset.theme = b.dataset.tema; else delete document.documentElement.dataset.theme; }
+  const b = e.target.closest("[data-grupo] button"); if (b) b.parentElement.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+  const z = e.target.closest("[data-z]"); if (z && z.tagName === "BUTTON") { const r = document.getElementById("z"); r.value = +r.value + +z.dataset.z; zoom(); }
 });
+document.getElementById("sel-pessoa").innerHTML = Object.keys(CORES).map((p, i) => `<option value="${p}" data-ini="${INI[p]}" data-cor="${CORES[p]}"${i === 1 ? " selected" : ""}>${p === "Cliente" ? "Equipe Bradesco" : p}</option>`).join("");
+const ZOOM = [10, 16, 24, 34, 46, 64, 90, 130, 180];
+function zoom() { const w = ZOOM[+document.getElementById("z").value], tl = document.getElementById("tl"); tl.style.setProperty("--w", w + "px"); tl.style.setProperty("--hz", w >= 90 ? 1 : 0); tl.dataset.z = w >= 90 ? "h" : w >= 34 ? "l" : w >= 16 ? "m" : "s"; }
+document.getElementById("z").addEventListener("input", zoom);
 </script>
 </body>
 </html>

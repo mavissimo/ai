@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>Controle dos Filmes · FB 70</title>
+<script src="ui.js?v=1"></script>
 <script src="ponte.js?v=4"></script>
 </head>
 <body>
@@ -183,7 +184,7 @@ input[type="text"], input[type="url"], input[type="search"], select { background
 .film .name strong { font-weight: 700; font-size: 15.5px; }
 .film .link input, .film .note input { background: var(--surface); border-color: transparent; }
 .film .link input:focus, .film .note input:focus { background: var(--card); border-color: var(--accent); }
-.film .st select { font-weight: 700; color: var(--fg); border-color: color-mix(in srgb, var(--c) 45%, var(--line)); background: color-mix(in srgb, var(--c) 14%, var(--card)); }
+.film .st select { font-weight: 700; color: var(--fg); border-color: color-mix(in srgb, var(--c) 45%, var(--line)); background-color: color-mix(in srgb, var(--c) 14%, var(--card)); }
 .act { border: 0; background: var(--surface); color: var(--fg); }
 .act:hover { color: var(--accent); background: var(--accent-soft); }
 .act.hot { background: var(--accent); color: var(--accent-fg); }
@@ -236,8 +237,8 @@ input[type="text"], input[type="url"], input[type="search"], select { background
 .aviso button { border: 0; border-radius: 999px; padding: 7px 14px; background: var(--yellow); color: #231C33; font-weight: 800; font-size: 13px; cursor: pointer; }
 
 /* sem palavras órfãs */
-h1, h2, h3 { text-wrap: balance; }
-p, span, strong, label { text-wrap: pretty; }
+h1, h2, h3 { text-wrap-style: balance; }
+p, span, strong, label { text-wrap-style: pretty; /* só o estilo: "text-wrap" inteiro ligava a quebra de linha dentro das barras */ }
 .dobra > summary { list-style: none; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; color: var(--muted); }
 .dobra > summary::-webkit-details-marker { display: none; }
 .dobra > summary::after { content: ""; width: 6px; height: 6px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: translateY(-2px) rotate(45deg); transition: transform .15s; }
@@ -263,6 +264,7 @@ header .dobra p { margin-top: 6px; }
     <p class="kicker"><i style="--c:#613CAD"></i><i style="--c:#AB3438"></i><i style="--c:#F5D775"></i>Fundação Bradesco 70 anos</p>
     <div class="h-row"><h1>Controle dos <b>Filmes</b></h1>
       <a class="proj-link" href="https://www.dropbox.com/scl/fo/8576gkulk27wjyl494xag/ANMzoCDAiPl1xqmbLUygMbQ?rlkey=saa2e52w4avtmebyw45mctjk9&amp;e=1&amp;dl=0" target="_blank" rel="noopener" title="Pasta do Dropbox com os XMLs do projeto">XMLs do projeto <span aria-hidden="true">↗</span></a>
+      <div class="u-seg sm u-tema" role="group" aria-label="Tema"><button type="button" data-tema="">Automático</button><button type="button" data-tema="light">Claro</button><button type="button" data-tema="dark">Escuro</button></div>
       <div class="nov-wrap">
         <button type="button" class="bell" id="bell" aria-label="Novidades" aria-expanded="false" aria-controls="nov-pop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span class="n" hidden>0</span></button>
         <div class="nov-pop" id="nov-pop" hidden><div class="nov-head"><span>Novidades</span><button type="button" id="nov-ok">Marcar tudo como visto</button></div><ul class="nov-list"></ul></div>
@@ -992,7 +994,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
 });
 </script>
 
-<link rel="stylesheet" href="ui.css?v=1">
+<link rel="stylesheet" href="ui.css?v=2">
 
 <section id="ed" hidden aria-label="Cronograma da equipe">
   <div class="ed-bar">
@@ -1024,7 +1026,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   <b id="g-n"></b>
   <button type="button" class="u-btn sm" data-g-passo="-1" title="Todas um dia útil antes">‹ 1 dia</button><button type="button" class="u-btn sm" data-g-passo="1" title="Todas um dia útil depois">1 dia ›</button>
   <label>Começar em <input type="date" class="u-field sm" id="g-dia" aria-label="Mover o grupo para começar neste dia"></label>
-  <select class="u-field sm" id="g-status" aria-label="Status das marcadas"><option value="">Status…</option></select>
+  <select class="u-field sm" id="g-status" data-menu="status" aria-label="Status das marcadas"><option value="">Status…</option></select>
   <select class="u-field sm" id="g-resp" aria-label="Responsável das marcadas"><option value="">Responsável…</option></select>
   <button type="button" class="u-btn sm primary" id="g-feito">Concluir</button>
   <button type="button" class="u-btn sm ghost icon x" id="g-limpa" aria-label="Limpar seleção" title="Limpar seleção (Esc)">×</button>
@@ -1231,6 +1233,29 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     grava(mud, n > 1 ? `${n} tarefas movidas (${delta > 0 ? "+" : ""}${delta} ${Math.abs(delta) === 1 ? "dia útil" : "dias úteis"})` : `“${t.titulo}” agora em ${dm(novoIni.d)}`);
   }
 
+  // as que dependem desta (Blocked by), em cadeia, sem as concluídas
+  function seguintes(id0) {
+    const visto = new Set([id0]), fila = [id0], out = [];
+    while (fila.length) { const id = fila.shift(); T.filter((x) => x.deps.includes(id) && !visto.has(x.id) && !feito(x)).forEach((x) => { visto.add(x.id); fila.push(x.id); out.push(x); }); }
+    return out;
+  }
+  // muda só o fim: a tarefa fica mais longa ou mais curta; se crescer, as seguintes andam junto (com a opção ligada)
+  function mudaFim(t, d, h) {
+    h = h || t.fim.h || t.ini.h;
+    if (d < t.ini.d) { aviso("O fim precisa ser depois do início."); render(); return; }
+    if (d === t.ini.d && t.ini.h && h && h <= t.ini.h) h = hhmm(Math.min(23 * 60 + 59, minutos(t.ini.h) + 60));
+    const mud = [{ t, patch: { ini: t.ini, fim: { d, h } } }], delta = difUteis(t.fim.d, d);
+    if (st.empurra && delta > 0) seguintes(t.id).forEach((x) => mud.push({ t: x, patch: { ini: { d: addUteis(x.ini.d, delta), h: x.ini.h }, fim: { d: addUteis(x.fim.d, delta), h: x.fim.h } } }));
+    grava(mud, `“${t.titulo}” agora até ${dm(d)}${mud.length > 1 ? ` (+${mud.length - 1} que dependem dela)` : ""}`);
+  }
+  // muda só o início: o fim fica onde está
+  function mudaIni(t, d) {
+    if (d > t.fim.d) { aviso("O início precisa ser antes do fim."); render(); return; }
+    let h = t.ini.h;
+    if (d === t.fim.d && h && t.fim.h && t.fim.h <= h) h = hhmm(Math.max(0, minutos(t.fim.h) - 60));
+    grava([{ t, patch: { ini: { d, h }, fim: t.fim } }], `“${t.titulo}” agora começa em ${dm(d)}`);
+  }
+
   let tCrono = null;
   function agendaCrono() {
     clearTimeout(tCrono);
@@ -1269,7 +1294,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     sel.innerHTML = `<option value="">Todas as entregas</option>` + OPC.bloco.map((b) => `<option>${esc(b)}</option>`).join("");
     sel.value = v;
     $("#g-status").innerHTML = `<option value="">Status…</option>` + OPC.status.map((s) => `<option>${esc(s)}</option>`).join("");
-    $("#g-resp").innerHTML = `<option value="">Responsável…</option>` + OPC.resp.map((p) => `<option value="${esc(p)}">${esc(p === "Cliente" ? "Equipe Bradesco" : p)}</option>`).join("");
+    $("#g-resp").innerHTML = `<option value="">Responsável…</option>` + OPC.resp.map((p) => `<option value="${esc(p)}" data-ini="${INI[p] || esc(String(p).slice(0, 2).toUpperCase())}" data-cor="${CORES[p] || "var(--st-edicao)"}">${esc(nomeP(p))}</option>`).join("");
     $("#ed-pessoas").innerHTML = OPC.resp.map((p) => `<button type="button" class="u-person" data-p="${esc(p)}" aria-pressed="${st.pessoas.has(p)}" style="--c:${CORES[p] || "var(--st-edicao)"}">${av(p)}${esc(nomeP(p))}</button>`).join("");
   }
   function visiveis() {
@@ -1292,7 +1317,8 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   const av = (p) => `<span class="u-av" style="--c:${CORES[p] || "var(--st-edicao)"}" title="${esc(nomeP(p))}">${INI[p] || esc(String(p).slice(0, 2).toUpperCase())}</span>`;
   const slug = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, "-");
   const dtHTML = (t) => `<div class="u-dt"><input type="date" value="${t.ini.d}" data-campo="dia" aria-label="Data de início">${t.ini.h ? `<input type="time" value="${t.ini.h}" data-campo="h0" aria-label="Hora de início">` : ""}<span class="ar">→</span><input type="date" value="${t.fim.d}" data-campo="dia1" aria-label="Data de fim">${t.ini.h ? `<input type="time" value="${t.fim.h || ""}" data-campo="h1" aria-label="Hora de fim">` : ""}</div>`;
-  const chipHTML = (t) => `<button type="button" class="chip${cls(t)}${ehMarco(t) ? " marco" : ""}" draggable="true" data-id="${t.id}" data-abre="${t.id}" style="--c:${cor(t)}" title="${esc(t.titulo + " · " + sub(t))}">${t.ini.h ? `<span class="h">${t.ini.h}</span>` : ""}${esc(t.titulo)}</button>`;
+  const PONTAS = (l, r) => (l ? `<span class="rz l" data-rz="ini" title="Puxe para mudar o início"></span>` : "") + (r ? `<span class="rz r" data-rz="fim" title="Puxe para mudar o fim"></span>` : "");
+  const chipHTML = (t) => `<button type="button" class="chip${cls(t)}${ehMarco(t) ? " marco" : ""}" data-id="${t.id}" data-abre="${t.id}" style="--c:${cor(t)}" title="${esc(t.titulo + " · " + sub(t))}">${t.ini.h ? `<span class="h">${t.ini.h}</span>` : ""}<span class="t">${esc(t.titulo)}</span>${PONTAS(true, true)}</button>`;
 
   // ── modos ──
   function render() {
@@ -1304,6 +1330,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     $("#ed").classList.toggle("comp", st.dens === "comp");
     document.querySelectorAll("#ed-dens [data-d]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.d === st.dens));
     document.documentElement.style.setProperty("--ed-bar-h", ($(".ed-bar")?.offsetHeight || 96) + "px");
+    const tw = $(".tl-wrap"); if (tw) tlRolagem = tw.scrollLeft;
     v.innerHTML = ({ lista: vLista, cal: vCal, linha: vLinha, entrega: vEntrega })[st.modo](L);
     if (st.modo === "linha") ligaLinha();
     marcaSel();
@@ -1337,9 +1364,13 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     const m = cargas(), varios = (t) => t.fim.d !== t.ini.d;
     const x = D(ini); x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
     let html = `<div class="cal2"><div class="cal2-dow">${["seg", "ter", "qua", "qui", "sex", "sáb", "dom"].map((d) => `<div>${d}</div>`).join("")}</div>`;
-    for (let primeiro = true; iso(x) <= fim; x.setDate(x.getDate() + 7), primeiro = false) {
+    let mes = null;
+    for (; iso(x) <= fim; x.setDate(x.getDate() + 7)) {
       const sem = Array.from({ length: 7 }, (_, k) => { const y = new Date(x); y.setDate(y.getDate() + k); return iso(y); });
       const s0 = sem[0], s6 = sem[6];
+      // nome do mês antes da semana em que ele começa (e no topo)
+      const vira = sem.find((s) => s.endsWith("-01")) || (mes ? null : s0);
+      if (vira) { mes = vira.slice(0, 7); const v = D(vira); html += `<div class="cal2-mes"><b>${MES[v.getMonth()][0].toUpperCase() + MES[v.getMonth()].slice(1)}</b><span>${v.getFullYear()}</span></div>`; }
       // faixas: cada tarefa de vários dias ocupa uma linha da semana, sem se sobrepor
       const faixas = [];
       const barras = L.filter((t) => varios(t) && t.ini.d <= s6 && t.fim.d >= s0)
@@ -1349,27 +1380,32 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
           let f = faixas.findIndex((ult) => ult < a); if (f < 0) { f = faixas.length; faixas.push(b); } else faixas[f] = b;
           return { t, a, b, f };
         });
-      html += `<div class="wk" style="--lanes:${faixas.length}">`;
+      html += `<div class="wk${faixas.length ? "" : " sem-faixa"}" style="--lanes:${faixas.length}">`;
       sem.forEach((s, k) => {
         const dd = D(s), w = dd.getDay(), fds = w === 0 || w === 6, ex = excesso(m, s);
-        const rot = (primeiro && k === 0) || dd.getDate() === 1 ? `<small>${MES[dd.getMonth()].slice(0, 3)}</small>` : "";
         html += `<div class="cel${fds ? " fds" : ""}${FER[s] ? " fer" : ""}${s < hojeIso ? " passado" : ""}${s === hojeIso ? " hoje" : ""}${s === st.dia ? " sel" : ""}" data-dia="${s}" style="grid-column:${k + 1}"></div>`
-          + `<div class="n${s === hojeIso ? " hoje" : ""}${fds ? " fds" : ""}" style="grid-column:${k + 1}"><b>${dd.getDate()}</b>${rot}${FER[s] ? `<span class="fer-n">${FER[s]}</span>` : ""}${ex.length ? `<span class="carga" title="${esc(ex.join(" · "))}">!</span>` : ""}<button type="button" class="add" data-novo="${s}" aria-label="Nova tarefa em ${dm(s)}">+</button></div>`
+          + `<div class="n${s === hojeIso ? " hoje" : ""}${fds ? " fds" : ""}${s.slice(0, 7) < mes ? " ant" : ""}" style="grid-column:${k + 1}"><b>${dd.getDate()}</b>${FER[s] ? `<span class="fer-n">${FER[s]}</span>` : ""}${ex.length ? `<span class="carga" title="${esc(ex.join(" · "))}">!</span>` : ""}<button type="button" class="add" data-novo="${s}" aria-label="Nova tarefa em ${dm(s)}" title="Nova tarefa">+</button></div>`
           + `<div class="dch${fds ? " fds" : ""}${s < hojeIso ? " passado-op" : ""}" style="grid-column:${k + 1};grid-row:${faixas.length + 2}">${L.filter((t) => !varios(t) && t.ini.d === s).map(chipHTML).join("")}</div>`;
       });
       barras.forEach(({ t, a, b, f }) => {
-        html += `<button type="button" class="chip bar${cls(t)}${t.ini.d < s0 ? " cont-l" : ""}${t.fim.d > s6 ? " cont-r" : ""}" draggable="true" data-id="${t.id}" data-abre="${t.id}" style="--c:${cor(t)};grid-column:${a + 1} / ${b + 2};grid-row:${f + 2}" title="${esc(`${t.titulo} · ${dm(t.ini.d)}${t.ini.h ? " " + t.ini.h : ""} → ${dm(t.fim.d)}${t.fim.h ? " " + t.fim.h : ""} · ${sub(t)}`)}">${t.ini.d >= s0 && t.ini.h ? `<span class="h">${t.ini.h}</span>` : ""}<span class="t">${esc(t.titulo)}</span><span class="dur">${difUteis(t.ini.d, t.fim.d) + 1}d</span></button>`;
+        const cl = t.ini.d < s0, cr = t.fim.d > s6;
+        html += `<button type="button" class="chip bar${cls(t)}${cl ? " cont-l" : ""}${cr ? " cont-r" : ""}" data-id="${t.id}" data-abre="${t.id}" style="--c:${cor(t)};grid-column:${a + 1} / ${b + 2};grid-row:${f + 2}" title="${esc(`${t.titulo} · ${dm(t.ini.d)}${t.ini.h ? " " + t.ini.h : ""} → ${dm(t.fim.d)}${t.fim.h ? " " + t.fim.h : ""} · ${sub(t)}`)}">${!cl && t.ini.h ? `<span class="h">${t.ini.h}</span>` : ""}<span class="t">${esc(t.titulo)}</span>${cr ? "" : `<span class="dur">${difUteis(t.ini.d, t.fim.d) + 1}d</span>`}${PONTAS(!cl, !cr)}</button>`;
       });
       html += `</div>`;
     }
     html += `</div>`;
     const sel = st.dia && L.filter((t) => t.ini.d <= st.dia && t.fim.d >= st.dia);
-    return `<p class="ed-sub">Tarefas de vários dias aparecem numa barra só. Arraste para outro dia; clique para editar.</p>` + html + (sel && sel.length ? `<div class="dia-sel">${vLista(sel, true)}</div>` : "");
+    return `<p class="ed-sub">Arraste a tarefa para outro dia; puxe uma ponta para mudar o início ou o fim. Clique para editar.</p>` + html + (sel && sel.length ? `<div class="dia-sel">${vLista(sel, true)}</div>` : "");
   }
 
-  const W = 46; // largura de um dia útil na linha do tempo
+  // zoom da linha do tempo: largura de um dia útil; a partir de 90 px as barras seguem a hora (8h às 20h)
+  const ZOOM = [10, 16, 24, 34, 46, 64, 90, 130, 180];
+  st.zoom = Math.max(0, Math.min(ZOOM.length - 1, parseInt(lsGet("fbc-ed-zoom") ?? 4, 10) || 0));
+  let W = ZOOM[st.zoom], tlRolagem = null, pinca = 0;
+  const nivel = () => (W >= 90 ? "h" : W >= 34 ? "l" : W >= 16 ? "m" : "s");
   const CURTO = { Montagem: "Edição", "V1 B": "V1 B", "Revisão interna": "Rev. interna", Ajustes: "Ajustes", "Revisão cliente": "Cliente", "Versão final": "Versão final", Offline: "Offline", Cor: "Cor", "Áudio": "Áudio", "Finalização": "Finalização", Online: "Online", V2: "V2", V1: "V1" };
   const rotuloBarra = (t) => (st.agrupa === "pessoa" ? t.titulo.replace(/ · .*/, "") + " · " + (t.bloco || "").replace(/ \/ .*/, "") : CURTO[t.etapa] || t.etapa || t.titulo);
+  const fracao = (h, def) => (h ? Math.max(0, Math.min(1, (minutos(h) - 480) / 720)) : def);
   let dias = [];
   function vLinha(L) {
     const a = L.map((t) => t.ini.d).sort()[0], b = L.map((t) => t.fim.d).sort().at(-1);
@@ -1383,53 +1419,94 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       // empilha as barras que se sobrepõem
       const faixas = [];
       const bars = grupos.get(k).map((t) => {
-        const i0 = idx(t.ini.d), i1 = Math.max(i0, idx(t.fim.d) - (util(t.fim.d) ? 0 : 1));
+        const i0 = idx(t.ini.d), fu = util(t.fim.d), i1 = Math.max(i0, idx(t.fim.d) - (fu ? 0 : 1));
+        // a posição fica em variáveis: o zoom só muda --w, sem redesenhar
+        const f0 = fracao(t.ini.h, 0), f1 = Math.max(i1 === i0 ? f0 : 0, fu && t.fim.h ? fracao(t.fim.h, 1) : 1);
         let f = faixas.findIndex((fim) => fim < i0); if (f < 0) { f = faixas.length; faixas.push(i1); } else faixas[f] = i1;
-        return `<div class="tl-bar${cls(t)}" data-id="${t.id}" style="--c:${cor(t)};left:${i0 * W + 2}px;width:${(i1 - i0 + 1) * W - 4}px;top:${f * 26 + 4}px" title="${esc(`${t.titulo} · ${dm(t.ini.d)}${t.fim.d !== t.ini.d ? "–" + dm(t.fim.d) : ""} · ${sub(t)}`)}">${esc(rotuloBarra(t))}<span class="rs"></span></div>`;
+        return `<div class="tl-bar${cls(t)}" data-id="${t.id}" style="--c:${cor(t)};--i0:${i0};--i1:${i1};--f0:${f0.toFixed(3)};--f1:${f1.toFixed(3)};top:${f * 26 + 4}px" title="${esc(`${t.titulo} · ${dm(t.ini.d)}${t.ini.h ? " " + t.ini.h : ""}${t.fim.d !== t.ini.d || t.fim.h !== t.ini.h ? " → " + dm(t.fim.d) + (t.fim.h ? " " + t.fim.h : "") : ""} · ${sub(t)}`)}"><span class="rs l" title="Puxe para mudar o início"></span><span>${esc(rotuloBarra(t))}</span>${t.ini.h ? `<span class="h">${t.ini.h}</span>` : ""}<span class="rs r" title="Puxe para mudar o fim"></span></div>`;
       }).join("");
-      return `<div class="tl-g"><span title="${esc(k)}">${esc(k === "Cliente" ? "Equipe Bradesco" : k)}</span></div><div class="tl-faixa" style="height:${faixas.length * 26 + 8}px">${bars}</div>`;
+      const rot = k === "Cliente" ? "Equipe Bradesco" : k;
+      return `<div class="tl-g">${st.agrupa === "pessoa" && k !== "Sem responsável" ? av(k) : ""}<span title="${esc(rot)}">${esc(rot)}</span></div><div class="tl-faixa" style="height:${faixas.length * 26 + 8}px">${bars}</div>`;
     }).join("");
+    // meses por cima dos dias
+    const meses = []; dias.forEach((d) => { const k = d.slice(0, 7); if (meses.at(-1)?.k === k) meses.at(-1).n++; else meses.push({ k, n: 1, d }); });
+    const mesesHTML = meses.map((x) => { const v = D(x.d); return `<div style="width:calc(${x.n} * var(--w))"><span>${MES[v.getMonth()][0].toUpperCase() + MES[v.getMonth()].slice(1)}<small>${v.getFullYear()}</small></span></div>`; }).join("");
     const hi = dias.indexOf(hojeIso);
-    return `<div class="ed-bar" style="position:static;padding-top:0"><div class="seg" id="ed-agrupa"><button type="button" data-g="entrega" aria-pressed="${st.agrupa === "entrega"}">Por entrega</button><button type="button" data-g="pessoa" aria-pressed="${st.agrupa === "pessoa"}">Por pessoa</button></div><span class="ed-st" style="margin:0">Arraste a barra para mudar o dia; puxe a ponta direita para mudar a duração.</span></div>
-      <div class="tl-wrap"><div class="tl" style="--w:${W}px">
-        <div class="tl-h0"></div><div class="tl-dias" style="position:relative">${dias.map((d) => `<div class="${D(d).getDay() === 1 ? "seg1" : ""}${d === hojeIso ? " hoje" : ""}">${WD[D(d).getDay()]}<b>${d.slice(8)}</b>${d.slice(8) === "01" || d === dias[0] ? MES[D(d).getMonth()].slice(0, 3) : ""}</div>`).join("")}</div>
+    return `<div class="tl-topo"><div class="u-seg sm" id="ed-agrupa" role="group" aria-label="Agrupar a linha do tempo"><button type="button" data-g="entrega" aria-pressed="${st.agrupa === "entrega"}">Por entrega</button><button type="button" data-g="pessoa" aria-pressed="${st.agrupa === "pessoa"}">Por pessoa</button></div>
+        <div class="u-zoom" role="group" aria-label="Zoom"><button type="button" data-zoom="-1" aria-label="Afastar" title="Afastar">−</button><input type="range" id="tl-zoom" min="0" max="${ZOOM.length - 1}" step="1" value="${st.zoom}" aria-label="Zoom"><button type="button" data-zoom="1" aria-label="Aproximar" title="Aproximar">+</button></div>
+        <button type="button" class="u-btn sm" data-tl-hoje>Hoje</button>
+        <span class="ed-sub">Arraste a barra para mudar o dia; puxe uma ponta para mudar o início ou o fim. <span class="u-kbd">⌘</span>/<span class="u-kbd">Ctrl</span> + rolar (ou pinça) também dá zoom.</span></div>
+      <div class="tl-wrap"><div class="tl" data-z="${nivel()}" style="--w:${W}px;--hz:${W >= 90 ? 1 : 0}">
+        <div class="tl-h0"></div><div class="tl-cab"><div class="tl-meses">${mesesHTML}</div><div class="tl-dias">${dias.map((d) => `<div class="${D(d).getDay() === 1 ? "seg1" : ""}${d === hojeIso ? " hoje" : ""}"><i>${WD[D(d).getDay()]}</i><b>${+d.slice(8)}</b><span class="hs"><s>11h</s><s>14h</s><s>17h</s></span></div>`).join("")}</div></div>
         ${linhas}
-        ${hi >= 0 ? `<div class="tl-hoje" style="left:calc(var(--tl-col, 200px) + ${hi * W + W / 2}px)"></div>` : ""}
+        ${hi >= 0 ? `<div class="tl-hoje" style="--hi:${hi}"></div>` : ""}
       </div></div>`;
+  }
+  // zoom mantendo parado o dia que está sob o ponteiro (ou no meio da tela)
+  function zoom(z, v) {
+    z = Math.max(0, Math.min(ZOOM.length - 1, z));
+    const r = $("#tl-zoom"); if (r && +r.value !== z) r.value = z;
+    if (z === st.zoom) return;
+    st.zoom = z; lsSet("fbc-ed-zoom", z);
+    const wrap = $(".tl-wrap"), tl = $(".tl");
+    if (!wrap || !tl) { W = ZOOM[z]; return; }
+    const col = $(".tl-g")?.offsetWidth || 200;
+    v = v ?? col + (wrap.clientWidth - col) / 2;
+    const dia = (wrap.scrollLeft + v - col) / W;
+    W = ZOOM[z];
+    tl.style.setProperty("--w", W + "px"); tl.style.setProperty("--hz", W >= 90 ? 1 : 0); tl.dataset.z = nivel();
+    wrap.scrollLeft = dia * W + col - v;
+    tlRolagem = wrap.scrollLeft;
+  }
+  function vaiHoje(suave) {
+    const wrap = $(".tl-wrap"), hi = dias.findIndex((d) => d >= hojeIso); if (!wrap || hi < 0) return;
+    const col = $(".tl-g")?.offsetWidth || 200;
+    wrap.scrollTo({ left: Math.max(0, hi * W - (wrap.clientWidth - col) / 3), behavior: suave ? "smooth" : "auto" });
   }
   function ligaLinha() {
     const col = $(".tl-g")?.offsetWidth || 200;
     $(".tl")?.style.setProperty("--tl-col", col + "px");
-    const wrap = $(".tl-wrap"), hi = dias.findIndex((d) => d >= hojeIso);
-    if (wrap && hi > 2 && !wrap.dataset.rolou) { wrap.scrollLeft = (hi - 2) * W; wrap.dataset.rolou = 1; }
+    const wrap = $(".tl-wrap");
+    if (wrap) {
+      if (tlRolagem != null) wrap.scrollLeft = tlRolagem; else vaiHoje(false);
+      wrap.addEventListener("scroll", () => (tlRolagem = wrap.scrollLeft), { passive: true });
+      wrap.addEventListener("wheel", (e) => {
+        if (!e.ctrlKey && !e.metaKey) return;
+        e.preventDefault();
+        pinca += e.deltaY;
+        if (Math.abs(pinca) < 24) return;
+        zoom(st.zoom + (pinca < 0 ? 1 : -1), e.clientX - wrap.getBoundingClientRect().left); pinca = 0;
+      }, { passive: false });
+    }
     document.querySelectorAll(".tl-bar").forEach((bar) => {
       bar.addEventListener("pointerdown", (e) => {
         const t = T.find((x) => x.id === bar.dataset.id); if (!t) return;
         if (e.metaKey || e.ctrlKey || e.shiftKey) { e.preventDefault(); e.stopPropagation(); alterna(t.id, e.shiftKey); return; }
         e.stopPropagation();
-        const redim = e.target.classList.contains("rs");
+        const ponta = e.target.closest(".rs"), redim = ponta ? (ponta.classList.contains("l") ? "l" : "r") : null;
         const junto = !redim && SEL.has(t.id) && SEL.size > 1 ? [...document.querySelectorAll(".tl-bar")].filter((b) => SEL.has(b.dataset.id) && b !== bar).map((b) => [b, b.offsetLeft]) : [];
         const x0 = e.clientX, l0 = bar.offsetLeft, w0 = bar.offsetWidth;
         let passos = 0, mexeu = false;
         bar.setPointerCapture(e.pointerId); bar.classList.add("arrastando");
+        if (redim) $("#ed").classList.add("redim");
         const mv = (ev) => {
           passos = Math.round((ev.clientX - x0) / W); if (Math.abs(ev.clientX - x0) > 4) mexeu = true;
-          if (redim) bar.style.width = Math.max(W - 4, w0 + passos * W) + "px"; else { bar.style.left = l0 + passos * W + "px"; junto.forEach(([b, l]) => (b.style.left = l + passos * W + "px")); }
+          if (redim === "r") bar.style.width = Math.max(24, w0 + passos * W) + "px";
+          else if (redim === "l") { const p = Math.min(passos, Math.floor((w0 - 24) / W)); bar.style.left = l0 + p * W + "px"; bar.style.width = w0 - p * W + "px"; }
+          else { bar.style.left = l0 + passos * W + "px"; junto.forEach(([b, l]) => (b.style.left = l + passos * W + "px")); }
         };
         const up = () => {
-          bar.removeEventListener("pointermove", mv); bar.classList.remove("arrastando");
+          bar.removeEventListener("pointermove", mv); bar.classList.remove("arrastando"); $("#ed").classList.remove("redim");
           if (!mexeu) { limpaSel(); abre(t); return; }
           if (!passos) { render(); return; }
           if (junto.length) { moveVarias(doGrupo(), passos); return; }
-          if (redim) {
-            const nf = addUteis(t.fim.d, passos);
-            if (nf < t.ini.d) { render(); return; }
-            grava([{ t, patch: { ini: t.ini, fim: { d: nf, h: t.fim.h } } }], `“${t.titulo}” agora até ${dm(nf)}`);
-          } else moveData(t, { d: addUteis(t.ini.d, passos), h: t.ini.h });
+          if (redim === "r") { const nf = addUteis(t.fim.d, passos); if (nf < t.ini.d) { render(); return; } mudaFim(t, nf); }
+          else if (redim === "l") { const ni = addUteis(t.ini.d, passos); if (ni > t.fim.d) { render(); return; } mudaIni(t, ni); }
+          else moveData(t, { d: addUteis(t.ini.d, passos), h: t.ini.h });
         };
         bar.addEventListener("pointermove", mv);
         bar.addEventListener("pointerup", up, { once: true });
-        bar.addEventListener("pointercancel", () => { bar.removeEventListener("pointermove", mv); render(); }, { once: true });
+        bar.addEventListener("pointercancel", () => { bar.removeEventListener("pointermove", mv); $("#ed").classList.remove("redim"); render(); }, { once: true });
       });
     });
   }
@@ -1467,7 +1544,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
         <div class="linha"><label>Fim<input type="date" name="d1" required value="${t.fim.d}"></label><label>Hora<input type="time" name="h1" value="${t.fim.h || ""}"${t.ini.h ? "" : " disabled"}></label></div>
         <label class="chk u-sw"><input type="checkbox" name="todo"${t.ini.h ? "" : " checked"}><span></span>Dia todo (sem horário)</label>
         <div><label>Responsável</label><div class="resp">${OPC.resp.map((p) => `<label style="--c:${CORES[p] || "var(--st-edicao)"}"><input type="checkbox" name="resp" value="${esc(p)}"${t.resp.includes(p) ? " checked" : ""}>${av(p)}${esc(nomeP(p))}</label>`).join("")}</div></div>
-        <div class="linha"><label>Etapa<select name="etapa">${opt(OPC.etapa, t.etapa, "—")}</select></label><label>Status<select name="status">${opt(OPC.status, t.status)}</select></label></div>
+        <div class="linha"><label>Etapa<select name="etapa">${opt(OPC.etapa, t.etapa, "—")}</select></label><label>Status<select name="status" data-menu="status">${opt(OPC.status, t.status)}</select></label></div>
         <label>Entrega<select name="bloco">${opt(OPC.bloco, t.bloco, "—")}</select></label>
         <label>Link${PARA_CLIENTE.test(t.titulo) ? " (aparece no cronograma do cliente)" : ""}<input type="url" name="link" value="${esc(t.link || "")}" placeholder="https://…"></label>
         <label>Observações<textarea name="obs">${esc(t.obs)}</textarea></label>
@@ -1539,6 +1616,8 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       const it = e.target.closest(ITEM);
       if (it && (e.metaKey || e.ctrlKey || e.shiftKey) && !e.target.closest("input, select, textarea")) { e.preventDefault(); alterna(it.dataset.id, e.shiftKey); return; }
       const g = e.target.closest("[data-g]"); if (g) { st.agrupa = g.dataset.g; lsSet("fbc-ed-agrupa", st.agrupa); render(); return; }
+      const zb = e.target.closest("[data-zoom]"); if (zb) { zoom(st.zoom + +zb.dataset.zoom); return; }
+      if (e.target.closest("[data-tl-hoje]")) { vaiHoje(true); return; }
       const lg = e.target.closest("[data-lg]"); if (lg) { st.lgrupo = lg.dataset.lg; lsSet("fbc-ed-lgrupo", st.lgrupo); render(); return; }
       const n = e.target.closest("[data-novo]"); if (n) { abre(null, n.dataset.novo); return; }
       const lk = e.target.closest("[data-link]"); if (lk) { const t = T.find((x) => x.id === lk.dataset.link); if (t) popLink(t, lk); return; }
@@ -1565,9 +1644,8 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       if (campo === "dia" && el.value && el.value !== t.ini.d) moveData(t, { d: el.value, h: t.ini.h });
       if (campo === "dia1" && el.value && el.value !== t.fim.d) {
         // muda só o fim: a tarefa fica mais longa ou mais curta
-        const h = t.fim.h || t.ini.h;
-        if (el.value < t.ini.d || (el.value === t.ini.d && t.ini.h && h && h <= t.ini.h)) { el.value = t.fim.d; aviso("O fim precisa ser depois do início."); return; }
-        grava([{ t, patch: { ini: t.ini, fim: { d: el.value, h } } }], `“${t.titulo}” agora até ${dm(el.value)}`);
+        if (el.value < t.ini.d) { el.value = t.fim.d; aviso("O fim precisa ser depois do início."); return; }
+        mudaFim(t, el.value);
       }
       if (campo === "h0" && el.value) {
         // mantém a duração; no mesmo dia, o fim não passa das 23:59
@@ -1583,24 +1661,52 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       }
     });
     ed.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.dataset.campo === "titulo") e.target.blur(); });
-    // arrastar no calendário
-    ed.addEventListener("dragstart", (e) => { const c = e.target.closest(".chip"); if (!c) return; e.dataTransfer.setData("text/plain", c.dataset.id); e.dataTransfer.effectAllowed = "move"; });
-    // no calendário as barras ficam por cima dos dias: o dia é o que está sob o ponteiro
-    const celAt = (e) => e.target.closest(".cel[data-dia]") || document.elementsFromPoint(e.clientX, e.clientY).find((n) => n.matches?.(".cel[data-dia]"));
-    ed.addEventListener("dragover", (e) => { const c = celAt(e); if (!c) return; e.preventDefault(); document.querySelectorAll(".cel.alvo").forEach((x) => x !== c && x.classList.remove("alvo")); c.classList.add("alvo"); });
-    ed.addEventListener("dragleave", (e) => { const c = e.target.closest(".cel"); if (c && !c.contains(e.relatedTarget)) c.classList.remove("alvo"); });
-    ed.addEventListener("drop", (e) => {
-      const c = celAt(e); if (!c) return; e.preventDefault(); c.classList.remove("alvo");
-      const t = T.find((x) => x.id === e.dataTransfer.getData("text/plain")); if (!t || t.ini.d === c.dataset.dia) return;
-      if (SEL.has(t.id) && SEL.size > 1) return moveVarias(doGrupo(), difUteis(t.ini.d, c.dataset.dia));
-      moveData(t, { d: c.dataset.dia, h: t.ini.h });
+    ed.addEventListener("input", (e) => { if (e.target.id === "tl-zoom") zoom(+e.target.value); });
+    // calendário: arrastar move a tarefa; puxar uma ponta muda o início ou o fim. O dia é o que está sob o ponteiro.
+    const celAt = (e) => document.elementsFromPoint(e.clientX, e.clientY).find((n) => n.matches?.(".cel[data-dia]"));
+    const diasEntre = (a, b) => Math.round((D(b) - D(a)) / 864e5);
+    ed.addEventListener("pointerdown", (e) => {
+      const chip = e.target.closest(".cal2 .chip[data-id]");
+      if (!chip || e.button !== 0 || e.pointerType === "touch" || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      const t = T.find((x) => x.id === chip.dataset.id), dia0 = celAt(e)?.dataset.dia; if (!t || !dia0) return;
+      e.preventDefault();
+      const ponta = e.target.closest("[data-rz]")?.dataset.rz || null;
+      const x0 = e.clientX, y0 = e.clientY, pecas = [...ed.querySelectorAll(`.cal2 .chip[data-id="${t.id}"]`)];
+      let ativo = false, alvo = null;
+      const novo = (dia) => {
+        if (ponta === "fim") return { ini: t.ini.d, fim: dia < t.ini.d ? t.ini.d : dia };
+        if (ponta === "ini") return { ini: dia > t.fim.d ? t.fim.d : dia, fim: t.fim.d };
+        const i = addDias(t.ini.d, diasEntre(dia0, dia));
+        return { ini: i, fim: addUteis(i, difUteis(t.ini.d, t.fim.d)) };
+      };
+      const pinta = (r) => ed.querySelectorAll(".cel[data-dia]").forEach((c) => c.classList.toggle(ponta ? "prev" : "alvo", !!r && c.dataset.dia >= r.ini && c.dataset.dia <= r.fim));
+      const mv = (ev) => {
+        if (!ativo) { if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 5) return; ativo = true; ed.classList.add(ponta ? "redim" : "movendo"); pecas.forEach((p) => p.classList.add("arrastando")); }
+        if (!ponta) chip.style.transform = `translate(${ev.clientX - x0}px, ${ev.clientY - y0}px)`;
+        const c = celAt(ev); if (c) { alvo = c.dataset.dia; pinta(novo(alvo)); }
+      };
+      const fim = (ok) => {
+        removeEventListener("pointermove", mv); removeEventListener("pointerup", solta); removeEventListener("pointercancel", cancela);
+        ed.classList.remove("redim", "movendo"); pinta(null); chip.style.transform = ""; pecas.forEach((p) => p.classList.remove("arrastando"));
+        if (!ativo) return; // foi só um clique: o clique abre a tarefa
+        laçou = true; setTimeout(() => (laçou = false), 60);
+        if (!ok || !alvo) return;
+        const r = novo(alvo);
+        if (ponta === "fim") { if (r.fim !== t.fim.d) mudaFim(t, r.fim); return; }
+        if (ponta === "ini") { if (r.ini !== t.ini.d) mudaIni(t, r.ini); return; }
+        if (r.ini === t.ini.d) return;
+        if (SEL.has(t.id) && SEL.size > 1) return moveVarias(doGrupo(), difUteis(t.ini.d, r.ini));
+        moveData(t, { d: r.ini, h: t.ini.h });
+      };
+      const solta = () => fim(true), cancela = () => fim(false);
+      addEventListener("pointermove", mv); addEventListener("pointerup", solta); addEventListener("pointercancel", cancela);
     });
-    addEventListener("keydown", (e) => { if (e.key === "Escape") { if ($(".lk-pop")) fechaPop(); else if ($(".dr")) fecha(); else limpaSel(); } });
+    addEventListener("keydown", (e) => { if (e.key === "Escape") { if ($(".u-menu")) window.UI?.fechaMenu(); else if ($(".lk-pop")) fechaPop(); else if ($(".dr")) fecha(); else limpaSel(); } });
     // laço: arrastar num espaço vazio marca o que ele tocar (com ⌘/Ctrl/Shift, soma ao que já estava marcado)
     const view = $("#ed-view");
     view.addEventListener("pointerdown", (e) => {
       if (e.button !== 0 || e.pointerType === "touch") return;
-      if (e.target.closest(ITEM + ", input, select, textarea, button, a, label, .tl-dias")) return;
+      if (e.target.closest(ITEM + ", input, select, textarea, button, a, label, .tl-cab")) return;
       const x0 = e.clientX, y0 = e.clientY, soma = e.metaKey || e.ctrlKey || e.shiftKey, antes = new Set(SEL);
       let laco = null;
       const mv = (ev) => {
