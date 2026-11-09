@@ -992,224 +992,42 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
 });
 </script>
 
-<style>
-/* ── Abas do Controle e editor do cronograma da equipe (agenda do Notion) ── */
-[hidden] { display: none !important; }
-.sem-criar #ed-novo, .sem-criar .cel .n .add { display: none; }
-.abas { display: flex; gap: 4px; margin: 22px 0 4px; padding: 4px; border-radius: 14px; background: var(--surface); width: fit-content; max-width: 100%; }
-.abas button { border: 0; background: none; padding: 8px 16px; border-radius: 10px; font-weight: 700; color: var(--muted); cursor: pointer; }
-.abas button[aria-selected="true"] { background: var(--card); color: var(--fg); box-shadow: var(--shadow); }
-#ed { margin-top: 18px; }
-#ed[hidden] { display: none; }
-.ed-bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; padding: 10px 0; background: var(--bg); }
-.ed-bar .seg { display: flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--surface); }
-.ed-bar .seg button { border: 0; background: none; padding: 6px 12px; border-radius: 9px; font-weight: 700; font-size: 13.5px; color: var(--muted); cursor: pointer; white-space: nowrap; }
-.ed-bar .seg button[aria-pressed="true"] { background: var(--card); color: var(--fg); box-shadow: var(--shadow); }
-.ed-bar select, .ed-bar input[type=search] { padding: 7px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); font-size: 13.5px; }
-.ed-bar input[type=search] { flex: 1 1 160px; min-width: 120px; }
-.ed-bar label.chk { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); cursor: pointer; }
-.ed-bar .novo { margin-left: auto; }
-@media (max-width: 720px) { .ed-bar { position: static; } .ed-bar .seg { overflow-x: auto; max-width: 100%; } }
-.ed-st { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); margin: 0 0 8px; }
-.ed-st i { width: 8px; height: 8px; border-radius: 50%; background: var(--st-aprovado); }
-.ed-st.busy i { background: var(--st-ajustes); animation: edpulse 1s infinite alternate; }
-.ed-st.err i { background: var(--danger); }
-.ed-st button { border: 0; background: none; color: var(--fg); text-decoration: underline; cursor: pointer; font-size: 12.5px; padding: 0; }
-@keyframes edpulse { to { opacity: .35; } }
-.pessoas { display: flex; flex-wrap: wrap; gap: 4px; }
-.pessoas button { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 4px 10px 4px 8px; font-size: 12.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
-.pessoas button i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
-.pessoas button[aria-pressed="true"] { border-color: var(--fg); color: var(--fg); }
-.ed-vazio { padding: 40px 0; text-align: center; color: var(--muted); }
-
-/* lista */
-.l-dia { margin: 18px 0 6px; display: flex; align-items: baseline; gap: 10px; }
-.l-dia h3 { margin: 0; font-size: 15px; font-weight: 800; }
-.l-dia span { color: var(--muted); font-size: 12.5px; }
-.l-dia.hoje h3::after { content: "hoje"; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--fg); color: var(--accent-fg); font-size: 11px; vertical-align: 2px; }
-.carga { font-size: 11.5px; font-weight: 800; color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); padding: 1px 8px; border-radius: 999px; }
-.l-tab { display: grid; gap: 4px; }
-.l-row { display: grid; grid-template-columns: 4px minmax(0, 1fr) 392px 64px 132px auto; gap: 6px 10px; align-items: center; padding: 8px 10px 8px 0; border-radius: 12px; background: var(--card); box-shadow: var(--shadow); }
-.l-row > i { align-self: stretch; border-radius: 4px; background: var(--c); }
-.l-row.feito { opacity: .55; }
-.l-row.feito .l-tit input { text-decoration: line-through; }
-.l-tit { display: grid; gap: 1px; min-width: 0; }
-.l-tit input { border: 0; background: none; padding: 2px 4px; border-radius: 6px; font-weight: 700; width: 100%; text-overflow: ellipsis; }
-.l-tit input:hover, .l-tit input:focus { background: var(--surface); }
-.l-tit small { padding: 0 4px; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.l-row input[type=date], .l-row input[type=time], .l-row select, .dr input, .dr select, .dr textarea, .e-step input, .e-step select { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 5px 7px; font-size: 13px; min-width: 0; }
-.l-hora { display: flex; gap: 4px; align-items: center; color: var(--muted); font-size: 12px; white-space: nowrap; }
-.l-hora input[type=time] { width: 84px; }
-.l-st { width: 132px; }
-.lk-bt { width: 30px; height: 30px; display: grid; place-items: center; border: 1px dashed var(--line); background: none; border-radius: 8px; color: var(--muted); cursor: pointer; padding: 0; }
-.lk-bt:hover { color: var(--fg); border-style: solid; }
-.lk { display: flex; gap: 4px; align-items: center; }
-.lk-abre { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); font-weight: 800; text-decoration: none; }
-.lk-abre:hover { border-color: var(--fg); }
-.e-step .q .lk { margin-right: 4px; }
-.e-step .q .lk-abre { width: 28px; height: 28px; }
-.lk-bt.cli:not(.tem) { color: var(--st-aprovado); }
-.lk-bt.tem { border-style: solid; border-color: var(--fg); background: var(--fg); color: var(--accent-fg); }
-.e-step .q .lk-bt { width: 28px; height: 28px; }
-.lk-pop { position: fixed; z-index: 70; width: min(340px, calc(100vw - 16px)); padding: 10px; border-radius: 14px; background: var(--card); box-shadow: 0 18px 50px -14px rgba(0,0,0,.4), 0 0 0 1px var(--line); }
-.lk-pop form { display: grid; gap: 6px; }
-.lk-pop input { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); font-size: 13.5px; }
-.lk-pop small { color: var(--muted); font-size: 11.5px; }
-.lk-pop div { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
-.lk-pop a { margin-right: auto; font-size: 13px; font-weight: 700; color: var(--fg); }
-.lk-pop button { font-size: 13px; padding: 6px 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; }
-.lk-pop button.ok { background: var(--fg); color: var(--accent-fg); border-color: var(--fg); font-weight: 800; }
-.l-row .mais { border: 0; background: none; cursor: pointer; padding: 6px; border-radius: 8px; color: var(--muted); font-size: 16px; line-height: 1; }
-.l-row .mais:hover { background: var(--surface); color: var(--fg); }
-.salvando { box-shadow: inset 0 0 0 1.5px var(--st-ajustes), var(--shadow) !important; }
-.erro-salvar { box-shadow: inset 0 0 0 1.5px var(--danger), var(--shadow) !important; }
-/* atrasada: passou do prazo sem estar concluída */
-.atr { font-size: 10.5px; font-weight: 800; color: var(--danger); text-transform: uppercase; letter-spacing: .04em; }
-.chip.atrasada { box-shadow: inset 3px 0 0 var(--danger); }
-.tl-bar.atrasada { box-shadow: inset 0 0 0 1.5px var(--danger); }
-.e-step.atrasada .t span::after { content: " · atrasada"; color: var(--danger); font-weight: 800; }
-.ed-st .atr-bt { color: var(--danger); font-weight: 800; }
-.ed-st .atr-bt[aria-pressed="true"] { text-decoration: none; padding: 0 8px; border-radius: 999px; background: color-mix(in srgb, var(--danger) 12%, transparent); }
-@media (max-width: 720px) {
-  .l-row { grid-template-columns: 4px minmax(0, 1fr) auto; }
-  .l-row .l-hora, .l-row .l-st { grid-column: 2 / 4; }
-  .l-row .l-hora { flex-wrap: wrap; }
-}
-
-/* calendário */
-.cal-mes { margin: 14px 0 4px; font-weight: 800; font-size: 15px; }
-.cal { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) .5fr .5fr; gap: 4px; }
-.cal .dow { font-size: 11.5px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 2px 4px; }
-.cel { min-height: 104px; padding: 5px; border-radius: 10px; background: var(--card); box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 3px; min-width: 0; position: relative; }
-.cel.fds, .cel.fer { background: var(--surface); box-shadow: none; }
-.cel.passado { background: var(--surface); box-shadow: none; }
-.cel.passado > :not(.atrasada) { opacity: .55; }
-.cel.sel { outline: 2px solid var(--fg); outline-offset: -2px; }
-.cel .n small { font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: .04em; }
-.cel.alvo { outline: 2px dashed var(--fg); outline-offset: -2px; }
-.cel .n { font-size: 12px; font-weight: 800; color: var(--muted); display: flex; justify-content: space-between; gap: 4px; }
-.cel.hoje .n b { background: var(--fg); color: var(--accent-fg); border-radius: 999px; padding: 0 6px; }
-.cel .n .add { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0 4px; border-radius: 6px; opacity: 0; font-size: 14px; line-height: 1; }
-.cel:hover .n .add, .cel .n .add:focus { opacity: 1; }
-.cel .fer-n { font-size: 10.5px; color: var(--muted); }
-.chip { display: block; width: 100%; text-align: left; border: 0; cursor: grab; padding: 3px 6px 3px 7px; border-radius: 6px; font-size: 11.5px; line-height: 1.25; font-weight: 600; color: var(--fg);
-  background: color-mix(in srgb, var(--c) 16%, var(--card)); box-shadow: inset 3px 0 0 var(--c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.chip.feito { opacity: .5; text-decoration: line-through; }
-.chip:active { cursor: grabbing; }
-.chip.marco { font-weight: 800; }
-@media (max-width: 720px) {
-  .cal { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  .cal .dow.fds, .cel.fds { display: none; }
-  .cel { min-height: 64px; }
-  .chip { font-size: 0; padding: 0; height: 6px; border-radius: 3px; box-shadow: none; background: var(--c); }
-  .cel .n .add { opacity: 1; }
-}
-.dia-sel { margin-top: 12px; }
-
-/* linha do tempo */
-.tl-wrap { overflow-x: auto; border-radius: 14px; background: var(--card); box-shadow: var(--shadow); padding-bottom: 6px; }
-.tl { position: relative; display: grid; grid-template-columns: 200px auto; min-width: max-content; }
-.tl-cab { position: sticky; top: 0; z-index: 2; display: contents; }
-.tl-h0 { position: sticky; left: 0; z-index: 3; background: var(--card); border-bottom: 1px solid var(--line); }
-.tl-dias { display: flex; border-bottom: 1px solid var(--line); }
-.tl-dias div { width: var(--w); flex: 0 0 var(--w); text-align: center; font-size: 10.5px; color: var(--muted); padding: 6px 0 4px; border-left: 1px solid var(--line); line-height: 1.15; }
-.tl-dias div.seg1 { border-left-color: var(--muted); }
-.tl-dias div.hoje { color: var(--fg); font-weight: 800; }
-.tl-dias b { display: block; font-size: 12px; color: var(--fg); }
-.tl-g { position: sticky; left: 0; z-index: 1; background: var(--card); padding: 6px 10px; font-size: 12.5px; font-weight: 800; border-top: 1px solid var(--line); display: flex; align-items: center; min-width: 0; }
-.tl-g span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tl-faixa { position: relative; border-top: 1px solid var(--line); background-image: linear-gradient(to right, var(--line) 1px, transparent 1px); background-size: var(--w) 100%; }
-.tl-bar { position: absolute; height: 22px; border-radius: 6px; background: color-mix(in srgb, var(--c) 26%, var(--card)); box-shadow: inset 0 0 0 1.5px var(--c); font-size: 11px; font-weight: 700; line-height: 22px; padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: grab; touch-action: none; user-select: none; }
-.tl-bar.feito { opacity: .45; }
-.tl-bar .rs { position: absolute; right: 0; top: 0; bottom: 0; width: 8px; cursor: ew-resize; }
-.tl-bar.arrastando { z-index: 4; box-shadow: inset 0 0 0 2px var(--c), 0 6px 16px -6px rgba(0,0,0,.4); }
-.tl-hoje { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--fg); opacity: .5; pointer-events: none; z-index: 1; }
-@media (max-width: 720px) { .tl { grid-template-columns: 120px auto; } }
-
-/* por entrega */
-.ent { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); gap: 12px; }
-.e-card { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); padding: 14px 14px 8px; min-width: 0; }
-.e-card h3 { margin: 0 0 8px; font-size: 16px; font-weight: 800; display: flex; gap: 8px; align-items: baseline; }
-.e-card h3 small { color: var(--muted); font-size: 12px; font-weight: 600; }
-.e-step { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 4px 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
-.e-step input[type=checkbox] { width: 16px; height: 16px; margin: 0; accent-color: var(--st-aprovado); }
-.e-step .t { min-width: 0; font-size: 13px; }
-.e-step .t b { display: block; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
-.e-step .t span { color: var(--muted); font-size: 12px; }
-.e-step .t span i { font-style: normal; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--c); margin-right: 4px; }
-.e-step .q { display: flex; gap: 3px; align-items: center; }
-.e-step .q button { border: 1px solid var(--line); background: var(--bg); border-radius: 7px; width: 26px; height: 28px; cursor: pointer; color: var(--muted); }
-.e-step.feito .t b { text-decoration: line-through; color: var(--muted); }
-.e-step.cliente .t b::after { content: "Equipe Bradesco"; margin-left: 6px; font-size: 10.5px; font-weight: 800; color: var(--st-aprovado); }
-
-/* gaveta de edição */
-.dr-fundo { position: fixed; inset: 0; z-index: 40; background: rgba(20, 18, 16, .35); }
-.dr { position: fixed; z-index: 41; top: 0; right: 0; bottom: 0; width: min(440px, 100%); background: var(--card); box-shadow: -20px 0 50px -20px rgba(0,0,0,.35); display: flex; flex-direction: column; }
-.dr header { display: flex; align-items: center; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
-.dr header h2 { margin: 0; font-size: 17px; flex: 1; }
-.dr header button { border: 0; background: var(--surface); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 18px; }
-.dr form { padding: 16px 18px; overflow: auto; display: grid; gap: 14px; flex: 1; align-content: start; }
-.dr label { display: grid; gap: 5px; font-size: 12.5px; font-weight: 800; color: var(--muted); }
-.dr input, .dr select, .dr textarea { font-size: 14px; padding: 8px 10px; color: var(--fg); }
-.dr textarea { min-height: 70px; resize: vertical; font: inherit; }
-.dr .linha { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.dr .resp { display: flex; flex-wrap: wrap; gap: 6px; }
-.dr .resp label { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); font-size: 13px; color: var(--fg); cursor: pointer; font-weight: 700; }
-.dr .resp label:has(input:checked) { border-color: var(--c); background: color-mix(in srgb, var(--c) 14%, var(--card)); }
-.dr .resp input { margin: 0; accent-color: var(--fg); }
-.dr .chk { display: flex; align-items: center; gap: 8px; color: var(--fg); font-weight: 600; font-size: 13.5px; }
-.dr .deps { font-size: 12.5px; color: var(--muted); font-weight: 600; }
-.dr footer { display: flex; gap: 8px; padding: 14px 18px; border-top: 1px solid var(--line); align-items: center; flex-wrap: wrap; }
-.dr footer .ok { margin-left: auto; }
-.dr footer a { font-size: 13px; color: var(--muted); }
-.btn.perigo { color: var(--danger); }
-/* seleção em grupo */
-.marcado { outline: 2px solid var(--fg) !important; outline-offset: 1px; }
-.l-row.marcado, .e-step.marcado { background: color-mix(in srgb, var(--fg) 7%, var(--card)); }
-.e-step.marcado { outline-offset: -2px; border-radius: 8px; }
-.laco { position: fixed; z-index: 30; border: 1.5px solid var(--fg); background: color-mix(in srgb, var(--fg) 8%, transparent); border-radius: 6px; pointer-events: none; }
-#ed.lacando, #ed.lacando * { user-select: none; cursor: crosshair; }
-.ed-dica { margin: 0 0 8px; font-size: 12px; color: var(--muted); }
-.ed-dica kbd { font: 700 11px var(--font); padding: 0 5px; border-radius: 5px; border: 1px solid var(--line); background: var(--card); }
-.grupo { position: fixed; left: 50%; bottom: 16px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; z-index: 55; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 10px 12px; border-radius: 16px; background: var(--card); box-shadow: 0 18px 50px -14px rgba(0,0,0,.4), 0 0 0 1px var(--line); max-width: calc(100% - 24px); transition: .18s; }
-.grupo.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
-.grupo b { font-size: 14px; margin-right: 4px; }
-.grupo button, .grupo select, .grupo input { font-size: 13px; padding: 6px 9px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; }
-.grupo label { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); font-weight: 700; }
-.grupo .x { border: 0; background: none; font-size: 18px; color: var(--muted); padding: 2px 6px; }
-.grupo.on ~ .ed-toast, body:has(.grupo.on) .ed-toast { bottom: 86px; }
-.ed-toast { position: fixed; left: 50%; bottom: 20px; transform: translate(-50%, 20px); opacity: 0; z-index: 60; display: flex; gap: 12px; align-items: center; padding: 10px 14px 10px 16px; border-radius: 14px; background: var(--fg); color: var(--accent-fg); font-size: 14px; transition: .2s; pointer-events: none; max-width: calc(100% - 32px); }
-.ed-toast.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
-.ed-toast button { border: 0; background: none; color: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
-</style>
+<link rel="stylesheet" href="ui.css?v=1">
 
 <section id="ed" hidden aria-label="Cronograma da equipe">
   <div class="ed-bar">
-    <div class="seg" id="ed-modo" role="group" aria-label="Modo">
-      <button type="button" data-v="lista">Lista</button>
-      <button type="button" data-v="cal">Calendário</button>
-      <button type="button" data-v="linha">Linha do tempo</button>
-      <button type="button" data-v="entrega">Por entrega</button>
+    <div class="ed-l1">
+      <div class="u-seg" id="ed-modo" role="group" aria-label="Modo">
+        <button type="button" data-v="lista"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>Lista</button>
+        <button type="button" data-v="cal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Calendário</button>
+        <button type="button" data-v="linha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h9M8 12h12M6 18h8"/></svg>Linha do tempo</button>
+        <button type="button" data-v="entrega"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/></svg>Por entrega</button>
+      </div>
+      <label class="u-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input class="u-field" type="search" id="ed-busca" placeholder="Buscar tarefa, entrega ou pessoa" aria-label="Buscar tarefa"></label>
+      <button type="button" class="u-btn primary" id="ed-novo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nova tarefa</button>
     </div>
-    <select id="ed-bloco" aria-label="Filtrar por entrega"><option value="">Todas as entregas</option></select>
-    <input type="search" id="ed-busca" placeholder="Buscar tarefa" aria-label="Buscar tarefa">
-    <label class="chk"><input type="checkbox" id="ed-feitas"> Esconder concluídas</label>
-    <label class="chk" title="Ao mudar a data de uma tarefa, as que dependem dela (Blocked by) andam junto, em dias úteis"><input type="checkbox" id="ed-empurra" checked> Mover as seguintes junto</label>
-    <button type="button" class="btn novo" id="ed-novo">+ Nova tarefa</button>
+    <div class="ed-l2">
+      <select id="ed-bloco" class="u-field sm" aria-label="Filtrar por entrega"><option value="">Todas as entregas</option></select>
+      <div class="pessoas" id="ed-pessoas" role="group" aria-label="Filtrar por pessoa"></div>
+      <div class="ed-opc">
+      <label class="u-sw"><input type="checkbox" id="ed-feitas"><span></span>Esconder concluídas</label>
+      <label class="u-sw" title="Ao mudar a data de uma tarefa, as que dependem dela (Blocked by) andam junto, em dias úteis"><input type="checkbox" id="ed-empurra" checked><span></span>Mover as seguintes junto</label>
+      <div class="u-seg sm" id="ed-dens" role="group" aria-label="Densidade"><button type="button" data-d="conf">Confortável</button><button type="button" data-d="comp">Compacto</button></div>
+      </div>
+    </div>
   </div>
-  <div class="pessoas" id="ed-pessoas" role="group" aria-label="Filtrar por pessoa"></div>
   <p class="ed-st" id="ed-st"><i></i><span>Carregando a agenda do Notion…</span></p>
-  <p class="ed-dica">Para mudar várias de uma vez: <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + clique marca uma a uma, <kbd>Shift</kbd> + clique marca a sequência, ou arraste num espaço vazio para laçar. <kbd>Esc</kbd> limpa.</p>
+  <p class="ed-dica">Para mudar várias de uma vez: <span class="u-kbd">⌘</span>/<span class="u-kbd">Ctrl</span> + clique marca uma a uma, <span class="u-kbd">Shift</span> + clique marca a sequência, ou arraste num espaço vazio para laçar. <span class="u-kbd">Esc</span> limpa. · <a href="elementos.html" target="_blank" rel="noopener">Elementos da interface ↗</a></p>
   <div id="ed-view"></div>
 </section>
 <div class="grupo" id="ed-grupo" role="toolbar" aria-label="Mudar as tarefas marcadas">
   <b id="g-n"></b>
-  <button type="button" data-g-passo="-1" title="Todas um dia útil antes">‹ 1 dia</button><button type="button" data-g-passo="1" title="Todas um dia útil depois">1 dia ›</button>
-  <label>Começar em <input type="date" id="g-dia" aria-label="Mover o grupo para começar neste dia"></label>
-  <select id="g-status" aria-label="Status das marcadas"><option value="">Status…</option></select>
-  <select id="g-resp" aria-label="Responsável das marcadas"><option value="">Responsável…</option></select>
-  <button type="button" id="g-feito">Concluir</button>
-  <button type="button" class="x" id="g-limpa" aria-label="Limpar seleção" title="Limpar seleção (Esc)">×</button>
+  <button type="button" class="u-btn sm" data-g-passo="-1" title="Todas um dia útil antes">‹ 1 dia</button><button type="button" class="u-btn sm" data-g-passo="1" title="Todas um dia útil depois">1 dia ›</button>
+  <label>Começar em <input type="date" class="u-field sm" id="g-dia" aria-label="Mover o grupo para começar neste dia"></label>
+  <select class="u-field sm" id="g-status" aria-label="Status das marcadas"><option value="">Status…</option></select>
+  <select class="u-field sm" id="g-resp" aria-label="Responsável das marcadas"><option value="">Responsável…</option></select>
+  <button type="button" class="u-btn sm primary" id="g-feito">Concluir</button>
+  <button type="button" class="u-btn sm ghost icon x" id="g-limpa" aria-label="Limpar seleção" title="Limpar seleção (Esc)">×</button>
 </div>
 <div class="ed-toast" id="ed-toast" role="status" aria-live="polite"><span></span></div>
 
@@ -1254,7 +1072,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   // ── estado ──
   let F = null, mcp = null;   // F: peças do Controle (Notion, planilha, cronograma)
   let T = [];                 // tarefas
-  const st = { modo: lsGet("fbc-ed-modo") || "lista", bloco: "", q: "", pessoas: new Set(), feitas: lsGet("fbc-ed-feitas") === "1", empurra: lsGet("fbc-ed-empurra") !== "0", agrupa: lsGet("fbc-ed-agrupa") || "entrega", dia: null, atrasadas: false };
+  const st = { modo: lsGet("fbc-ed-modo") || "lista", bloco: "", q: "", pessoas: new Set(), feitas: lsGet("fbc-ed-feitas") === "1", empurra: lsGet("fbc-ed-empurra") !== "0", agrupa: lsGet("fbc-ed-agrupa") || "entrega", lgrupo: lsGet("fbc-ed-lgrupo") || "dia", dens: lsGet("fbc-ed-dens") || "conf", dia: null, atrasadas: false };
   let pendentes = 0, ultimaLeitura = null, erro = null, desfazer = null;
   // seleção em grupo
   const SEL = new Set(); let ancora = null;
@@ -1452,7 +1270,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     sel.value = v;
     $("#g-status").innerHTML = `<option value="">Status…</option>` + OPC.status.map((s) => `<option>${esc(s)}</option>`).join("");
     $("#g-resp").innerHTML = `<option value="">Responsável…</option>` + OPC.resp.map((p) => `<option value="${esc(p)}">${esc(p === "Cliente" ? "Equipe Bradesco" : p)}</option>`).join("");
-    $("#ed-pessoas").innerHTML = OPC.resp.map((p) => `<button type="button" data-p="${esc(p)}" aria-pressed="${st.pessoas.has(p)}" style="--c:${CORES[p] || "var(--st-edicao)"}"><i></i>${esc(p === "Cliente" ? "Equipe Bradesco" : p)}</button>`).join("");
+    $("#ed-pessoas").innerHTML = OPC.resp.map((p) => `<button type="button" class="u-person" data-p="${esc(p)}" aria-pressed="${st.pessoas.has(p)}" style="--c:${CORES[p] || "var(--st-edicao)"}">${av(p)}${esc(nomeP(p))}</button>`).join("");
   }
   function visiveis() {
     const q = st.q.toLowerCase();
@@ -1468,6 +1286,13 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   }
   const excesso = (m, d) => LIMITE.filter((p) => (m.get(d + "|" + p) || 0) > 2).map((p) => `${p}: ${m.get(d + "|" + p)} tarefas`);
   const sub = (t) => [t.resp.map((p) => (p === "Cliente" ? "Equipe Bradesco" : p)).join(", "), t.etapa, t.bloco].filter(Boolean).join(" · ");
+  // peças da biblioteca (ui.css): avatar de pessoa, status colorido, intervalo de data e hora
+  const INI = { Carlei: "CA", Mateus: "MT", Rafaim: "RF", Erick: "ER", "Maví": "MV", Cliente: "EB" };
+  const nomeP = (p) => (p === "Cliente" ? "Equipe Bradesco" : p);
+  const av = (p) => `<span class="u-av" style="--c:${CORES[p] || "var(--st-edicao)"}" title="${esc(nomeP(p))}">${INI[p] || esc(String(p).slice(0, 2).toUpperCase())}</span>`;
+  const slug = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, "-");
+  const dtHTML = (t) => `<div class="u-dt"><input type="date" value="${t.ini.d}" data-campo="dia" aria-label="Data de início">${t.ini.h ? `<input type="time" value="${t.ini.h}" data-campo="h0" aria-label="Hora de início">` : ""}<span class="ar">→</span><input type="date" value="${t.fim.d}" data-campo="dia1" aria-label="Data de fim">${t.ini.h ? `<input type="time" value="${t.fim.h || ""}" data-campo="h1" aria-label="Hora de fim">` : ""}</div>`;
+  const chipHTML = (t) => `<button type="button" class="chip${cls(t)}${ehMarco(t) ? " marco" : ""}" draggable="true" data-id="${t.id}" data-abre="${t.id}" style="--c:${cor(t)}" title="${esc(t.titulo + " · " + sub(t))}">${t.ini.h ? `<span class="h">${t.ini.h}</span>` : ""}${esc(t.titulo)}</button>`;
 
   // ── modos ──
   function render() {
@@ -1476,48 +1301,70 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     const L = visiveis();
     if (!T.length) { v.innerHTML = `<p class="ed-vazio">${erro ? "A agenda não carregou." : "Carregando…"}</p>`; return; }
     if (!L.length) { v.innerHTML = `<p class="ed-vazio">Nenhuma tarefa com esses filtros.</p>`; return; }
+    $("#ed").classList.toggle("comp", st.dens === "comp");
+    document.querySelectorAll("#ed-dens [data-d]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.d === st.dens));
+    document.documentElement.style.setProperty("--ed-bar-h", ($(".ed-bar")?.offsetHeight || 96) + "px");
     v.innerHTML = ({ lista: vLista, cal: vCal, linha: vLinha, entrega: vEntrega })[st.modo](L);
     if (st.modo === "linha") ligaLinha();
     marcaSel();
   }
 
-  function vLista(L) {
-    const m = cargas(), dias = [...new Set(L.map((t) => t.ini.d))];
+  function vLista(L, soLinhas) {
+    const m = cargas();
     const opt = (arr, v) => arr.map((o) => `<option${o === v ? " selected" : ""}>${esc(o)}</option>`).join("") + (v && !arr.includes(v) ? `<option selected>${esc(v)}</option>` : "");
-    return dias.map((d) => {
-      const ex = excesso(m, d);
-      return `<div class="l-dia${d === hojeIso ? " hoje" : ""}"><h3>${WDL[D(d).getDay()]}, ${dm(d)}</h3>${FER[d] ? `<span>${FER[d]}</span>` : ""}${ex.map((x) => `<span class="carga">${esc(x)}</span>`).join("")}</div>
-      <div class="l-tab">${L.filter((t) => t.ini.d === d).map((t) => `<div class="l-row${cls(t)}" data-id="${t.id}" style="--c:${cor(t)}"><i></i>
-        <div class="l-tit"><input value="${esc(t.titulo)}" data-campo="titulo" aria-label="Atividade"><small>${atrasada(t) ? `<b class="atr">atrasada</b> ` : ""}${esc(sub(t))}</small></div>
-        <div class="l-hora"><input type="date" value="${t.ini.d}" data-campo="dia" aria-label="Dia">${t.ini.h ? `<input type="time" value="${t.ini.h}" data-campo="h0" aria-label="Início"> – <input type="time" value="${t.fim.h || ""}" data-campo="h1" aria-label="Fim">${t.fim.d !== t.ini.d ? `<span>até ${dm(t.fim.d)}</span>` : ""}` : t.fim.d !== t.ini.d ? `<span>até ${dm(t.fim.d)}</span>` : "<span>dia todo</span>"}</div>
+    const linha = (t) => `<div class="l-row${cls(t)}" data-id="${t.id}" style="--c:${cor(t)}">
+        <div class="l-tit"><input value="${esc(t.titulo)}" data-campo="titulo" aria-label="Atividade"><small>${t.resp.length ? `<span class="u-avs">${t.resp.map(av).join("")}</span>` : ""}${atrasada(t) ? `<b class="atr">atrasada</b>` : ""}<span>${esc([t.etapa, t.bloco].filter(Boolean).join(" · "))}</span></small></div>
+        <div class="l-hora">${dtHTML(t)}</div>
         ${linkBt(t)}
-        <select class="l-st" data-campo="status" aria-label="Status">${opt(OPC.status, t.status)}</select>
-        <button type="button" class="mais" data-abre="${t.id}" aria-label="Editar tudo" title="Editar tudo">⋯</button></div>`).join("")}</div>`;
-    }).join("");
+        <select class="u-st" data-st="${slug(t.status)}" data-campo="status" aria-label="Status">${opt(OPC.status, t.status)}</select>
+        <button type="button" class="mais" data-abre="${t.id}" aria-label="Editar tudo" title="Editar tudo">⋯</button></div>`;
+    const g = soLinhas ? "dia" : st.lgrupo;
+    let grupos;
+    if (g === "entrega") grupos = [...new Set(L.map((t) => t.bloco || "Sem entrega"))].map((b) => ({ cab: `<h3>${esc(b)}</h3>`, ts: L.filter((t) => (t.bloco || "Sem entrega") === b) }));
+    else if (g === "pessoa") grupos = OPC.resp.filter((p) => L.some((t) => t.resp.includes(p))).map((p) => ({ cab: `${av(p)}<h3>${esc(nomeP(p))}</h3>`, ts: L.filter((t) => t.resp.includes(p)) }));
+    else grupos = [...new Set(L.map((t) => t.ini.d))].map((d) => ({ d, cab: `<h3>${WDL[D(d).getDay()]}, ${dm(d)}</h3>${FER[d] ? `<span class="u-tag">${FER[d]}</span>` : ""}${excesso(m, d).map((x) => `<span class="carga">${esc(x)}</span>`).join("")}`, ts: L.filter((t) => t.ini.d === d) }));
+    const barra = soLinhas ? "" : `<div class="ed-sub">Agrupar por <div class="u-seg sm" role="group" aria-label="Agrupar a lista">${[["dia", "Dia"], ["entrega", "Entrega"], ["pessoa", "Pessoa"]].map(([k, r]) => `<button type="button" data-lg="${k}" aria-pressed="${g === k}">${r}</button>`).join("")}</div></div>`;
+    return barra + grupos.map((x) => `<div class="l-dia${x.d === hojeIso ? " hoje" : ""}">${x.cab}<span class="n">${x.ts.length}</span></div><div class="l-tab">${x.ts.map(linha).join("")}</div>`).join("");
   }
 
   function vCal(L) {
-    const ds = L.map((t) => t.ini.d).sort();
+    const ds = L.map((t) => t.ini.d).sort(), fs = L.map((t) => t.fim.d).sort();
     // começa na semana passada (o que já foi fica para a lista); se tudo for antes disso, no começo
     let ini = addDias(hojeIso, -7);
     if (ds[0] > ini) ini = ds[0];
-    if (ds.at(-1) < ini) ini = ds[0];
-    const fim = ds.at(-1) > ini ? ds.at(-1) : ini;
-    const m = cargas();
+    if (fs.at(-1) < ini) ini = ds[0];
+    const fim = fs.at(-1) > ini ? fs.at(-1) : ini;
+    const m = cargas(), varios = (t) => t.fim.d !== t.ini.d;
     const x = D(ini); x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
-    let html = `<div class="cal">${["seg", "ter", "qua", "qui", "sex", "sáb", "dom"].map((d, i) => `<div class="dow${i > 4 ? " fds" : ""}">${d}</div>`).join("")}`;
-    for (let primeiro = true; iso(x) <= fim || x.getDay() !== 1; x.setDate(x.getDate() + 1), primeiro = false) {
-      const s = iso(x), w = x.getDay(), doDia = L.filter((t) => t.ini.d === s), ex = excesso(m, s);
-      const rot = primeiro || x.getDate() === 1 ? ` <small>${MES[x.getMonth()].slice(0, 3)}</small>` : "";
-      html += `<div class="cel${w === 0 || w === 6 ? " fds" : ""}${FER[s] ? " fer" : ""}${s < hojeIso ? " passado" : ""}${s === hojeIso ? " hoje" : ""}${s === st.dia ? " sel" : ""}" data-dia="${s}">
-        <span class="n"><b>${x.getDate()}${rot}</b>${ex.length ? `<span class="carga" title="${esc(ex.join(" · "))}">!</span>` : ""}<button type="button" class="add" data-novo="${s}" aria-label="Nova tarefa em ${dm(s)}">+</button></span>
-        ${FER[s] ? `<span class="fer-n">${FER[s]}</span>` : ""}
-        ${doDia.map((t) => `<button type="button" class="chip${cls(t)}${ehMarco(t) ? " marco" : ""}" draggable="true" data-id="${t.id}" data-abre="${t.id}" style="--c:${cor(t)}" title="${esc(t.titulo + " · " + sub(t))}">${t.ini.h ? `${t.ini.h} ` : ""}${esc(t.titulo)}</button>`).join("")}
-      </div>`;
+    let html = `<div class="cal2"><div class="cal2-dow">${["seg", "ter", "qua", "qui", "sex", "sáb", "dom"].map((d) => `<div>${d}</div>`).join("")}</div>`;
+    for (let primeiro = true; iso(x) <= fim; x.setDate(x.getDate() + 7), primeiro = false) {
+      const sem = Array.from({ length: 7 }, (_, k) => { const y = new Date(x); y.setDate(y.getDate() + k); return iso(y); });
+      const s0 = sem[0], s6 = sem[6];
+      // faixas: cada tarefa de vários dias ocupa uma linha da semana, sem se sobrepor
+      const faixas = [];
+      const barras = L.filter((t) => varios(t) && t.ini.d <= s6 && t.fim.d >= s0)
+        .sort((a, b) => a.ini.d.localeCompare(b.ini.d) || b.fim.d.localeCompare(a.fim.d))
+        .map((t) => {
+          const a = sem.indexOf(t.ini.d < s0 ? s0 : t.ini.d), b = sem.indexOf(t.fim.d > s6 ? s6 : t.fim.d);
+          let f = faixas.findIndex((ult) => ult < a); if (f < 0) { f = faixas.length; faixas.push(b); } else faixas[f] = b;
+          return { t, a, b, f };
+        });
+      html += `<div class="wk" style="--lanes:${faixas.length}">`;
+      sem.forEach((s, k) => {
+        const dd = D(s), w = dd.getDay(), fds = w === 0 || w === 6, ex = excesso(m, s);
+        const rot = (primeiro && k === 0) || dd.getDate() === 1 ? `<small>${MES[dd.getMonth()].slice(0, 3)}</small>` : "";
+        html += `<div class="cel${fds ? " fds" : ""}${FER[s] ? " fer" : ""}${s < hojeIso ? " passado" : ""}${s === hojeIso ? " hoje" : ""}${s === st.dia ? " sel" : ""}" data-dia="${s}" style="grid-column:${k + 1}"></div>`
+          + `<div class="n${s === hojeIso ? " hoje" : ""}${fds ? " fds" : ""}" style="grid-column:${k + 1}"><b>${dd.getDate()}</b>${rot}${FER[s] ? `<span class="fer-n">${FER[s]}</span>` : ""}${ex.length ? `<span class="carga" title="${esc(ex.join(" · "))}">!</span>` : ""}<button type="button" class="add" data-novo="${s}" aria-label="Nova tarefa em ${dm(s)}">+</button></div>`
+          + `<div class="dch${fds ? " fds" : ""}${s < hojeIso ? " passado-op" : ""}" style="grid-column:${k + 1};grid-row:${faixas.length + 2}">${L.filter((t) => !varios(t) && t.ini.d === s).map(chipHTML).join("")}</div>`;
+      });
+      barras.forEach(({ t, a, b, f }) => {
+        html += `<button type="button" class="chip bar${cls(t)}${t.ini.d < s0 ? " cont-l" : ""}${t.fim.d > s6 ? " cont-r" : ""}" draggable="true" data-id="${t.id}" data-abre="${t.id}" style="--c:${cor(t)};grid-column:${a + 1} / ${b + 2};grid-row:${f + 2}" title="${esc(`${t.titulo} · ${dm(t.ini.d)}${t.ini.h ? " " + t.ini.h : ""} → ${dm(t.fim.d)}${t.fim.h ? " " + t.fim.h : ""} · ${sub(t)}`)}">${t.ini.d >= s0 && t.ini.h ? `<span class="h">${t.ini.h}</span>` : ""}<span class="t">${esc(t.titulo)}</span><span class="dur">${difUteis(t.ini.d, t.fim.d) + 1}d</span></button>`;
+      });
+      html += `</div>`;
     }
     html += `</div>`;
-    const sel = st.dia && L.filter((t) => t.ini.d === st.dia);
-    return `<p class="ed-st" style="margin:6px 0 10px">Arraste uma tarefa para outro dia. Clique para editar.</p>` + html + (sel && sel.length ? `<div class="dia-sel">${vLista(sel)}</div>` : "");
+    const sel = st.dia && L.filter((t) => t.ini.d <= st.dia && t.fim.d >= st.dia);
+    return `<p class="ed-sub">Tarefas de vários dias aparecem numa barra só. Arraste para outro dia; clique para editar.</p>` + html + (sel && sel.length ? `<div class="dia-sel">${vLista(sel, true)}</div>` : "");
   }
 
   const W = 46; // largura de um dia útil na linha do tempo
@@ -1594,11 +1441,11 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     return `<div class="ent">${ordem.map((b) => {
       const ts = L.filter((t) => (t.bloco || "Sem entrega") === b);
       const feitas = ts.filter(feito).length;
-      return `<section class="e-card"><h3>${esc(b)}<small>${feitas}/${ts.length} concluídas · ${dm(ts[0].ini.d)} a ${dm(ts.map((t) => t.fim.d).sort().at(-1))}</small></h3>
+      return `<section class="e-card"><h3>${esc(b)}<small>${feitas}/${ts.length} concluídas · ${dm(ts[0].ini.d)} a ${dm(ts.map((t) => t.fim.d).sort().at(-1))}</small></h3><div class="e-prog"><i style="width:${Math.round((feitas / ts.length) * 100)}%"></i></div>
         ${ts.map((t) => `<div class="e-step${cls(t)}${doCliente(t) ? " cliente" : ""}" data-id="${t.id}" style="--c:${cor(t)}">
           <input type="checkbox" data-campo="feito"${feito(t) ? " checked" : ""} aria-label="Concluída">
-          <div class="t"><b data-abre="${t.id}">${esc(t.titulo)}</b><span><i></i>${esc(t.resp.join(", ") || "—")} · ${WD[D(t.ini.d).getDay()]} ${dm(t.ini.d)}${t.ini.h ? " " + t.ini.h : ""}${t.fim.d !== t.ini.d ? " → " + dm(t.fim.d) : ""}</span></div>
-          <div class="q">${linkBt(t)}<button type="button" data-passo="-1" aria-label="Um dia útil antes" title="Um dia útil antes">‹</button><input type="date" value="${t.ini.d}" data-campo="dia" aria-label="Dia"><button type="button" data-passo="1" aria-label="Um dia útil depois" title="Um dia útil depois">›</button></div>
+          <div class="t"><b data-abre="${t.id}">${esc(t.titulo)}</b><span>${t.resp.length ? `<span class="u-avs">${t.resp.map(av).join("")}</span>` : "—"} ${WD[D(t.ini.d).getDay()]} ${dm(t.ini.d)}${t.ini.h ? " " + t.ini.h : ""}${t.fim.d !== t.ini.d ? " → " + WD[D(t.fim.d).getDay()] + " " + dm(t.fim.d) + (t.fim.h ? " " + t.fim.h : "") : ""}</span></div>
+          <div class="q">${linkBt(t)}<button type="button" class="u-btn sm icon" data-passo="-1" aria-label="Um dia útil antes" title="Um dia útil antes">‹</button><input type="date" class="u-field sm" value="${t.ini.d}" data-campo="dia" aria-label="Dia"><button type="button" class="u-btn sm icon" data-passo="1" aria-label="Um dia útil depois" title="Um dia útil depois">›</button></div>
         </div>`).join("")}</section>`;
     }).join("")}</div>`;
   }
@@ -1618,15 +1465,15 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
         <label>Atividade<input name="titulo" required value="${esc(t.titulo)}"></label>
         <div class="linha"><label>Início<input type="date" name="d0" required value="${t.ini.d}"></label><label>Hora<input type="time" name="h0" value="${t.ini.h || ""}"${t.ini.h ? "" : " disabled"}></label></div>
         <div class="linha"><label>Fim<input type="date" name="d1" required value="${t.fim.d}"></label><label>Hora<input type="time" name="h1" value="${t.fim.h || ""}"${t.ini.h ? "" : " disabled"}></label></div>
-        <label class="chk"><input type="checkbox" name="todo"${t.ini.h ? "" : " checked"}> Dia todo (sem horário)</label>
-        <div><label>Responsável</label><div class="resp">${OPC.resp.map((p) => `<label style="--c:${CORES[p] || "var(--st-edicao)"}"><input type="checkbox" name="resp" value="${esc(p)}"${t.resp.includes(p) ? " checked" : ""}>${esc(p === "Cliente" ? "Equipe Bradesco" : p)}</label>`).join("")}</div></div>
+        <label class="chk u-sw"><input type="checkbox" name="todo"${t.ini.h ? "" : " checked"}><span></span>Dia todo (sem horário)</label>
+        <div><label>Responsável</label><div class="resp">${OPC.resp.map((p) => `<label style="--c:${CORES[p] || "var(--st-edicao)"}"><input type="checkbox" name="resp" value="${esc(p)}"${t.resp.includes(p) ? " checked" : ""}>${av(p)}${esc(nomeP(p))}</label>`).join("")}</div></div>
         <div class="linha"><label>Etapa<select name="etapa">${opt(OPC.etapa, t.etapa, "—")}</select></label><label>Status<select name="status">${opt(OPC.status, t.status)}</select></label></div>
         <label>Entrega<select name="bloco">${opt(OPC.bloco, t.bloco, "—")}</select></label>
         <label>Link${PARA_CLIENTE.test(t.titulo) ? " (aparece no cronograma do cliente)" : ""}<input type="url" name="link" value="${esc(t.link || "")}" placeholder="https://…"></label>
         <label>Observações<textarea name="obs">${esc(t.obs)}</textarea></label>
         ${nova ? "" : `<p class="deps">${dep.length ? `Depende de: ${dep.map((x) => esc(x.titulo)).join("; ")}.` : "Não depende de outra tarefa."}${seg.length ? ` ${seg.length} ${seg.length === 1 ? "tarefa depende" : "tarefas dependem"} desta${st.empurra ? " e andam junto se a data mudar" : ""}.` : ""}</p>`}
       </form>
-      <footer>${nova ? "" : `<a href="${esc(t.url)}" target="_blank" rel="noopener">Abrir no Notion ↗</a>${window.claude?.fora ? `<button type="button" class="btn perigo" data-lixo>Excluir</button>` : ""}`}<button type="button" class="btn x">Cancelar</button><button type="button" class="btn ok">Salvar</button></footer>`;
+      <footer>${nova ? "" : `<a href="${esc(t.url)}" target="_blank" rel="noopener">Abrir no Notion ↗</a>${window.claude?.fora ? `<button type="button" class="u-btn sm danger" data-lixo>Excluir</button>` : ""}`}<button type="button" class="u-btn ghost x">Cancelar</button><button type="button" class="u-btn primary ok">Salvar</button></footer>`;
     document.body.append(fundo, dr);
     const f = dr.querySelector("form");
     dr.querySelector("[name=titulo]").focus();
@@ -1685,12 +1532,14 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     $("#ed-empurra").checked = st.empurra; $("#ed-empurra").addEventListener("change", (e) => { st.empurra = e.target.checked; lsSet("fbc-ed-empurra", st.empurra ? "1" : "0"); });
     $("#ed-pessoas").addEventListener("click", (e) => { const b = e.target.closest("[data-p]"); if (!b) return; const p = b.dataset.p; st.pessoas.has(p) ? st.pessoas.delete(p) : st.pessoas.add(p); b.setAttribute("aria-pressed", st.pessoas.has(p)); render(); });
     $("#ed-novo").addEventListener("click", () => abre(null, st.dia));
+    $("#ed-dens").addEventListener("click", (e) => { const b = e.target.closest("[data-d]"); if (!b) return; st.dens = b.dataset.d; lsSet("fbc-ed-dens", st.dens); render(); });
     $("#ed-st").addEventListener("click", (e) => { if (e.target.id === "ed-recarrega") carrega(); if (e.target.id === "ed-atrasadas") { st.atrasadas = !st.atrasadas; status(); render(); } });
     ed.addEventListener("click", (e) => {
       if (laçou) { laçou = false; return; } // o clique que fecha um laço não abre nada
       const it = e.target.closest(ITEM);
       if (it && (e.metaKey || e.ctrlKey || e.shiftKey) && !e.target.closest("input, select, textarea")) { e.preventDefault(); alterna(it.dataset.id, e.shiftKey); return; }
       const g = e.target.closest("[data-g]"); if (g) { st.agrupa = g.dataset.g; lsSet("fbc-ed-agrupa", st.agrupa); render(); return; }
+      const lg = e.target.closest("[data-lg]"); if (lg) { st.lgrupo = lg.dataset.lg; lsSet("fbc-ed-lgrupo", st.lgrupo); render(); return; }
       const n = e.target.closest("[data-novo]"); if (n) { abre(null, n.dataset.novo); return; }
       const lk = e.target.closest("[data-link]"); if (lk) { const t = T.find((x) => x.id === lk.dataset.link); if (t) popLink(t, lk); return; }
       const a = e.target.closest("[data-abre]");
@@ -1714,6 +1563,12 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       }
       if (campo === "feito") grava([{ t, patch: { status: el.checked ? "Concluído" : "A fazer" } }], el.checked ? "Marcada como concluída" : "Voltou para A fazer");
       if (campo === "dia" && el.value && el.value !== t.ini.d) moveData(t, { d: el.value, h: t.ini.h });
+      if (campo === "dia1" && el.value && el.value !== t.fim.d) {
+        // muda só o fim: a tarefa fica mais longa ou mais curta
+        const h = t.fim.h || t.ini.h;
+        if (el.value < t.ini.d || (el.value === t.ini.d && t.ini.h && h && h <= t.ini.h)) { el.value = t.fim.d; aviso("O fim precisa ser depois do início."); return; }
+        grava([{ t, patch: { ini: t.ini, fim: { d: el.value, h } } }], `“${t.titulo}” agora até ${dm(el.value)}`);
+      }
       if (campo === "h0" && el.value) {
         // mantém a duração; no mesmo dia, o fim não passa das 23:59
         const mesmoDia = t.fim.d === t.ini.d;
@@ -1730,10 +1585,12 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     ed.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.dataset.campo === "titulo") e.target.blur(); });
     // arrastar no calendário
     ed.addEventListener("dragstart", (e) => { const c = e.target.closest(".chip"); if (!c) return; e.dataTransfer.setData("text/plain", c.dataset.id); e.dataTransfer.effectAllowed = "move"; });
-    ed.addEventListener("dragover", (e) => { const c = e.target.closest(".cel[data-dia]"); if (!c) return; e.preventDefault(); document.querySelectorAll(".cel.alvo").forEach((x) => x !== c && x.classList.remove("alvo")); c.classList.add("alvo"); });
+    // no calendário as barras ficam por cima dos dias: o dia é o que está sob o ponteiro
+    const celAt = (e) => e.target.closest(".cel[data-dia]") || document.elementsFromPoint(e.clientX, e.clientY).find((n) => n.matches?.(".cel[data-dia]"));
+    ed.addEventListener("dragover", (e) => { const c = celAt(e); if (!c) return; e.preventDefault(); document.querySelectorAll(".cel.alvo").forEach((x) => x !== c && x.classList.remove("alvo")); c.classList.add("alvo"); });
     ed.addEventListener("dragleave", (e) => { const c = e.target.closest(".cel"); if (c && !c.contains(e.relatedTarget)) c.classList.remove("alvo"); });
     ed.addEventListener("drop", (e) => {
-      const c = e.target.closest(".cel[data-dia]"); if (!c) return; e.preventDefault(); c.classList.remove("alvo");
+      const c = celAt(e); if (!c) return; e.preventDefault(); c.classList.remove("alvo");
       const t = T.find((x) => x.id === e.dataTransfer.getData("text/plain")); if (!t || t.ini.d === c.dataset.dia) return;
       if (SEL.has(t.id) && SEL.size > 1) return moveVarias(doGrupo(), difUteis(t.ini.d, c.dataset.dia));
       moveData(t, { d: c.dataset.dia, h: t.ini.h });
