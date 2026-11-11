@@ -1055,6 +1055,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   const addDias = (s, n) => { const x = D(s); x.setDate(x.getDate() + n); return iso(x); };
   const util = (s) => { const w = D(s).getDay(); return w > 0 && w < 6 && !FER[s]; };
   const addUteis = (s, n) => { let x = s; const p = n < 0 ? -1 : 1; let k = Math.abs(n); while (k > 0) { x = addDias(x, p); if (util(x)) k--; } return x; };
+  const utilAte = (s, p) => { let x = s; while (!util(x)) x = addDias(x, p); return x; }; // o próprio dia, se útil; senão o próximo útil no sentido p
   const difUteis = (a, b) => { if (a === b) return 0; const p = b > a ? 1 : -1; let x = a, n = 0; while (x !== b) { x = addDias(x, p); if (util(x)) n += p; } return n; };
   const dm = (s) => s.slice(8, 10) + "/" + s.slice(5, 7);
   const minutos = (h) => +h.slice(0, 2) * 60 + +h.slice(3, 5);
@@ -1673,10 +1674,11 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       const ponta = e.target.closest("[data-rz]")?.dataset.rz || null;
       const x0 = e.clientX, y0 = e.clientY, pecas = [...ed.querySelectorAll(`.cal2 .chip[data-id="${t.id}"]`)];
       let ativo = false, alvo = null;
+      // solto num sábado, domingo ou feriado, vale o dia útil mais perto no sentido do arrasto
       const novo = (dia) => {
-        if (ponta === "fim") return { ini: t.ini.d, fim: dia < t.ini.d ? t.ini.d : dia };
-        if (ponta === "ini") return { ini: dia > t.fim.d ? t.fim.d : dia, fim: t.fim.d };
-        const i = addDias(t.ini.d, diasEntre(dia0, dia));
+        if (ponta === "fim") { const f = utilAte(dia, -1); return { ini: t.ini.d, fim: f < t.ini.d ? t.ini.d : f }; }
+        if (ponta === "ini") { const i = utilAte(dia, 1); return { ini: i > t.fim.d ? t.fim.d : i, fim: t.fim.d }; }
+        const n = diasEntre(dia0, dia), i = utilAte(addDias(t.ini.d, n), n < 0 ? -1 : 1);
         return { ini: i, fim: addUteis(i, difUteis(t.ini.d, t.fim.d)) };
       };
       const pinta = (r) => ed.querySelectorAll(".cel[data-dia]").forEach((c) => c.classList.toggle(ponta ? "prev" : "alvo", !!r && c.dataset.dia >= r.ini && c.dataset.dia <= r.fim));
