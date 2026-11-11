@@ -15,7 +15,7 @@
 <style>
 /* Layout: uma coluna de trabalho — resumo de status no topo, filtros fixos, lista de filmes agrupada por formato. */
 :root {
-  /* neutros quentes; o roxo do livro fica só no título e no status V2 */
+  /* neutros quentes; o roxo do livro fica só no título e no status do offline */
   --bg: #F6F5F2;
   --card: #FFFFFF;
   --surface: #EFEDE9;
@@ -280,7 +280,7 @@ header .dobra p { margin-top: 6px; }
       <button type="button" class="sync-now" id="sync-now" aria-label="Sincronizar agora" title="Sincronizar agora"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></svg></button>
     </div>
     <details class="dobra" data-lembrar="fb-controle-sobre" open><summary>Como funciona</summary>
-    <p>Os 41 filmes do site do livro Fundação Bradesco 70 anos. Cole o link de cada filme e marque o status: o link vai para o site e o status aparece para o cliente no <a id="crono-open" target="_blank" rel="noopener">cronograma</a>, sozinhos. Quando um filme vai para o cliente (V2 ou online), use “Mensagem para o cliente”: ela já sai com o link do filme, o cronograma e o prazo do retorno.</p>
+    <p>Os 41 filmes do site do livro Fundação Bradesco 70 anos. Cole o link de cada filme e marque o status: o link vai para o site e o status aparece para o cliente no <a id="crono-open" target="_blank" rel="noopener">cronograma</a>, sozinhos. Quando um filme vai para o cliente (offline ou online), use “Mensagem para o cliente”: ela já sai com o link do filme, o cronograma e o prazo do retorno.</p>
     </details>
   </header>
 
@@ -324,7 +324,7 @@ header .dobra p { margin-top: 6px; }
   // O caminho de cada filme até o cliente aprovar. Os mesmos nomes aparecem no cronograma do cliente.
   const STATUS = [
     ["edicao", "Em edição", "--st-edicao"],
-    ["v2", "V2 com o cliente", "--st-v2"],
+    ["v2", "Offline com o cliente", "--st-v2"],
     ["ajustes", "Ajustes do retorno", "--st-ajustes"],
     ["offline", "Offline aprovado", "--st-offline"],
     ["finalizacao", "Em finalização", "--st-finalizacao"],
@@ -341,7 +341,7 @@ header .dobra p { margin-top: 6px; }
   const SHEET_ID = "1dZp8HV-64v5ewc0LzdnE4A7Luu1ikMGapbtg848Mnh4";
   const SHEET_ROW = {"placeholder":2,"documentario":3,"trailer":4,"visita-conceicao-do-araguaia":5,"visita-jaboatao":6,"visita-gravatai":7,"visita-canuana":8,"visita-bodoquena":9,"visita-osasco":10,"pilula-elza-lima-1":11,"pilula-elza-lima-2":12,"pilula-elza-lima-3":13,"pilula-nti-uira-1":14,"pilula-nti-uira-2":15,"pilula-nti-uira-3":16,"pilula-patricia-brasil-1":17,"pilula-patricia-brasil-2":18,"pilula-patricia-brasil-3":19,"pilula-renato-parada-1":20,"pilula-renato-parada-2":21,"pilula-renato-parada-3":22,"pilula-vilma-slomp-1":23,"pilula-vilma-slomp-2":24,"pilula-vilma-slomp-3":25,"pilula-mariana-valente-1":26,"pilula-mariana-valente-2":27,"pilula-mariana-valente-3":28,"pilula-pedro-kok-1":29,"pilula-pedro-kok-2":30,"pilula-pedro-kok-3":31,"pilula-lalo-de-almeida-1":32,"pilula-lalo-de-almeida-2":33,"pilula-lalo-de-almeida-3":34,"pilula-edgar-azevedo-1":35,"pilula-edgar-azevedo-2":36,"pilula-edgar-azevedo-3":37,"pilula-fabio-bartelt-1":38,"pilula-fabio-bartelt-2":39,"pilula-fabio-bartelt-3":40,"pilula-maira-erlich-1":41,"pilula-maira-erlich-2":42,"pilula-maira-erlich-3":43};
   const SHEETS = "Google Sheets";
-  // Ligação com o site e com o cronograma do cliente (datas do cronograma: V2, retorno e online de cada filme)
+  // Ligação com o site e com o cronograma do cliente (datas do cronograma: offline, retorno e online de cada filme)
   const SITE = "https://mavissimo.github.io/ai/fundacao-bradesco-70/";
   const CRONO = SITE + "cronograma.html";
   const GRUPOS = {"elza-lima":{"nome":"Elza Lima","tipo":"pilula","v2":"2026-11-09","rev":"2026-11-10","on":"2026-11-27","junto":"conceicao-do-araguaia"},"nti-uira":{"nome":"Ntí Uirá","tipo":"pilula","v2":"2026-11-12","rev":"2026-11-13","on":"2026-12-09","junto":"jaboatao"},"renato-parada":{"nome":"Renato Parada","tipo":"pilula","v2":"2026-11-24","rev":"2026-11-25","on":"2026-12-15","junto":"gravatai"},"pedro-kok":{"nome":"Pedro Kok","tipo":"pilula","v2":"2026-11-30","rev":"2026-12-01","on":"2026-12-21","junto":"bodoquena"},"mariana-valente":{"nome":"Mariana Valente","tipo":"pilula","v2":"2026-12-04","rev":"2026-12-07","on":"2026-12-28","junto":"canuana"},"fabio-bartelt":{"nome":"Fábio Bartelt","tipo":"pilula","junto":"osasco","v2":"2026-12-11","rev":"2026-12-14","on":"2027-01-04"},"patricia-brasil":{"nome":"Patricia Brasil","tipo":"pilula","v2":"2026-12-15","rev":"2026-12-16","on":"2027-01-06"},"maira-erlich":{"nome":"Maíra Erlich","tipo":"pilula","v2":"2026-12-16","rev":"2026-12-17","on":"2027-01-08"},"edgar-azevedo":{"nome":"Edgar Azevedo","tipo":"pilula","v2":"2026-12-18","rev":"2026-12-21","on":"2027-01-12"},"lalo-de-almeida":{"nome":"Lalo de Almeida","tipo":"pilula","v2":"2026-12-23","rev":"2026-12-24","on":"2027-01-14"},"vilma-slomp":{"nome":"Vilma Slomp","tipo":"pilula","v2":"2026-12-28","rev":"2026-12-29","on":"2027-01-18"},"conceicao-do-araguaia":{"nome":"Conceição do Araguaia","tipo":"visita","v2":"2026-11-09","rev":"2026-11-10","on":"2026-11-27"},"jaboatao":{"nome":"Jaboatão dos Guararapes","tipo":"visita","v2":"2026-11-12","rev":"2026-11-13","on":"2026-12-09"},"gravatai":{"nome":"Gravataí","tipo":"visita","v2":"2026-11-24","rev":"2026-11-25","on":"2026-12-15"},"bodoquena":{"nome":"Fazenda Bodoquena","tipo":"visita","v2":"2026-11-30","rev":"2026-12-01","on":"2026-12-21"},"canuana":{"nome":"Canuanã","tipo":"visita","v2":"2026-12-04","rev":"2026-12-07","on":"2026-12-28"},"osasco":{"nome":"Osasco","tipo":"visita","v2":"2026-12-08","rev":"2026-12-09","on":"2026-12-30"},"documentario":{"nome":"Documentário","tipo":"documentario","v2":"2026-11-19","rev":"2026-11-23","on":"2026-12-01"},"trailer":{"nome":"Trailer","tipo":"trailer","v2":"2026-11-25","rev":"2026-11-26","on":"2026-12-07"}};
@@ -359,7 +359,7 @@ header .dobra p { margin-top: 6px; }
     const st = norm(f.status);
     if (st === "online") return `Olá! Está pronto para conferência o online de: ${quem}, já com cor, som e legendas.\n${site}\n\nO cronograma está aqui: ${crono}`;
     if (st === "aprovado" || st === "entregue") return `Olá! Aprovado: ${quem}. Obrigado! O cronograma com o fechamento está aqui:\n${crono}`;
-    return `Olá! Já está no site a V2 de: ${quem}.\n${site}\n\nPrecisamos do seu retorno até ${quando(g.rev)}, numa devolutiva única. O cronograma, com todas as etapas, está aqui:\n${crono}`;
+    return `Olá! Já está no site o offline de: ${quem}: a montagem, ainda sem cor e som.\n${site}\n\nPrecisamos do seu retorno até ${quando(g.rev)}, numa devolutiva única. O cronograma, com todas as etapas, está aqui:\n${crono}`;
   }
   async function copiar(texto, ok) {
     try { await navigator.clipboard.writeText(texto); toast(ok); }
@@ -475,7 +475,7 @@ header .dobra p { margin-top: 6px; }
   // Registro da Equipe Bradesco no cronograma (aba "Registro" da planilha: "bloco|versão|ação|quando")
   let registro = {}; // "bloco|v2" ou "bloco|on" -> { aberto, aprovado, quando }
   const blocoDoVideo = (vid) => { const g = grupoDe(vid); return GRUPOS[g]?.junto || g; };
-  const NOME_V = { v2: "a V2", on: "o online" };
+  const NOME_V = { v2: "o offline", on: "o online" };
   const dmCurto = (t) => { const d = new Date(t); return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`; };
   async function lerRegistro() {
     if (!mcp) return;
@@ -764,7 +764,7 @@ header .dobra p { margin-top: 6px; }
   // um detalhe interno do Notion, como "Em revisão" da V1 enquanto aqui ainda é "Em edição").
   const NOTION_ST = {
     edicao: { st: "Em montagem", ok: (s) => ["A atualizar", "A iniciar", "Em montagem", "Em revisão", "Ajustes"].includes(s) },
-    v2: { st: "Em revisão", ver: "V2", ok: (s, v) => s === "Em revisão" && /v2/i.test(v) },
+    v2: { st: "Em revisão", ver: "V2", ok: (s, v) => s === "Em revisão" && /v2|offline/i.test(v) },
     ajustes: { st: "Ajustes", ok: (s) => s === "Ajustes" },
     offline: { st: "Offline aprovado", ok: (s) => s === "Offline aprovado" },
     finalizacao: { st: "Em finalização", ok: (s) => s === "Em finalização" },
@@ -833,14 +833,14 @@ header .dobra p { margin-top: 6px; }
     const filmes = [];
     for (const B of BLOCOS) {
       const L = R.filter((r) => r.bs.includes(B.id));
-      const v2 = L.find((r) => /^(Enviar V2|Entrega V2)/i.test(r.a))?.s;                      // a V2 do bloco vai ao cliente
-      const rev = L.find((r) => (r.et === "Revisão cliente" && !/online/i.test(r.a)) || /^Revisão (do cliente · )?V2/i.test(r.a))?.s;
+      const v2 = L.find((r) => /^(Enviar (V2|offline)|Entrega V2)/i.test(r.a))?.s;          // o offline do bloco vai ao cliente
+      const rev = L.find((r) => (r.et === "Revisão cliente" && !/online/i.test(r.a)) || /^Revisão (do cliente · )?(V2|Offline)/i.test(r.a))?.s;
       const ret = L.find((r) => /^Revisão do cliente · Online/i.test(r.a))?.s;                     // retorno do online, filme a filme
       const ent = L.filter((r) => r.et === "Entrega" && /^Entregar/i.test(r.a)).map((r) => r.s).at(-1); // o filme vai pronto para o cliente
       // links colados na agenda da equipe que o cliente abre no cronograma dele
       const lk = (re) => L.filter((r) => re.test(r.a) && /^https?:\/\//i.test(r.lk)).map((r) => r.lk).at(-1);
-      const links = Object.fromEntries([["v2", lk(/^Enviar V2/i)], ["on", lk(/^Conferir e entregar online/i)], ["ent", lk(/^Entregar ao cliente/i)]].filter(([, v]) => v));
-      const off = L.filter((r) => r.et === "Offline").map((r) => r.s).at(-1);                 // offline do bloco todo liberado
+      const links = Object.fromEntries([["v2", lk(/^Enviar (V2|offline)/i)], ["on", lk(/^Conferir e entregar online/i)], ["ent", lk(/^Entregar ao cliente/i)]].filter(([, v]) => v));
+      const off = L.filter((r) => r.et === "Offline aprovado" || /^(Offline aprovado|Conferir versão final)/i.test(r.a)).map((r) => r.s).at(-1); // offline aprovado: o bloco vai para a cor
       const fins = L.filter((r) => r.et === "Cor" || r.et === "Áudio" || r.et === "Finalização"); // cor e áudio em paralelo, depois a finalização
       const on = L.filter((r) => r.et === "Online" && !/^Conferir online/i.test(r.a)).map((r) => r.s).at(-1); // "Conferir online" é interno
       if (!v2 || !rev || !off || !fins.length || !on) continue; // incompleto no Notion: o cronograma mantém o que tinha
@@ -1122,10 +1122,10 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   const feito = (t) => FEITO.test(t.status);
   const atrasada = (t) => !feito(t) && t.fim.d < hojeIso;
   const cls = (t) => (feito(t) ? " feito" : atrasada(t) ? " atrasada" : "");
-  const ehMarco = (t) => /^(Enviar V2|Entrega final|Prazo final)/i.test(t.titulo);
+  const ehMarco = (t) => /^(Enviar (V2|offline)|Entrega final|Prazo final)/i.test(t.titulo);
   const ehEdicao = (t) => /^(Edição|Editar V1)/i.test(t.titulo); // o fim da edição é a entrega da V1: o link dela fica aqui
-  // os links de V2, online e entrega aparecem no cronograma do cliente; os outros ficam só com a equipe
-  const PARA_CLIENTE = /^(Enviar V2|Conferir e entregar online|Entregar ao cliente)/i;
+  // os links do offline, do online e da entrega aparecem no cronograma do cliente; os outros ficam só com a equipe
+  const PARA_CLIENTE = /^(Enviar (V2|offline)|Conferir e entregar online|Entregar ao cliente)/i;
   // botão de link em toda tarefa: abre uma pop pequena para colar, abrir ou apagar
   const ICONE_LINK = `<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>`;
   const linkBt = (t) => `<span class="lk"><button type="button" class="lk-bt${t.link ? " tem" : ""}${PARA_CLIENTE.test(t.titulo) ? " cli" : ""}" data-link="${t.id}" aria-label="${t.link ? "Link" : "Adicionar link"}" title="${t.link ? esc(t.link) : PARA_CLIENTE.test(t.titulo) ? "Adicionar link (vai para o cliente)" : ehEdicao(t) ? "Link da V1" : "Adicionar link"}">${ICONE_LINK}</button>${t.link ? `<a class="lk-abre" href="${esc(t.link)}" target="_blank" rel="noopener" title="Abrir o link" aria-label="Abrir o link">↗</a>` : ""}</span>`;
@@ -1403,7 +1403,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
   st.zoom = Math.max(0, Math.min(ZOOM.length - 1, parseInt(lsGet("fbc-ed-zoom") ?? 4, 10) || 0));
   let W = ZOOM[st.zoom], tlRolagem = null, pinca = 0;
   const nivel = () => (W >= 90 ? "h" : W >= 34 ? "l" : W >= 16 ? "m" : "s");
-  const CURTO = { Montagem: "Edição", "V1 B": "V1 B", "Revisão interna": "Rev. interna", Ajustes: "Ajustes", "Revisão cliente": "Cliente", "Versão final": "Versão final", Offline: "Offline", Cor: "Cor", "Áudio": "Áudio", "Finalização": "Finalização", Online: "Online", V2: "V2", V1: "V1" };
+  const CURTO = { Montagem: "Edição", "V1 B": "V1 B", "Revisão interna": "Rev. interna", Ajustes: "Ajustes", "Revisão cliente": "Cliente", "Versão final": "Versão final", Offline: "Offline", "Offline aprovado": "Off. aprovado", Cor: "Cor", "Áudio": "Áudio", "Finalização": "Finalização", Online: "Online", V2: "V2", V1: "V1" };
   const rotuloBarra = (t) => (st.agrupa === "pessoa" ? t.titulo.replace(/ · .*/, "") + " · " + (t.bloco || "").replace(/ \/ .*/, "") : CURTO[t.etapa] || t.etapa || t.titulo);
   const fracao = (h, def) => (h ? Math.max(0, Math.min(1, (minutos(h) - 480) / 720)) : def);
   let dias = [];

@@ -1,6 +1,6 @@
 // Cronograma da pós para o cliente, a partir da "Agenda diária" do Notion
 // (Fundação Bradesco 70 anos | Pós-produção). Só entra o que o cliente acompanha: o cliente recebe
-// cada filme na V2; antes disso a edição e a V1 são internas (aparecem só como contexto).
+// cada filme no offline; antes disso a edição, a V1 e a V2 são internas (aparecem só como contexto).
 // Reserva: o cronograma lê as datas da aba "Cronograma" da planilha, que o Controle dos Filmes preenche a partir do Notion.
 window.CRONO = {
   atualizado: "2026-11-08",
@@ -9,7 +9,7 @@ window.CRONO = {
   feriados: { "2026-11-02": "Finados", "2026-11-20": "Consciência Negra", "2026-12-25": "Natal", "2027-01-01": "Ano-novo", "2027-01-25": "Aniversário de São Paulo" },
 
   // Blocos de entrega: cidade + fotógrafo (visita + 3 pílulas), só as 3 pílulas, documentário e trailer.
-  // ed = [início, fim] da edição interna até a V2; fin = [início, fim] de cor e som; fot = fotógrafo do bloco da cidade.
+  // ed = [início, fim] da edição interna até o offline; fin = [início, fim] de cor e som; fot = fotógrafo do bloco da cidade.
   filmes: [
     { id: "conceicao-do-araguaia", nome: "Conceição do Araguaia", uf: "PA", tipo: "bloco", fot: { id: "elza-lima", nome: "Elza Lima" }, ed: ["2026-10-23", "2026-11-12"], v2: "2026-11-13", rev: "2026-11-18", off: "2026-11-19", fin: ["2026-11-20", "2026-11-23"], on: "2026-11-24", ret: "2026-11-25", ent: "2026-11-26" },
     { id: "jaboatao", nome: "Jaboatão dos Guararapes", uf: "PE", tipo: "bloco", fot: { id: "nti-uira", nome: "Ntí Uirá" }, ed: ["2026-10-29", "2026-11-12"], v2: "2026-11-13", rev: "2026-11-18", off: "2026-11-19", fin: ["2026-11-20", "2026-11-23"], on: "2026-11-24", ret: "2026-11-25", ent: "2026-11-26" },

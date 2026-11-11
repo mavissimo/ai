@@ -25,14 +25,14 @@ function boot() {
   // ── Etapas (cores das bolinhas do livro) ──
   const STEP = {
     ed: { label: "Edição", c: "var(--c-ed)", bar: true, desc: "Montagem, V1 e ajustes internos" },
-    v2: { label: "V2 chega para a Equipe Bradesco", short: "V2", c: "var(--c-v2)", desc: "O filme montado, para a revisão da Equipe Bradesco" },
-    rev: { label: "Retorno da V2", short: "Retorno", c: "var(--c-rev)", you: true, desc: "Uma devolutiva consolidada, até a data indicada" },
+    v2: { label: "Offline chega para a Equipe Bradesco", short: "Offline", c: "var(--c-v2)", desc: "O filme montado, ainda sem cor e som, para a revisão da Equipe Bradesco" },
+    rev: { label: "Retorno do offline", short: "Retorno", c: "var(--c-rev)", you: true, desc: "Uma devolutiva consolidada, até a data indicada" },
     fin: { label: "Som, cor e finalização", short: "Som e cor", c: "var(--c-fin)", bar: true, desc: "Som, cor, grafismos e legendas" },
     on: { label: "Online para conferência", short: "Online", c: "var(--c-on)", desc: "O filme finalizado, para a Equipe Bradesco conferir" },
     ret: { label: "Retorno do online", short: "Retorno do online", c: "var(--c-rev)", you: true, desc: "Um retorno sobre o filme finalizado, até a data indicada" },
     ent: { label: "Filme entregue", short: "Entrega", c: "var(--c-fim)", desc: "A versão final, com os ajustes do retorno" },
   };
-  const ORDER = ["ed", "v2", "rev", "fin", "on", "ret", "ent"]; // o offline é passagem interna: o cliente não vê
+  const ORDER = ["ed", "v2", "rev", "fin", "on", "ret", "ent"]; // a liberação para a cor é passagem interna: o cliente não vê
   window.__liveI = (f) => window.__fbLive?.[f.id];
 
   // a entrega é por bloco: cidade + fotógrafo (visita + 3 pílulas), só as 3 pílulas, documentário ou trailer
@@ -74,7 +74,7 @@ function boot() {
   // ── Andamento real, vindo do Controle dos Filmes (planilha pública: coluna A = id, F = status) ──
   // Os mesmos status do Controle; o índice diz até onde o filme já andou.
   const ANDA = [
-    ["edicao", "Em edição"], ["v2", "V2 com o cliente"], ["ajustes", "Ajustes do retorno"], ["offline", "Offline aprovado"],
+    ["edicao", "Em edição"], ["v2", "Offline com o cliente"], ["ajustes", "Ajustes do retorno"], ["offline", "Offline aprovado"],
     ["finalizacao", "Em finalização"], ["online", "Online com o cliente"], ["aprovado", "Aprovado"], ["entregue", "Entregue"],
   ];
   const ANDA_I = Object.fromEntries(ANDA.map(([k, l], i) => [l.toLowerCase(), i]));
@@ -104,15 +104,15 @@ function boot() {
   // etapa do cronograma -> andamento mínimo que a dá por cumprida
   const FEITO = { ed: 1, v2: 1, rev: 2, fin: 5, on: 6, ret: 6, ent: 7 };
   const siteLink = (f) => SITE + ({ bloco: `#/escola/${f.id}`, pilula: `#/fotografo/${f.id}`, visita: `#/escola/${f.id}`, documentario: "#/filme/documentario", trailer: "#/filme/trailer" })[f.tipo];
-  const AGORA = ["Em edição", "V2 com a Equipe Bradesco · aguardando o retorno", "Retorno recebido · ajustes em andamento", "Ajustes feitos · indo para cor e som", "Em cor e som", "Online para a Equipe Bradesco conferir", "Aprovado", "Entregue"];
+  const AGORA = ["Em edição", "Offline com a Equipe Bradesco · aguardando o retorno", "Retorno recebido · ajustes em andamento", "Ajustes feitos · indo para cor e som", "Em cor e som", "Online para a Equipe Bradesco conferir", "Aprovado", "Entregue"];
   // ── Assistir à versão atual: abre no player do projeto; link do Frame.io abre numa nova janela ──
-  const VERSAO = [null, "à V2", "à V2", "à versão com os ajustes", "à versão com os ajustes", "ao online", "à versão aprovada", "à versão final"];
+  const VERSAO = [null, "ao offline", "ao offline", "à versão com os ajustes", "à versão com os ajustes", "ao online", "à versão aprovada", "à versão final"];
   const isFrameio = (u) => /(^|\.)(frame\.io|f\.io)\//i.test(u.replace(/^https?:\/\//, ""));
   function watchBtn(f, dark) {
     const i = live[f.id], vs = links[f.id] || [];
     const v = (i ?? 0) >= 5 || (!linkBloco(f, "v2") && linkBloco(f, "on")) ? "on" : "v2", lb = linkBloco(f, v);
-    if (lb && !(i && vs.length)) return `<a class="watch${dark ? " dark" : ""}" href="${esc(lb)}" target="_blank" rel="noopener" data-abre="${f.id}|${v}">▶ Assistir ${v === "on" ? "ao online" : "à V2"} <span aria-hidden="true">↗</span>${isFrameio(lb) ? "<small>abre no Frame.io</small>" : ""}</a>`;
-    if (!i || !vs.length) return ""; // antes da V2 o cliente não vê nada
+    if (lb && !(i && vs.length)) return `<a class="watch${dark ? " dark" : ""}" href="${esc(lb)}" target="_blank" rel="noopener" data-abre="${f.id}|${v}">▶ Assistir ${v === "on" ? "ao online" : "ao offline"} <span aria-hidden="true">↗</span>${isFrameio(lb) ? "<small>abre no Frame.io</small>" : ""}</a>`;
+    if (!i || !vs.length) return ""; // antes do offline o cliente não vê nada
     const fio = vs.find((v) => isFrameio(v.url));
     const label = `▶ Assistir ${VERSAO[i]}`;
     return fio
@@ -125,10 +125,10 @@ function boot() {
   const REG = window.FB_REGISTRO;
   const tocaNoPlayer = (u) => /vimeo\.com|youtu\.?be|dropbox\.com|\.(mp4|m4v|mov|webm)(\?|#|$)/i.test(u);
   const versaoAtual = (f) => ((live[f.id] ?? 0) >= 5 ? "on" : "v2");
-  const NOME_V = { v2: "a V2", on: "o online" };
+  const NOME_V = { v2: "o offline", on: "o online" };
   const dmIso = (t) => dm(iso(new Date(t)));
   const chegou = (f, v) => (live[f.id] ?? -1) >= (v === "v2" ? 1 : 5) || f[v] <= TODAY || !!f.links?.[v]; // pelo Controle, pela data ou pelo link na agenda
-  // link colado pela equipe na agenda (Enviar V2, online, entrega): vale sozinho, sem esperar o andamento do Controle
+  // link colado pela equipe na agenda (Enviar offline, online, entrega): vale sozinho, sem esperar o andamento do Controle
   const linkBloco = (f, v) => f.links?.[v] || "";
   const disponivel = (f, v) => { if (linkBloco(f, v)) return true; const i = live[f.id] ?? -1; return !!(links[f.id] || []).length && (v === "v2" ? i >= 1 && i <= 4 : i >= 5); };
   const txtAberto = (f, v) => { const r = REG.get(f.id, v); return r.aberto ? `Aberto em ${dmIso(r.aberto)}` : disponivel(f, v) ? "Ainda não aberto" : ""; };
@@ -140,7 +140,7 @@ function boot() {
       const vs = links[f.id], fora = vs.find((x) => isFrameio(x.url)) || vs.find((x) => !tocaNoPlayer(x.url)); // fora do player: abre o link
       acao = fora
         ? `<a class="watch sm" href="${esc(fora.url)}" target="_blank" rel="noopener" data-abre="${f.id}|${v}">${isFrameio(fora.url) ? "Abrir no Frame.io" : `Abrir ${NOME_V[v]}`} <span aria-hidden="true">↗</span></a>`
-        : `<button type="button" class="watch sm" data-watch="${f.id}" data-abre="${f.id}|${v}">▶ Assistir ${v === "v2" ? "à V2" : "ao online"}</button>`;
+        : `<button type="button" class="watch sm" data-watch="${f.id}" data-abre="${f.id}|${v}">▶ Assistir ${v === "v2" ? "ao offline" : "ao online"}</button>`;
     } else acao = `<span class="rc-soon">${chegou(f, v) ? (REG.get(f.id, v).aberto ? "" : "O link chega em breve") : noDia ? "" : `Chega ${wd(f[v])}, ${dm(f[v])}`}</span>`;
     const r = REG.get(f.id, v);
     return `<div class="rc">${comChip ? filmChip(f) : ""}<div class="rc-a">${acao}<span class="rc-st${r.aberto ? " ok" : ""}" data-aberto="${f.id}|${v}">${txtAberto(f, v)}</span></div></div>`;
@@ -153,7 +153,7 @@ function boot() {
   function acaoHTML(f, dark) {
     const v = versaoAtual(f);
     if (!chegou(f, v)) return "";
-    return `<div class="acao${dark ? " dark" : ""}"><p class="acao-k">${v === "v2" ? "V2" : "Online"} para a Equipe Bradesco</p>${recebHTML(f, v, false)}${checkHTML(f, v, false)}</div>`;
+    return `<div class="acao${dark ? " dark" : ""}"><p class="acao-k">${v === "v2" ? "Offline" : "Online"} para a Equipe Bradesco</p>${recebHTML(f, v, false)}${checkHTML(f, v, false)}</div>`;
   }
   // atualiza o que já está na tela, sem redesenhar (a ficha aberta continua aberta)
   function pintaRegistro() {
@@ -206,7 +206,7 @@ function boot() {
     if (trayAba && !P[trayAba].length) trayAba = null;
     // itens com o mesmo prazo (ou a mesma chegada) ficam juntos, com o texto uma vez só
     const grupos = (lista, chave) => { const m = new Map(); lista.forEach((x) => { const k = chave(x); if (!m.has(k)) m.set(k, []); m.get(k).push(x); }); return [...m.entries()]; };
-    const V = (v) => (v === "v2" ? "V2" : "Online");
+    const V = (v) => (v === "v2" ? "Offline" : "Online");
     const rows = !trayAba ? ""
       : trayAba === "aprovar" ? grupos(P.aprovar, (x) => `${V(x.v)} · ${x.late ? "atrasado, era até" : "até"} ${wd(x.prazo)}, ${dm(x.prazo)}|${x.late ? 1 : 0}`).map(([k, g]) =>
           `<div class="tr-row${k.endsWith("|1") ? " late" : ""}"><span class="tr-prazo">${k.split("|")[0]}</span><div class="rcs">${g.map((x) => checkHTML(x.f, x.v)).join("")}</div></div>`).join("")
@@ -230,7 +230,7 @@ function boot() {
     const c = e.target.closest("[data-aprova]"); if (!c) return;
     const [id, v] = c.dataset.aprova.split("|");
     REG.registra(id, v, c.checked ? "aprovado" : "desmarcado");
-    toast(c.checked ? `${NOME_V[v] === "a V2" ? "V2" : "Online"} aprovado. Obrigado!` : "Aprovação desmarcada");
+    toast(c.checked ? `${v === "v2" ? "Offline" : "Online"} aprovado. Obrigado!` : "Aprovação desmarcada");
   });
   function assistir(id) {
     const f = byId[id], vs = links[id] || [], i = live[id];
@@ -243,7 +243,7 @@ function boot() {
   function liveBox(f, dark, comBotao = true) {
     const i = live[f.id];
     if (i == null) return "";
-    const txt = i === 0 ? `Preparando a V2 · chega ${wd(f.v2)}, ${dm(f.v2)}` : AGORA[i];
+    const txt = i === 0 ? `Preparando o offline · chega ${wd(f.v2)}, ${dm(f.v2)}` : AGORA[i];
     return `<div class="live${dark ? " dark" : ""}"><span class="live-dot" style="--c:${["var(--c-v2)", "var(--c-v2)", "var(--c-rev)", "var(--c-fin)", "var(--c-fin)", "var(--c-on)", "var(--c-fim)", "var(--c-fim)"][i]}"></span><span><small>Agora</small>${esc(txt)}</span>${comBotao ? watchBtn(f, dark) : ""}</div>`;
   }
 
@@ -256,15 +256,15 @@ function boot() {
 
   function stats() {
     const nextV2 = C.filmes.filter((f) => f.v2 >= TODAY).sort((a, b) => a.v2.localeCompare(b.v2))[0];
-    // o próximo retorno da Equipe Bradesco: da V2 ou do online, o que vier antes
+    // o próximo retorno da Equipe Bradesco: do offline ou do online, o que vier antes
     const nextRev = C.filmes.flatMap((f) => ["rev", "ret"].filter((k) => f[k] >= TODAY).map((k) => ({ ...f, rev: f[k] }))).sort((a, b) => a.rev.localeCompare(b.rev))[0];
     const recebidos = C.filmes.filter((f) => f.v2 < TODAY).length;
     const entregues = C.filmes.filter((f) => (live[f.id] ?? -1) >= 7).length;
     $("#stats").innerHTML = `
       <div><dt>Vídeos</dt><dd>41<small>33 pílulas · 6 visitas · doc · trailer</small></dd></div>
-      <div><dt>Próxima V2</dt><dd>${nextV2 ? `${dm(nextV2.v2)}<small>${esc(nomeFilme(nextV2))}</small>` : "Todas entregues"}</dd></div>
+      <div><dt>Próximo offline</dt><dd>${nextV2 ? `${dm(nextV2.v2)}<small>${esc(nomeFilme(nextV2))}</small>` : "Todos entregues"}</dd></div>
       <div><dt>Próximo retorno da Equipe Bradesco</dt><dd>${nextRev ? `${dm(nextRev.rev)}<small>${esc(nomeFilme(nextRev))}</small>` : "—"}</dd></div>
-      <div><dt>Prazo final</dt><dd>${dm(C.fim)}<small>${entregues ? `${entregues} de ${C.filmes.length} entregas feitas` : `${recebidos} de ${C.filmes.length} filmes já na V2`}</small></dd></div>`;
+      <div><dt>Prazo final</dt><dd>${dm(C.fim)}<small>${entregues ? `${entregues} de ${C.filmes.length} entregas feitas` : `${recebidos} de ${C.filmes.length} filmes já no offline`}</small></dd></div>`;
   }
   stats();
 
@@ -303,7 +303,7 @@ function boot() {
       }
       const s = STEP[e.k];
       // o filme em destaque; a etapa vira um rótulo pequeno em cima.
-      // V2 e online são recebimentos (abrir a versão); o retorno da V2 tem o check de aprovado.
+      // offline e online são recebimentos (abrir a versão); o retorno do offline tem o check de aprovado.
       const receb = e.k === "v2" || e.k === "on";
       const rcs = `rcs${g.length > 3 ? " duas" : ""}`; // muitos filmes no mesmo dia: duas colunas
       const corpo = receb ? `<div class="${rcs}">${g.map((x) => recebHTML(x.f, e.k, true, true)).join("")}</div>`
@@ -436,7 +436,7 @@ function boot() {
 
   // ── Por filme ──
   function trackHTML(f) {
-    const steps = stepsOf(f).filter((s) => s.k !== "ed"); // para o cliente, tudo começa na V2
+    const steps = stepsOf(f).filter((s) => s.k !== "ed"); // para o cliente, tudo começa no offline
     const next = steps.find((s) => status(s) !== "done");
     return `<ol class="track">${steps.map((s) => {
       const st = STEP[s.k], stt = status(s);
@@ -459,7 +459,7 @@ function boot() {
   const parceiros = (f) => C.filmes.filter((x) => x !== f && (x.junto === f.id || f.junto === x.id));
   const juntoHTML = (f) => { const p = parceiros(f); return p.length ? `<p class="junto">Chega junto com ${p.map((x) => `<a href="#filme/${x.id}">${esc(nomeFilme(x))}</a>`).join(" e ")}</p>` : ""; };
 
-  // ── Destaque de um filme (link enviado com a V2) ──
+  // ── Destaque de um filme (link enviado com o offline) ──
   let focusId = null;
   function renderFocus(id) {
     focusId = id;
@@ -469,10 +469,10 @@ function boot() {
     const chegou = f.v2 <= TODAY || (live[f.id] ?? 0) >= 1; // pela data ou pelo Controle
     box.hidden = false;
     box.innerHTML = `<div class="focus-box">
-      <p class="k">${chegou ? "A V2 chegou" : `V2 em ${dm(f.v2)}`}</p>
+      <p class="k">${chegou ? "O offline chegou" : `Offline em ${dm(f.v2)}`}</p>
       <h2>${esc(nomeFilme(f))}</h2>
       ${juntoHTML(f)}${liveBox(f, true, false)}${acaoHTML(f, true)}
-      <p class="s">${chegou ? `Precisamos do retorno da Equipe Bradesco até <b>${wd(f.rev)}, ${dm(f.rev)}</b>, numa devolutiva única. Depois disso o filme segue para som, cor e finalização.` : `A V2 chega ${WDL[D(f.v2).getDay()]}, ${dm(f.v2)}. O retorno da Equipe Bradesco fica para ${dm(f.rev)}.`}</p>
+      <p class="s">${chegou ? `Precisamos do retorno da Equipe Bradesco até <b>${wd(f.rev)}, ${dm(f.rev)}</b>, numa devolutiva única. Depois disso o filme segue para som, cor e finalização.` : `O offline chega ${WDL[D(f.v2).getDay()]}, ${dm(f.v2)}. O retorno da Equipe Bradesco fica para ${dm(f.rev)}.`}</p>
       ${trackHTML(f)}
       <a class="all" href="#agenda">Ver o cronograma de todos os filmes →</a>
     </div>`;
@@ -486,7 +486,7 @@ function boot() {
       <h4>${esc(f.tipo === "bloco" ? nomeFilme(f) : filmTitle(f))}</h4>
       ${juntoHTML(f)}${liveBox(f, false, false)}
       ${trackHTML(f)}
-      ${acaoHTML(f) || `<div class="peek-acts"><span class="soon">A V2 chega ${wd(f.v2)}, ${dm(f.v2)}</span></div>`}
+      ${acaoHTML(f) || `<div class="peek-acts"><span class="soon">O offline chega ${wd(f.v2)}, ${dm(f.v2)}</span></div>`}
     </div></div>`;
   }
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -554,7 +554,7 @@ function boot() {
     const cp = e.target.closest("[data-copy]");
     if (cp) {
       const url = `${location.origin}${location.pathname}#filme/${cp.dataset.copy}`;
-      try { await navigator.clipboard.writeText(url); toast("Link copiado: é só mandar junto com a V2"); }
+      try { await navigator.clipboard.writeText(url); toast("Link copiado: é só mandar junto com o offline"); }
       catch { prompt("Copie o link:", url); }
     }
   });
