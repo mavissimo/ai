@@ -3,7 +3,7 @@
 // cada filme no offline; antes disso a edição, a V1 e a V2 são internas (aparecem só como contexto).
 // Reserva: o cronograma lê as datas da aba "Cronograma" da planilha, que o Controle dos Filmes preenche a partir do Notion.
 window.CRONO = {
-  atualizado: "2026-11-08",
+  atualizado: "2026-11-11",
   inicio: "2026-10-26",
   fim: "2026-12-11",
   feriados: { "2026-11-02": "Finados", "2026-11-20": "Consciência Negra", "2026-12-25": "Natal", "2027-01-01": "Ano-novo", "2027-01-25": "Aniversário de São Paulo" },
