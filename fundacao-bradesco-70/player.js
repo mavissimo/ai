@@ -1,7 +1,8 @@
 // Player do projeto: abre por cima de tudo, grande, com controles próprios na identidade do livro.
 // Fontes: Vimeo (pela API oficial player.js, com os controles do Vimeo escondidos), Dropbox e .mp4
 // (vídeo nativo). YouTube abre com os controles do próprio YouTube.
-// Uso: FBPlayer.open([{ titulo, kicker, url, cor, provisorio }], indice, { final, onClose, onMinimize })
+// Uso: FBPlayer.open([{ titulo, kicker, url, cor, provisorio }], indice, { final, onClose, onMinimize, crop })
+// crop: "4:3" mostra só o miolo 4:3 do quadro 16:9 (o cronograma usa, para o cliente ver o enquadramento final)
 // Minimizar deixa o vídeo tocando num miniplayer flutuante dentro do site, para seguir explorando o mapa.
 (() => {
   const ICON = {
@@ -431,6 +432,7 @@
   function open(list, i = 0, opts = {}) {
     state.list = list; state.opts = opts; state.lastFocus = document.activeElement;
     lb.hidden = false; setMini(false);
+    lb.classList.toggle("crop43", opts.crop === "4:3");
     requestAnimationFrame(() => lb.classList.add("in"));
     load(i);
     $(".lb-close").focus({ preventScroll: true });

@@ -22,6 +22,10 @@
 .lb.in .lb-frame { transform: none; }
 .lb-media, .lb-media iframe, .lb-media video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .lb-media video { object-fit: contain; background: #000; }
+/* recorte 4:3: a moldura fica 4:3 e o quadro 16:9 sobra igual para os dois lados (o vídeo nativo corta sozinho; o iframe fica 4/3 mais largo e centrado) */
+.lb.crop43 .lb-frame { width: min(100%, 1280px, calc((100dvh - 210px) * 4 / 3)); aspect-ratio: 4 / 3; }
+.lb.crop43 .lb-media video { object-fit: cover; }
+.lb.crop43 .lb-media iframe { width: 133.334%; left: -16.667%; }
 .lb-hit { position: absolute; inset: 0 0 120px; cursor: pointer; }
 .lb.is-external .lb-hit, .lb.is-external .lb-controls, .lb.is-external .lb-tools { display: none; }
 
@@ -179,7 +183,7 @@
 
 @media (max-width: 719px) {
   .lb { grid-template-rows: auto 1fr auto; }
-  .lb-frame { width: 100%; border-radius: 0; }
+  .lb-frame, .lb.crop43 .lb-frame { width: 100%; border-radius: 0; }
   .lb-stage { margin: 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); }
   .lb-btn { width: 38px; height: 38px; }
   .lb-vol { display: none; }

@@ -111,6 +111,7 @@ function boot() {
   function watchBtn(f, dark) {
     const i = live[f.id], vs = links[f.id] || [];
     const v = (i ?? 0) >= 5 || (!linkBloco(f, "v2") && linkBloco(f, "on")) ? "on" : "v2", lb = linkBloco(f, v);
+    if (lb && !(i && vs.length) && tocaNoPlayer(lb)) return `<button type="button" class="watch${dark ? " dark" : ""}" data-watch="${f.id}" data-url="${esc(lb)}" data-v="${v}" data-abre="${f.id}|${v}">▶ Assistir ${v === "on" ? "ao online" : "ao offline"}</button>`;
     if (lb && !(i && vs.length)) return `<a class="watch${dark ? " dark" : ""}" href="${esc(lb)}" target="_blank" rel="noopener" data-abre="${f.id}|${v}">▶ Assistir ${v === "on" ? "ao online" : "ao offline"} <span aria-hidden="true">↗</span>${isFrameio(lb) ? "<small>abre no Frame.io</small>" : ""}</a>`;
     if (!i || !vs.length) return ""; // antes do offline o cliente não vê nada
     const fio = vs.find((v) => isFrameio(v.url));
@@ -135,7 +136,8 @@ function boot() {
   function recebHTML(f, v, comChip = true, noDia = false) { // noDia: já está no dia da chegada, sem repetir a data
     let acao;
     const lb = linkBloco(f, v);
-    if (lb) acao = `<a class="watch sm" href="${esc(lb)}" target="_blank" rel="noopener" data-abre="${f.id}|${v}">${isFrameio(lb) ? "Abrir no Frame.io" : `Abrir ${NOME_V[v]}`} <span aria-hidden="true">↗</span></a>`;
+    if (lb && tocaNoPlayer(lb)) acao = `<button type="button" class="watch sm" data-watch="${f.id}" data-url="${esc(lb)}" data-v="${v}" data-abre="${f.id}|${v}">▶ Assistir ${NOME_V[v].replace(/^o /, "ao ")}</button>`;
+    else if (lb) acao = `<a class="watch sm" href="${esc(lb)}" target="_blank" rel="noopener" data-abre="${f.id}|${v}">${isFrameio(lb) ? "Abrir no Frame.io" : `Abrir ${NOME_V[v]}`} <span aria-hidden="true">↗</span></a>`;
     else if (disponivel(f, v)) {
       const vs = links[f.id], fora = vs.find((x) => isFrameio(x.url)) || vs.find((x) => !tocaNoPlayer(x.url)); // fora do player: abre o link
       acao = fora
@@ -232,13 +234,16 @@ function boot() {
     REG.registra(id, v, c.checked ? "aprovado" : "desmarcado");
     toast(c.checked ? `${v === "v2" ? "Offline" : "Online"} aprovado. Obrigado!` : "Aprovação desmarcada");
   });
-  function assistir(id) {
+  const CROP = { crop: "4:3" }; // o cliente vê o enquadramento final, 4:3, tirado do miolo do 16:9
+  function assistir(id, url, v) {
     const f = byId[id], vs = links[id] || [], i = live[id];
-    if (!f || !vs.length || !window.FBPlayer) return;
+    if (!f || !window.FBPlayer) return;
+    if (url) return window.FBPlayer.open([{ titulo: nomeFilme(f), kicker: `${f.nome} · ${v === "on" ? "online" : "offline"}`, url, cor: "var(--purple)" }], 0, CROP); // link colado na agenda
+    if (!vs.length) return;
     const ord = vs.slice().sort((a, b) => a.vid.localeCompare(b.vid));
-    window.FBPlayer.open(ord.map((v) => ({ titulo: v.titulo || nomeFilme(f), kicker: `${f.nome} · ${VERSAO[i].replace(/^(à|ao) /, "")}`, duracao: v.duracao, url: v.url, cor: "var(--purple)" })), 0);
+    window.FBPlayer.open(ord.map((v) => ({ titulo: v.titulo || nomeFilme(f), kicker: `${f.nome} · ${VERSAO[i].replace(/^(à|ao) /, "")}`, duracao: v.duracao, url: v.url, cor: "var(--purple)" })), 0, CROP);
   }
-  document.addEventListener("click", (e) => { const b = e.target.closest("[data-watch]"); if (b) { e.preventDefault(); assistir(b.dataset.watch); } });
+  document.addEventListener("click", (e) => { const b = e.target.closest("[data-watch]"); if (b) { e.preventDefault(); assistir(b.dataset.watch, b.dataset.url, b.dataset.v); } });
 
   function liveBox(f, dark, comBotao = true) {
     const i = live[f.id];
