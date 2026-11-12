@@ -234,7 +234,7 @@ function boot() {
     REG.registra(id, v, c.checked ? "aprovado" : "desmarcado");
     toast(c.checked ? `${v === "v2" ? "Offline" : "Online"} aprovado. Obrigado!` : "Aprovação desmarcada");
   });
-  const CROP = { crop: "4:3" }; // o cliente vê o enquadramento final, 4:3, tirado do miolo do 16:9
+  const CROP = /[?&]4x3\b/.test(location.search) ? { crop: "4:3" } : {}; // teste: com ?4x3 no endereço, o player mostra só o miolo 4:3 do 16:9
   function assistir(id, url, v) {
     const f = byId[id], vs = links[id] || [], i = live[id];
     if (!f || !window.FBPlayer) return;
