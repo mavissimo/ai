@@ -653,3 +653,14 @@ body { padding-bottom: 76px; }
 .rcs .rc-soon, .rcs .rc-ok { display: block; width: 196px; text-align: center; }
 @media (max-width: 560px) { .rcs .rc { grid-template-columns: 1fr; } .rcs .rc-soon, .rcs .rc-ok { width: auto; text-align: left; } }
 .how { position: relative; z-index: 30; }
+/* os retornos são com a Equipe Bradesco: a marca dela num círculo branco com anel amarelo, no lugar da bolinha */
+.steps li.you i.bd-m { display: grid; place-items: center; width: 34px; height: 34px; margin-top: -9px; margin-bottom: -9px; border-radius: 50%; background: #fff; color: #CC092F; box-shadow: 0 0 0 4px var(--paper-2), inset 0 0 0 2.5px var(--yellow); }
+.steps li.you i.bd-m svg { width: 19px; height: 19px; }
+.steps li.you:hover i.bd-m, .steps li.you:focus-visible i.bd-m { transform: scale(1.15); box-shadow: 0 0 0 4px var(--paper-2), inset 0 0 0 3px var(--yellow), 0 8px 18px -8px rgba(204, 9, 47, .45); }
+@media (max-width: 640px) { .steps li.you i.bd-m { margin: -9px 0 -9px -9px; } }
+[data-desaprova] { cursor: default; }
+[data-desaprova] { cursor: pointer; transition: background .2s, color .2s, box-shadow .2s; border-radius: 999px; }
+.rc-ok[data-desaprova]:hover, .ap-ok[data-desaprova]:hover { background: #FBEAE9; color: #C2362F; box-shadow: inset 0 0 0 1.5px #E9B2AE; }
+.rc-ok[data-desaprova] { padding: 6px 12px; }
+.ap-foot.ok[data-desaprova]:hover { background: #FBEAE9; box-shadow: inset 0 0 0 1.5px #E9B2AE; }
+.ap-foot.ok[data-desaprova]:hover p { color: #C2362F; }

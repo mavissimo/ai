@@ -178,7 +178,7 @@ function boot() {
   function checkHTML(f, v, comChip = true) {
     if (EQUIPE) return comChip ? `<div class="rc">${filmChip(f)}</div>` : "";
     const r = REG.get(f.id, v), chip = comChip ? filmChip(f) : "";
-    if (r.aprovado) return `<div class="rc">${chip}<span class="rc-ok">✓ Aprovado em ${dmIso(r.quando)}</span></div>`;
+    if (r.aprovado) return `<div class="rc">${chip}<span class="rc-ok" data-desaprova="${f.id}|${v}" title="Clique para desfazer a aprovação" role="button" tabindex="0">✓ Aprovado em ${dmIso(r.quando)}</span></div>`;
     if (!disponivel(f, v)) return comChip ? `<div class="rc">${chip}<span class="rc-soon">A aprovação aparece quando ${NOME_V[v]} chegar</span></div>` : "";
     return `<div class="rc">${chip}<a class="ir-ap" href="#aprovar">Aprovar ${NOME_V[v]} →</a></div>`;
   }
@@ -357,7 +357,8 @@ function boot() {
     const s = STEP[k];
     const desc = k === "ent" ? `${s.desc}. Todos os 41 até ${dm(C.fim)}` : s.desc; // o prazo final vai junto da entrega: um card a menos
     const nome = { v2: "Offline", rev: "Seu retorno", fin: "Som e cor", on: "Online", ret: "Seu retorno", ent: "Entrega" }[k];
-    return `<li class="${s.you ? "you" : ""}${s.bar ? " range" : ""}" style="--c:${s.c}" tabindex="0"><i aria-hidden="true"></i><strong>${nome}</strong><span class="d">${esc(desc)}</span></li>`;
+    const marca = s.you ? `<i class="bd-m" aria-hidden="true">${TAG_EQUIPE.match(/<svg[\s\S]*?<\/svg>/)[0]}</i>` : `<i aria-hidden="true"></i>`; // o retorno é com a Equipe Bradesco: a marca dela no lugar da bolinha
+    return `<li class="${s.you ? "you" : ""}${s.bar ? " range" : ""}" style="--c:${s.c}" tabindex="0">${marca}<strong>${nome}</strong><span class="d">${esc(desc)}</span></li>`;
   }).join("");
 
   // ── Eventos pontuais (agenda e calendário) ──
@@ -581,16 +582,26 @@ function boot() {
       const vids = vs.length ? vs.map((x, i) => `<li><button type="button" class="ap-play" data-play="${f.id}|${i}" data-abre="${f.id}|${v}"><span class="pl" aria-hidden="true">▶</span><b>${esc(x.titulo || nomeFilme(f))}</b>${x.duracao ? `<small>${esc(x.duracao)}</small>` : ""}</button></li>`).join("")
         : lb ? `<li><button type="button" class="ap-play" data-watch="${f.id}" data-url="${esc(lb)}" data-v="${v}" data-abre="${f.id}|${v}"><span class="pl" aria-hidden="true">▶</span><b>${esc(nomeFilme(f))}</b></button></li>` : "";
       return `<article class="ap-card${r.aprovado || feito ? " feito" : ""}" id="ap-${f.id}">
-        <header><h3>${esc(nomeFilme(f))}</h3><p>${v === "v2" ? "Offline" : "Online"}${n > 1 ? ` · versão ${n}` : ""}${EQUIPE || r.aprovado ? "" : ` · retorno até ${wd(prazo)}, ${dm(prazo)}`}</p>${r.aprovado ? `<span class="ap-ok">✓ Aprovado em ${dmIso(r.quando)}</span>` : ""}</header>
+        <header><h3>${esc(nomeFilme(f))}</h3><p>${v === "v2" ? "Offline" : "Online"}${n > 1 ? ` · versão ${n}` : ""}${EQUIPE || r.aprovado ? "" : ` · retorno até ${wd(prazo)}, ${dm(prazo)}`}</p>${r.aprovado ? `<span class="ap-ok" data-desaprova="${f.id}|${v}" title="Clique para desfazer a aprovação" role="button" tabindex="0">✓ Aprovado em ${dmIso(r.quando)}</span>` : ""}</header>
         <ol class="ap-vids">${vids}</ol>
         ${comentariosHTML(f, v)}
       </article>`;
     }).join("");
     const pe = EQUIPE ? "" : pend.length
       ? `<div class="ap-foot"><p>Assistiu a tudo e está certo? Um clique aprova ${pend.length === 1 ? "este filme" : `os ${pend.length} filmes`}. Se precisar de ajuste, é só comentar, sem aprovar.</p><button type="button" class="ap-tudo" data-aprovar-tudo>Aprovar ${pend.length === 1 ? "o filme" : `os ${pend.length} filmes`}</button></div>`
-      : `<div class="ap-foot ok"><p>Tudo aprovado. Obrigado!</p></div>`;
+      : `<div class="ap-foot ok" data-desaprova="todos" title="Clique para desfazer as aprovações desta página" role="button" tabindex="0"><p>Tudo aprovado. Obrigado!</p></div>`;
     return `<p class="ap-intro">${EQUIPE ? "Assista e deixe seus comentários. Eles chegam direto para a produção." : "Reveja cada filme, comente o que precisar e aprove tudo de uma vez, no fim."}</p><div class="ap-lista">${cards}</div>${pe}`;
   }
+  // clique no "Aprovado" volta ao estado de antes (um filme, ou todos os da página de aprovação)
+  document.addEventListener("click", (e) => {
+    const d = e.target.closest("[data-desaprova]"); if (!d || EQUIPE) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const alvos = d.dataset.desaprova === "todos"
+      ? filmes().map((f) => [f.id, versaoAtual(f)]).filter(([id, v]) => REG.get(id, v).aprovado)
+      : [d.dataset.desaprova.split("|")];
+    alvos.forEach(([id, v]) => REG.registra(id, v, "desmarcado"));
+    toast(alvos.length > 1 ? "Aprovações desfeitas" : "Aprovação desfeita"); render(); repintaPeek(); if (focusId) renderFocus(focusId);
+  }, true);
   document.addEventListener("click", (e) => {
     const p = e.target.closest("[data-play]");
     if (p) { const [id, i] = p.dataset.play.split("|"); assistir(id, null, null, +i); return; }
