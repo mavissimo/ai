@@ -711,3 +711,38 @@ body { padding-bottom: 76px; }
 .focus-box .ir-ap:hover { background: #F1ECFA; }
 .share-link { display: inline-flex; align-items: center; gap: 4px; margin: 2px 0 16px; padding: 4px 0; border: 0; background: none; color: rgba(255, 255, 255, .8); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: underline; text-decoration-color: rgba(255, 255, 255, .35); text-underline-offset: 3px; transition: color .2s; }
 .share-link:hover { color: #fff; text-decoration-color: var(--yellow); }
+/* barra de aprovar: pílula compacta, no meio */
+.ap-foot { width: max-content; max-width: calc(100% - 32px); margin-left: auto; margin-right: auto; justify-content: center; gap: 16px; padding: 8px 8px 8px 22px; border-radius: 999px; }
+.ap-foot p { font-size: 15px; }
+.ap-tudo { padding: 11px 22px; font-size: 15px; }
+.ap-foot.ok { padding: 12px 24px; }
+
+/* ═══ sem verde: só a paleta do projeto. Pede aprovação = amarelo com roxo-escuro; já feito = lilás com visto roxo ═══ */
+:root { --feito-bg: #F1ECFA; --feito-tx: var(--purple-ink); --feito-bd: #CDBEEB; }
+/* barra de aprovar */
+.ap-foot { background: var(--purple-ink); box-shadow: 0 18px 40px -16px rgba(43, 35, 64, .6); }
+.ap-tudo { background: var(--yellow); color: var(--purple-ink); }
+.ap-tudo:hover { background: #F8E08F; box-shadow: 0 10px 22px -10px rgba(0, 0, 0, .45); }
+.ap-tudo.armado { background: #fff; color: var(--purple-ink); animation: ap-pulsa3 1s ease-in-out infinite; }
+@keyframes ap-pulsa3 { 50% { box-shadow: 0 0 0 7px rgba(245, 215, 117, .35); } }
+.ap-foot.ok { background: var(--feito-bg); box-shadow: inset 0 0 0 1.5px var(--feito-bd); }
+.ap-foot.ok p { color: var(--feito-tx); }
+/* chamar para aprovar */
+.ir-ap, .focus-box .ir-ap { background: var(--yellow); color: var(--purple-ink); }
+.ir-ap:hover, .focus-box .ir-ap:hover { background: #F8E08F; box-shadow: 0 8px 18px -8px rgba(171, 140, 40, .55); }
+.tab-n { background: var(--yellow); color: var(--purple-ink); }
+.stats div.hot { background: #FEF7DC; box-shadow: inset 0 0 0 1.5px var(--yellow); }
+.stats div.hot dd { color: var(--purple-ink); }
+.stats div.hot:hover { background: #FDF0C4; }
+.cta-ap a { background: var(--yellow); color: var(--purple-ink); }
+.cta-ap a:hover { background: #F8E08F; }
+/* já feito: recebido e aprovado */
+.watch.ok, .acao.dark .watch.ok, .live.dark .watch.ok, .focus-box .watch.ok { background: var(--feito-bg); color: var(--feito-tx); box-shadow: inset 0 0 0 1.5px var(--feito-bd); }
+.watch.ok:hover { background: #E7DFF7; }
+.watch .ck { background: var(--purple); }
+.rc-ok, .focus-box .rc-ok { color: var(--purple); }
+.ap-ok { background: var(--feito-bg); color: var(--feito-tx); }
+.ap-card.feito { background: #FBF9FE; box-shadow: inset 0 0 0 1.5px var(--feito-bd); }
+.rc-st.ok, .aprova.on { color: var(--purple); }
+.aprova.on { background: var(--feito-bg); box-shadow: inset 0 0 0 1.5px var(--purple); }
+.aprova.on .box { background: var(--purple); }
