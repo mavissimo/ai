@@ -122,14 +122,14 @@ function boot() {
   function watchBtn(f, dark) {
     const i = rel[f.id], vs = links[f.id] || [];
     const v = (i ?? 0) >= 5 || (!linkBloco(f, "v2") && linkBloco(f, "on")) ? "on" : "v2", lb = linkBloco(f, v);
-    if (lb && !(i && vs.length) && tocaNoPlayer(lb)) return `<button type="button" class="watch${dark ? " dark" : ""}${REG.get(f.id, v).aberto ? " ok" : ""}" data-watch="${f.id}" data-url="${esc(lb)}" data-v="${v}" data-abre="${f.id}|${v}">${REG.get(f.id, v).aberto ? RECEBIDO : `▶ Assistir ${v === "on" ? "ao online" : "ao offline"}`}</button>`;
+    if (lb && !(i && vs.length) && tocaNoPlayer(lb)) return `<button type="button" class="watch${dark ? " dark" : ""}${REG.get(f.id, v).aberto ? " ok" : ""}" data-watch="${f.id}" data-url="${esc(lb)}" data-v="${v}" data-abre="${f.id}|${v}"${REG.get(f.id, v).aberto ? TIT_REC : ""}>${REG.get(f.id, v).aberto ? recebidoHTML(f.id, v) : `▶ Assistir ${v === "on" ? "ao online" : "ao offline"}`}</button>`;
     if (lb && !(i && vs.length)) return `<a class="watch${dark ? " dark" : ""}" href="${esc(lb)}" target="_blank" rel="noopener" data-abre="${f.id}|${v}">▶ Assistir ${v === "on" ? "ao online" : "ao offline"} <span aria-hidden="true">↗</span>${isFrameio(lb) ? "<small>abre no Frame.io</small>" : ""}</a>`;
     if (!i || !vs.length) return ""; // antes do offline o cliente não vê nada
     const fio = vs.find((v) => isFrameio(v.url));
-    const label = REG.get(f.id, versaoAtual(f)).aberto ? RECEBIDO : `▶ Assistir ${VERSAO[i]}`;
+    const label = REG.get(f.id, versaoAtual(f)).aberto ? recebidoHTML(f.id, versaoAtual(f)) : `▶ Assistir ${VERSAO[i]}`;
     return fio
       ? `<a class="watch${dark ? " dark" : ""}" href="${esc(fio.url)}" target="_blank" rel="noopener" data-abre="${f.id}|${versaoAtual(f)}">${label} <span aria-hidden="true">↗</span><small>abre no Frame.io</small></a>`
-      : `<button type="button" class="watch${dark ? " dark" : ""}${REG.get(f.id, versaoAtual(f)).aberto ? " ok" : ""}" data-watch="${f.id}" data-abre="${f.id}|${versaoAtual(f)}">${label}</button>`;
+      : `<button type="button" class="watch${dark ? " dark" : ""}${REG.get(f.id, versaoAtual(f)).aberto ? " ok" : ""}" data-watch="${f.id}" data-abre="${f.id}|${versaoAtual(f)}"${REG.get(f.id, versaoAtual(f)).aberto ? TIT_REC : ""}>${label}</button>`;
   }
 
   // ── Recebimento e aprovação: a Equipe Bradesco abre a versão por aqui (fica registrado que abriu)
@@ -138,24 +138,26 @@ function boot() {
   const tocaNoPlayer = (u) => /vimeo\.com|youtu\.?be|dropbox\.com|\.(mp4|m4v|mov|webm)(\?|#|$)/i.test(u);
   const versaoAtual = (f) => ((vez(f.id) ?? 0) >= 5 ? "on" : "v2");
   const NOME_V = { v2: "o offline", on: "o online" };
-  const RECEBIDO = `<span class="ck" aria-hidden="true"></span>Recebido <small>assistir de novo</small>`;
+  // recebido: o botão diz tudo (a data e que dá para assistir de novo); Shift + clique desfaz
+  const recebidoHTML = (id, v) => { const t = REG.get(id, v).aberto; return `<span class="ck" aria-hidden="true"></span>Recebido <small>${t ? dmIso(t) + " · " : ""}assistir de novo</small>`; };
+  const TIT_REC = ' title="Assistir de novo (Shift + clique desfaz o recebido)"';
   const dmIso = (t) => dm(iso(new Date(t)));
   const chegou = (f, v) => (vez(f.id) ?? -1) >= (v === "v2" ? 1 : 5) || f[v] <= TODAY || !!f.links?.[v]; // pelo Controle, pela data ou pelo link na agenda
   // link colado pela equipe na agenda (Enviar offline, online, entrega): vale sozinho, sem esperar o andamento do Controle
   const linkBloco = (f, v) => f.links?.[v] || "";
   const disponivel = (f, v) => { if (linkBloco(f, v)) return true; const i = rel[f.id] ?? -1; return !!(links[f.id] || []).length && (v === "v2" ? i >= 1 && i <= 4 : i >= 5); };
-  const txtAberto = (f, v) => { const r = REG.get(f.id, v); return r.aberto ? `Aberto em ${dmIso(r.aberto)}` : disponivel(f, v) ? "Ainda não aberto" : ""; };
+  const txtAberto = () => ""; // o estado mora no botão (Assistir / Recebido em dd/mm), sem repetir ao lado
   function recebHTML(f, v, comChip = true, noDia = false) { // noDia: já está no dia da chegada, sem repetir a data
     let acao;
     const lb = linkBloco(f, v);
     const ok = REG.get(f.id, v).aberto;
-    if (lb && tocaNoPlayer(lb)) acao = `<button type="button" class="watch sm${ok ? " ok" : ""}" data-watch="${f.id}" data-url="${esc(lb)}" data-v="${v}" data-abre="${f.id}|${v}">${ok ? RECEBIDO : `▶ Assistir ${NOME_V[v].replace(/^o /, "ao ")}`}</button>`;
+    if (lb && tocaNoPlayer(lb)) acao = `<button type="button" class="watch sm${ok ? " ok" : ""}" data-watch="${f.id}" data-url="${esc(lb)}" data-v="${v}" data-abre="${f.id}|${v}"${ok ? TIT_REC : ""}>${ok ? recebidoHTML(f.id, v) : `▶ Assistir ${NOME_V[v].replace(/^o /, "ao ")}`}</button>`;
     else if (lb) acao = `<a class="watch sm" href="${esc(lb)}" target="_blank" rel="noopener" data-abre="${f.id}|${v}">${isFrameio(lb) ? "Abrir no Frame.io" : `Abrir ${NOME_V[v]}`} <span aria-hidden="true">↗</span></a>`;
     else if (disponivel(f, v)) {
       const vs = links[f.id], fora = vs.find((x) => isFrameio(x.url)) || vs.find((x) => !tocaNoPlayer(x.url)); // fora do player: abre o link
       acao = fora
         ? `<a class="watch sm" href="${esc(fora.url)}" target="_blank" rel="noopener" data-abre="${f.id}|${v}">${isFrameio(fora.url) ? "Abrir no Frame.io" : `Abrir ${NOME_V[v]}`} <span aria-hidden="true">↗</span></a>`
-        : `<button type="button" class="watch sm${ok ? " ok" : ""}" data-watch="${f.id}" data-abre="${f.id}|${v}">${ok ? RECEBIDO : `▶ Assistir ${v === "v2" ? "ao offline" : "ao online"}`}</button>`;
+        : `<button type="button" class="watch sm${ok ? " ok" : ""}" data-watch="${f.id}" data-abre="${f.id}|${v}"${ok ? TIT_REC : ""}>${ok ? recebidoHTML(f.id, v) : `▶ Assistir ${v === "v2" ? "ao offline" : "ao online"}`}</button>`;
     } else acao = `<span class="rc-soon">${chegou(f, v) ? (REG.get(f.id, v).aberto ? "" : "O link chega em breve") : noDia ? "" : `Chega ${wd(f[v])}, ${dm(f[v])}`}</span>`;
     const r = REG.get(f.id, v);
     return `<div class="rc">${comChip ? filmChip(f) : ""}<div class="rc-a">${acao}<span class="rc-st${r.aberto ? " ok" : ""}" data-aberto="${f.id}|${v}">${txtAberto(f, v)}</span></div></div>`;
@@ -245,12 +247,18 @@ function boot() {
   });
   addEventListener("keydown", (e) => { if (e.key === "Escape" && trayAba) { trayAba = null; renderTray(); } });
   // registro novo: atualiza a bandeja e as marcas (sem redesenhar se houver uma ficha aberta)
-  document.addEventListener("fb:registro", () => { pintaRegistro(); renderTray(); if (!$("#view .peek") && !focusId) render(); });
+  document.addEventListener("fb:registro", () => { pintaRegistro(); renderTray(); if (!$(".peek") && !focusId) render(); repintaPeek(); });
   document.addEventListener("click", (e) => {
     const a = e.target.closest("[data-abre]"); if (!a) return;
     const [id, v] = a.dataset.abre.split("|"), novo = !REG.get(id, v).aberto;
+    if (e.shiftKey && !novo) { // Shift + clique no Recebido: volta a ser como se não tivesse recebido
+      e.preventDefault(); e.stopImmediatePropagation();
+      REG.registra(id, v, "naoaberto");
+      requestAnimationFrame(() => { render(); if (focusId) renderFocus(focusId); repintaPeek(); toast("Recebido desfeito"); });
+      return;
+    }
     REG.registra(id, v, "aberto");
-    if (novo) requestAnimationFrame(() => document.querySelectorAll(`.watch[data-abre="${CSS.escape(a.dataset.abre)}"]`).forEach((b) => { b.classList.add("ok", "vira"); b.innerHTML = RECEBIDO; }));
+    if (novo) requestAnimationFrame(() => document.querySelectorAll(`.watch[data-abre="${CSS.escape(a.dataset.abre)}"]`).forEach((b) => { b.classList.add("ok", "vira"); b.innerHTML = recebidoHTML(id, v); b.title = "Assistir de novo (Shift + clique desfaz o recebido)"; }));
   }, true);
   // compartilhar com a equipe: link que abre este filme já com o player
   document.addEventListener("click", async (e) => {
@@ -352,13 +360,13 @@ function boot() {
       // o filme em destaque; a etapa vira um rótulo pequeno em cima.
       // offline e online são recebimentos (abrir a versão); o retorno do offline tem o check de aprovado.
       const receb = e.k === "v2" || e.k === "on";
-      const rcs = `rcs${g.length > 3 ? " duas" : ""}`; // muitos filmes no mesmo dia: duas colunas
+      const rcs = "rcs"; // um filme por linha, a ação na ponta
       const corpo = receb ? `<div class="${rcs}">${g.map((x) => recebHTML(x.f, e.k, true, true)).join("")}</div>`
         : e.k === "rev" ? `<div class="${rcs}">${g.map((x) => checkHTML(x.f, "v2")).join("")}</div>`
         : e.k === "ret" ? `<div class="${rcs}">${g.map((x) => checkHTML(x.f, "on")).join("")}</div>`
         : e.k === "ent" && g.some((x) => linkBloco(x.f, "ent")) ? `<div class="${rcs}">${g.map((x) => `<div class="rc">${filmChip(x.f)}<div class="rc-a">${linkBloco(x.f, "ent") ? `<a class="watch sm" href="${esc(linkBloco(x.f, "ent"))}" target="_blank" rel="noopener">Abrir a versão final <span aria-hidden="true">↗</span></a>` : ""}</div></div>`).join("")}</div>`
         : `<div class="films">${g.map((x) => filmChip(x.f)).join("")}</div>`;
-      return `<li class="item${s.you ? " you" : ""}${receb ? " receb" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? TAG_EQUIPE : ""}${receb ? '<span class="tag-rc">Recebimento</span>' : ""}${g.some((x) => estadoEv(x) === "late") ? '<span class="st-tag st-late">Atrasado</span>' : ""}</span>${corpo}</div></li>`;
+      return `<li class="item${s.you ? " you" : ""}${receb ? " receb" : ""}" style="--c:${s.c}"><i></i><div><span class="step-k">${esc(s.label)}${s.you ? TAG_EQUIPE : ""}${g.some((x) => estadoEv(x) === "late") ? '<span class="st-tag st-late">Atrasado</span>' : ""}</span>${corpo}</div></li>`;
     }).join("");
     return items;
   }
@@ -537,28 +545,28 @@ function boot() {
     </div></div>`;
   }
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // ficha em painel lateral (no celular, uma folha de baixo): a lista continua atrás, e sai pelo ×, Esc ou clique fora
   function closePeek(p) {
     if (!p) return;
-    p.classList.remove("open");
+    p.classList.remove("open"); document.documentElement.classList.remove("peek-aberta");
     document.querySelectorAll(`[data-peek][aria-expanded="true"]`).forEach((c) => { c.setAttribute("aria-expanded", "false"); c.classList.remove("on"); });
-    setTimeout(() => p.remove(), reduce ? 0 : 420);
+    const volta = p._chip; setTimeout(() => p.remove(), reduce ? 0 : 380);
+    if (volta?.isConnected) volta.focus({ preventScroll: true });
   }
+  function repintaPeek() { const p = $(".peek.open"); if (p && byId[p.dataset.for]) p.querySelector(".peek-in").outerHTML = peekHTML(byId[p.dataset.for]); }
   function openPeek(chip, id) {
     const f = byId[id]; if (!f) return;
-    const old = $("#view .peek");
-    const same = old && old.dataset.for === id && old._chip === chip;
+    const old = $(".peek");
+    const same = old && old.dataset.for === id;
     closePeek(old);
     if (same) return;
     const p = document.createElement("div");
     p.className = "peek"; p.dataset.for = id; p._chip = chip; p.innerHTML = peekHTML(f);
-    // dentro do item da agenda/calendário; na linha do tempo, logo acima do gráfico
-    const host = chip.closest(".item > div") || chip.closest(".daybox");
-    if (host) host.append(p); else $("#view").prepend(p);
+    p.setAttribute("role", "dialog"); p.setAttribute("aria-modal", "true"); p.setAttribute("aria-label", nomeFilme(f));
+    p.addEventListener("click", (e) => { if (e.target === p || e.target.closest(".peek-x")) closePeek(p); });
+    document.body.append(p);
     if (chip.matches("[data-peek]")) { chip.setAttribute("aria-expanded", "true"); chip.classList.add("on"); }
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      p.classList.add("open");
-      setTimeout(() => { const r = p.getBoundingClientRect(); if (r.bottom > innerHeight || r.top < 70) p.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "nearest" }); }, reduce ? 0 : 380);
-    }));
+    requestAnimationFrame(() => requestAnimationFrame(() => { p.classList.add("open"); document.documentElement.classList.add("peek-aberta"); p.querySelector(".peek-x")?.focus({ preventScroll: true }); }));
   }
 
   // ── Render e navegação ──
@@ -570,6 +578,7 @@ function boot() {
     renderTray();
   }
   function route() {
+    closePeek($(".peek"));
     let [, a, b, c] = (location.hash || "#agenda").split(/[#/]/);
     if (a === "filme") {
       b = BLOCO_DO_FOT[b] || b; // link antigo de uma pílula: abre o bloco da cidade
@@ -594,7 +603,6 @@ function boot() {
     state.filtro = b.dataset.f; render();
   });
   $("#view").addEventListener("click", async (e) => {
-    if (e.target.closest(".peek-x")) { closePeek(e.target.closest(".peek")); return; }
     const fl = e.target.closest('a[href^="#filme/"]');
     if (fl && state.view !== "filmes" && !e.metaKey && !e.ctrlKey && !e.shiftKey) { e.preventDefault(); openPeek(fl, fl.getAttribute("href").slice(7)); return; }
     const day = e.target.closest("[data-day]");
@@ -607,7 +615,7 @@ function boot() {
     }
   });
   function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 2400); }
-  addEventListener("keydown", (e) => { if (e.key === "Escape") closePeek($("#view .peek")); });
+  addEventListener("keydown", (e) => { if (e.key === "Escape") closePeek($(".peek")); });
   addEventListener("hashchange", route);
   let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => state.view === "linha" && render(), 150); });
   route();

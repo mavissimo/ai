@@ -552,7 +552,7 @@ header .dobra p { margin-top: 6px; }
       vals.map((x) => String(x[0] || "").split("|")).sort((a, b) => String(a[3]).localeCompare(String(b[3]))).forEach(([f, v, a, t]) => {
         if (!f || !v || !t) return;
         const e = (r[`${f}|${v}`] ||= {});
-        if (a === "aberto") e.aberto ||= t; else if (a === "aprovado") { e.aprovado = true; e.quando = t; } else if (a === "desmarcado") e.aprovado = false;
+        if (a === "aberto") e.aberto ||= t; else if (a === "naoaberto") delete e.aberto; else if (a === "aprovado") { e.aprovado = true; e.quando = t; } else if (a === "desmarcado") e.aprovado = false;
       });
       registro = r;
       regEv = vals.map((x) => String(x[0] || "").split("|")).filter(([f, v, a, t]) => f && v && a && t).map(([b, v, a, t]) => ({ b, v, a, t })).sort((x, y) => x.t.localeCompare(y.t));
@@ -575,6 +575,7 @@ header .dobra p { margin-top: 6px; }
     const r = {};
     regEv.filter((e) => e.b === b && (!v || e.v === v) && e.t >= (de || "") && (!ate || e.t < ate)).forEach((e) => {
       if (e.a === "aberto") r.aberto ||= e.t;
+      else if (e.a === "naoaberto") delete r.aberto;
       else if (e.a === "aprovado") { r.aprovado = true; r.quando = e.t; } else if (e.a === "desmarcado") r.aprovado = false;
     });
     return r;

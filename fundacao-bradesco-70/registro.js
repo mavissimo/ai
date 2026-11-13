@@ -39,6 +39,7 @@ window.FB_REGISTRO = Object.assign({
     const d = R.desde[f] || "", r = {};
     (ev[`${f}|${v}`] || []).filter((e) => e.t >= d).sort((a, b) => a.t.localeCompare(b.t)).forEach((e) => {
       if (e.a === "aberto") r.aberto ||= e.t;
+      else if (e.a === "naoaberto") delete r.aberto; // desfeito (Shift + clique no Recebido)
       else if (e.a === "aprovado" || e.a === "desmarcado") { r.aprovado = e.a === "aprovado"; r.t = e.t; if (r.aprovado) r.quando = e.t; }
     });
     return r;
