@@ -746,3 +746,9 @@ body { padding-bottom: 76px; }
 .rc-st.ok, .aprova.on { color: var(--purple); }
 .aprova.on { background: var(--feito-bg); box-shadow: inset 0 0 0 1.5px var(--purple); }
 .aprova.on .box { background: var(--purple); }
+/* agenda: sem caixa em volta da lista — o rótulo da etapa com o ponto, e logo embaixo a lista */
+.item.receb, .item.you:has(.rcs) { padding: 0; margin: 0; background: none; box-shadow: none; border-radius: 0; }
+.item.receb > i, .item.you:has(.rcs) > i { box-shadow: none; margin-top: 2px; }
+.item .step-k { font-size: 12px; color: var(--ink); }
+.item .rcs { margin-top: 10px; }
+.items { gap: 18px; }
