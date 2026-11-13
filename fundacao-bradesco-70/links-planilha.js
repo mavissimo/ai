@@ -24,7 +24,7 @@ window.SO_APROVADOS = true;
     document.dispatchEvent(new CustomEvent("fb:links"));
   };
   const s = document.createElement("script");
-  s.src = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/gviz/tq?tqx=out:json;responseHandler:__fbPlanilha&headers=1&t=${Date.now()}`;
+  s.src = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/gviz/tq?tqx=out:json;responseHandler:__fbPlanilha&headers=1&gid=1505415139&t=${Date.now()}`;
   s.async = true;
   s.onerror = () => { window.VIDEO_STATUS = false; document.dispatchEvent(new CustomEvent("fb:links")); };
   document.head.append(s);

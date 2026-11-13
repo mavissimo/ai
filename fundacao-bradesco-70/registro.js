@@ -10,18 +10,17 @@ window.FB_REGISTRO = Object.assign({
 
 (function () {
   const R = window.FB_REGISTRO, sheet = window.VIDEO_SHEET || window.VIDEO_SHEET_ID;
-  const estado = (R.estado = {}); // "filme|versão" -> { aberto, aprovado, t }
+  const ev = {}; // "filme|versão" -> todos os eventos, para valer só o que veio depois da versão atual
+  R.desde = R.desde || {}; // filme -> quando saiu a versão atual (o cronograma lê da planilha; sem isso, vale tudo)
   const KEY = "fb-registro";
   let fila = []; try { fila = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch {}
   const guarda = () => { try { localStorage.setItem(KEY, JSON.stringify(fila.slice(-300))); } catch {} };
   const avisa = () => document.dispatchEvent(new CustomEvent("fb:registro"));
 
-  // aberto: vale a primeira vez; aprovado: vale o último check (marcar ou desmarcar)
   function aplica(e) {
     if (!e || !e.f || !e.v || !e.t) return;
-    const r = (estado[`${e.f}|${e.v}`] ||= {});
-    if (e.a === "aberto") { if (!r.aberto || e.t < r.aberto) r.aberto = e.t; }
-    else if ((e.a === "aprovado" || e.a === "desmarcado") && (!r.t || e.t >= r.t)) { r.aprovado = e.a === "aprovado"; r.t = e.t; if (r.aprovado) r.quando = e.t; }
+    const l = (ev[`${e.f}|${e.v}`] ||= []);
+    if (!l.some((x) => x.a === e.a && x.t === e.t)) l.push(e);
   }
   fila.forEach(aplica);
 
@@ -35,10 +34,18 @@ window.FB_REGISTRO = Object.assign({
     guarda();
   }
 
-  R.get = (f, v) => estado[`${f}|${v}`] || {};
+  // aberto: vale a primeira vez desde a versão atual; aprovado: vale o último check (marcar ou desmarcar) desde a versão atual
+  R.get = (f, v) => {
+    const d = R.desde[f] || "", r = {};
+    (ev[`${f}|${v}`] || []).filter((e) => e.t >= d).sort((a, b) => a.t.localeCompare(b.t)).forEach((e) => {
+      if (e.a === "aberto") r.aberto ||= e.t;
+      else if (e.a === "aprovado" || e.a === "desmarcado") { r.aprovado = e.a === "aprovado"; r.t = e.t; if (r.aprovado) r.quando = e.t; }
+    });
+    return r;
+  };
   R.aprovado = (f) => !!(R.get(f, "v2").aprovado || R.get(f, "on").aprovado);
   R.registra = (f, v, a) => {
-    if (a === "aberto" && R.get(f, v).aberto) return; // só a primeira vez
+    if (a === "aberto" && R.get(f, v).aberto) return; // só a primeira vez (de cada versão)
     const e = { f, v, a, t: new Date().toISOString() };
     fila.push(e); aplica(e); guarda(); envia(); avisa();
   };

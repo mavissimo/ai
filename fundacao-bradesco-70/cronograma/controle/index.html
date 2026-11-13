@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Controle dos Filmes · FB 70</title>
 <script src="ui.js?v=1"></script>
-<script src="ponte.js?v=4"></script>
+<script src="ponte.js?v=5"></script>
 </head>
 <body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -188,6 +188,35 @@ input[type="text"], input[type="url"], input[type="search"], select { background
 .act { border: 0; background: var(--surface); color: var(--fg); }
 .act:hover { color: var(--accent); background: var(--accent-soft); }
 .act.hot { background: var(--accent); color: var(--accent-fg); }
+.act.nv { color: var(--accent); }
+.group .g-head { display: flex; align-items: center; justify-content: space-between; gap: 10px 14px; flex-wrap: wrap; margin-bottom: 10px; }
+.group .g-head h2 { margin: 0; }
+.group .g-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.act.pasta { display: inline-flex; align-items: center; gap: 6px; }
+.act.pasta svg { width: 15px; height: 15px; }
+.sub-row .act.pasta { margin-left: auto; }
+.film.nova .link input { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--card)); }
+.film.nova .act.nv { background: var(--accent); color: var(--accent-fg); }
+/* histórico de versões: uma linha recolhida; aberto, uma versão por linha */
+.film .vers { grid-column: 1 / -1; font-size: 12.5px; }
+.film .vers > summary { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px 2px 4px; border-radius: 8px; color: var(--muted); cursor: pointer; list-style: none; user-select: none; }
+.film .vers > summary::-webkit-details-marker { display: none; }
+.film .vers > summary::before { content: "›"; display: inline-block; width: 10px; font-weight: 800; transition: transform .15s; }
+.film .vers[open] > summary::before { transform: rotate(90deg); }
+.film .vers > summary:hover { color: var(--fg); background: var(--surface); }
+.film .vers > summary b { color: var(--fg); }
+.film .vers ol { list-style: none; margin: 6px 0 2px; padding: 0; display: grid; gap: 4px; }
+.film .vers li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 7px 10px; border-radius: 10px; background: var(--surface); }
+.film .vers li.atual { box-shadow: inset 0 0 0 1px var(--line); background: var(--card); }
+.film .vers li > b { min-width: 24px; }
+.film .vers .vde { color: var(--muted); font-variant-numeric: tabular-nums; }
+.film .vers .vcli { font-weight: 700; color: var(--muted); }
+.film .vers .vcli.ok { color: var(--st-aprovado); }
+.film .vers .vcli.pend { color: var(--st-v2); }
+.film .vers .vsts { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.film .vers .vst { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 999px; background: color-mix(in srgb, var(--c) 14%, var(--card)); font-size: 11.5px; font-weight: 600; }
+.film .vers .vst small { color: var(--muted); font-size: 10.5px; }
+.film .vers li a { margin-left: auto; font-weight: 700; color: var(--fg); }
 .film.flash { animation: flash 1.8s ease-out; }
 @keyframes flash { 0%, 35% { box-shadow: 0 0 0 3px var(--yellow), var(--shadow); } 100% { box-shadow: var(--shadow); } }
 .sync summary, .sync-now { background: var(--card); }
@@ -351,6 +380,8 @@ header .dobra p { margin-top: 6px; }
   const DEFAULT_PH = "https://vimeo.com/1191294981";
   // Planilha que o site lê ao vivo: coluna A = id, E = link, F = status, G = nota.
   const SHEET_ID = "1dZp8HV-64v5ewc0LzdnE4A7Luu1ikMGapbtg848Mnh4";
+  // aba dos filmes (gid 1505415139): sempre pelo nome, porque a primeira aba virou a do formulário (Registro)
+  const ABA = "Untitled!";
   const SHEET_ROW = {"placeholder":2,"documentario":3,"trailer":4,"visita-conceicao-do-araguaia":5,"visita-jaboatao":6,"visita-gravatai":7,"visita-canuana":8,"visita-bodoquena":9,"visita-osasco":10,"pilula-elza-lima-1":11,"pilula-elza-lima-2":12,"pilula-elza-lima-3":13,"pilula-nti-uira-1":14,"pilula-nti-uira-2":15,"pilula-nti-uira-3":16,"pilula-patricia-brasil-1":17,"pilula-patricia-brasil-2":18,"pilula-patricia-brasil-3":19,"pilula-renato-parada-1":20,"pilula-renato-parada-2":21,"pilula-renato-parada-3":22,"pilula-vilma-slomp-1":23,"pilula-vilma-slomp-2":24,"pilula-vilma-slomp-3":25,"pilula-mariana-valente-1":26,"pilula-mariana-valente-2":27,"pilula-mariana-valente-3":28,"pilula-pedro-kok-1":29,"pilula-pedro-kok-2":30,"pilula-pedro-kok-3":31,"pilula-lalo-de-almeida-1":32,"pilula-lalo-de-almeida-2":33,"pilula-lalo-de-almeida-3":34,"pilula-edgar-azevedo-1":35,"pilula-edgar-azevedo-2":36,"pilula-edgar-azevedo-3":37,"pilula-fabio-bartelt-1":38,"pilula-fabio-bartelt-2":39,"pilula-fabio-bartelt-3":40,"pilula-maira-erlich-1":41,"pilula-maira-erlich-2":42,"pilula-maira-erlich-3":43};
   const SHEETS = "Google Sheets";
   // Ligação com o site e com o cronograma do cliente (datas do cronograma: offline, retorno e online de cada filme)
@@ -380,7 +411,7 @@ header .dobra p { margin-top: 6px; }
 
   const $ = (s) => document.querySelector(s);
   const list = $("#list");
-  const filters = { tipo: "", status: "", q: "", agrupa: (() => { try { return localStorage.getItem("fbc-filmes-agrupa") || "formato"; } catch { return "formato"; } })() };
+  const filters = { tipo: "", status: "", q: "", agrupa: (() => { try { return localStorage.getItem("fbc-filmes-agrupa") || "cidade"; } catch { return "cidade"; } })() };
   // por cidade: a visita e as pílulas do fotógrafo que foi junto; depois as pílulas sem visita; por fim documentário e trailer
   const CIDADES = ["conceicao-do-araguaia", "jaboatao", "gravatai", "bodoquena", "canuana", "osasco"];
   const cidadeDe = (f) => { const g = grupoDe(f.id); return CIDADES.includes(g) ? g : GRUPOS[g]?.junto || ""; };
@@ -443,6 +474,75 @@ header .dobra p { margin-top: 6px; }
   }
 
   let profiles = {};
+  // ── Pacote (visita + 3 pílulas, ou doc e trailer): status de todos de uma vez e links tirados da pasta do Dropbox ──
+  function ferramentasPacote(items, titulo) {
+    const w = document.createElement("div"); w.className = "g-tools";
+    w.innerHTML = `<label class="trio">Status do pacote<select aria-label="Status de todos os filmes de ${esc(titulo)}"><option value="">Escolha…</option></select></label>`;
+    const s = w.querySelector("select");
+    STATUS.forEach(([k, l]) => s.append(new Option(l, k)));
+    if (!canWrite) s.disabled = true;
+    s.addEventListener("change", () => {
+      if (!s.value) return;
+      items.forEach((x) => { const m = list.querySelector(`.film[data-id="${CSS.escape(x.id)}"] .meta`); if (m && norm(x.status) !== s.value) save(x, { status: s.value, ...marcaStatus(x, s.value) }, m); });
+      toast(`${titulo}: ${STATUS_BY[s.value].label}`); s.value = "";
+      setTimeout(renderList, 400);
+    });
+    w.prepend(botaoPasta(items, titulo));
+    return w;
+  }
+  function botaoPasta(items, titulo) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "act pasta";
+    b.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Colar pasta do Dropbox`;
+    b.title = "Cole o link da pasta: cada vídeo vai para o seu filme (o link antigo fica no histórico)";
+    if (!canWrite) b.disabled = true;
+    b.addEventListener("click", () => colarPasta(items, titulo, b));
+    return b;
+  }
+  // nome do arquivo -> filme: VISITA, PILULA + C001/C002/C003 (+ nome do fotógrafo), DOC, TRAILER; vale a versão mais nova
+  const semAcento = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  function arquivoDe(f, arquivos) {
+    const n = (f.id.match(/-(\d+)$/) || [])[1], fot = semAcento(f.grupo).split(/\s+/)[0];
+    const temFot = arquivos.some((a) => /PILULA/.test(semAcento(a.nome)) && semAcento(a.nome).includes(fot));
+    const ok = arquivos.filter(({ nome }) => {
+      const N = semAcento(nome);
+      if (f.tipo === "visita") return /VISITA/.test(N) && !/PILULA/.test(N);
+      if (f.tipo === "pilula") return /PILULA/.test(N) && new RegExp(`(^|[^0-9])C0*${n}([^0-9]|$)`).test(N) && (!temFot || N.includes(fot)); // com o nome do fotógrafo na pasta, ele decide
+      if (f.id === "trailer") return /TRAILER/.test(N);
+      return /DOC/.test(N) && !/TRAILER/.test(N);
+    });
+    const peso = ({ nome }) => { const N = semAcento(nome); return [+(N.match(/_V(\d+)/) || [0, 0])[1], (N.match(/_(\d{6})_/) || [0, ""])[1], N]; };
+    return ok.sort((a, b) => { const [x, y] = [peso(a), peso(b)]; return x[0] - y[0] || x[1].localeCompare(y[1]) || x[2].localeCompare(y[2]); }).at(-1) || null;
+  }
+  async function colarPasta(items, titulo, b) {
+    let url = "";
+    try { url = (await navigator.clipboard.readText()).trim(); } catch {}
+    if (!/dropbox\.com\/(scl\/fo|sh)\//i.test(url)) url = (prompt(`Link da pasta do Dropbox de ${titulo}:`, url) || "").trim();
+    if (!url) return;
+    if (!/dropbox\.com\/(scl\/fo|sh)\//i.test(url)) { toast("Esse não é um link de pasta do Dropbox"); return; }
+    if (!mcp) { toast("Sem conexão: abra o Controle pelo site"); return; }
+    b.disabled = true; const rot = b.innerHTML; b.textContent = "Lendo a pasta…";
+    try {
+      let r = (await mcp.callTool("Dropbox", "pasta", { url }, { cache: false })).payload || {};
+      if (typeof r === "string") r = JSON.parse(r);
+      const arquivos = (r.arquivos || []).filter((a) => a.url);
+      const plano = items.map((f) => ({ f, a: arquivoDe(f, arquivos) }));
+      const achou = plano.filter((x) => x.a), novos = achou.filter((x) => normalizeUrl(x.a.url) !== (x.f.url || ""));
+      if (!achou.length) { toast(`Nenhum vídeo da pasta bate com ${titulo}`); return; }
+      const faltam = plano.filter((x) => !x.a).map((x) => x.f.titulo);
+      const txt = novos.map((x) => `• ${x.f.titulo} ← ${x.a.nome}`).join("\n") || "Todos os links já estão iguais.";
+      if (!novos.length) { toast("Os links já estavam iguais aos da pasta"); return; }
+      if (!confirm(`${titulo}\n\n${txt}${faltam.length ? `\n\nSem arquivo na pasta: ${faltam.join(", ")}` : ""}\n\nUsar estes links? Os de antes ficam no histórico de versões.`)) return;
+      novos.forEach(({ f, a }) => {
+        const u = normalizeUrl(a.url), m = list.querySelector(`.film[data-id="${CSS.escape(f.id)}"] .meta`);
+        if (m) save(f, { url: u, ...(f.url ? novaVersao(f, u) : marcaLink(f, u)) }, m);
+      });
+      toast(`${novos.length} link${novos.length > 1 ? "s" : ""} novo${novos.length > 1 ? "s" : ""} em ${titulo}`);
+      setTimeout(renderList, 600);
+    } catch (e) {
+      toast(e?.code === "dropbox_config" ? "Falta ligar o Dropbox ao Apps Script (veja as instruções)" : e?.message || "Não consegui ler a pasta");
+    } finally { b.disabled = false; b.innerHTML = rot; }
+  }
+  const versAbertas = new Set(); // históricos abertos continuam abertos quando a lista redesenha
   async function renderList() {
     renderSummary();
     if (!films.length) { list.innerHTML = `<p class="state">Nenhum filme cadastrado ainda. Os 41 filmes aparecem aqui assim que a lista for carregada.</p>`; return; }
@@ -459,9 +559,10 @@ header .dobra p { margin-top: 6px; }
     for (const [titulo, items] of secoes) {
       if (!items.length) continue;
       const g = document.createElement("section"); g.className = "group";
-      g.innerHTML = `<h2><span></span><small></small></h2>`;
+      g.innerHTML = `<div class="g-head"><h2><span></span><small></small></h2></div>`;
       g.querySelector("h2 span").textContent = titulo;
       g.querySelector("small").textContent = items.length;
+      if (filters.agrupa === "cidade" && titulo !== "Pílulas sem visita") g.querySelector(".g-head").append(ferramentasPacote(items, titulo));
       let lastGroup = null;
       for (const f of items) {
         if (f.tipo === "pilula" && f.grupo !== lastGroup) {
@@ -474,9 +575,10 @@ header .dobra p { margin-top: 6px; }
           if (!canWrite) ts.disabled = true;
           ts.addEventListener("change", () => {
             if (!ts.value) return;
-            trio.forEach((x) => { const m = list.querySelector(`.film[data-id="${CSS.escape(x.id)}"] .meta`); if (m && norm(x.status) !== ts.value) save(x, { status: ts.value }, m); });
+            trio.forEach((x) => { const m = list.querySelector(`.film[data-id="${CSS.escape(x.id)}"] .meta`); if (m && norm(x.status) !== ts.value) save(x, { status: ts.value, ...marcaStatus(x, ts.value) }, m); });
             ts.value = "";
           });
+          if (filters.agrupa === "cidade" && !cidadeDe(f)) h.querySelector(".trio").before(botaoPasta(trio, f.grupo));
           g.append(h); lastGroup = f.grupo;
         }
         g.append(row(f));
@@ -494,6 +596,7 @@ header .dobra p { margin-top: 6px; }
   let npopAberto = null; // filme com a popup do Notion aberta (sobrevive ao redesenho)
   // Registro da Equipe Bradesco no cronograma (aba "Registro" da planilha: "bloco|versão|ação|quando")
   let registro = {}; // "bloco|v2" ou "bloco|on" -> { aberto, aprovado, quando }
+  let regEv = []; // todos os eventos, em ordem: { b, v, a, t }
   const blocoDoVideo = (vid) => { const g = grupoDe(vid); return GRUPOS[g]?.junto || g; };
   const NOME_V = { v2: "o offline", on: "o online" };
   const dmCurto = (t) => { const d = new Date(t); return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`; };
@@ -508,19 +611,72 @@ header .dobra p { margin-top: 6px; }
         if (a === "aberto") e.aberto ||= t; else if (a === "aprovado") { e.aprovado = true; e.quando = t; } else if (a === "desmarcado") e.aprovado = false;
       });
       registro = r;
+      regEv = vals.map((x) => String(x[0] || "").split("|")).filter(([f, v, a, t]) => f && v && a && t).map(([b, v, a, t]) => ({ b, v, a, t })).sort((x, y) => x.t.localeCompare(y.t));
       const active = document.activeElement;
       if (active?.matches?.("input, textarea, select") && active.closest(".film")) renderNovidades(); else renderList();
     } catch {} // aba ainda não existe: segue sem registro
   }
   // o que a Equipe Bradesco fez com a versão mais recente deste vídeo
   function regTexto(vid) {
-    const b = blocoDoVideo(vid);
+    const b = blocoDoVideo(vid), f = films.find((x) => x.id === vid), desde = (f && vAtual(f)?.de) || "";
     for (const v of ["on", "v2"]) {
-      const e = registro[`${b}|${v}`]; if (!e) continue;
+      const e = clienteNa(b, v, desde, ""); if (!e.aberto && !e.aprovado) continue;
       if (e.aprovado) return { ok: true, txt: `Equipe Bradesco aprovou ${NOME_V[v]} em ${dmCurto(e.quando)}` };
       if (e.aberto) return { ok: false, txt: `Equipe Bradesco abriu ${NOME_V[v]} em ${dmCurto(e.aberto)}` };
     }
     return null;
+  }
+  // o que a Equipe Bradesco fez num intervalo de tempo (a vida de uma versão)
+  function clienteNa(b, v, de, ate) {
+    const r = {};
+    regEv.filter((e) => e.b === b && (!v || e.v === v) && e.t >= (de || "") && (!ate || e.t < ate)).forEach((e) => {
+      if (e.a === "aberto") r.aberto ||= e.t;
+      else if (e.a === "aprovado") { r.aprovado = true; r.quando = e.t; } else if (e.a === "desmarcado") r.aprovado = false;
+    });
+    return r;
+  }
+  // ── Versões: o link da vez é a última; as anteriores ficam guardadas aqui (só no Controle) ──
+  // cada versão: { n, url, de, ate, sts: [[status, quando], …] }
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const agoraIso = () => new Date().toISOString();
+  const versoesDe = (f) => {
+    if (!f.versoes?.length) return f.url ? [{ n: 1, url: f.url, de: f.atualizadoEm || agoraIso(), sts: f.status ? [[norm(f.status), f.atualizadoEm || agoraIso()]] : [] }] : [];
+    const vs = f.versoes.map((v) => ({ ...v, sts: [...(v.sts || [])] })), u = vs.at(-1);
+    // link trocado por fora do Controle (sincronização): conta como versão nova
+    if (f.url && u.url && f.url !== u.url) { const de = f.atualizadoEm && f.atualizadoEm > u.de ? f.atualizadoEm : agoraIso(); u.ate = de; vs.push({ n: u.n + 1, url: f.url, de, sts: [] }); }
+    return vs;
+  };
+  const vAtual = (f) => versoesDe(f).at(-1);
+  const vTag = (f) => { const v = vAtual(f); return v ? `${v.n}|${v.de}` : ""; }; // vai para a planilha (coluna H): o cronograma do cliente sabe que é versão nova
+  const marcaStatus = (f, st) => { const vs = versoesDe(f); if (!vs.length) return {}; vs.at(-1).sts.push([st, agoraIso()]); return { versoes: vs }; };
+  const marcaLink = (f, url) => { // correção do link da versão atual (sem criar outra)
+    const vs = versoesDe(f);
+    if (!vs.length) return url ? { versoes: [{ n: 1, url, de: agoraIso(), sts: f.status ? [[norm(f.status), agoraIso()]] : [] }] } : {};
+    vs.at(-1).url = url; return { versoes: vs };
+  };
+  const novaVersao = (f, url) => {
+    const vs = versoesDe(f), t = agoraIso();
+    if (vs.length) vs.at(-1).ate = t;
+    vs.push({ n: (vs.at(-1)?.n || 0) + 1, url, de: t, sts: f.status ? [[norm(f.status), t]] : [] });
+    return { versoes: vs };
+  };
+  const PARA_CLI = ["v2", "online", "aprovado", "entregue"]; // status em que a versão está com o cliente
+  const dmh = (t) => { const d = new Date(t); return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}h${String(d.getMinutes()).padStart(2, "0")}`; };
+  function versoesHTML(f) {
+    const vs = versoesDe(f); if (!vs.length) return "";
+    const b = blocoDoVideo(f.id);
+    const linhas = vs.slice().reverse().map((v) => {
+      const sts = v.sts.map(([s, q]) => `<span class="vst" style="--c:${STATUS_BY[s]?.color || "var(--line)"}" title="${dmh(q)}">${esc(STATUS_BY[s]?.label || s)} <small>${dmCurto(q)}</small></span>`).join("");
+      const foi = v.sts.some(([s]) => PARA_CLI.includes(s)) || (!v.ate && PARA_CLI.includes(norm(f.status)));
+      const c = clienteNa(b, "", v.de, v.ate);
+      const cli = !foi ? `<span class="vcli">Não foi para o cliente</span>`
+        : c.aprovado ? `<span class="vcli ok">Equipe Bradesco aprovou em ${dmCurto(c.quando)}</span>`
+        : c.aberto ? `<span class="vcli">Equipe Bradesco abriu em ${dmCurto(c.aberto)}</span>`
+        : `<span class="vcli pend">Com o cliente · ainda não abriu</span>`;
+      return `<li${v.ate ? "" : ' class="atual"'}><b>v${v.n}</b><span class="vde">${dmCurto(v.de)}${v.ate ? ` → ${dmCurto(v.ate)}` : " · atual"}</span>${cli}<span class="vsts">${sts}</span>${v.url ? `<a href="${esc(v.url)}" target="_blank" rel="noopener">Abrir ↗</a>` : ""}</li>`;
+    }).join("");
+    const at = vs.at(-1);
+    return `<summary><span>Versões</span><b>v${at.n}</b>${vs.length > 1 ? `<small>${vs.length - 1} anterior${vs.length > 2 ? "es" : ""}</small>` : ""}</summary><ol>${linhas}</ol>`;
   }
   function novidades() {
     const out = [];
@@ -603,7 +759,7 @@ header .dobra p { margin-top: 6px; }
       <div class="st" style="--c:${st.color}"><select aria-label="Status"></select></div>
       <div class="link"><span class="lin"><input type="url" placeholder="Link final (Vimeo, YouTube, Dropbox ou .mp4)" autocomplete="off" aria-label="Link do filme"></span><a target="_blank" rel="noopener">Abrir</a></div>
       <div class="note"><input type="text" placeholder="Observação (ex.: corte 2 aguardando aprovação)" aria-label="Observação"><span class="meta"></span></div>
-      <div class="acts"><button type="button" class="act msg">Mensagem para o cliente</button><button type="button" class="act ap">Link de aprovação</button><a class="act" target="_blank" rel="noopener">Ver no site</a></div>`;
+      <div class="acts"><button type="button" class="act nv" title="Guarda o link atual no histórico e recebe o link da versão nova">+ Nova versão</button><button type="button" class="act msg">Mensagem para o cliente</button><button type="button" class="act ap">Link de aprovação</button><a class="act" target="_blank" rel="noopener">Ver no site</a></div>`;
     r.querySelector("strong").textContent = f.titulo;
     r.querySelector(".name span").textContent = [f.tipo !== "pilula" ? f.grupo : "", f.duracao].filter(Boolean).join(" · ");
     const sel = r.querySelector("select");
@@ -634,7 +790,7 @@ header .dobra p { margin-top: 6px; }
         const l = pp.querySelector(".nl"); l.href = nUrl; l.textContent = nUrl.replace(/^https?:\/\//, "");
         const [ok, no] = pp.querySelectorAll("button");
         if (!canWrite) { ok.disabled = true; if (no) no.disabled = true; }
-        ok.addEventListener("click", () => { fecharNpop(); url.value = nUrl; save(f, { url: normalizeUrl(nUrl), notionSug: null, notionIgnorado: null }, meta); });
+        ok.addEventListener("click", () => { fecharNpop(); url.value = nUrl; const u = normalizeUrl(nUrl); save(f, { url: u, notionSug: null, notionIgnorado: null, ...(f.url ? novaVersao(f, u) : marcaLink(f, u)) }, meta); });
         no?.addEventListener("click", () => { fecharNpop(); db.doc(`videos/${f.id}`).update({ notionSug: null, notionIgnorado: nUrl }).catch(() => {}); });
         return pp;
       };
@@ -647,7 +803,7 @@ header .dobra p { margin-top: 6px; }
       r.querySelector(".st").style.setProperty("--c", STATUS_BY[sel.value].color);
       r.style.setProperty("--c", STATUS_BY[sel.value].color);
       r.querySelector(".msg")?.classList.toggle("hot", ["v2", "online"].includes(sel.value));
-      save(f, { status: sel.value }, meta);
+      save(f, { status: sel.value, ...marcaStatus(f, sel.value) }, meta);
     });
     // ações para o cliente: mensagem pronta, link do cronograma do filme e o filme no site
     const gid = grupoDe(f.id), gr = GRUPOS[gid];
@@ -662,11 +818,31 @@ header .dobra p { margin-top: 6px; }
     const commit = (input, field) => {
       let v = input.value.trim();
       if (field === "url" && v) { v = normalizeUrl(v); input.value = v; }
+      const nova = field === "url" && r.classList.contains("nova");
+      if (nova && (!v || v === (f.url || ""))) { fimNova(); return; } // nada colado: continua a versão de antes
       if (v === (f[field] || "")) return;
       if (field === "url" && v && !/^https?:\/\//i.test(v)) { meta.textContent = "O link precisa começar com https://"; meta.className = "meta err"; return; }
-      const patch = { [field]: v };
+      const patch = { [field]: v, ...(field === "url" ? (nova ? novaVersao(f, v) : marcaLink(f, v)) : {}) };
+      if (nova) { r.classList.remove("nova"); url.placeholder = PH_URL; }
       save(f, patch, meta);
+      if (field === "url") { const d = r.querySelector(".vers"); if (d) { d.innerHTML = versoesHTML(f); d.hidden = false; } }
     };
+    // Nova versão: o campo fica vazio esperando o link novo; o de antes vai para o histórico
+    const PH_URL = url.placeholder;
+    const fimNova = () => { r.classList.remove("nova"); url.value = f.url || ""; url.placeholder = PH_URL; meta.className = "meta"; meta.textContent = ""; };
+    r.querySelector(".nv").addEventListener("click", () => {
+      const n = (vAtual(f)?.n || 0) + 1;
+      r.classList.add("nova"); url.value = ""; url.placeholder = `Cole o link da versão ${n}`;
+      meta.className = "meta saving"; meta.textContent = `Versão ${n}: cole o link (Esc cancela)`;
+      url.focus();
+    });
+    url.addEventListener("keydown", (e) => { if (e.key === "Escape" && r.classList.contains("nova")) { e.preventDefault(); fimNova(); url.blur(); } });
+    if (!canWrite) r.querySelector(".nv").disabled = true;
+    // histórico de versões, recolhido
+    const vd = document.createElement("details"); vd.className = "vers"; vd.innerHTML = versoesHTML(f); vd.hidden = !vd.innerHTML;
+    if (versAbertas.has(f.id)) vd.open = true;
+    vd.addEventListener("toggle", () => { vd.open ? versAbertas.add(f.id) : versAbertas.delete(f.id); });
+    r.append(vd);
     url.addEventListener("change", () => commit(url, "url"));
     note.addEventListener("change", () => commit(note, "nota"));
     [url, note].forEach((i) => i.addEventListener("keydown", (e) => { if (e.key === "Enter") i.blur(); }));
@@ -696,7 +872,7 @@ header .dobra p { margin-top: 6px; }
   }
 
   // ── Planilha do site (conector Google Sheets, com a conta de quem edita) ──
-  const sheetRow = (f) => [f.url || "", STATUS_BY[norm(f.status)].label, f.nota || ""];
+  const sheetRow = (f) => [f.url || "", STATUS_BY[norm(f.status)].label, f.nota || "", vTag(f)];
   const sheetMsg = (e) => ({
     server_not_connected: "Salvo aqui, mas não foi ao site: conecte o Google Sheets em claude.ai › Configurações › Conectores.",
     needs_reauth: "Salvo aqui, mas não foi ao site: reconecte o Google Sheets em claude.ai › Configurações › Conectores.",
@@ -714,6 +890,7 @@ header .dobra p { margin-top: 6px; }
   const queue = new Map();
   async function save(f, patch, meta) {
     if (!db) { meta.textContent = "Sem conexão com a lista compartilhada; nada foi salvo."; meta.className = "meta err"; return; }
+    Object.assign(f, patch);
     const prev = queue.get(f.id) || Promise.resolve();
     const run = prev.then(async () => {
       meta.textContent = "Salvando…"; meta.className = "meta saving";
@@ -730,7 +907,7 @@ header .dobra p { margin-top: 6px; }
       if (!row) { meta.className = "meta"; toast("Salvo"); return; }
       meta.textContent = "Enviando ao site…";
       try {
-        await toSheet(`E${row}:G${row}`, [sheetRow({ ...f, ...patch })]);
+        await toSheet(`${ABA}E${row}:H${row}`, [sheetRow({ ...f, ...patch })]);
         if (mcp && PAGE_DO_VIDEO[f.id] && ("url" in patch || "status" in patch)) {
           const props = { ...("url" in patch ? { [sync.linkCol]: patch.url || null } : {}), ...("status" in patch ? statusProps(patch.status) || {} : {}) };
           await notionSet(PAGE_DO_VIDEO[f.id], props).catch(() => {});
@@ -772,9 +949,9 @@ header .dobra p { margin-top: 6px; }
     const b = ev.currentTarget; if (b.disabled) return;
     const byId = Object.fromEntries(films.map((f) => [f.id, f]));
     const ids = Object.keys(SHEET_ROW).sort((a, z) => SHEET_ROW[a] - SHEET_ROW[z]);
-    const values = ids.map((id) => id === "placeholder" ? [placeholder, "", ""] : sheetRow(byId[id] || {}));
+    const values = ids.map((id) => id === "placeholder" ? [placeholder, "", "", ""] : sheetRow(byId[id] || {}));
     b.disabled = true; b.textContent = "Enviando…";
-    try { await toSheet(`E2:G${SHEET_ROW[ids.at(-1)]}`, values); toast("Todos os links foram para o site"); }
+    try { await toSheet(`${ABA}E2:H${SHEET_ROW[ids.at(-1)]}`, values); toast("Todos os links foram para o site"); }
     catch (e) { toast(sheetMsg(e).replace("Salvo aqui, mas não", "Não")); }
     finally { b.disabled = false; b.textContent = "Enviar tudo ao site"; }
   });
@@ -787,7 +964,7 @@ header .dobra p { margin-top: 6px; }
     if (!db) return;
     try { await db.doc("config/site").set({ placeholder: v, atualizadoEm: new Date().toISOString() }); }
     catch { toast("Não salvou o vídeo provisório."); return; }
-    try { await toSheet("E2", [[v]]); toast("Vídeo provisório atualizado no site"); }
+    try { await toSheet(`${ABA}E2`, [[v]]); toast("Vídeo provisório atualizado no site"); }
     catch (e) { toast(sheetMsg(e)); }
   });
 
@@ -920,7 +1097,7 @@ header .dobra p { margin-top: 6px; }
       // 1. o que cada lugar tem agora
       const [nrows, sheet] = await Promise.all([
         notionView(VIDEOS_VIEW),
-        mcp.callTool(SHEETS, "get_values", { spreadsheetId: SHEET_ID, range: "A2:E43" }, { cache: false }).then((r) => r.payload?.values || []),
+        mcp.callTool(SHEETS, "get_values", { spreadsheetId: SHEET_ID, range: `${ABA}A2:E43` }, { cache: false }).then((r) => r.payload?.values || []),
       ]);
       // a coluna de link é achada pelo nome (começa com "Link"), para sobreviver a renomear no Notion
       const col = nrows.length ? Object.keys(nrows[0]).find((k) => /^link/i.test(k)) : null;
@@ -954,7 +1131,7 @@ header .dobra p { margin-top: 6px; }
         if (f.notionSug) await db.doc(`videos/${f.id}`).update({ notionSug: null });
         if (c === w && s === w && n === w && f.base === w) continue;
         if (c !== w || f.base !== w) await db.doc(`videos/${f.id}`).update({ url: w, base: w, ...(c !== w ? { atualizadoEm: new Date().toISOString(), atualizadoPor: user ? await user.id() : null } : {}) });
-        if (s !== w && SHEET_ROW[f.id]) await toSheet(`E${SHEET_ROW[f.id]}`, [[w]]);
+        if (s !== w && SHEET_ROW[f.id]) { const r = SHEET_ROW[f.id]; await toSheet(`${ABA}E${r}:H${r}`, [sheetRow({ ...f, url: w })]); }
         if (n !== w && (nPage[f.id] || PAGE_DO_VIDEO[f.id])) await notionSet(nPage[f.id] || PAGE_DO_VIDEO[f.id], { [sync.linkCol]: w || null });
         if (c !== w || s !== w || n !== w) log.push(`${f.titulo}: ${w ? "link" : "link apagado"} veio de ${origem}`);
       }
@@ -1043,7 +1220,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
 });
 </script>
 
-<link rel="stylesheet" href="ui.css?v=3">
+<link rel="stylesheet" href="ui.css?v=4">
 
 <section id="ed" hidden aria-label="Cronograma da equipe">
   <div class="ed-bar">
@@ -1055,6 +1232,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
         <button type="button" data-v="entrega"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/></svg>Por entrega</button>
       </div>
       <label class="u-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input class="u-field" type="search" id="ed-busca" placeholder="Buscar tarefa, entrega ou pessoa" aria-label="Buscar tarefa"></label>
+      <button type="button" class="u-btn hoje-bt" id="ed-hoje" title="Ir para hoje (atalho: T)"><i aria-hidden="true"></i>Hoje</button>
       <button type="button" class="u-btn primary" id="ed-novo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nova tarefa</button>
     </div>
     <div class="ed-l2">
@@ -1384,6 +1562,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     v.innerHTML = ({ lista: vLista, cal: vCal, linha: vLinha, entrega: vEntrega })[st.modo](L);
     if (st.modo === "linha") ligaLinha();
     marcaSel();
+    if (lsGet("fbc-hoje-visto") !== hojeIso) { lsSet("fbc-hoje-visto", hojeIso); requestAnimationFrame(irHoje); }
   }
 
   function vLista(L, soLinhas) {
@@ -1401,7 +1580,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     else if (g === "pessoa") grupos = OPC.resp.filter((p) => L.some((t) => t.resp.includes(p))).map((p) => ({ cab: `${av(p)}<h3>${esc(nomeP(p))}</h3>`, ts: L.filter((t) => t.resp.includes(p)) }));
     else grupos = [...new Set(L.map((t) => t.ini.d))].map((d) => ({ d, cab: `<h3>${WDL[D(d).getDay()]}, ${dm(d)}</h3>${FER[d] ? `<span class="u-tag">${FER[d]}</span>` : ""}${excesso(m, d).map((x) => `<span class="carga">${esc(x)}</span>`).join("")}`, ts: L.filter((t) => t.ini.d === d) }));
     const barra = soLinhas ? "" : `<div class="ed-sub">Agrupar por <div class="u-seg sm" role="group" aria-label="Agrupar a lista">${[["dia", "Dia"], ["entrega", "Entrega"], ["pessoa", "Pessoa"]].map(([k, r]) => `<button type="button" data-lg="${k}" aria-pressed="${g === k}">${r}</button>`).join("")}</div></div>`;
-    return barra + grupos.map((x) => `<div class="l-dia${x.d === hojeIso ? " hoje" : ""}">${x.cab}<span class="n">${x.ts.length}</span></div><div class="l-tab">${x.ts.map(linha).join("")}</div>`).join("");
+    return barra + grupos.map((x) => `<div class="l-dia${x.d === hojeIso ? " hoje" : ""}"${x.d ? ` data-d="${x.d}"` : ""}>${x.cab}<span class="n">${x.ts.length}</span></div><div class="l-tab">${x.ts.map(linha).join("")}</div>`).join("");
   }
 
   function vCal(L) {
@@ -1508,6 +1687,38 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
     wrap.scrollLeft = dia * W + col - v;
     tlRolagem = wrap.scrollLeft;
   }
+  // ── Hoje: leva a visualização até hoje, acende o dia e mostra o que está marcado para ele ──
+  function irHoje() {
+    const suave = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let alvo = null;
+    if (st.modo === "linha") { vaiHoje(true); alvo = $(".tl-hoje"); }
+    else if (st.modo === "cal") alvo = $(".wk .cel.hoje");
+    else if (st.modo === "lista") alvo = $(".l-dia.hoje") || [...document.querySelectorAll(".l-dia")].find((x) => (x.dataset.d || "") >= hojeIso);
+    if (alvo && st.modo !== "linha") alvo.scrollIntoView({ behavior: suave ? "smooth" : "auto", block: "center" });
+    if (alvo) { alvo.classList.remove("pisca"); void alvo.offsetWidth; alvo.classList.add("pisca"); }
+    mostraHoje();
+  }
+  const fechaHoje = () => $(".hoje-pop")?.remove();
+  function mostraHoje() {
+    fechaHoje();
+    const V = visiveis(), L = V.filter((t) => t.ini.d <= hojeIso && t.fim.d >= hojeIso && !feito(t))
+      .sort((a, b) => (a.ini.d === hojeIso ? a.ini.h || "99" : "00").localeCompare(b.ini.d === hojeIso ? b.ini.h || "99" : "00"));
+    const atr = V.filter((t) => atrasada(t) && !(t.ini.d <= hojeIso && t.fim.d >= hojeIso)).length;
+    const p = document.createElement("div"); p.className = "hoje-pop"; p.setAttribute("role", "dialog"); p.setAttribute("aria-label", "Hoje");
+    const quando = (t) => (t.ini.d === hojeIso ? t.ini.h || "dia todo" : `desde ${dm(t.ini.d)}`) + (t.fim.d > hojeIso ? ` → ${dm(t.fim.d)}` : t.fim.h && t.ini.d === hojeIso ? `–${t.fim.h}` : "");
+    p.innerHTML = `<header><span class="hp-dot" aria-hidden="true"></span><b>Hoje</b><span>${WDL[D(hojeIso).getDay()]}, ${dm(hojeIso)}${FER[hojeIso] ? ` · ${esc(FER[hojeIso])}` : ""}</span><button type="button" class="x" aria-label="Fechar">×</button></header>`
+      + (L.length ? `<ul>${L.map((t) => `<li><button type="button" data-abre="${t.id}" style="--c:${cor(t)}"><span class="hp-h">${esc(quando(t))}</span><span class="hp-t">${esc(t.titulo)}</span>${t.resp.length ? `<span class="u-avs">${t.resp.map(av).join("")}</span>` : ""}</button></li>`).join("")}</ul>`
+        : `<p class="hp-vazio">Nada marcado para hoje${st.bloco || st.pessoas.size || st.q ? " com esses filtros" : ""}.</p>`)
+      + (atr ? `<p class="hp-atr">${atr} tarefa${atr > 1 ? "s" : ""} atrasada${atr > 1 ? "s" : ""} de outros dias</p>` : "");
+    p.querySelector(".x").addEventListener("click", fechaHoje);
+    $("#ed").append(p);
+  }
+  document.addEventListener("click", (e) => { if ($(".hoje-pop") && !e.target.closest(".hoje-pop, #ed-hoje")) fechaHoje(); });
+  addEventListener("keydown", (e) => {
+    if (e.key !== "t" && e.key !== "T") return;
+    if (e.metaKey || e.ctrlKey || e.altKey || $("#ed")?.hidden || e.target.closest?.("input, textarea, select, [contenteditable]")) return;
+    e.preventDefault(); irHoje();
+  });
   function vaiHoje(suave) {
     const wrap = $(".tl-wrap"), hi = dias.findIndex((d) => d >= hojeIso); if (!wrap || hi < 0) return;
     const col = $(".tl-g")?.offsetWidth || 200;
@@ -1668,6 +1879,8 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       const g = e.target.closest("[data-g]"); if (g) { st.agrupa = g.dataset.g; lsSet("fbc-ed-agrupa", st.agrupa); render(); return; }
       const zb = e.target.closest("[data-zoom]"); if (zb) { zoom(st.zoom + +zb.dataset.zoom); return; }
       if (e.target.closest("[data-tl-hoje]")) { vaiHoje(true); return; }
+      if (e.target.closest("#ed-hoje")) { $(".hoje-pop") ? fechaHoje() : irHoje(); return; }
+      if (e.target.closest(".hoje-pop [data-abre]")) fechaHoje();
       const lg = e.target.closest("[data-lg]"); if (lg) { st.lgrupo = lg.dataset.lg; lsSet("fbc-ed-lgrupo", st.lgrupo); render(); return; }
       const n = e.target.closest("[data-novo]"); if (n) { abre(null, n.dataset.novo); return; }
       const lk = e.target.closest("[data-link]"); if (lk) { const t = T.find((x) => x.id === lk.dataset.link); if (t) popLink(t, lk); return; }
@@ -1752,7 +1965,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
       const solta = () => fim(true), cancela = () => fim(false);
       addEventListener("pointermove", mv); addEventListener("pointerup", solta); addEventListener("pointercancel", cancela);
     });
-    addEventListener("keydown", (e) => { if (e.key === "Escape") { if ($(".u-menu")) window.UI?.fechaMenu(); else if ($(".lk-pop")) fechaPop(); else if ($(".dr")) fecha(); else limpaSel(); } });
+    addEventListener("keydown", (e) => { if (e.key === "Escape") { if ($(".hoje-pop")) fechaHoje(); else if ($(".u-menu")) window.UI?.fechaMenu(); else if ($(".lk-pop")) fechaPop(); else if ($(".dr")) fecha(); else limpaSel(); } });
     // laço: arrastar num espaço vazio marca o que ele tocar (com ⌘/Ctrl/Shift, soma ao que já estava marcado)
     const view = $("#ed-view");
     view.addEventListener("pointerdown", (e) => {

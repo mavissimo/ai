@@ -279,6 +279,20 @@ button.watch { border: 0; font: inherit; font-size: 13px; font-weight: 800; curs
 .watch { display: inline-flex; align-items: center; gap: 6px; transition: background .2s, transform .2s var(--ease); }
 .watch:hover { transform: translateY(-1px); }
 .watch small { font-size: 11px; font-weight: 700; opacity: .75; }
+/* recebido: o botão vira um ok verde (e continua abrindo o player para assistir de novo) */
+.watch.ok, .acao.dark .watch.ok, .live.dark .watch.ok { background: #E6F4EC; color: #1F5C3B; box-shadow: inset 0 0 0 1.5px #2F7A51; }
+.watch.ok:hover { background: #D5EEDF; }
+.watch .ck { position: relative; width: 16px; height: 16px; border-radius: 50%; background: #2F7A51; flex: none; }
+.watch .ck::after { content: ""; position: absolute; left: 4.5px; top: 4.5px; width: 7px; height: 3.5px; border: solid #fff; border-width: 0 0 2px 2px; transform: rotate(-45deg); }
+.watch.vira { animation: vira-ok .55s var(--ease); }
+.watch.vira .ck { animation: ck-pop .5s .1s var(--ease) both; }
+@keyframes vira-ok { 0% { transform: scale(.94); } 55% { transform: scale(1.05); } 100% { transform: none; } }
+@keyframes ck-pop { 0% { transform: scale(0); } 70% { transform: scale(1.25); } 100% { transform: scale(1); } }
+/* compartilhar com a equipe */
+.share { justify-self: start; display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border: 0; border-radius: 999px; background: none; box-shadow: inset 0 0 0 1.5px rgba(97, 60, 173, .3); color: var(--purple); font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.share:hover { background: rgba(97, 60, 173, .08); }
+.acao.dark .share { color: #fff; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .35); }
+@media (prefers-reduced-motion: reduce) { .watch.vira, .watch.vira .ck { animation: none; } }
 .peek-acts .watch { padding: 10px 18px; font-size: 14px; }
 .peek-acts .soon { font-size: 13px; font-weight: 700; color: var(--ink-3); }
 
@@ -317,6 +331,17 @@ button.watch { border: 0; font: inherit; font-size: 13px; font-weight: 800; curs
 .aprova.off { opacity: .5; cursor: not-allowed; }
 .aprova.off:hover { box-shadow: inset 0 0 0 1.5px var(--line); }
 .item.you .aprova { background: #fff; }
+/* aprovação: espaço próprio, embaixo do player, só quando há versão para aprovar */
+.acao-ap { display: grid; gap: 6px; padding-top: 12px; border-top: 1.5px dashed rgba(97, 60, 173, .25); }
+.acao-ap .rc { display: block; }
+.acao-ap .aprova { display: flex; justify-content: center; width: 100%; padding: 12px 18px; font-size: 15px; font-weight: 800; background: #2F7A51; color: #fff; box-shadow: 0 6px 18px -8px rgba(47, 122, 81, .7); }
+.acao-ap .aprova:hover { background: #276A46; box-shadow: 0 8px 22px -8px rgba(47, 122, 81, .8); }
+.acao-ap .aprova .box { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .85); }
+.acao-ap .aprova.on { background: #E6F4EC; color: #1F5C3B; box-shadow: inset 0 0 0 1.5px #2F7A51; }
+.acao-ap small { font-size: 12px; color: var(--ink-3); text-align: center; }
+.acao.dark .acao-ap { border-top-color: rgba(255, 255, 255, .22); }
+.acao.dark .acao-ap small { color: rgba(255, 255, 255, .7); }
+.nova-v { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: var(--yellow); color: var(--purple-ink, #2B2340); letter-spacing: .04em; }
 .acao { display: grid; gap: 10px; margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; background: #F6F1FF; box-shadow: inset 0 0 0 1.5px rgba(97, 60, 173, .22); }
 .acao-k { margin: 0; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--purple); }
 .acao.dark { background: rgba(255, 255, 255, .1); box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .18); max-width: 560px; }

@@ -461,3 +461,27 @@ body:has(#ed:not([hidden])) .wrap { max-width: 1240px; }
 .ed-toast { position: fixed; left: 50%; bottom: 20px; transform: translate(-50%, 20px); opacity: 0; z-index: 60; display: flex; gap: 12px; align-items: center; padding: 10px 14px 10px 16px; border-radius: 14px; background: var(--fg); color: var(--accent-fg); font-size: 14px; transition: .22s var(--u-ease); pointer-events: none; max-width: calc(100% - 32px); box-shadow: var(--u-pop); }
 .ed-toast.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 .ed-toast button { border: 0; background: none; color: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
+
+/* Hoje: botão com o pontinho, o dia que acende e o quadro com o que está marcado */
+.hoje-bt i { width: 8px; height: 8px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent); }
+@keyframes pisca-hoje { 0%, 100% { box-shadow: inset 0 0 0 0 transparent; } 25%, 70% { box-shadow: inset 0 0 0 2.5px var(--brand), 0 0 0 6px color-mix(in srgb, var(--brand) 18%, transparent); } }
+.pisca { animation: pisca-hoje 1.6s ease-out 2; position: relative; z-index: 3; border-radius: 10px; }
+.tl-hoje.pisca { animation: none; box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 30%, transparent); }
+.hoje-pop { position: fixed; z-index: 60; top: calc(var(--ed-bar-h, 96px) + 12px); right: max(16px, calc((100vw - 1180px) / 2)); width: min(380px, calc(100vw - 32px)); max-height: min(70vh, 520px); overflow: auto;
+  padding: 14px 14px 12px; border-radius: 16px; background: var(--card); color: var(--fg); box-shadow: 0 24px 60px -18px rgba(0, 0, 0, .35), 0 0 0 1px var(--line); animation: hp-in .25s cubic-bezier(.2, .7, .2, 1); }
+@keyframes hp-in { from { opacity: 0; transform: translateY(-6px) scale(.98); } }
+.hoje-pop header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.hoje-pop header b { font-size: 17px; font-weight: 800; }
+.hoje-pop header span:not(.hp-dot) { color: var(--muted); font-size: 13px; font-weight: 600; }
+.hoje-pop .hp-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 20%, transparent); }
+.hoje-pop .x { margin-left: auto; width: 28px; height: 28px; border: 0; border-radius: 8px; background: none; color: var(--muted); font-size: 20px; cursor: pointer; }
+.hoje-pop .x:hover { background: var(--surface); color: var(--fg); }
+.hoje-pop ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.hoje-pop li button { --c: var(--muted); display: grid; grid-template-columns: 1fr auto; gap: 1px 10px; width: 100%; padding: 8px 10px 8px 14px; border: 0; border-radius: 10px; background: var(--surface); color: var(--fg); text-align: left; font: inherit; cursor: pointer; box-shadow: inset 3px 0 0 var(--c); }
+.hoje-pop li button:hover { background: color-mix(in srgb, var(--c) 14%, var(--card)); }
+.hoje-pop .hp-h { grid-column: 1; font-size: 11.5px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hoje-pop .hp-t { grid-column: 1; font-size: 13.5px; font-weight: 700; line-height: 1.3; }
+.hoje-pop .u-avs { grid-column: 2; grid-row: 1 / 3; align-self: center; }
+.hoje-pop .hp-vazio { margin: 4px 0; color: var(--muted); font-size: 13.5px; }
+.hoje-pop .hp-atr { margin: 10px 0 0; font-size: 12.5px; font-weight: 700; color: var(--danger); }
+@media (prefers-reduced-motion: reduce) { .pisca, .hoje-pop { animation: none; } }
