@@ -192,9 +192,7 @@ input[type="text"], input[type="url"], input[type="search"], select { background
 .group .g-head { display: flex; align-items: center; justify-content: space-between; gap: 10px 14px; flex-wrap: wrap; margin-bottom: 10px; }
 .group .g-head h2 { margin: 0; }
 .group .g-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.act.pasta { display: inline-flex; align-items: center; gap: 6px; }
-.act.pasta svg { width: 15px; height: 15px; }
-.sub-row .act.pasta { margin-left: auto; }
+
 .film.nova .link input { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--card)); }
 .film.nova .act.nv { background: var(--accent); color: var(--accent-fg); }
 /* histórico de versões: uma linha recolhida; aberto, uma versão por linha */
@@ -474,7 +472,7 @@ header .dobra p { margin-top: 6px; }
   }
 
   let profiles = {};
-  // ── Pacote (visita + 3 pílulas, ou doc e trailer): status de todos de uma vez e links tirados da pasta do Dropbox ──
+  // ── Pacote (visita + 3 pílulas, ou doc e trailer): status de todos de uma vez ──
   function ferramentasPacote(items, titulo) {
     const w = document.createElement("div"); w.className = "g-tools";
     w.innerHTML = `<label class="trio">Status do pacote<select aria-label="Status de todos os filmes de ${esc(titulo)}"><option value="">Escolha…</option></select></label>`;
@@ -487,62 +485,7 @@ header .dobra p { margin-top: 6px; }
       toast(`${titulo}: ${STATUS_BY[s.value].label}`); s.value = "";
       setTimeout(renderList, 400);
     });
-    w.prepend(botaoPasta(items, titulo));
     return w;
-  }
-  function botaoPasta(items, titulo) {
-    const b = document.createElement("button"); b.type = "button"; b.className = "act pasta";
-    b.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Colar pasta do Dropbox`;
-    b.title = "Cole o link da pasta: cada vídeo vai para o seu filme (o link antigo fica no histórico)";
-    if (!canWrite) b.disabled = true;
-    b.addEventListener("click", () => colarPasta(items, titulo, b));
-    return b;
-  }
-  // nome do arquivo -> filme: VISITA, PILULA + C001/C002/C003 (+ nome do fotógrafo), DOC, TRAILER; vale a versão mais nova
-  const semAcento = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-  function arquivoDe(f, arquivos) {
-    const n = (f.id.match(/-(\d+)$/) || [])[1], fot = semAcento(f.grupo).split(/\s+/)[0];
-    const temFot = arquivos.some((a) => /PILULA/.test(semAcento(a.nome)) && semAcento(a.nome).includes(fot));
-    const ok = arquivos.filter(({ nome }) => {
-      const N = semAcento(nome);
-      if (f.tipo === "visita") return /VISITA/.test(N) && !/PILULA/.test(N);
-      if (f.tipo === "pilula") return /PILULA/.test(N) && new RegExp(`(^|[^0-9])C0*${n}([^0-9]|$)`).test(N) && (!temFot || N.includes(fot)); // com o nome do fotógrafo na pasta, ele decide
-      if (f.id === "trailer") return /TRAILER/.test(N);
-      return /DOC/.test(N) && !/TRAILER/.test(N);
-    });
-    const peso = ({ nome }) => { const N = semAcento(nome); return [+(N.match(/_V(\d+)/) || [0, 0])[1], (N.match(/_(\d{6})_/) || [0, ""])[1], N]; };
-    return ok.sort((a, b) => { const [x, y] = [peso(a), peso(b)]; return x[0] - y[0] || x[1].localeCompare(y[1]) || x[2].localeCompare(y[2]); }).at(-1) || null;
-  }
-  async function colarPasta(items, titulo, b) {
-    let url = "";
-    try { url = (await navigator.clipboard.readText()).trim(); } catch {}
-    if (!/dropbox\.com\/(scl\/fo|sh)\//i.test(url)) url = (prompt(`Link da pasta do Dropbox de ${titulo}:`, url) || "").trim();
-    if (!url) return;
-    if (!/dropbox\.com\/(scl\/fo|sh)\//i.test(url)) { toast("Esse não é um link de pasta do Dropbox"); return; }
-    if (!mcp) { toast("Sem conexão: abra o Controle pelo site"); return; }
-    b.disabled = true; const rot = b.innerHTML; b.textContent = "Lendo a pasta…";
-    try {
-      let r = (await mcp.callTool("Dropbox", "pasta", { url }, { cache: false })).payload || {};
-      if (typeof r === "string") r = JSON.parse(r);
-      const arquivos = (r.arquivos || []).filter((a) => a.url);
-      const plano = items.map((f) => ({ f, a: arquivoDe(f, arquivos) }));
-      const achou = plano.filter((x) => x.a), novos = achou.filter((x) => normalizeUrl(x.a.url) !== (x.f.url || ""));
-      if (!achou.length) { toast(`Nenhum vídeo da pasta bate com ${titulo}`); return; }
-      const faltam = plano.filter((x) => !x.a).map((x) => x.f.titulo);
-      const txt = novos.map((x) => `• ${x.f.titulo} ← ${x.a.nome}`).join("\n") || "Todos os links já estão iguais.";
-      if (!novos.length) { toast("Os links já estavam iguais aos da pasta"); return; }
-      if (!confirm(`${titulo}\n\n${txt}${faltam.length ? `\n\nSem arquivo na pasta: ${faltam.join(", ")}` : ""}\n\nUsar estes links? Os de antes ficam no histórico de versões.`)) return;
-      novos.forEach(({ f, a }) => {
-        const u = normalizeUrl(a.url), m = list.querySelector(`.film[data-id="${CSS.escape(f.id)}"] .meta`);
-        if (m) save(f, { url: u, ...(f.url ? novaVersao(f, u) : marcaLink(f, u)) }, m);
-      });
-      toast(`${novos.length} link${novos.length > 1 ? "s" : ""} novo${novos.length > 1 ? "s" : ""} em ${titulo}`);
-      setTimeout(renderList, 600);
-    } catch (e) {
-      const falta = e?.code === "dropbox_config" || /desconhecida: dropboxPasta/.test(e?.message || "");
-      if (falta) { if (confirm("O Dropbox ainda não está ligado ao Controle. Abrir o passo a passo?")) window.open("dropbox.html", "_blank", "noopener"); }
-      else toast(e?.message || "Não consegui ler a pasta");
-    } finally { b.disabled = false; b.innerHTML = rot; }
   }
   const versAbertas = new Set(); // históricos abertos continuam abertos quando a lista redesenha
   async function renderList() {
@@ -580,7 +523,6 @@ header .dobra p { margin-top: 6px; }
             trio.forEach((x) => { const m = list.querySelector(`.film[data-id="${CSS.escape(x.id)}"] .meta`); if (m && norm(x.status) !== ts.value) save(x, { status: ts.value, ...marcaStatus(x, ts.value) }, m); });
             ts.value = "";
           });
-          if (filters.agrupa === "cidade" && !cidadeDe(f)) h.querySelector(".trio").before(botaoPasta(trio, f.grupo));
           g.append(h); lastGroup = f.grupo;
         }
         g.append(row(f));

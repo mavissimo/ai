@@ -126,7 +126,6 @@
         const out = []; for (const p of a.pages) out.push(await chama("notionCreate", { ds, properties: p.properties }));
         return { payload: { pages: out } };
       }
-      if (server === "Dropbox" && tool === "pasta") return { payload: await chama("dropboxPasta", { url: a.url }) };
       if (server === "Notion" && tool === "notion-trash-page") return { payload: await chama("notionTrash", { page_id: a.page_id }) };
       throw { code: "tool_error", message: `Ferramenta não disponível fora do Claude: ${server} · ${tool}` };
     },
