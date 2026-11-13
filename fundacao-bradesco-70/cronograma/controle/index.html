@@ -263,6 +263,8 @@ header .dobra p { margin-top: 6px; }
   <header>
     <p class="kicker"><i style="--c:#613CAD"></i><i style="--c:#AB3438"></i><i style="--c:#F5D775"></i>Fundação Bradesco 70 anos</p>
     <div class="h-row"><h1>Controle dos <b>Filmes</b></h1>
+      <a class="proj-link" href="https://mavissimo.github.io/ai/fundacao-bradesco-70/cronograma.html" target="_blank" rel="noopener" title="O cronograma que a Equipe Bradesco vê">Cronograma do cliente <span aria-hidden="true">↗</span></a>
+      <a class="proj-link" href="https://mavissimo.github.io/ai/fundacao-bradesco-70/" target="_blank" rel="noopener" title="O site com os 41 filmes, onde o cliente assiste">Site de entrega <span aria-hidden="true">↗</span></a>
       <a class="proj-link" href="https://www.dropbox.com/scl/fo/8576gkulk27wjyl494xag/ANMzoCDAiPl1xqmbLUygMbQ?rlkey=saa2e52w4avtmebyw45mctjk9&amp;e=1&amp;dl=0" target="_blank" rel="noopener" title="Pasta do Dropbox com os XMLs do projeto">XMLs do projeto <span aria-hidden="true">↗</span></a>
       <div class="u-seg sm u-tema" role="group" aria-label="Tema"><button type="button" data-tema="">Automático</button><button type="button" data-tema="light">Claro</button><button type="button" data-tema="dark">Escuro</button></div>
       <div class="nov-wrap">
@@ -305,6 +307,10 @@ header .dobra p { margin-top: 6px; }
       <button type="button" data-v="documentario" aria-pressed="false">Documentário</button>
       <button type="button" data-v="visita" aria-pressed="false">Visitas</button>
       <button type="button" data-v="pilula" aria-pressed="false">Pílulas</button>
+    </div>
+    <div class="seg" id="f-agrupa" role="group" aria-label="Agrupar os filmes">
+      <button type="button" data-a="formato">Por formato</button>
+      <button type="button" data-a="cidade">Por cidade</button>
     </div>
     <select id="f-status" aria-label="Filtrar por status">
       <option value="">Todos os status</option>
@@ -368,7 +374,10 @@ header .dobra p { margin-top: 6px; }
 
   const $ = (s) => document.querySelector(s);
   const list = $("#list");
-  const filters = { tipo: "", status: "", q: "" };
+  const filters = { tipo: "", status: "", q: "", agrupa: (() => { try { return localStorage.getItem("fbc-filmes-agrupa") || "formato"; } catch { return "formato"; } })() };
+  // por cidade: a visita e as pílulas do fotógrafo que foi junto; depois as pílulas sem visita; por fim documentário e trailer
+  const CIDADES = ["conceicao-do-araguaia", "jaboatao", "gravatai", "bodoquena", "canuana", "osasco"];
+  const cidadeDe = (f) => { const g = grupoDe(f.id); return CIDADES.includes(g) ? g : GRUPOS[g]?.junto || ""; };
   let films = [];
   let placeholder = DEFAULT_PH;
   let db = null, user = null, mcp = null, canWrite = true;
@@ -436,15 +445,20 @@ header .dobra p { margin-top: 6px; }
     const shown = films.filter(matches).sort((a, b) => a.ordem - b.ordem);
     const frag = document.createDocumentFragment();
     if (!shown.length) { list.innerHTML = `<p class="state">Nenhum filme com esses filtros.</p>`; return; }
-    for (const tipo of Object.keys(TIPOS)) {
-      const items = shown.filter((f) => f.tipo === tipo);
+    const secoes = filters.agrupa === "cidade"
+      ? [...CIDADES.map((c) => { const fot = Object.values(GRUPOS).find((x) => x.junto === c); return [`${GRUPOS[c].nome}${fot ? ` · ${fot.nome}` : ""}`, shown.filter((f) => cidadeDe(f) === c).sort((a, b) => (a.tipo === "pilula") - (b.tipo === "pilula") || a.ordem - b.ordem)]; }),
+        ["Pílulas sem visita", shown.filter((f) => f.tipo === "pilula" && !cidadeDe(f))],
+        ["Documentário e trailer", shown.filter((f) => f.tipo === "documentario")]]
+      : Object.keys(TIPOS).map((tipo) => [TIPOS[tipo], shown.filter((f) => f.tipo === tipo)]);
+    for (const [titulo, items] of secoes) {
       if (!items.length) continue;
       const g = document.createElement("section"); g.className = "group";
-      g.innerHTML = `<h2>${TIPOS[tipo]}<small></small></h2>`;
+      g.innerHTML = `<h2><span></span><small></small></h2>`;
+      g.querySelector("h2 span").textContent = titulo;
       g.querySelector("small").textContent = items.length;
       let lastGroup = null;
       for (const f of items) {
-        if (tipo === "pilula" && f.grupo !== lastGroup) {
+        if (f.tipo === "pilula" && f.grupo !== lastGroup) {
           const h = document.createElement("div"); h.className = "sub-row";
           const trio = shown.filter((x) => x.tipo === "pilula" && x.grupo === f.grupo);
           h.innerHTML = `<h3 class="sub"></h3><label class="trio">Status das 3<select aria-label="Status das 3 pílulas"><option value="">Escolha…</option></select></label>`;
@@ -707,6 +721,13 @@ header .dobra p { margin-top: 6px; }
     filters.tipo = b.dataset.v;
     $("#f-tipo").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
     renderList();
+  });
+  const pintaAgrupa = () => $("#f-agrupa").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.a === filters.agrupa)));
+  pintaAgrupa();
+  $("#f-agrupa").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    filters.agrupa = b.dataset.a; try { localStorage.setItem("fbc-filmes-agrupa", filters.agrupa); } catch {}
+    pintaAgrupa(); renderList();
   });
   $("#f-status").addEventListener("change", (e) => { filters.status = e.target.value; renderList(); });
   $("#f-busca").addEventListener("input", (e) => { filters.q = e.target.value.trim().toLowerCase(); renderList(); });
@@ -994,7 +1015,7 @@ document.querySelectorAll("details[data-lembrar]").forEach((d) => {
 });
 </script>
 
-<link rel="stylesheet" href="ui.css?v=2">
+<link rel="stylesheet" href="ui.css?v=3">
 
 <section id="ed" hidden aria-label="Cronograma da equipe">
   <div class="ed-bar">

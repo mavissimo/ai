@@ -343,6 +343,16 @@ body:has(#ed:not([hidden])) .wrap { max-width: 1240px; }
   .wk.sem-faixa { grid-template-rows: 30px minmax(36px, auto); }
 }
 .dia-sel { margin-top: 12px; }
+/* Confortável: o nome inteiro da tarefa, em quantas linhas precisar (o Compacto segue numa linha, com reticências) */
+@media (min-width: 721px) {
+  #ed:not(.comp) .wk { grid-template-rows: 32px repeat(var(--lanes), minmax(24px, auto)) minmax(58px, auto); }
+  #ed:not(.comp) .wk.sem-faixa { grid-template-rows: 32px minmax(58px, auto); }
+  #ed:not(.comp) .chip { height: auto; min-height: 22px; align-items: flex-start; padding-block: 4px; line-height: 1.3; white-space: normal; }
+  #ed:not(.comp) .chip::before { top: 11px; }
+  #ed:not(.comp) .chip .t { white-space: normal; overflow: visible; overflow-wrap: anywhere; text-overflow: clip; }
+  #ed:not(.comp) .chip.bar { align-self: stretch; }
+  #ed:not(.comp) .wk .dch { gap: 3px; }
+}
 
 /* linha do tempo: zoom pela régua, pelos botões ou com ⌘/Ctrl + rolar (pinça no trackpad) */
 .tl-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 10px; }
