@@ -10,6 +10,7 @@ window.FB_REGISTRO = Object.assign({
 
 (function () {
   const R = window.FB_REGISTRO, sheet = window.VIDEO_SHEET || window.VIDEO_SHEET_ID;
+  if (/^(localhost|127\.|\[::1\])/.test(location.hostname)) R.form = ""; // teste no computador: nada vai para o Registro de verdade
   const ev = {}; // "filme|versão" -> todos os eventos, para valer só o que veio depois da versão atual
   R.desde = R.desde || {}; // filme -> quando saiu a versão atual (o cronograma lê da planilha; sem isso, vale tudo)
   const KEY = "fb-registro";
@@ -53,9 +54,10 @@ window.FB_REGISTRO = Object.assign({
   const novo = (f, v, a, x) => { const e = { f, v, a, t: new Date().toISOString(), x }; fila.push(e); aplica(e); guarda(); envia(); avisa(); };
   R.comenta = (f, v, nome, texto, origem) => novo(f, v, "comentario", [limpa(nome), limpa(origem), limpa(texto)]);
   R.reage = (f, v, emoji) => novo(f, v, R.reacoes(f, v)[emoji]?.has(dev) ? "desreacao" : "reacao", [emoji, dev]);
-  R.comentarios = (f, v) => (ev[`${f}|${v}`] || []).filter((e) => e.a === "comentario" && e.x?.length >= 3)
+  R.apaga = (f, v, t) => novo(f, v, "apaga", [t]); // tira um comentário (pelo instante em que foi feito)
+  R.comentarios = (f, v) => { const fora = new Set((ev[`${f}|${v}`] || []).filter((e) => e.a === "apaga").map((e) => e.x?.[0])); return (ev[`${f}|${v}`] || []).filter((e) => e.a === "comentario" && e.x?.length >= 3 && !fora.has(e.t))
     .map((e) => ({ t: e.t, n: e.x[0], o: e.x[1], x: e.x.slice(2).join("|"), antiga: !!(R.desde[f] && e.t < R.desde[f]) }))
-    .sort((a, b) => a.t.localeCompare(b.t));
+    .sort((a, b) => a.t.localeCompare(b.t)); };
   R.reacoes = (f, v) => {
     const r = {};
     (ev[`${f}|${v}`] || []).filter((e) => (e.a === "reacao" || e.a === "desreacao") && e.x?.length >= 2).sort((a, b) => a.t.localeCompare(b.t))

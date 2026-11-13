@@ -51,6 +51,8 @@ function boot() {
     trailer: "Trailer do documentário · 2 min",
   })[f.tipo];
   const curto = (f) => (f.tipo === "bloco" || f.tipo === "visita" ? f.nome.replace(/^Fazenda /, "").split(/ dos? /)[0] : f.tipo === "pilula" ? f.nome : f.tipo === "trailer" ? "Trailer" : "Documentário");
+  // sobretítulo curto, numa linha só (o fotógrafo já está no título)
+  const sobre = (f) => ({ bloco: `${f.uf} · visita e 3 pílulas`, visita: `${f.uf || ""} · visita`.replace(/^ · /, ""), pilula: "3 pílulas · 1 min cada", documentario: "Documentário · 15 min", trailer: "Trailer · 2 min" })[f.tipo] || "";
   const grupo = (f) => (f.tipo === "documentario" || f.tipo === "trailer" ? "doc" : f.tipo);
 
   // eventos de cada filme
@@ -354,7 +356,8 @@ function boot() {
   $("#steps").innerHTML = ["v2", "rev", "fin", "on", "ret", "ent"].map((k) => {
     const s = STEP[k];
     const desc = k === "ent" ? `${s.desc}. Todos os 41 até ${dm(C.fim)}` : s.desc; // o prazo final vai junto da entrega: um card a menos
-    return `<li class="${s.you ? "you" : ""}${s.bar ? " range" : ""}" style="--c:${s.c}" title="${esc(desc)}"><i></i><strong>${esc(k === "v2" ? "Offline" : k === "on" ? "Online" : k === "fin" ? "Som e cor" : k === "ent" ? "Entrega" : s.label.replace(" do offline", "").replace(" do online", ""))}</strong>${s.you ? '<span class="voce">com vocês</span>' : ""}</li>`;
+    const nome = { v2: "Offline", rev: "Seu retorno", fin: "Som e cor", on: "Online", ret: "Seu retorno", ent: "Entrega" }[k];
+    return `<li class="${s.you ? "you" : ""}${s.bar ? " range" : ""}" style="--c:${s.c}" tabindex="0"><i aria-hidden="true"></i><strong>${nome}</strong><span class="d">${esc(desc)}</span></li>`;
   }).join("");
 
   // ── Eventos pontuais (agenda e calendário) ──
@@ -526,7 +529,7 @@ function boot() {
     }).join("")}${f.ent ? "" : `<li style="--c:var(--c-fim)"><i></i><span>Prazo final</span><time>${wd(C.fim)} ${dm(C.fim)}</time></li>`}</ol>`;
   }
   // ── Comentários (com nome, como no Frame.io: escreve primeiro, o nome vem depois) e reações (sem nome) ──
-  const REACOES = ["👍", "❤️", "👏", "🔥", "😮"];
+  const REACOES = ["👍", "❤️", "👏", "😮"];
   const dmh = (t) => { const d = new Date(t); return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}h${String(d.getMinutes()).padStart(2, "0")}`; };
   const meuNome = () => { try { return localStorage.getItem("fb-nome") || ""; } catch { return ""; } };
   function comentariosHTML(f, v, escuro) {
@@ -644,7 +647,7 @@ function boot() {
     box.hidden = false;
     box.innerHTML = `<div class="focus-box">
       <div class="fb-main">
-        <p class="k">${esc(subFilme(f))}${f.uf ? ` · ${f.uf}` : ""}</p>
+        <p class="k">${esc(sobre(f))}</p>
         <h2>${esc(nomeFilme(f))}</h2>
         <p class="fb-st"><i style="--c:${COR_I[i ?? 0]}"></i>${esc(AGORA_CURTO[i ?? 0])}${n > 1 ? ` <em>versão ${n}</em>` : ""}<span class="fb-p${p.late ? " late" : ""}">${esc(p.t)}</span></p>
         ${acao ? `<div class="fb-acts">${acao}${EQUIPE ? "" : `<button type="button" class="share" data-share="${f.id}|${v}"><span aria-hidden="true">↗</span> Compartilhar com a equipe</button>`}</div>` : ""}
@@ -659,7 +662,7 @@ function boot() {
   function peekHTML(f) {
     return `<div class="peek-in"><div class="peek-card" style="--c:${STEP.v2.c}">
       <button class="peek-x" type="button" aria-label="Fechar">×</button>
-      <p class="k">${esc(subFilme(f))}${f.uf ? ` · ${f.uf}` : ""}</p>
+      <p class="k">${esc(sobre(f))}</p>
       <h4>${esc(f.tipo === "bloco" ? nomeFilme(f) : filmTitle(f))}</h4>
       ${juntoHTML(f)}${liveBox(f, false, false)}
       ${trackHTML(f)}
