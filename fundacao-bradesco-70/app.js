@@ -376,25 +376,35 @@
   // ── Player ────────────────────────────────────────────────
   const PLAYER_DOTS = '<span class="dot" style="--c:var(--yellow);top:18%;right:12%"></span><span class="dot" style="--c:var(--red);top:30%;right:22%"></span><span class="dot" style="--c:var(--white);top:40%;right:9%"></span>';
   // link final (planilha de controle ou videos.js) ou o vídeo provisório; lido na hora, pois a planilha chega depois
-  // Só tocam os filmes aprovados (check da Equipe Bradesco no cronograma, ou o status do Controle);
-  // os outros mostram em que pé estão. No lançamento, SO_APROVADOS = false em links-planilha.js libera tudo.
+  // Só tocam os filmes prontos (status Aprovado ou Entregue no Controle); os outros mostram em que pé estão:
+  // com a Equipe Bradesco, "Aguardando aprovação"; aprovado, "Indo para" a próxima etapa.
+  // No lançamento, SO_APROVADOS = false em links-planilha.js libera tudo.
   const visitaDoFot = Object.fromEntries(FOTOGRAFOS.filter((f) => f.visita).map((f) => [f.id, f.visita]));
   const blocoDo = (id) => { const g = id.startsWith("pilula-") ? id.replace(/^pilula-/, "").replace(/-\d+$/, "") : id.replace(/^visita-/, ""); return visitaDoFot[g] || g; }; // id do bloco no cronograma
-  const STATUS_SITE = { "v2 com o cliente": "V2 aguardando aprovação", "ajustes do retorno": "Em ajustes depois da V2", "em finalização": "Em finalização", "online com o cliente": "Online aguardando aprovação" };
+  const aprovou = (id, versao) => !!window.FB_REGISTRO?.get?.(blocoDo(id), versao)?.aprovado; // o check da Equipe Bradesco no cronograma
   const liberado = (v) => {
     if (!window.SO_APROVADOS || window.VIDEO_STATUS === false) return true; // planilha fora do ar: não trava o site
-    const st = (window.VIDEO_STATUS || {})[v.id] || "";
-    return /^(aprovado|entregue)$/.test(st) || !!window.FB_REGISTRO?.aprovado?.(blocoDo(v.id));
+    return /^(aprovado|entregue)$/.test((window.VIDEO_STATUS || {})[v.id] || "");
   };
-  const statusDe = (v) => (!window.VIDEO_STATUS ? "Carregando…" : STATUS_SITE[window.VIDEO_STATUS[v.id] || ""] || "Aguardando a V2");
+  // em que pé está: o status (no centro do player) e uma linha embaixo
+  const statusDe = (v) => {
+    if (!window.VIDEO_STATUS) return { t: "Carregando…", n: "" };
+    const st = window.VIDEO_STATUS[v.id] || "";
+    if (/offline com o cliente|v2 com o cliente/.test(st)) return aprovou(v.id, "v2") ? { t: "Indo para som, cor e finalização", n: "Offline aprovado pela Equipe Bradesco" } : { t: "Aguardando aprovação", n: "Offline com a Equipe Bradesco" };
+    if (/ajustes do retorno/.test(st)) return { t: "Em ajustes", n: "Com o retorno da Equipe Bradesco" };
+    if (/offline aprovado/.test(st)) return { t: "Indo para som, cor e finalização", n: "Offline aprovado" };
+    if (/em finalização/.test(st)) return { t: "Em som, cor e finalização", n: "Entra no site quando estiver pronto" };
+    if (/online com o cliente/.test(st)) return aprovou(v.id, "on") ? { t: "Indo para a entrega", n: "Online aprovado pela Equipe Bradesco" } : { t: "Aguardando aprovação", n: "Online com a Equipe Bradesco" };
+    return { t: "Em edição", n: "Entra no site quando estiver pronto" };
+  };
   const fonte = (v) => {
-    if (!liberado(v)) return { final: "", url: "", status: statusDe(v) };
+    if (!liberado(v)) { const s = statusDe(v); return { final: "", url: "", status: s.t, nota: s.n }; }
     const final = (window.VIDEO_LINKS || {})[v.id] || v.url; return { final, url: final || window.VIDEO_PLACEHOLDER || "" };
   };
 
   function playerHTML(v, badge, cor, poster) {
     badge = v.badge || badge;
-    const { final, url, status } = fonte(v);
+    const { final, url, status, nota } = fonte(v);
     const ready = !!url;
     return `<div class="player${poster ? " has-poster" : ""}${ready ? " is-ready" : ""}" ${ready ? `data-start role="button" tabindex="0" aria-label="Assistir ${esc(v.titulo)}"` : ""} style="--pc:${cor || "var(--purple)"}${poster ? `;--poster:url('${poster}')` : ""}">
       <div class="player-empty">${PLAYER_DOTS}
@@ -405,7 +415,7 @@
             ? `<span class="pe-status">${esc(status)}</span>`
             : `<span class="pe-icon" aria-hidden="true">${ICON_PLAY}</span>`}
         <span class="pe-title">${esc(v.titulo)}</span>
-        <span class="pe-note">${!ready ? (status ? "Entra no site assim que for aprovado" : "Filme em finalização") : final ? "Toque para assistir" : "Toque para assistir · versão provisória"}</span>
+        <span class="pe-note">${!ready ? esc(nota || "Entra no site quando estiver pronto") : final ? "Toque para assistir" : "Toque para assistir · versão provisória"}</span>
       </div>
     </div>`;
   }
