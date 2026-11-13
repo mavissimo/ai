@@ -138,7 +138,7 @@ function boot() {
   // ── Recebimento e aprovação: a Equipe Bradesco abre a versão por aqui (fica registrado que abriu)
   // e, no retorno, marca "Aprovado". Só isso: os comentários continuam pela devolutiva de sempre.
   const REG = window.FB_REGISTRO;
-  // página da equipe (equipe.html): assiste e comenta; não aprova e não conta como "recebido" do cliente
+  // página da equipe (equipe.html): assiste e reage; não aprova e não conta como "recebido" do cliente
   const EQUIPE = document.body.dataset.modo === "equipe";
   if (EQUIPE) {
     const get = REG.get, registra = REG.registra;
@@ -262,7 +262,6 @@ function boot() {
   // registro novo: atualiza a bandeja e as marcas (sem redesenhar se houver uma ficha aberta)
   document.addEventListener("fb:registro", () => {
     pintaRegistro(); renderTray();
-    if (document.activeElement?.closest?.(".cm-form")) return; // não apaga o que está sendo escrito
     if (!$(".peek") && !focusId) render(); repintaPeek(); if (focusId) renderFocus(focusId);
   });
   document.addEventListener("click", (e) => {
@@ -315,7 +314,7 @@ function boot() {
   function lembraAprovar(id) {
     const f = byId[id], v = f && versaoAtual(f); if (!f || (!EQUIPE && REG.get(id, v).aprovado)) return;
     let c = $(".cta-ap"); if (!c) { c = document.createElement("div"); c.className = "cta-ap"; c.setAttribute("role", "status"); document.body.append(c); }
-    c.innerHTML = `<span>${EQUIPE ? "Quer deixar um comentário?" : "Assistiu? Tudo certo?"}</span><a href="#aprovar">${EQUIPE ? "Comentar" : "Ir para a aprovação"} →</a><button type="button" aria-label="Fechar">×</button>`;
+    c.innerHTML = `<span>${EQUIPE ? "Gostou?" : "Assistiu? Tudo certo?"}</span><a href="#aprovar">${EQUIPE ? "Deixe sua reação" : "Ir para a aprovação"} →</a><button type="button" aria-label="Fechar">×</button>`;
     c.classList.add("on"); clearTimeout(c._h); c._h = setTimeout(() => c.classList.remove("on"), 10000);
     c.querySelector("button").onclick = () => c.classList.remove("on");
     c.querySelector("a").onclick = () => c.classList.remove("on");
@@ -532,50 +531,18 @@ function boot() {
   // ── Comentários (com nome, como no Frame.io: escreve primeiro, o nome vem depois) e reações (sem nome) ──
   const REACOES = ["👍", "❤️", "👏", "😮"];
   const dmh = (t) => { const d = new Date(t); return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}h${String(d.getMinutes()).padStart(2, "0")}`; };
-  const meuNome = () => { try { return localStorage.getItem("fb-nome") || ""; } catch { return ""; } };
+  // só reações (os comentários saíram): um toque, sem nome, uma por aparelho
   function comentariosHTML(f, v, escuro) {
-    const k = `${f.id}|${v}`, cs = REG.comentarios(f.id, v), rs = REG.reacoes(f.id, v), nome = meuNome();
-    return `<section class="cm${escuro ? " dark" : ""}" data-cm="${k}">
-      <div class="cm-reac" role="group" aria-label="Reações">${REACOES.map((e) => { const s = rs[e], n = s?.size || 0, eu = !!s?.has(REG.dev); return `<button type="button" class="rx${eu ? " on" : ""}" data-reage="${k}|${e}" aria-pressed="${eu}" aria-label="${e} ${n}">${e}${n ? `<span>${n}</span>` : ""}</button>`; }).join("")}</div>
-      ${cs.length ? `<ul class="cm-list">${cs.map((c) => `<li${c.antiga ? ' class="antiga"' : ""}><div class="cm-h"><b>${esc(c.n)}</b>${c.o === "equipe" ? '<span class="cm-o">equipe</span>' : ""}${c.antiga ? '<span class="cm-o">versão anterior</span>' : ""}<time>${dmh(c.t)}</time></div><p>${esc(c.x)}</p></li>`).join("")}</ul>` : ""}
-      <form class="cm-form" data-comenta="${k}">
-        <div class="cm-campo"><textarea name="x" rows="2" placeholder="${cs.length ? "Responder ou comentar" : "Escreva um comentário"}" aria-label="Comentário" aria-describedby="dica-${f.id}"></textarea><span class="cm-dica" id="dica-${f.id}">Enter envia · Shift + Enter quebra a linha</span></div>
-        <div class="cm-nome" hidden><input name="n" placeholder="Seu nome" autocomplete="name" aria-label="Seu nome" value="${esc(nome)}"></div>
-        <div class="cm-pe">${nome ? `<span class="cm-eu">Comentando como <b>${esc(nome)}</b> · <button type="button" class="cm-troca">trocar</button></span>` : "<span></span>"}<button type="submit" class="cm-bt">Comentar</button></div>
-      </form>
-    </section>`;
+    const k = `${f.id}|${v}`, rs = REG.reacoes(f.id, v);
+    return `<section class="cm${escuro ? " dark" : ""}" data-cm="${k}"><div class="cm-reac" role="group" aria-label="Reações">${REACOES.map((e) => { const s = rs[e], n = s?.size || 0, eu = !!s?.has(REG.dev); return `<button type="button" class="rx${eu ? " on" : ""}" data-reage="${k}|${e}" aria-pressed="${eu}" aria-label="${e} ${n}"><span class="em">${e}</span>${n ? `<span class="n">${n}</span>` : ""}</button>`; }).join("")}</div></section>`;
   }
   const repintaCm = (k) => document.querySelectorAll(`[data-cm="${CSS.escape(k)}"]`).forEach((s) => { const [id, v] = k.split("|"); s.outerHTML = comentariosHTML(byId[id], v, s.classList.contains("dark")); });
   document.addEventListener("click", (e) => {
     const r = e.target.closest("[data-reage]");
     if (r) { const [id, v, emoji] = r.dataset.reage.split("|"); REG.reage(id, v, emoji); repintaCm(`${id}|${v}`); return; }
-    const tr = e.target.closest(".cm-troca");
     if (tr) { const fm = tr.closest("form"); fm.querySelector(".cm-nome").hidden = false; fm.querySelector("[name=n]").focus(); tr.closest(".cm-eu").remove(); }
   });
-  // Enter envia; Shift + Enter (ou ⌘/Ctrl + Enter) quebra a linha
-  document.addEventListener("keydown", (e) => {
-    const ta = e.target.closest?.(".cm-form textarea"); if (!ta || e.key !== "Enter" || e.isComposing) return;
-    if (e.shiftKey || e.altKey) return; // quebra normal
-    e.preventDefault();
-    if (e.metaKey || e.ctrlKey) { const a = ta.selectionStart, b = ta.selectionEnd; ta.value = ta.value.slice(0, a) + "\n" + ta.value.slice(b); ta.selectionStart = ta.selectionEnd = a + 1; return; }
-    ta.form.requestSubmit();
-  });
-  document.addEventListener("submit", (e) => {
-    const fm = e.target.closest("[data-comenta]"); if (!fm) return;
-    e.preventDefault();
-    const x = fm.x.value.trim(), caixaNome = fm.querySelector(".cm-nome");
-    if (!x) { fm.x.focus(); return; }
-    let n = fm.n.value.trim();
-    if (!n || (caixaNome.hidden && !meuNome())) { // o nome vem depois do comentário
-      caixaNome.hidden = false; fm.querySelector(".cm-bt").textContent = "Enviar"; fm.n.focus(); return;
-    }
-    try { localStorage.setItem("fb-nome", n); } catch {}
-    const [id, v] = fm.dataset.comenta.split("|");
-    REG.comenta(id, v, n, x, EQUIPE ? "equipe" : "cliente");
-    repintaCm(fm.dataset.comenta); toast("Comentário enviado");
-  });
-
-  // ── Aprovação: rever filme a filme, comentar e aprovar tudo de uma vez (na página da equipe, só comentar) ──
+  // ── Aprovação: rever filme a filme, reagir e aprovar tudo de uma vez (na página da equipe, só reagir) ──
   // nome do vídeo dentro do cartão (a cidade e o fotógrafo já estão no título do cartão)
   const rotVideo = (x, f) => (x.vid.startsWith("visita-") ? "Visita" : x.vid.startsWith("pilula-") ? `Pílula ${x.vid.match(/-(\d+)$/)?.[1] || ""}` : x.titulo || nomeFilme(f));
   function viewAprovar() {
@@ -600,7 +567,7 @@ function boot() {
     const pe = EQUIPE ? "" : pend.length
       ? `<div class="ap-foot"><p><b>Tudo certo?</b></p><button type="button" class="ap-tudo" data-aprovar-tudo>Aprovar ${pend.length === 1 ? "o filme" : `os ${pend.length} filmes`}</button></div>`
       : `<div class="ap-foot ok" data-desaprova="todos" title="Clique para desfazer as aprovações desta página" role="button" tabindex="0"><p>Tudo aprovado. Obrigado!</p></div>`;
-    return `<p class="ap-intro">${EQUIPE ? "Assista e deixe seus comentários. Eles chegam direto para a produção." : "Reveja cada filme, comente o que precisar e aprove tudo no fim."}</p><div class="ap-lista">${cards}</div>${pe}`;
+    return `<p class="ap-intro">${EQUIPE ? "Assista e deixe sua reação." : "Reveja cada filme e aprove tudo no fim."}</p><div class="ap-lista">${cards}</div>${pe}`;
   }
   // clique no "Aprovado" volta ao estado de antes (um filme, ou todos os da página de aprovação)
   document.addEventListener("click", (e) => {
