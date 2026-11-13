@@ -675,3 +675,11 @@ body { padding-bottom: 76px; }
 .steps .d::before { content: ""; position: absolute; top: -6px; left: calc(50% - 6px); width: 12px; height: 12px; background: #FFFDF4; box-shadow: -1.5px -1.5px 0 0 var(--yellow); transform: rotate(45deg); border-radius: 2px 0 0 0; }
 .steps li:first-child .d::before { left: 14px; } .steps li:last-child .d::before { left: auto; right: 14px; }
 @media (max-width: 640px) { .steps .d { background: none; box-shadow: none; color: var(--ink-3); } .steps .d::before { display: none; } }
+/* barra de aprovar: verde sólido, sem transparência (os cartões não aparecem por trás) */
+.ap-foot { background: #1F5C3B; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: 0 18px 40px -16px rgba(20, 60, 35, .65); }
+.ap-foot p { color: rgba(255, 255, 255, .92); }
+.ap-tudo { background: #fff; color: #1F5C3B; box-shadow: none; }
+.ap-tudo:hover { background: #E6F4EC; box-shadow: 0 10px 22px -10px rgba(0, 0, 0, .45); }
+.ap-tudo.armado { background: var(--yellow); color: var(--purple-ink); animation: ap-pulsa2 1s ease-in-out infinite; }
+@keyframes ap-pulsa2 { 50% { box-shadow: 0 0 0 7px rgba(245, 215, 117, .3); } }
+.ap-foot.ok { background: #E6F4EC; box-shadow: inset 0 0 0 1.5px #9FD3B5; }
