@@ -50,6 +50,7 @@ function boot() {
     documentario: "De geração em geração · 15 min",
     trailer: "Trailer do documentário · 2 min",
   })[f.tipo];
+  const curto = (f) => (f.tipo === "bloco" || f.tipo === "visita" ? f.nome.replace(/^Fazenda /, "").split(/ dos? /)[0] : f.tipo === "pilula" ? f.nome : f.tipo === "trailer" ? "Trailer" : "Documentário");
   const grupo = (f) => (f.tipo === "documentario" || f.tipo === "trailer" ? "doc" : f.tipo);
 
   // eventos de cada filme
@@ -135,11 +136,19 @@ function boot() {
   // ── Recebimento e aprovação: a Equipe Bradesco abre a versão por aqui (fica registrado que abriu)
   // e, no retorno, marca "Aprovado". Só isso: os comentários continuam pela devolutiva de sempre.
   const REG = window.FB_REGISTRO;
+  // página da equipe (equipe.html): assiste e comenta; não aprova e não conta como "recebido" do cliente
+  const EQUIPE = document.body.dataset.modo === "equipe";
+  if (EQUIPE) {
+    const get = REG.get, registra = REG.registra;
+    REG.get = (f, v) => ({ ...get(f, v), aberto: undefined });
+    REG.registra = (f, v, a) => (["aberto", "naoaberto", "aprovado", "desmarcado"].includes(a) ? undefined : registra(f, v, a));
+  }
+  const PAG_EQUIPE = location.pathname.replace(/[^/]*$/, "") + "equipe.html";
   const tocaNoPlayer = (u) => /vimeo\.com|youtu\.?be|dropbox\.com|\.(mp4|m4v|mov|webm)(\?|#|$)/i.test(u);
   const versaoAtual = (f) => ((vez(f.id) ?? 0) >= 5 ? "on" : "v2");
   const NOME_V = { v2: "o offline", on: "o online" };
   // recebido: o botão diz tudo (a data e que dá para assistir de novo); Shift + clique desfaz
-  const recebidoHTML = (id, v) => { const t = REG.get(id, v).aberto; return `<span class="ck" aria-hidden="true"></span>Recebido <small>${t ? dmIso(t) + " · " : ""}assistir de novo</small>`; };
+  const recebidoHTML = (id, v) => { const t = REG.get(id, v).aberto; return `<span class="ck" aria-hidden="true"></span>Recebido${t ? ` <small>· ${dmIso(t)}</small>` : ""}`; };
   const TIT_REC = ' title="Assistir de novo (Shift + clique desfaz o recebido)"';
   const dmIso = (t) => dm(iso(new Date(t)));
   const chegou = (f, v) => (vez(f.id) ?? -1) >= (v === "v2" ? 1 : 5) || f[v] <= TODAY || !!f.links?.[v]; // pelo Controle, pela data ou pelo link na agenda
@@ -165,18 +174,20 @@ function boot() {
   // o check de aprovado só aparece quando há uma versão com o cliente para aprovar
   const txtAprova = (v, r) => (r.aprovado ? `Aprovado em ${dmIso(r.quando)}` : `Aprovar ${NOME_V[v]}`);
   function checkHTML(f, v, comChip = true) {
-    const r = REG.get(f.id, v);
-    if (!r.aprovado && !disponivel(f, v)) return comChip ? `<div class="rc">${filmChip(f)}<span class="rc-soon">A aprovação aparece quando ${NOME_V[v]} chegar</span></div>` : "";
-    return `<div class="rc">${comChip ? filmChip(f) : ""}<label class="aprova${r.aprovado ? " on" : ""}"><input type="checkbox" data-aprova="${f.id}|${v}"${r.aprovado ? " checked" : ""}><span class="box" aria-hidden="true"></span><span class="txt">${txtAprova(v, r)}</span></label></div>`;
+    if (EQUIPE) return comChip ? `<div class="rc">${filmChip(f)}</div>` : "";
+    const r = REG.get(f.id, v), chip = comChip ? filmChip(f) : "";
+    if (r.aprovado) return `<div class="rc">${chip}<span class="rc-ok">✓ Aprovado em ${dmIso(r.quando)}</span></div>`;
+    if (!disponivel(f, v)) return comChip ? `<div class="rc">${chip}<span class="rc-soon">A aprovação aparece quando ${NOME_V[v]} chegar</span></div>` : "";
+    return `<div class="rc">${chip}<a class="ir-ap" href="#aprovar">Aprovar ${NOME_V[v]} →</a></div>`;
   }
   // a versão da vez, com o check logo abaixo (ficha, destaque e cartões)
   function acaoHTML(f, dark) {
     const v = versaoAtual(f);
     if (!chegou(f, v)) return "";
     const n = nVer[f.id], ap = checkHTML(f, v, false);
-    const share = disponivel(f, v) ? `<button type="button" class="share" data-share="${f.id}|${v}"><span aria-hidden="true">↗</span> Compartilhar com a equipe</button>` : "";
+    const share = disponivel(f, v) && !EQUIPE ? `<button type="button" class="share" data-share="${f.id}|${v}"><span aria-hidden="true">↗</span> Compartilhar com a equipe</button>` : "";
     return `<div class="acao${dark ? " dark" : ""}"><p class="acao-k">${v === "v2" ? "Offline" : "Online"} para a Equipe Bradesco${n > 1 ? ` <span class="nova-v">Versão ${n}</span>` : ""}</p>${recebHTML(f, v, false)}${share}`
-      + (ap ? `<div class="acao-ap">${ap}<small>Assistiu e está tudo certo? Aprove aqui. Ajustes seguem pela devolutiva de sempre.</small></div>` : "") + `</div>`;
+      + (ap ? `<div class="acao-ap">${ap}</div>` : "") + (disponivel(f, v) ? comentariosHTML(f, v) : "") + `</div>`;
   }
   // atualiza o que já está na tela, sem redesenhar (a ficha aberta continua aberta)
   function pintaRegistro() {
@@ -236,7 +247,7 @@ function boot() {
       : trayAba === "assistir" ? P.assistir.map((x) => `<div class="tr-row">${recebHTML(x.f, x.v)}</div>`).join("")
       : grupos(P.chegando, (x) => `${V(x.v)} ${x.tarde ? `prevista para ${dm(x.quando)} · chega em breve` : `chega ${wd(x.quando)}, ${dm(x.quando)}`}`).map(([k, g]) =>
           `<div class="tr-row"><span class="tr-prazo">${k}</span><div class="films">${g.map((x) => filmChip(x.f)).join("")}</div></div>`).join("");
-    const abas = [["aprovar", "Para aprovar", P.aprovar.some((x) => x.late)], ["assistir", "Para assistir"], ["chegando", "Chegando"]];
+    const abas = (EQUIPE ? [["chegando", "Chegando"]] : [["aprovar", "Para aprovar", P.aprovar.some((x) => x.late)], ["assistir", "Para assistir"], ["chegando", "Chegando"]]);
     tray.innerHTML = (trayAba ? `<div class="tray-sheet" role="region" aria-label="${TRAY[trayAba]}"><div class="tray-h"><b>${TRAY[trayAba]}</b><button type="button" class="tray-x" aria-label="Fechar">×</button></div><div class="tray-list">${rows}</div></div>` : "")
       + (abas.some(([k]) => P[k].length) ? `<div class="tray-bar">${abas.filter(([k]) => P[k].length).map(([k, l, late]) => `<button type="button" class="tray-tab${trayAba === k ? " on" : ""}${late ? " late" : ""}" data-aba="${k}" aria-expanded="${trayAba === k}"><span class="tray-n">${P[k].length}</span>${l}</button>`).join("")}</div>` : "");
   }
@@ -247,7 +258,11 @@ function boot() {
   });
   addEventListener("keydown", (e) => { if (e.key === "Escape" && trayAba) { trayAba = null; renderTray(); } });
   // registro novo: atualiza a bandeja e as marcas (sem redesenhar se houver uma ficha aberta)
-  document.addEventListener("fb:registro", () => { pintaRegistro(); renderTray(); if (!$(".peek") && !focusId) render(); repintaPeek(); });
+  document.addEventListener("fb:registro", () => {
+    pintaRegistro(); renderTray();
+    if (document.activeElement?.closest?.(".cm-form")) return; // não apaga o que está sendo escrito
+    if (!$(".peek") && !focusId) render(); repintaPeek(); if (focusId) renderFocus(focusId);
+  });
   document.addEventListener("click", (e) => {
     const a = e.target.closest("[data-abre]"); if (!a) return;
     const [id, v] = a.dataset.abre.split("|"), novo = !REG.get(id, v).aberto;
@@ -264,7 +279,7 @@ function boot() {
   document.addEventListener("click", async (e) => {
     const b = e.target.closest("[data-share]"); if (!b) return;
     const [id, v] = b.dataset.share.split("|"), f = byId[id]; if (!f) return;
-    const prazo = v === "v2" ? f.rev : f.ret, url = `${location.origin}${location.pathname}#filme/${id}/assistir`;
+    const prazo = v === "v2" ? f.rev : f.ret, url = `${location.origin}${PAG_EQUIPE}#filme/${id}/assistir`;
     const text = `${v === "v2" ? "Offline" : "Online"} de ${nomeFilme(f)} para conferência${prazo ? `. Retorno até ${wd(prazo)}, ${dm(prazo)}` : ""}.`;
     if (navigator.share) { try { await navigator.share({ title: `Fundação Bradesco 70 anos · ${nomeFilme(f)}`, text, url }); return; } catch (err) { if (err?.name === "AbortError") return; } }
     try { await navigator.clipboard.writeText(`${text}\n${url}`); toast("Link copiado: é só mandar para a equipe"); }
@@ -285,13 +300,23 @@ function boot() {
     toast(c.checked ? `${v === "v2" ? "Offline" : "Online"} aprovado. Obrigado!` : "Aprovação desmarcada");
   });
   const CROP = /[?&]4x3\b/.test(location.search) ? { crop: "4:3" } : {}; // teste: com ?4x3 no endereço, o player mostra só o miolo 4:3 do 16:9
-  function assistir(id, url, v) {
-    const f = byId[id], vs = links[id] || [], i = rel[id];
+  const videosDe = (id) => (links[id] || []).slice().sort((a, b) => (b.vid.startsWith("visita-") - a.vid.startsWith("visita-")) || a.vid.localeCompare(b.vid)); // a visita primeiro, depois as pílulas
+  function assistir(id, url, v, ini = 0) {
+    const f = byId[id], vs = videosDe(id), i = rel[id];
     if (!f || !window.FBPlayer) return;
-    if (url) return window.FBPlayer.open([{ titulo: nomeFilme(f), kicker: `${f.nome} · ${v === "on" ? "online" : "offline"}`, url, cor: "var(--purple)" }], 0, CROP); // link colado na agenda
+    const opts = { ...CROP, onClose: () => lembraAprovar(id) };
+    if (url) return window.FBPlayer.open([{ titulo: nomeFilme(f), kicker: `${f.nome} · ${v === "on" ? "online" : "offline"}`, url, cor: "var(--purple)" }], 0, opts); // link colado na agenda
     if (!vs.length) return;
-    const ord = vs.slice().sort((a, b) => a.vid.localeCompare(b.vid));
-    window.FBPlayer.open(ord.map((v) => ({ titulo: v.titulo || nomeFilme(f), kicker: `${f.nome} · ${VERSAO[i].replace(/^(à|ao) /, "")}`, duracao: v.duracao, url: v.url, cor: "var(--purple)" })), 0, CROP);
+    window.FBPlayer.open(vs.map((v) => ({ titulo: v.titulo || nomeFilme(f), kicker: `${f.nome} · ${VERSAO[i].replace(/^(à|ao) /, "")}`, duracao: v.duracao, url: v.url, cor: "var(--purple)" })), ini, opts);
+  }
+  // depois de assistir: um convite discreto para a página de aprovação (ou de comentários, na da equipe)
+  function lembraAprovar(id) {
+    const f = byId[id], v = f && versaoAtual(f); if (!f || (!EQUIPE && REG.get(id, v).aprovado)) return;
+    let c = $(".cta-ap"); if (!c) { c = document.createElement("div"); c.className = "cta-ap"; c.setAttribute("role", "status"); document.body.append(c); }
+    c.innerHTML = `<span>${EQUIPE ? "Quer deixar um comentário?" : "Assistiu? Tudo certo?"}</span><a href="#aprovar">${EQUIPE ? "Comentar" : "Ir para a aprovação"} →</a><button type="button" aria-label="Fechar">×</button>`;
+    c.classList.add("on"); clearTimeout(c._h); c._h = setTimeout(() => c.classList.remove("on"), 10000);
+    c.querySelector("button").onclick = () => c.classList.remove("on");
+    c.querySelector("a").onclick = () => c.classList.remove("on");
   }
   document.addEventListener("click", (e) => { const b = e.target.closest("[data-watch]"); if (b) { e.preventDefault(); assistir(b.dataset.watch, b.dataset.url, b.dataset.v); } });
 
@@ -315,11 +340,13 @@ function boot() {
     const nextRev = C.filmes.flatMap((f) => ["rev", "ret"].filter((k) => f[k] >= TODAY).map((k) => ({ ...f, rev: f[k] }))).sort((a, b) => a.rev.localeCompare(b.rev))[0];
     const recebidos = C.filmes.filter((f) => f.v2 < TODAY).length;
     const entregues = C.filmes.filter((f) => (live[f.id] ?? -1) >= 7).length;
+    const quem = (d, k) => { const fs = C.filmes.filter((f) => f[k] === d); return fs.length > 1 ? `${curto(fs[0])} e mais ${fs.length - 1}` : curto(fs[0]); };
+    const nAp = pendencias().aprovar.length;
     $("#stats").innerHTML = `
-      <div><dt>Vídeos</dt><dd>41<small>33 pílulas · 6 visitas · doc · trailer</small></dd></div>
-      <div><dt>Próximo offline</dt><dd>${nextV2 ? `${dm(nextV2.v2)}<small>${esc(nomeFilme(nextV2))}</small>` : "Todos entregues"}</dd></div>
-      <div><dt>Próximo retorno da Equipe Bradesco</dt><dd>${nextRev ? `${dm(nextRev.rev)}<small>${esc(nomeFilme(nextRev))}</small>` : "—"}</dd></div>
-      <div><dt>Prazo final</dt><dd>${dm(C.fim)}<small>${entregues ? `${entregues} de ${C.filmes.length} entregas feitas` : `${recebidos} de ${C.filmes.length} filmes já no offline`}</small></dd></div>`;
+      <div><dt>Próximo offline</dt><dd>${nextV2 ? `${wd(nextV2.v2)}, ${dm(nextV2.v2)}<small>${esc(quem(nextV2.v2, "v2"))}</small>` : "Todos já foram"}</dd></div>
+      <div><dt>Próximo retorno</dt><dd>${nextRev ? `${wd(nextRev.rev)}, ${dm(nextRev.rev)}<small>${esc(curto(nextRev))}</small>` : "—"}</dd></div>
+      ${EQUIPE ? "" : `<div class="${nAp ? "hot" : ""}"><dt>Para aprovar</dt><dd>${nAp ? `<a href="#aprovar">${nAp} ${nAp > 1 ? "filmes" : "filme"} →</a>` : "Nada agora"}<small>${nAp ? "um clique aprova todos" : "em dia"}</small></dd></div>`}
+      <div><dt>Entrega final</dt><dd>${wd(C.fim)}, ${dm(C.fim)}<small>os 41 vídeos</small></dd></div>`;
   }
   stats();
 
@@ -327,7 +354,7 @@ function boot() {
   $("#steps").innerHTML = ["v2", "rev", "fin", "on", "ret", "ent"].map((k) => {
     const s = STEP[k];
     const desc = k === "ent" ? `${s.desc}. Todos os 41 até ${dm(C.fim)}` : s.desc; // o prazo final vai junto da entrega: um card a menos
-    return `<li class="${s.you ? "you" : ""}${s.bar ? " range" : ""}" style="--c:${s.c}"><i></i><strong>${esc(s.label)}${s.you ? TAG_EQUIPE : ""}</strong><span>${esc(desc)}</span></li>`;
+    return `<li class="${s.you ? "you" : ""}${s.bar ? " range" : ""}" style="--c:${s.c}" title="${esc(desc)}"><i></i><strong>${esc(k === "v2" ? "Offline" : k === "on" ? "Online" : k === "fin" ? "Som e cor" : k === "ent" ? "Entrega" : s.label.replace(" do offline", "").replace(" do online", ""))}</strong>${s.you ? '<span class="voce">com vocês</span>' : ""}</li>`;
   }).join("");
 
   // ── Eventos pontuais (agenda e calendário) ──
@@ -341,7 +368,6 @@ function boot() {
   const evColor = (e) => (e.k === "fecho" ? (e.x.cliente ? "var(--c-rev)" : e.x.marco ? "var(--c-fim)" : "var(--ink-3)") : STEP[e.k].c);
   const evYou = (e) => (e.k === "fecho" ? !!e.x.cliente : !!STEP[e.k].you);
   const link = (f) => `<a href="#filme/${f.id}">${esc(nomeFilme(f))}</a>`;
-  const curto = (f) => (f.tipo === "bloco" || f.tipo === "visita" ? f.nome.replace(/^Fazenda /, "").split(/ dos? /)[0] : f.tipo === "pilula" ? f.nome : f.tipo === "trailer" ? "Trailer" : "Documentário");
   const filmTitle = (f) => (f.tipo === "pilula" || f.tipo === "visita" || f.tipo === "bloco" ? f.nome : nomeFilme(f).split(" · ")[0]);
   const filmSub = (f) => ({ bloco: `+ ${f.fot?.nome} · visita e 3 pílulas`, pilula: "3 pílulas", visita: `Visita${f.uf ? ` · ${f.uf}` : ""}`, documentario: "15 min", trailer: "2 min" })[f.tipo];
   const filmChip = (f) => `<a class="film" href="#filme/${f.id}" data-peek="${f.id}" aria-expanded="false"><b>${esc(filmTitle(f))}</b><small>${esc(filmSub(f))}</small></a>`;
@@ -499,6 +525,83 @@ function boot() {
       return `<li class="${stt === "done" ? "done" : ""}${s === next ? " next" : ""}${st.you ? " you" : ""}" style="--c:${st.c}"><i></i><span>${esc(st.label)}${st.you ? TAG_EQUIPE : ""}</span><time>${when}</time></li>`;
     }).join("")}${f.ent ? "" : `<li style="--c:var(--c-fim)"><i></i><span>Prazo final</span><time>${wd(C.fim)} ${dm(C.fim)}</time></li>`}</ol>`;
   }
+  // ── Comentários (com nome, como no Frame.io: escreve primeiro, o nome vem depois) e reações (sem nome) ──
+  const REACOES = ["👍", "❤️", "👏", "🔥", "😮"];
+  const dmh = (t) => { const d = new Date(t); return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}h${String(d.getMinutes()).padStart(2, "0")}`; };
+  const meuNome = () => { try { return localStorage.getItem("fb-nome") || ""; } catch { return ""; } };
+  function comentariosHTML(f, v, escuro) {
+    const k = `${f.id}|${v}`, cs = REG.comentarios(f.id, v), rs = REG.reacoes(f.id, v), nome = meuNome();
+    return `<section class="cm${escuro ? " dark" : ""}" data-cm="${k}">
+      <div class="cm-reac" role="group" aria-label="Reações">${REACOES.map((e) => { const s = rs[e], n = s?.size || 0, eu = !!s?.has(REG.dev); return `<button type="button" class="rx${eu ? " on" : ""}" data-reage="${k}|${e}" aria-pressed="${eu}" aria-label="${e} ${n}">${e}${n ? `<span>${n}</span>` : ""}</button>`; }).join("")}</div>
+      ${cs.length ? `<ul class="cm-list">${cs.map((c) => `<li${c.antiga ? ' class="antiga"' : ""}><div class="cm-h"><b>${esc(c.n)}</b>${c.o === "equipe" ? '<span class="cm-o">equipe</span>' : ""}${c.antiga ? '<span class="cm-o">versão anterior</span>' : ""}<time>${dmh(c.t)}</time></div><p>${esc(c.x)}</p></li>`).join("")}</ul>` : ""}
+      <form class="cm-form" data-comenta="${k}">
+        <textarea name="x" rows="2" placeholder="${cs.length ? "Responder ou comentar" : "Escreva um comentário"}" aria-label="Comentário"></textarea>
+        <div class="cm-nome" hidden><input name="n" placeholder="Seu nome" autocomplete="name" aria-label="Seu nome" value="${esc(nome)}"></div>
+        <div class="cm-pe">${nome ? `<span class="cm-eu">Comentando como <b>${esc(nome)}</b> · <button type="button" class="cm-troca">trocar</button></span>` : "<span></span>"}<button type="submit" class="cm-bt">Comentar</button></div>
+      </form>
+    </section>`;
+  }
+  const repintaCm = (k) => document.querySelectorAll(`[data-cm="${CSS.escape(k)}"]`).forEach((s) => { const [id, v] = k.split("|"); s.outerHTML = comentariosHTML(byId[id], v, s.classList.contains("dark")); });
+  document.addEventListener("click", (e) => {
+    const r = e.target.closest("[data-reage]");
+    if (r) { const [id, v, emoji] = r.dataset.reage.split("|"); REG.reage(id, v, emoji); repintaCm(`${id}|${v}`); return; }
+    const tr = e.target.closest(".cm-troca");
+    if (tr) { const fm = tr.closest("form"); fm.querySelector(".cm-nome").hidden = false; fm.querySelector("[name=n]").focus(); tr.closest(".cm-eu").remove(); }
+  });
+  document.addEventListener("submit", (e) => {
+    const fm = e.target.closest("[data-comenta]"); if (!fm) return;
+    e.preventDefault();
+    const x = fm.x.value.trim(), caixaNome = fm.querySelector(".cm-nome");
+    if (!x) { fm.x.focus(); return; }
+    let n = fm.n.value.trim();
+    if (!n || (caixaNome.hidden && !meuNome())) { // o nome vem depois do comentário
+      caixaNome.hidden = false; fm.querySelector(".cm-bt").textContent = "Enviar"; fm.n.focus(); return;
+    }
+    try { localStorage.setItem("fb-nome", n); } catch {}
+    const [id, v] = fm.dataset.comenta.split("|");
+    REG.comenta(id, v, n, x, EQUIPE ? "equipe" : "cliente");
+    repintaCm(fm.dataset.comenta); toast("Comentário enviado");
+  });
+
+  // ── Aprovação: rever filme a filme, comentar e aprovar tudo de uma vez (na página da equipe, só comentar) ──
+  function viewAprovar() {
+    const lista = EQUIPE
+      ? filmes().map((f) => ({ f, v: versaoAtual(f) })).filter((x) => disponivel(x.f, x.v))
+      : pendencias().aprovar.filter((x) => !state.filtro || grupo(x.f) === state.filtro).concat(filmes().filter((f) => REG.get(f.id, versaoAtual(f)).aprovado && disponivel(f, versaoAtual(f))).map((f) => ({ f, v: versaoAtual(f), feito: true })));
+    if (!lista.length) {
+      const prox = C.filmes.filter((f) => !enviado(f, "v2") || !enviado(f, "on")).map((f) => (!enviado(f, "v2") ? f.v2 : f.on)).filter((d) => d >= TODAY).sort()[0];
+      return `<div class="ap-vazio"><b>${EQUIPE ? "Ainda não há filmes para assistir" : "Nada para aprovar agora"}</b><p>${prox ? `O próximo chega ${wd(prox)}, ${dm(prox)}.` : "Tudo em dia."}</p></div>`;
+    }
+    const pend = lista.filter((x) => !x.feito && !REG.get(x.f.id, x.v).aprovado);
+    const cards = lista.map(({ f, v, feito }) => {
+      const vs = videosDe(f.id), lb = linkBloco(f, v), n = nVer[f.id], prazo = v === "v2" ? f.rev : f.ret, r = REG.get(f.id, v);
+      const vids = vs.length ? vs.map((x, i) => `<li><button type="button" class="ap-play" data-play="${f.id}|${i}" data-abre="${f.id}|${v}"><span class="pl" aria-hidden="true">▶</span><b>${esc(x.titulo || nomeFilme(f))}</b>${x.duracao ? `<small>${esc(x.duracao)}</small>` : ""}</button></li>`).join("")
+        : lb ? `<li><button type="button" class="ap-play" data-watch="${f.id}" data-url="${esc(lb)}" data-v="${v}" data-abre="${f.id}|${v}"><span class="pl" aria-hidden="true">▶</span><b>${esc(nomeFilme(f))}</b></button></li>` : "";
+      return `<article class="ap-card${r.aprovado || feito ? " feito" : ""}" id="ap-${f.id}">
+        <header><h3>${esc(nomeFilme(f))}</h3><p>${v === "v2" ? "Offline" : "Online"}${n > 1 ? ` · versão ${n}` : ""}${EQUIPE || r.aprovado ? "" : ` · retorno até ${wd(prazo)}, ${dm(prazo)}`}</p>${r.aprovado ? `<span class="ap-ok">✓ Aprovado em ${dmIso(r.quando)}</span>` : ""}</header>
+        <ol class="ap-vids">${vids}</ol>
+        ${comentariosHTML(f, v)}
+      </article>`;
+    }).join("");
+    const pe = EQUIPE ? "" : pend.length
+      ? `<div class="ap-foot"><p>Assistiu a tudo e está certo? Um clique aprova ${pend.length === 1 ? "este filme" : `os ${pend.length} filmes`}. Se precisar de ajuste, é só comentar, sem aprovar.</p><button type="button" class="ap-tudo" data-aprovar-tudo>Aprovar ${pend.length === 1 ? "o filme" : `os ${pend.length} filmes`}</button></div>`
+      : `<div class="ap-foot ok"><p>Tudo aprovado. Obrigado!</p></div>`;
+    return `<p class="ap-intro">${EQUIPE ? "Assista e deixe seus comentários. Eles chegam direto para a produção." : "Reveja cada filme, comente o que precisar e aprove tudo de uma vez, no fim."}</p><div class="ap-lista">${cards}</div>${pe}`;
+  }
+  document.addEventListener("click", (e) => {
+    const p = e.target.closest("[data-play]");
+    if (p) { const [id, i] = p.dataset.play.split("|"); assistir(id, null, null, +i); return; }
+    const b = e.target.closest("[data-aprovar-tudo]"); if (!b) return;
+    if (!b.classList.contains("armado")) { // segundo clique confirma
+      b.classList.add("armado"); b.dataset.txt = b.textContent; b.textContent = "Confirmar a aprovação";
+      clearTimeout(b._h); b._h = setTimeout(() => { b.classList.remove("armado"); b.textContent = b.dataset.txt; }, 5000); return;
+    }
+    const pend = pendencias().aprovar.filter((x) => !state.filtro || grupo(x.f) === state.filtro);
+    pend.forEach((x) => REG.registra(x.f.id, x.v, "aprovado"));
+    toast(pend.length > 1 ? `${pend.length} filmes aprovados. Obrigado!` : "Aprovado. Obrigado!");
+    render();
+  });
+
   // ── Por entrega: um filme por linha (nome, onde está, a próxima data e a ação); a ficha abre no painel ──
   const AGORA_CURTO = ["Em edição", "Offline com a equipe", "Ajustes do retorno", "Indo para cor e som", "Em cor e som", "Online com a equipe", "Aprovado", "Entregue"];
   const COR_I = ["var(--c-ed)", "var(--c-v2)", "var(--c-rev)", "var(--c-fin)", "var(--c-fin)", "var(--c-on)", "var(--c-fim)", "var(--c-fim)"];
@@ -536,15 +639,19 @@ function boot() {
     const box = $("#focus");
     const f = C.filmes.find((x) => x.id === id);
     if (!f) { box.hidden = true; return; }
-    const chegou = f.v2 <= TODAY || (vez(f.id) ?? 0) >= 1; // pela data ou pelo Controle
+    const v = versaoAtual(f), p = proxima(f), i = vez(f.id), n = nVer[f.id];
+    const acao = disponivel(f, v) ? recebHTML(f, v, false) : "";
     box.hidden = false;
     box.innerHTML = `<div class="focus-box">
-      <p class="k">${chegou ? "O offline chegou" : `Offline em ${dm(f.v2)}`}</p>
-      <h2>${esc(nomeFilme(f))}</h2>
-      ${juntoHTML(f)}${liveBox(f, true, false)}${acaoHTML(f, true)}
-      <p class="s">${chegou ? `Precisamos do retorno da Equipe Bradesco até <b>${wd(f.rev)}, ${dm(f.rev)}</b>, numa devolutiva única. Depois disso o filme segue para som, cor e finalização.` : `O offline chega ${WDL[D(f.v2).getDay()]}, ${dm(f.v2)}. O retorno da Equipe Bradesco fica para ${dm(f.rev)}.`}</p>
-      ${trackHTML(f)}
-      <a class="all" href="#agenda">Ver o cronograma de todos os filmes →</a>
+      <div class="fb-main">
+        <p class="k">${esc(subFilme(f))}${f.uf ? ` · ${f.uf}` : ""}</p>
+        <h2>${esc(nomeFilme(f))}</h2>
+        <p class="fb-st"><i style="--c:${COR_I[i ?? 0]}"></i>${esc(AGORA_CURTO[i ?? 0])}${n > 1 ? ` <em>versão ${n}</em>` : ""}<span class="fb-p${p.late ? " late" : ""}">${esc(p.t)}</span></p>
+        ${acao ? `<div class="fb-acts">${acao}${EQUIPE ? "" : `<button type="button" class="share" data-share="${f.id}|${v}"><span aria-hidden="true">↗</span> Compartilhar com a equipe</button>`}</div>` : ""}
+        ${checkHTML(f, v, false)}
+        ${disponivel(f, v) ? comentariosHTML(f, v, true) : ""}
+      </div>
+      <div class="fb-side">${trackHTML(f)}<a class="all" href="#agenda">Ver todos os filmes →</a></div>
     </div>`;
   }
 
@@ -602,11 +709,14 @@ function boot() {
   }
 
   // ── Render e navegação ──
-  const VIEWS = { agenda: viewAgenda, linha: viewLinha, calendario: viewCalendario, filmes: viewFilmes };
+  const VIEWS = { agenda: viewAgenda, aprovar: viewAprovar, linha: viewLinha, calendario: viewCalendario, filmes: viewFilmes };
   function render() {
     document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.view === state.view)));
     document.querySelectorAll(".filters button").forEach((b) => b.classList.toggle("on", b.dataset.f === state.filtro));
     $("#view").innerHTML = VIEWS[state.view]();
+    stats();
+    const nAp = EQUIPE ? C.filmes.filter((f) => disponivel(f, versaoAtual(f))).length : pendencias().aprovar.length, tn = $("#n-aprovar");
+    if (tn) { tn.textContent = nAp || ""; tn.hidden = !nAp; }
     renderTray();
   }
   function route() {

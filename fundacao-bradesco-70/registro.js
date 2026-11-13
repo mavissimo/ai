@@ -28,7 +28,7 @@ window.FB_REGISTRO = Object.assign({
     if (!R.form || !R.entry) return;
     fila.filter((e) => !e.ok).forEach((e) => {
       e.ok = 1;
-      fetch(R.form, { method: "POST", mode: "no-cors", body: new URLSearchParams({ [R.entry]: [e.f, e.v, e.a, e.t].join("|") }) })
+      fetch(R.form, { method: "POST", mode: "no-cors", body: new URLSearchParams({ [R.entry]: [e.f, e.v, e.a, e.t, ...(e.x || [])].join("|") }) })
         .catch(() => { e.ok = 0; guarda(); });
     });
     guarda();
@@ -45,6 +45,23 @@ window.FB_REGISTRO = Object.assign({
     return r;
   };
   R.aprovado = (f) => !!(R.get(f, "v2").aprovado || R.get(f, "on").aprovado);
+  // ── comentários (com nome) e reações (sem nome, uma por aparelho): também vão para a aba Registro ──
+  // comentário: filme|versão|comentario|quando|nome|origem|texto · reação: filme|versão|reacao (ou desreacao)|quando|emoji|aparelho
+  let dev = ""; try { dev = localStorage.getItem("fb-dev") || ""; if (!dev) { dev = Math.random().toString(36).slice(2, 10); localStorage.setItem("fb-dev", dev); } } catch { dev = "x" + Math.random().toString(36).slice(2, 8); }
+  R.dev = dev;
+  const limpa = (s) => String(s || "").replace(/\|/g, "¦").trim();
+  const novo = (f, v, a, x) => { const e = { f, v, a, t: new Date().toISOString(), x }; fila.push(e); aplica(e); guarda(); envia(); avisa(); };
+  R.comenta = (f, v, nome, texto, origem) => novo(f, v, "comentario", [limpa(nome), limpa(origem), limpa(texto)]);
+  R.reage = (f, v, emoji) => novo(f, v, R.reacoes(f, v)[emoji]?.has(dev) ? "desreacao" : "reacao", [emoji, dev]);
+  R.comentarios = (f, v) => (ev[`${f}|${v}`] || []).filter((e) => e.a === "comentario" && e.x?.length >= 3)
+    .map((e) => ({ t: e.t, n: e.x[0], o: e.x[1], x: e.x.slice(2).join("|"), antiga: !!(R.desde[f] && e.t < R.desde[f]) }))
+    .sort((a, b) => a.t.localeCompare(b.t));
+  R.reacoes = (f, v) => {
+    const r = {};
+    (ev[`${f}|${v}`] || []).filter((e) => (e.a === "reacao" || e.a === "desreacao") && e.x?.length >= 2).sort((a, b) => a.t.localeCompare(b.t))
+      .forEach((e) => { const s = (r[e.x[0]] ||= new Set()); e.a === "reacao" ? s.add(e.x[1]) : s.delete(e.x[1]); });
+    return r;
+  };
   R.registra = (f, v, a) => {
     if (a === "aberto" && R.get(f, v).aberto) return; // só a primeira vez (de cada versão)
     const e = { f, v, a, t: new Date().toISOString() };
@@ -53,8 +70,8 @@ window.FB_REGISTRO = Object.assign({
 
   window.__fbRegistro = (res) => {
     (res?.table?.rows || []).forEach((row) => {
-      const [f, v, a, t] = String(row.c?.[1]?.v || "").split("|");
-      aplica({ f, v, a, t });
+      const [f, v, a, t, ...x] = String(row.c?.[1]?.v || "").split("|");
+      aplica({ f, v, a, t, x });
     });
     R.carregado = true; avisa();
   };
