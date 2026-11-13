@@ -296,7 +296,7 @@ function boot() {
   document.addEventListener("click", (e) => { const b = e.target.closest("[data-watch]"); if (b) { e.preventDefault(); assistir(b.dataset.watch, b.dataset.url, b.dataset.v); } });
 
   function liveBox(f, dark, comBotao = true) {
-    const i = live[f.id];
+    const i = vez(f.id); // o que já foi para o cliente vale (uma pílula ainda em edição não esconde a visita entregue)
     if (i == null) return "";
     const txt = i === 0 ? `Preparando o offline · chega ${wd(f.v2)}, ${dm(f.v2)}` : AGORA[i];
     return `<div class="live${dark ? " dark" : ""}"><span class="live-dot" style="--c:${["var(--c-v2)", "var(--c-v2)", "var(--c-rev)", "var(--c-fin)", "var(--c-fin)", "var(--c-on)", "var(--c-fim)", "var(--c-fim)"][i]}"></span><span><small>Agora</small>${esc(txt)}</span>${comBotao ? watchBtn(f, dark) : ""}</div>`;
@@ -341,6 +341,7 @@ function boot() {
   const evColor = (e) => (e.k === "fecho" ? (e.x.cliente ? "var(--c-rev)" : e.x.marco ? "var(--c-fim)" : "var(--ink-3)") : STEP[e.k].c);
   const evYou = (e) => (e.k === "fecho" ? !!e.x.cliente : !!STEP[e.k].you);
   const link = (f) => `<a href="#filme/${f.id}">${esc(nomeFilme(f))}</a>`;
+  const curto = (f) => (f.tipo === "bloco" || f.tipo === "visita" ? f.nome.replace(/^Fazenda /, "").split(/ dos? /)[0] : f.tipo === "pilula" ? f.nome : f.tipo === "trailer" ? "Trailer" : "Documentário");
   const filmTitle = (f) => (f.tipo === "pilula" || f.tipo === "visita" || f.tipo === "bloco" ? f.nome : nomeFilme(f).split(" · ")[0]);
   const filmSub = (f) => ({ bloco: `+ ${f.fot?.nome} · visita e 3 pílulas`, pilula: "3 pílulas", visita: `Visita${f.uf ? ` · ${f.uf}` : ""}`, documentario: "15 min", trailer: "2 min" })[f.tipo];
   const filmChip = (f) => `<a class="film" href="#filme/${f.id}" data-peek="${f.id}" aria-expanded="false"><b>${esc(filmTitle(f))}</b><small>${esc(filmSub(f))}</small></a>`;
@@ -462,7 +463,8 @@ function boot() {
     const evs = eventos();
     const byDay = new Map();
     evs.forEach((e) => { if (!byDay.has(e.date)) byDay.set(e.date, []); byDay.get(e.date).push(e); });
-    const label = (e) => (e.k === "fecho" ? e.x.titulo : `${STEP[e.k].short} · ${filmTitle(e.f)}`);
+    const label = (e) => (e.k === "fecho" ? e.x.titulo : `${STEP[e.k].short} · ${curto(e.f)}`);
+    const longo = (e) => (e.k === "fecho" ? e.x.titulo : `${STEP[e.k].label} · ${nomeFilme(e.f)}`);
     // só as semanas do projeto, numa grade contínua (seg a dom; fim de semana mais estreito)
     const first = D(C.inicio), last = D(C.fim);
     // semana começando no domingo
@@ -475,7 +477,7 @@ function boot() {
       const max = 4;
       const num = d === 1 || s === iso(mon) ? `${d} <small>${MES[dt.getMonth()].slice(0, 3)}</small>` : d;
       const sts = list.map(estadoEv);
-      const lis = list.slice(0, max).map((e, i) => `<li class="${evYou(e) ? "you" : ""}${sts[i] ? ` st-${sts[i]}` : ""}" style="--c:${evColor(e)}"${sts[i] ? ` title="${ROT_EST[sts[i]]}"` : ""}><i></i><span>${esc(label(e))}</span></li>`).join("");
+      const lis = list.slice(0, max).map((e, i) => `<li class="${evYou(e) ? "you" : ""}${sts[i] ? ` st-${sts[i]}` : ""}" style="--c:${evColor(e)}"${sts[i] ? ` title="${ROT_EST[sts[i]]}"` : ""}><i></i><span title="${esc(longo(e))}">${esc(label(e))}</span></li>`).join("");
       const marca = sts.includes("late") ? " has-late" : sts.includes("todo") || sts.includes("new") ? " has-todo" : "";
       const cls = ["cell" + marca, out ? "out" : "", isOff(dt) ? "we" : "", C.feriados[s] ? "hol" : "", s === TODAY ? "today" : "", s < TODAY ? "past" : "", s === selDay ? "sel" : ""].join(" ");
       const inner = `<span class="n">${num}</span>${C.feriados[s] ? `<span class="hn">${esc(C.feriados[s])}</span>` : ""}<ul>${lis}</ul>${list.length > max ? `<span class="more">+${list.length - max}</span>` : ""}<span class="dots">${list.map((e) => `<i style="--c:${evColor(e)}"></i>`).join("")}</span>`;
@@ -484,9 +486,7 @@ function boot() {
     const cap = (t) => t[0].toUpperCase() + t.slice(1);
     const anos = first.getFullYear() === last.getFullYear() ? `${cap(MES[first.getMonth()])} a ${MES[last.getMonth()]} de ${last.getFullYear()}` : `${cap(MES[first.getMonth()])} de ${first.getFullYear()} a ${MES[last.getMonth()]} de ${last.getFullYear()}`;
     const html = `<section class="month"><h3>${anos}</h3><div class="cal">${cells}</div></section>`;
-    const sel = selDay && byDay.get(selDay);
-    const box = sel ? `<div class="daybox"><h4>${WDL[D(selDay).getDay()]}, ${dm(selDay)}</h4><ul class="items">${itensDoDia(sel)}</ul></div>` : "";
-    return `<p class="hint" style="margin:0 0 14px">Clique num dia para ver tudo o que acontece nele.</p><div class="months">${html}</div><div id="daybox-anchor">${box}</div>`;
+    return `<p class="hint" style="margin:0 0 14px">Clique num dia para ver tudo o que acontece nele.</p><div class="months">${html}</div>`;
   }
 
   // ── Por filme ──
@@ -499,15 +499,30 @@ function boot() {
       return `<li class="${stt === "done" ? "done" : ""}${s === next ? " next" : ""}${st.you ? " you" : ""}" style="--c:${st.c}"><i></i><span>${esc(st.label)}${st.you ? TAG_EQUIPE : ""}</span><time>${when}</time></li>`;
     }).join("")}${f.ent ? "" : `<li style="--c:var(--c-fim)"><i></i><span>Prazo final</span><time>${wd(C.fim)} ${dm(C.fim)}</time></li>`}</ol>`;
   }
+  // ── Por entrega: um filme por linha (nome, onde está, a próxima data e a ação); a ficha abre no painel ──
+  const AGORA_CURTO = ["Em edição", "Offline com a equipe", "Ajustes do retorno", "Indo para cor e som", "Em cor e som", "Online com a equipe", "Aprovado", "Entregue"];
+  const COR_I = ["var(--c-ed)", "var(--c-v2)", "var(--c-rev)", "var(--c-fin)", "var(--c-fin)", "var(--c-on)", "var(--c-fim)", "var(--c-fim)"];
+  function proxima(f) { // a próxima coisa que importa para a Equipe Bradesco
+    const late = (d) => d < TODAY;
+    if (!enviado(f, "v2")) return { t: f.v2 <= TODAY ? "Offline chega em breve" : `Offline chega ${wd(f.v2)}, ${dm(f.v2)}` }; // a data sozinha não conta
+    if (!REG.get(f.id, "v2").aprovado && versaoAtual(f) === "v2") return { t: `${late(f.rev) ? "Retorno atrasado, era" : "Retorno até"} ${wd(f.rev)}, ${dm(f.rev)}`, late: late(f.rev), you: 1 };
+    if (!enviado(f, "on")) return { t: f.on <= TODAY ? "Online chega em breve" : `Online ${wd(f.on)}, ${dm(f.on)}` };
+    if (!REG.get(f.id, "on").aprovado) return { t: `${late(f.ret) ? "Retorno atrasado, era" : "Retorno até"} ${wd(f.ret)}, ${dm(f.ret)}`, late: late(f.ret), you: 1 };
+    return f.ent ? { t: `Entrega ${wd(f.ent)}, ${dm(f.ent)}` } : { t: "Aprovado" };
+  }
   function viewFilmes() {
-    return `<div class="cards">${filmes().map((f) => `
-      <article class="card" id="card-${f.id}">
-        <button class="copy" data-copy="${f.id}" type="button">Copiar link</button>
-        <h3>${esc(f.tipo === "bloco" ? nomeFilme(f) : filmTitle(f))}</h3>
-        <p class="sub">${esc(subFilme(f))}${f.uf ? ` · ${f.uf}` : ""}</p>
-        ${juntoHTML(f)}${liveBox(f, false, false)}${acaoHTML(f)}
-        ${trackHTML(f)}
-      </article>`).join("")}</div>`;
+    const grupos = [["Cidade + fotógrafo · visita e 3 pílulas", (f) => f.tipo === "bloco" || f.tipo === "visita"], ["Só pílulas · pack de 3", (f) => f.tipo === "pilula"], ["Documentário e trailer", (f) => f.tipo === "documentario" || f.tipo === "trailer"]];
+    return grupos.map(([titulo, ok]) => {
+      const L = filmes().filter(ok); if (!L.length) return "";
+      return `<section class="frows"><h3 class="frows-h">${titulo}</h3><ul>${L.map((f) => {
+        const i = vez(f.id), p = proxima(f), v = versaoAtual(f), acao = disponivel(f, v) ? recebHTML(f, v, false, true) : "";
+        return `<li class="frow" id="row-${f.id}" style="--c:${COR_I[i ?? 0]}">
+          <a class="fr-n" href="#filme/${f.id}" data-peek="${f.id}"><b>${esc(f.tipo === "bloco" ? f.nome : filmTitle(f))}</b><small>${esc(filmSub(f))}</small></a>
+          <span class="fr-st"><i></i>${esc(AGORA_CURTO[i ?? 0])}${nVer[f.id] > 1 ? ` <em>v${nVer[f.id]}</em>` : ""}</span>
+          <span class="fr-p${p.late ? " late" : ""}${p.you ? " you" : ""}">${esc(p.t)}</span>
+          <span class="fr-a">${acao}</span></li>`;
+      }).join("")}</ul></section>`;
+    }).join("");
   }
 
   // filmes que chegam no mesmo pacote (pílulas do fotógrafo + visita da escola dele)
@@ -542,6 +557,7 @@ function boot() {
       ${juntoHTML(f)}${liveBox(f, false, false)}
       ${trackHTML(f)}
       ${acaoHTML(f) || `<div class="peek-acts"><span class="soon">O offline chega ${wd(f.v2)}, ${dm(f.v2)}</span></div>`}
+      <div class="peek-acts"><button class="copy" data-copy="${f.id}" type="button">Copiar o link deste filme</button></div>
     </div></div>`;
   }
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -550,10 +566,26 @@ function boot() {
     if (!p) return;
     p.classList.remove("open"); document.documentElement.classList.remove("peek-aberta");
     document.querySelectorAll(`[data-peek][aria-expanded="true"]`).forEach((c) => { c.setAttribute("aria-expanded", "false"); c.classList.remove("on"); });
+    document.querySelectorAll(".cell.sel").forEach((c) => c.classList.remove("sel"));
     const volta = p._chip; setTimeout(() => p.remove(), reduce ? 0 : 380);
     if (volta?.isConnected) volta.focus({ preventScroll: true });
   }
-  function repintaPeek() { const p = $(".peek.open"); if (p && byId[p.dataset.for]) p.querySelector(".peek-in").outerHTML = peekHTML(byId[p.dataset.for]); }
+  // um dia do calendário no mesmo painel: o que acontece nele, em lista
+  function abreDia(btn) {
+    const s = btn.dataset.day, evs = eventos().filter((e) => e.date === s);
+    const old = $(".peek"); const same = old && old.dataset.dia === s; closePeek(old); if (same || !evs.length) return;
+    const p = document.createElement("div"); p.className = "peek"; p.dataset.dia = s; p._chip = btn;
+    p.setAttribute("role", "dialog"); p.setAttribute("aria-modal", "true"); p.setAttribute("aria-label", `${WDL[D(s).getDay()]}, ${dm(s)}`);
+    p.innerHTML = `<div class="peek-in"><div class="peek-card"><button class="peek-x" type="button" aria-label="Fechar">×</button><p class="k">${s === TODAY ? "Hoje" : s < TODAY ? "Já passou" : "Próximo"}</p><h4>${WDL[D(s).getDay()]}, ${dm(s)}</h4><ul class="items">${itensDoDia(evs)}</ul></div></div>`;
+    p.addEventListener("click", (e) => { if (e.target === p || e.target.closest(".peek-x")) closePeek(p); });
+    document.body.append(p); btn.classList.add("sel");
+    requestAnimationFrame(() => requestAnimationFrame(() => { p.classList.add("open"); document.documentElement.classList.add("peek-aberta"); p.querySelector(".peek-x")?.focus({ preventScroll: true }); }));
+  }
+  function repintaPeek() {
+    const p = $(".peek.open"); if (!p) return;
+    if (byId[p.dataset.for]) p.querySelector(".peek-in").outerHTML = peekHTML(byId[p.dataset.for]);
+    else if (p.dataset.dia) p.querySelector(".items").innerHTML = itensDoDia(eventos().filter((e) => e.date === p.dataset.dia));
+  }
   function openPeek(chip, id) {
     const f = byId[id]; if (!f) return;
     const old = $(".peek");
@@ -585,7 +617,7 @@ function boot() {
       renderFocus(b);
       if (c === "assistir") { pendAssistir = b; setTimeout(tentaAssistir, 0); }
       state.view = "filmes"; render();
-      const card = $(`#card-${CSS.escape(b || "")}`);
+      const card = $(`#row-${CSS.escape(b || "")}`);
       if (card) card.classList.add("hl");
       $("#focus").scrollIntoView({ behavior: "smooth", block: "start" });
       return;
@@ -602,11 +634,12 @@ function boot() {
     const b = e.target.closest("[data-f]"); if (!b) return;
     state.filtro = b.dataset.f; render();
   });
-  $("#view").addEventListener("click", async (e) => {
+  document.addEventListener("click", async (e) => {
+    if (!e.target.closest?.("#view, .peek")) return;
     const fl = e.target.closest('a[href^="#filme/"]');
-    if (fl && state.view !== "filmes" && !e.metaKey && !e.ctrlKey && !e.shiftKey) { e.preventDefault(); openPeek(fl, fl.getAttribute("href").slice(7)); return; }
+    if (fl && !e.metaKey && !e.ctrlKey && !e.shiftKey) { e.preventDefault(); openPeek(fl, fl.getAttribute("href").slice(7).split("/")[0]); return; }
     const day = e.target.closest("[data-day]");
-    if (day) { selDay = selDay === day.dataset.day ? null : day.dataset.day; render(); $("#daybox-anchor")?.scrollIntoView({ behavior: "smooth", block: "nearest" }); return; }
+    if (day) { abreDia(day); return; }
     const cp = e.target.closest("[data-copy]");
     if (cp) {
       const url = `${location.origin}${location.pathname}#filme/${cp.dataset.copy}`;
