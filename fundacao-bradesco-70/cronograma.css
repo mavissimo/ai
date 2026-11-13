@@ -670,3 +670,8 @@ body { padding-bottom: 76px; }
 .cm-dica { position: absolute; right: 12px; bottom: 7px; font-size: 10.5px; font-weight: 600; color: var(--ink-3); opacity: 0; pointer-events: none; transition: opacity .2s; }
 .cm-campo:hover .cm-dica, .cm-campo:focus-within .cm-dica { opacity: .7; }
 .cm.dark .cm-dica { color: rgba(255, 255, 255, .75); }
+/* cartão de explicação da trilha: claro e com borda, para se separar do roxo das abas e do resto da página */
+.steps .d { background: #FFFDF4; color: var(--ink); box-shadow: 0 16px 34px -14px rgba(43, 35, 64, .45), inset 0 0 0 1.5px var(--yellow); }
+.steps .d::before { content: ""; position: absolute; top: -6px; left: calc(50% - 6px); width: 12px; height: 12px; background: #FFFDF4; box-shadow: -1.5px -1.5px 0 0 var(--yellow); transform: rotate(45deg); border-radius: 2px 0 0 0; }
+.steps li:first-child .d::before { left: 14px; } .steps li:last-child .d::before { left: auto; right: 14px; }
+@media (max-width: 640px) { .steps .d { background: none; box-shadow: none; color: var(--ink-3); } .steps .d::before { display: none; } }
