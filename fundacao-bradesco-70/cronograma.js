@@ -596,7 +596,7 @@ function boot() {
       </article>`;
     }).join("");
     const pe = EQUIPE ? "" : pend.length
-      ? `<div class="ap-foot"><p>Tudo certo? Aprove de uma vez. Ajustes, só nos comentários.</p><button type="button" class="ap-tudo" data-aprovar-tudo>Aprovar ${pend.length === 1 ? "o filme" : `os ${pend.length} filmes`}</button></div>`
+      ? `<div class="ap-foot"><p><b>Tudo certo?</b> Aprove de uma vez. Ajustes, só nos comentários.</p><button type="button" class="ap-tudo" data-aprovar-tudo>Aprovar ${pend.length === 1 ? "o filme" : `os ${pend.length} filmes`}</button></div>`
       : `<div class="ap-foot ok" data-desaprova="todos" title="Clique para desfazer as aprovações desta página" role="button" tabindex="0"><p>Tudo aprovado. Obrigado!</p></div>`;
     return `<p class="ap-intro">${EQUIPE ? "Assista e deixe seus comentários. Eles chegam direto para a produção." : "Reveja cada filme, comente o que precisar e aprove tudo de uma vez, no fim."}</p><div class="ap-lista">${cards}</div>${pe}`;
   }
