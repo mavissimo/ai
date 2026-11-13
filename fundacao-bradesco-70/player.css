@@ -198,3 +198,10 @@
 }
 body.lb-open { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .lb, .lb-frame, .lb-controls, .lb-tools { transition: none; } .lb.mini .lb-frame { animation: none; } .lb-loading i { animation: none; } }
+/* filme rodando: o fundo escurece quase até o preto e o resto some até mexer o mouse */
+.lb-bg { transition: background .6s ease; }
+.lb.is-playing .lb-bg { background: rgba(5, 3, 10, .97); }
+.lb .lb-top, .lb .lb-list { transition: opacity .5s ease; }
+.lb.is-playing:not(.show-ui) .lb-top, .lb.is-playing:not(.show-ui) .lb-list { opacity: .12; }
+.lb.is-playing .lb-frame { box-shadow: 0 40px 140px -30px rgba(0, 0, 0, .95); }
+@media (prefers-reduced-motion: reduce) { .lb-bg, .lb .lb-top, .lb .lb-list { transition: none; } }
