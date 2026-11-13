@@ -752,3 +752,20 @@ body { padding-bottom: 76px; }
 .item .step-k { font-size: 12px; color: var(--ink); }
 .item .rcs { margin-top: 10px; }
 .items { gap: 18px; }
+/* topo: o selo grande à esquerda do título, ocupando o espaço; os números na largura toda embaixo */
+.hero { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "selo kicker" "selo titulo" "selo lead" "stats stats"; column-gap: clamp(24px, 3.5vw, 44px); align-items: start; }
+.hero .brand { grid-area: selo; margin: 0; align-self: center; }
+.hero .brand img { height: clamp(120px, 13vw, 176px); width: auto; display: block; transition: transform .4s var(--ease); }
+.hero .brand:hover img { transform: rotate(-6deg) scale(1.03); }
+.hero .kicker { grid-area: kicker; align-self: end; }
+.hero h1 { grid-area: titulo; }
+.hero .lead { grid-area: lead; }
+.hero .stats { grid-area: stats; }
+.top { padding-top: 22px; }
+.top .brand { margin-left: 0; }
+@media (max-width: 640px) {
+  .hero { grid-template-columns: minmax(0, 1fr); grid-template-areas: "selo" "kicker" "titulo" "lead" "stats"; }
+  .hero .brand img { height: 84px; }
+  .hero .brand { margin-bottom: 14px; align-self: start; }
+}
+@media (prefers-reduced-motion: reduce) { .hero .brand img { transition: none; } }
