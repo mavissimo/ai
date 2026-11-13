@@ -539,7 +539,9 @@ header .dobra p { margin-top: 6px; }
       toast(`${novos.length} link${novos.length > 1 ? "s" : ""} novo${novos.length > 1 ? "s" : ""} em ${titulo}`);
       setTimeout(renderList, 600);
     } catch (e) {
-      toast(e?.code === "dropbox_config" ? "Falta ligar o Dropbox ao Apps Script (veja as instruções)" : e?.message || "Não consegui ler a pasta");
+      const falta = e?.code === "dropbox_config" || /desconhecida: dropboxPasta/.test(e?.message || "");
+      if (falta) { if (confirm("O Dropbox ainda não está ligado ao Controle. Abrir o passo a passo?")) window.open("dropbox.html", "_blank", "noopener"); }
+      else toast(e?.message || "Não consegui ler a pasta");
     } finally { b.disabled = false; b.innerHTML = rot; }
   }
   const versAbertas = new Set(); // históricos abertos continuam abertos quando a lista redesenha

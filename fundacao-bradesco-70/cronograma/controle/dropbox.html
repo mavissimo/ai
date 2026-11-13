@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Ligar o Dropbox</title>
+<style>
+:root { --bg: #F6F5F2; --card: #fff; --fg: #1F1D1A; --muted: #6B6862; --line: #E3E0DA; --brand: #613CAD; --ok: #2F7A51; --erro: #B3353A; }
+@media (prefers-color-scheme: dark) { :root { --bg: #141413; --card: #1D1C1A; --fg: #EEEDEA; --muted: #A3A09A; --line: #35332F; --brand: #B49BF3; --ok: #62BA8A; --erro: #E36F73; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: -.01em; }
+.lead { color: var(--muted); margin: 0 0 24px; }
+ol { padding: 0; margin: 0; list-style: none; counter-reset: p; display: grid; gap: 12px; }
+li { counter-increment: p; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px 16px 58px; position: relative; }
+li::before { content: counter(p); position: absolute; left: 16px; top: 15px; width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: #fff; font-weight: 800; display: grid; place-items: center; font-size: 14px; }
+li.feito::before { content: "✓"; background: var(--ok); }
+li h2 { margin: 0 0 4px; font-size: 17px; }
+li p { margin: 6px 0; }
+b { font-weight: 700; }
+input { font: inherit; width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: inherit; margin-top: 4px; }
+button, .bt { font: inherit; font-weight: 800; padding: 10px 16px; border: 0; border-radius: 12px; background: var(--fg); color: var(--bg); cursor: pointer; text-decoration: none; display: inline-block; margin-top: 8px; }
+.bt.claro { background: none; color: var(--fg); border: 1px solid var(--line); }
+button:disabled { opacity: .4; cursor: not-allowed; }
+.msg { font-size: 14px; font-weight: 700; margin: 8px 0 0; }
+.msg.ok { color: var(--ok); } .msg.erro { color: var(--erro); }
+.chave { font: 700 17px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--bg); border: 1px dashed var(--line); border-radius: 10px; padding: 8px 12px; display: inline-block; margin-top: 4px; }
+small { color: var(--muted); }
+a { color: var(--brand); }
+</style>
+<style>
+code { font: 600 14px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+.res { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 14px; }
+.res li { padding: 8px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); }
+.res li::before { display: none; }
+.aviso { padding: 12px 14px; border-radius: 12px; background: color-mix(in srgb, var(--brand) 10%, var(--card)); border: 1px solid color-mix(in srgb, var(--brand) 30%, var(--line)); margin: 0 0 16px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Ligar o Dropbox ao Controle</h1>
+  <p class="lead">Uma vez só, uns 10 minutos. Depois disso, no Controle, o botão <b>Colar pasta do Dropbox</b> de cada cidade lê a pasta e coloca o link de cada vídeo no filme certo.</p>
+  <p class="aviso">Use a conta do Dropbox <b>onde estão as pastas dos filmes</b>. Não substitua o <b>Code.gs</b>: ele guarda a chave da equipe e o segredo do Notion. O Dropbox entra num arquivo novo, ao lado dele.</p>
+  <ol>
+    <li><h2>Crie o app no Dropbox</h2>
+      <p>Abra <a href="https://www.dropbox.com/developers/apps/create" target="_blank" rel="noopener">dropbox.com/developers/apps/create</a>. Escolha <b>Scoped access</b>, depois <b>Full Dropbox</b>, e dê o nome <b>Controle FB70</b> (se já existir, acrescente um número). Clique em <b>Create app</b>.</p></li>
+    <li><h2>Marque as permissões</h2>
+      <p>Na aba <b>Permissions</b>, marque <code>files.metadata.read</code>, <code>sharing.read</code> e <code>sharing.write</code>. Clique em <b>Submit</b>, embaixo.</p></li>
+    <li><h2>Guarde as duas chaves no Apps Script</h2>
+      <p>Na aba <b>Settings</b> do app ficam o <b>App key</b> e o <b>App secret</b> (clique em <b>Show</b>).</p>
+      <p>Abra a <a href="https://docs.google.com/spreadsheets/d/1dZp8HV-64v5ewc0LzdnE4A7Luu1ikMGapbtg848Mnh4/edit" target="_blank" rel="noopener">planilha</a> › <b>Extensões › Apps Script</b> › engrenagem <b>Configurações do projeto</b> › embaixo, <b>Propriedades do script › Adicionar propriedade</b>. Crie duas:</p>
+      <p><code>DROPBOX_APP_KEY</code> = o App key<br><code>DROPBOX_APP_SECRET</code> = o App secret</p>
+      <p>Clique em <b>Salvar propriedades do script</b>.</p></li>
+    <li><h2>Cole o arquivo do Dropbox</h2>
+      <p><button type="button" id="copiar" disabled>Copiar o código do Dropbox</button></p>
+      <p class="msg" id="copiar-msg"></p>
+      <p>No editor (ícone <b>&lt;&gt;</b>), clique no <b>+</b> ao lado de <b>Arquivos</b> › <b>Script</b> › nome <b>Dropbox</b>. Apague o que vier escrito, cole e salve. Ele precisa ficar <b>abaixo do Code.gs</b> na lista (é onde ele aparece ao ser criado).</p></li>
+    <li><h2>Autorize no Dropbox</h2>
+      <p>Cole o App key aqui só para montar o link (ele não sai desta página):</p>
+      <input id="key" placeholder="App key" autocomplete="off">
+      <p><a class="bt" id="autoriza" target="_blank" rel="noopener" aria-disabled="true">Abrir a autorização</a></p>
+      <p>Clique em <b>Continuar</b> e <b>Permitir</b>. O Dropbox mostra um código: copie e, logo em seguida (ele vale por pouco tempo), crie mais uma propriedade do script: <code>DROPBOX_CODIGO</code> = o código.</p>
+      <p>No editor, abra o arquivo <b>Dropbox</b>, escolha a função <b>ligarDropbox</b> no menu de cima e clique em <b>Executar</b>. Se o Google pedir permissão, aceite. No registro deve aparecer <b>“Dropbox ligado.”</b>. O código some sozinho das propriedades.</p></li>
+    <li><h2>Publique a nova versão</h2>
+      <p><b>Implantar › Gerenciar implantações</b> › lápis (editar) › em <b>Versão</b>, escolha <b>Nova versão</b> › <b>Implantar</b>.</p>
+      <p><small>Não use “Nova implantação”: ela troca o endereço e o Controle perde a ligação.</small></p></li>
+    <li><h2>Teste com uma pasta</h2>
+      <p>Cole o link de uma pasta do Dropbox com vídeos:</p>
+      <input id="pasta" type="url" placeholder="https://www.dropbox.com/scl/fo/…" autocomplete="off">
+      <p><button type="button" id="testar">Testar</button></p>
+      <p class="msg" id="testar-msg"></p>
+      <ul class="res" id="res"></ul></li>
+  </ol>
+  <p style="margin-top:24px"><a href="./">Voltar ao Controle</a></p>
+</main>
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const ls = (k) => { try { return localStorage.getItem(k) || ""; } catch { return ""; } };
+  const msg = (el, t, ok) => { el.textContent = t; el.className = "msg " + (ok ? "ok" : "erro"); };
+  let codigo = "";
+  fetch("apps-script/Dropbox.gs?t=" + Date.now()).then((r) => r.text()).then((t) => { codigo = t; $("#copiar").disabled = false; });
+  $("#copiar").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(codigo); msg($("#copiar-msg"), "Copiado. Agora cole no arquivo Dropbox do editor.", true); }
+    catch { prompt("Copie o código:", codigo); }
+  });
+  const montaLink = () => {
+    const k = $("#key").value.trim(), a = $("#autoriza");
+    if (k) { a.href = `https://www.dropbox.com/oauth2/authorize?client_id=${encodeURIComponent(k)}&response_type=code&token_access_type=offline`; a.removeAttribute("aria-disabled"); }
+    else { a.removeAttribute("href"); a.setAttribute("aria-disabled", "true"); }
+  };
+  $("#key").addEventListener("input", montaLink); montaLink();
+  $("#testar").addEventListener("click", async () => {
+    const url = ls("fbc-url"), chave = ls("fbc-chave"), pasta = $("#pasta").value.trim(), m = $("#testar-msg"), res = $("#res");
+    res.replaceChildren();
+    if (!url || !chave) return msg(m, "Abra o Controle uma vez neste navegador (com a chave da equipe) e volte aqui.");
+    if (!/dropbox\.com\/(scl\/fo|sh)\//i.test(pasta)) return msg(m, "Cole o link de uma pasta do Dropbox.");
+    msg(m, "Lendo a pasta…", true);
+    try {
+      const j = await (await fetch(url, { method: "POST", body: JSON.stringify({ chave, op: "dropboxPasta", args: { url: pasta } }) })).json();
+      if (!j.ok) return msg(m, j.code === "op" ? "O Apps Script ainda não tem o Dropbox: confira os passos 4 e 6." : j.message || "Não deu certo.");
+      const a = j.r.arquivos || [];
+      msg(m, a.length ? `Tudo certo: ${a.length} vídeo${a.length > 1 ? "s" : ""} na pasta.` : "Ligado, mas não há vídeos nesta pasta.", true);
+      a.forEach((x) => { const li = document.createElement("li"); li.textContent = `${x.nome} ${x.url ? "· link pronto" : "· sem link"}`; res.append(li); });
+    } catch { msg(m, "Sem resposta do Apps Script. Confira a internet."); }
+  });
+})();
+</script>
+</body>
+</html>
