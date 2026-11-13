@@ -683,3 +683,7 @@ body { padding-bottom: 76px; }
 .ap-tudo.armado { background: var(--yellow); color: var(--purple-ink); animation: ap-pulsa2 1s ease-in-out infinite; }
 @keyframes ap-pulsa2 { 50% { box-shadow: 0 0 0 7px rgba(245, 215, 117, .3); } }
 .ap-foot.ok { background: #E6F4EC; box-shadow: inset 0 0 0 1.5px #9FD3B5; }
+/* a frase do topo quebra entre as ideias, nunca no meio delas */
+.hero .lead { max-width: none; }
+.hero .lead span { display: block; }
+@media (max-width: 560px) { .hero .lead span { display: inline; } }
