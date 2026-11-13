@@ -356,7 +356,7 @@ function boot() {
   $("#steps").innerHTML = ["v2", "rev", "fin", "on", "ret", "ent"].map((k) => {
     const s = STEP[k];
     const desc = k === "ent" ? `${s.desc}. Todos os 41 até ${dm(C.fim)}` : s.desc; // o prazo final vai junto da entrega: um card a menos
-    const nome = { v2: "Offline", rev: "Seu retorno", fin: "Som e cor", on: "Online", ret: "Seu retorno", ent: "Entrega" }[k];
+    const nome = { v2: "Offline", rev: "Aprovação", fin: "Som e cor", on: "Online", ret: "Aprovação", ent: "Entrega" }[k];
     const marca = s.you ? `<i class="bd-m" aria-hidden="true">${TAG_EQUIPE.match(/<svg[\s\S]*?<\/svg>/)[0]}</i>` : `<i aria-hidden="true"></i>`; // o retorno é com a Equipe Bradesco: a marca dela no lugar da bolinha
     return `<li class="${s.you ? "you" : ""}${s.bar ? " range" : ""}" style="--c:${s.c}" tabindex="0">${marca}<strong>${nome}</strong><span class="d">${esc(desc)}</span></li>`;
   }).join("");
