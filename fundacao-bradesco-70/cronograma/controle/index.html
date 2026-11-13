@@ -222,6 +222,12 @@ input[type="text"], input[type="url"], input[type="search"], select { background
 .film .lin { position: relative; flex: 1; min-width: 0; display: flex; }
 .film .lin input { flex: 1; min-width: 0; }
 .film .lin.tem-n input { padding-right: 40px; }
+/* Colar: dentro do campo, no canto (antes do N, quando ele existe) */
+.film .lin input { padding-right: 62px; }
+.film .lin.tem-n input { padding-right: 94px; }
+.film .colar { position: absolute; right: 5px; top: 50%; translate: 0 -50%; height: 24px; padding: 0 9px; border-radius: 6px; border: 1px solid var(--line); background: var(--card); color: var(--muted); font: 700 12px/1 var(--font); cursor: pointer; }
+.film .colar:hover { color: var(--fg); border-color: var(--fg); }
+.film .lin.tem-n .colar { right: 37px; }
 .film .nlink { position: absolute; right: 5px; top: 50%; translate: 0 -50%; width: 26px; height: 24px; border-radius: 6px; border: 1px solid var(--line); background: var(--card); color: var(--muted); font: 800 13px/1 Georgia, serif; cursor: pointer; }
 .film .nlink:hover, .film .nlink[aria-expanded="true"] { color: var(--fg); border-color: var(--fg); }
 .film .nlink.pend { color: var(--fg); border-color: color-mix(in srgb, var(--yellow) 80%, var(--fg)); background: color-mix(in srgb, var(--yellow) 35%, var(--card)); }
@@ -664,6 +670,28 @@ header .dobra p { margin-top: 6px; }
     url.addEventListener("change", () => commit(url, "url"));
     note.addEventListener("change", () => commit(note, "nota"));
     [url, note].forEach((i) => i.addEventListener("keydown", (e) => { if (e.key === "Enter") i.blur(); }));
+    // Tab anda de link em link (Shift+Tab volta), para colar os links em sequência
+    url.addEventListener("keydown", (e) => {
+      if (e.key !== "Tab" || e.altKey || e.metaKey || e.ctrlKey) return;
+      const todos = [...list.querySelectorAll(".film .link input")], k = todos.indexOf(url);
+      const alvo = todos[k + (e.shiftKey ? -1 : 1)];
+      if (!alvo) return; // no primeiro ou no último, o Tab segue normal
+      e.preventDefault();
+      alvo.focus(); alvo.select();
+    });
+    // Colar: lê a área de transferência e já grava
+    if (canWrite) {
+      const cb = document.createElement("button"); cb.type = "button"; cb.className = "colar"; cb.textContent = "Colar"; cb.tabIndex = -1;
+      cb.title = "Colar o link copiado"; cb.setAttribute("aria-label", `Colar o link de ${f.titulo}`);
+      cb.addEventListener("mousedown", (e) => e.preventDefault()); // não tira o foco do campo
+      cb.addEventListener("click", async () => {
+        let v = "";
+        try { v = (await navigator.clipboard.readText()).trim(); } catch { url.focus(); url.select(); toast("O navegador não deixou ler a área de transferência: use ⌘V"); return; }
+        if (!v) { toast("Nada copiado para colar"); return; }
+        url.value = v; commit(url, "url"); url.focus();
+      });
+      r.querySelector(".lin").prepend(cb);
+    }
     return r;
   }
 
