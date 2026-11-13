@@ -664,3 +664,9 @@ body { padding-bottom: 76px; }
 .rc-ok[data-desaprova] { padding: 6px 12px; }
 .ap-foot.ok[data-desaprova]:hover { background: #FBEAE9; box-shadow: inset 0 0 0 1.5px #E9B2AE; }
 .ap-foot.ok[data-desaprova]:hover p { color: #C2362F; }
+/* aviso do Enter, pequeno e discreto no canto do campo */
+.cm-campo { position: relative; }
+.cm-campo textarea { padding-bottom: 22px; }
+.cm-dica { position: absolute; right: 12px; bottom: 7px; font-size: 10.5px; font-weight: 600; color: var(--ink-3); opacity: 0; pointer-events: none; transition: opacity .2s; }
+.cm-campo:hover .cm-dica, .cm-campo:focus-within .cm-dica { opacity: .7; }
+.cm.dark .cm-dica { color: rgba(255, 255, 255, .75); }

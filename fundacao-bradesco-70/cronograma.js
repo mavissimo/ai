@@ -539,7 +539,7 @@ function boot() {
       <div class="cm-reac" role="group" aria-label="Reações">${REACOES.map((e) => { const s = rs[e], n = s?.size || 0, eu = !!s?.has(REG.dev); return `<button type="button" class="rx${eu ? " on" : ""}" data-reage="${k}|${e}" aria-pressed="${eu}" aria-label="${e} ${n}">${e}${n ? `<span>${n}</span>` : ""}</button>`; }).join("")}</div>
       ${cs.length ? `<ul class="cm-list">${cs.map((c) => `<li${c.antiga ? ' class="antiga"' : ""}><div class="cm-h"><b>${esc(c.n)}</b>${c.o === "equipe" ? '<span class="cm-o">equipe</span>' : ""}${c.antiga ? '<span class="cm-o">versão anterior</span>' : ""}<time>${dmh(c.t)}</time></div><p>${esc(c.x)}</p></li>`).join("")}</ul>` : ""}
       <form class="cm-form" data-comenta="${k}">
-        <textarea name="x" rows="2" placeholder="${cs.length ? "Responder ou comentar" : "Escreva um comentário"}" aria-label="Comentário"></textarea>
+        <div class="cm-campo"><textarea name="x" rows="2" placeholder="${cs.length ? "Responder ou comentar" : "Escreva um comentário"}" aria-label="Comentário" aria-describedby="dica-${f.id}"></textarea><span class="cm-dica" id="dica-${f.id}">Enter envia · Shift + Enter quebra a linha</span></div>
         <div class="cm-nome" hidden><input name="n" placeholder="Seu nome" autocomplete="name" aria-label="Seu nome" value="${esc(nome)}"></div>
         <div class="cm-pe">${nome ? `<span class="cm-eu">Comentando como <b>${esc(nome)}</b> · <button type="button" class="cm-troca">trocar</button></span>` : "<span></span>"}<button type="submit" class="cm-bt">Comentar</button></div>
       </form>
@@ -551,6 +551,14 @@ function boot() {
     if (r) { const [id, v, emoji] = r.dataset.reage.split("|"); REG.reage(id, v, emoji); repintaCm(`${id}|${v}`); return; }
     const tr = e.target.closest(".cm-troca");
     if (tr) { const fm = tr.closest("form"); fm.querySelector(".cm-nome").hidden = false; fm.querySelector("[name=n]").focus(); tr.closest(".cm-eu").remove(); }
+  });
+  // Enter envia; Shift + Enter (ou ⌘/Ctrl + Enter) quebra a linha
+  document.addEventListener("keydown", (e) => {
+    const ta = e.target.closest?.(".cm-form textarea"); if (!ta || e.key !== "Enter" || e.isComposing) return;
+    if (e.shiftKey || e.altKey) return; // quebra normal
+    e.preventDefault();
+    if (e.metaKey || e.ctrlKey) { const a = ta.selectionStart, b = ta.selectionEnd; ta.value = ta.value.slice(0, a) + "\n" + ta.value.slice(b); ta.selectionStart = ta.selectionEnd = a + 1; return; }
+    ta.form.requestSubmit();
   });
   document.addEventListener("submit", (e) => {
     const fm = e.target.closest("[data-comenta]"); if (!fm) return;
