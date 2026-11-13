@@ -576,6 +576,8 @@ function boot() {
   });
 
   // ── Aprovação: rever filme a filme, comentar e aprovar tudo de uma vez (na página da equipe, só comentar) ──
+  // nome do vídeo dentro do cartão (a cidade e o fotógrafo já estão no título do cartão)
+  const rotVideo = (x, f) => (x.vid.startsWith("visita-") ? "Visita" : x.vid.startsWith("pilula-") ? `Pílula ${x.vid.match(/-(\d+)$/)?.[1] || ""}` : x.titulo || nomeFilme(f));
   function viewAprovar() {
     const lista = EQUIPE
       ? filmes().map((f) => ({ f, v: versaoAtual(f) })).filter((x) => disponivel(x.f, x.v))
@@ -587,7 +589,7 @@ function boot() {
     const pend = lista.filter((x) => !x.feito && !REG.get(x.f.id, x.v).aprovado);
     const cards = lista.map(({ f, v, feito }) => {
       const vs = videosDe(f.id), lb = linkBloco(f, v), n = nVer[f.id], prazo = v === "v2" ? f.rev : f.ret, r = REG.get(f.id, v);
-      const vids = vs.length ? vs.map((x, i) => `<li><button type="button" class="ap-play" data-play="${f.id}|${i}" data-abre="${f.id}|${v}"><span class="pl" aria-hidden="true">▶</span><b>${esc(x.titulo || nomeFilme(f))}</b>${x.duracao ? `<small>${esc(x.duracao)}</small>` : ""}</button></li>`).join("")
+      const vids = vs.length ? vs.map((x, i) => `<li><button type="button" class="ap-play" data-play="${f.id}|${i}" data-abre="${f.id}|${v}"><span class="pl" aria-hidden="true">▶</span><b>${esc(rotVideo(x, f))}</b>${x.duracao ? `<small>${esc(x.duracao)}</small>` : ""}</button></li>`).join("")
         : lb ? `<li><button type="button" class="ap-play" data-watch="${f.id}" data-url="${esc(lb)}" data-v="${v}" data-abre="${f.id}|${v}"><span class="pl" aria-hidden="true">▶</span><b>${esc(nomeFilme(f))}</b></button></li>` : "";
       return `<article class="ap-card${r.aprovado || feito ? " feito" : ""}" id="ap-${f.id}">
         <header><h3>${esc(nomeFilme(f))}</h3><p>${v === "v2" ? "Offline" : "Online"}${n > 1 ? ` · versão ${n}` : ""}${EQUIPE || r.aprovado ? "" : ` · retorno até ${wd(prazo)}, ${dm(prazo)}`}</p>${r.aprovado ? `<span class="ap-ok" data-desaprova="${f.id}|${v}" title="Clique para desfazer a aprovação" role="button" tabindex="0">✓ Aprovado em ${dmIso(r.quando)}</span>` : ""}</header>
@@ -598,7 +600,7 @@ function boot() {
     const pe = EQUIPE ? "" : pend.length
       ? `<div class="ap-foot"><p><b>Tudo certo?</b> Aprove de uma vez. Ajustes, só nos comentários.</p><button type="button" class="ap-tudo" data-aprovar-tudo>Aprovar ${pend.length === 1 ? "o filme" : `os ${pend.length} filmes`}</button></div>`
       : `<div class="ap-foot ok" data-desaprova="todos" title="Clique para desfazer as aprovações desta página" role="button" tabindex="0"><p>Tudo aprovado. Obrigado!</p></div>`;
-    return `<p class="ap-intro">${EQUIPE ? "Assista e deixe seus comentários. Eles chegam direto para a produção." : "Reveja cada filme, comente o que precisar e aprove tudo de uma vez, no fim."}</p><div class="ap-lista">${cards}</div>${pe}`;
+    return `<p class="ap-intro">${EQUIPE ? "Assista e deixe seus comentários. Eles chegam direto para a produção." : "Reveja cada filme, comente o que precisar e aprove tudo no fim."}</p><div class="ap-lista">${cards}</div>${pe}`;
   }
   // clique no "Aprovado" volta ao estado de antes (um filme, ou todos os da página de aprovação)
   document.addEventListener("click", (e) => {
@@ -669,8 +671,7 @@ function boot() {
         <p class="k">${esc(sobre(f))}</p>
         <h2>${esc(nomeFilme(f))}</h2>
         <p class="fb-st"><i style="--c:${COR_I[i ?? 0]}"></i>${esc(AGORA_CURTO[i ?? 0])}${n > 1 ? ` <em>versão ${n}</em>` : ""}<span class="fb-p${p.late ? " late" : ""}">${esc(p.t)}</span></p>
-        ${acao ? `<div class="fb-acts">${acao}${EQUIPE ? "" : `<button type="button" class="share" data-share="${f.id}|${v}"><span aria-hidden="true">↗</span> Compartilhar com a equipe</button>`}</div>` : ""}
-        ${checkHTML(f, v, false)}
+        ${acao ? `<div class="fb-acts">${acao}${checkHTML(f, v, false)}</div>${EQUIPE ? "" : `<button type="button" class="share-link" data-share="${f.id}|${v}">↗ Compartilhar com a equipe</button>`}` : checkHTML(f, v, false)}
         ${disponivel(f, v) ? comentariosHTML(f, v, true) : ""}
       </div>
       <div class="fb-side">${trackHTML(f)}<a class="all" href="#agenda">Ver todos os filmes →</a></div>

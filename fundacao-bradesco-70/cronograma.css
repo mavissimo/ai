@@ -692,3 +692,22 @@ body { padding-bottom: 76px; }
 .ap-foot p { max-width: none; font-size: 16px; font-weight: 600; line-height: 1.3; }
 .ap-foot p b { font-weight: 800; color: #fff; }
 @media (min-width: 760px) { .ap-foot { flex-wrap: nowrap; } .ap-foot p { white-space: nowrap; } }
+.cm-dica { right: 28px; bottom: 8px; font-size: 12px; font-weight: 700; }
+.cm-campo:hover .cm-dica, .cm-campo:focus-within .cm-dica { opacity: .85; }
+.cm-campo textarea { padding-bottom: 26px; }
+.ap-intro { max-width: none; }
+.ap-play b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ap-vids { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+/* topo na mesma margem do resto da página (título, frase e números alinhados com a trilha, as abas e a agenda) */
+.top { padding-left: 0; padding-right: 0; }
+.top .brand { display: inline-block; margin-left: clamp(16px, 5vw, 64px); }
+.hero { max-width: 1180px; margin: 28px auto 0; padding-left: clamp(16px, 4vw, 40px); padding-right: clamp(16px, 4vw, 40px); box-sizing: border-box; }
+.item.receb, .item.you { margin-right: 0; }
+/* link direto: as duas ações lado a lado, do mesmo tamanho; compartilhar como link discreto */
+.fb-acts { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+.fb-acts .rc, .fb-acts .rc-a { display: contents; }
+.fb-acts .watch, .fb-acts .ir-ap { min-width: 210px; height: 44px; font-size: 14.5px; }
+.focus-box .ir-ap { background: #fff; color: var(--purple-ink); }
+.focus-box .ir-ap:hover { background: #F1ECFA; }
+.share-link { display: inline-flex; align-items: center; gap: 4px; margin: 2px 0 16px; padding: 4px 0; border: 0; background: none; color: rgba(255, 255, 255, .8); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: underline; text-decoration-color: rgba(255, 255, 255, .35); text-underline-offset: 3px; transition: color .2s; }
+.share-link:hover { color: #fff; text-decoration-color: var(--yellow); }
