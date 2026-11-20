@@ -372,6 +372,10 @@
     go(t.dataset.photo ? `#/fotografo/${t.dataset.photo}` : `#/escola/${t.dataset.city}`);
   });
   document.querySelectorAll("[data-play]").forEach((b) => b.addEventListener("click", () => go(`#/filme/${b.dataset.play}`)));
+  if (window.SEM_VIDEOS) { // só o mapa: nada promete um vídeo que ainda não está no site
+    document.documentElement.classList.add("sem-videos");
+    document.querySelectorAll(".doc-feature em").forEach((e) => (e.textContent = "Em breve"));
+  }
 
   // ── Player ────────────────────────────────────────────────
   const PLAYER_DOTS = '<span class="dot" style="--c:var(--yellow);top:18%;right:12%"></span><span class="dot" style="--c:var(--red);top:30%;right:22%"></span><span class="dot" style="--c:var(--white);top:40%;right:9%"></span>';
@@ -382,12 +386,16 @@
   const visitaDoFot = Object.fromEntries(FOTOGRAFOS.filter((f) => f.visita).map((f) => [f.id, f.visita]));
   const blocoDo = (id) => { const g = id.startsWith("pilula-") ? id.replace(/^pilula-/, "").replace(/-\d+$/, "") : id.replace(/^visita-/, ""); return visitaDoFot[g] || g; }; // id do bloco no cronograma
   const aprovou = (id, versao) => !!window.FB_REGISTRO?.get?.(blocoDo(id), versao)?.aprovado; // o check da Equipe Bradesco no cronograma
+  // pacote sem vídeos (config.js com SEM_VIDEOS = true): só o mapa; todo filme aparece como "Em breve" e nada é carregado de fora
+  const SEM_VIDEOS = !!window.SEM_VIDEOS;
   const liberado = (v) => {
+    if (SEM_VIDEOS) return false;
     if (!window.SO_APROVADOS || window.VIDEO_STATUS === false) return true; // planilha fora do ar: não trava o site
     return /^(aprovado|entregue)$/.test((window.VIDEO_STATUS || {})[v.id] || "");
   };
   // em que pé está: o status (no centro do player) e uma linha embaixo
   const statusDe = (v) => {
+    if (SEM_VIDEOS) return { t: "Em breve", n: "Os filmes chegam ao site em breve" };
     if (!window.VIDEO_STATUS) return { t: "Carregando…", n: "" };
     const st = window.VIDEO_STATUS[v.id] || "";
     if (/offline com o cliente|v2 com o cliente/.test(st)) return aprovou(v.id, "v2") ? { t: "Indo para som, cor e finalização", n: "Offline aprovado pela Equipe Bradesco" } : { t: "Aguardando aprovação", n: "Offline com a Equipe Bradesco" };

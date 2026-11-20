@@ -629,3 +629,8 @@ p, li, dd, dt, small, em, .pe-title, .pe-note, .vi-title, .about-text, .p-text, 
   .panel-grip { display: none; }
   .scrim { background: rgba(43, 35, 64, .1); }
 }
+
+/* site só com o mapa (pacote provisório): sem "Assistir ao documentário"; "Explorar o mapa" vira o botão principal */
+.sem-videos #watch-doc { display: none; }
+.sem-videos #enter-map { background: var(--purple); color: var(--white); box-shadow: none; }
+.sem-videos #enter-map:hover { background: var(--purple-ink); }
